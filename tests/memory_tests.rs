@@ -11,4 +11,16 @@ fn store_and_load() {
   assert_eq!(stored, loaded);
 }
 
-
+#[test]
+fn store_and_load_errors_when_address_out_of_bounds() {
+  let mut mem = Memory::new();
+  match mem.store(0xffffff, 0xb) {
+    Err(_) => {
+      // we want an error to be thrown!
+      assert!(true);
+    }
+    _ => {
+      assert!(false);
+    }
+  };
+}
