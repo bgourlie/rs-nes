@@ -14,7 +14,7 @@ impl Memory {
       Err("memory address out of bounds")
     } else {
       self.addr[addr] = data;
-      Ok(()) // TODO: There must be a cleaner way of doing this
+      Ok(()) 
     }
   }
 
