@@ -1,6 +1,4 @@
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Error;
+use std::fmt::{Display, Formatter, Error};
 use memory::Memory;
 
 struct Cpu6502 {
