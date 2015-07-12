@@ -1,16 +1,24 @@
 // NES MEMORY MAP
-// http://wiki.nesdev.com/w/index.php/Sample_RAM_map
+// http://emudocs.org/NES/nestech.txt
 //
-// Address      Size    Description
-// ---------------------------------
-// $0000-$07FF	$0800	2KB internal RAM
-// $0800-$0FFF	$0800	Mirrors of $0000-$07FF
-// $1000-$17FF	$0800
-// $1800-$1FFF	$0800
-// $2000-$2007	$0008	NES PPU registers
-// $2008-$3FFF	$1FF8	Mirrors of $2000-2007 (repeats every 8 bytes)
-// $4000-$401F	$0020	NES APU and I/O registers
-// $4020-$FFFF	$BFE0	Cartridge space: PRG ROM, PRG RAM, and mapper registers (See Note)
+// +---------+-------+-------+-----------------------+
+// | Address | Size  | Flags | Description           |
+// +---------+-------+-------+-----------------------+
+// | $0000   | $800  |       | RAM                   |
+// | $0800   | $800  | M     | RAM                   |
+// | $1000   | $800  | M     | RAM                   |
+// | $1800   | $800  | M     | RAM                   |
+// | $2000   | 8     |       | Registers             |
+// | $2008   | $1FF8 |  R    | Registers             |
+// | $4000   | $20   |       | Registers             |
+// | $4020   | $1FDF |       | Expansion ROM         |
+// | $6000   | $2000 |       | SRAM                  |
+// | $8000   | $4000 |       | PRG-ROM               |
+// | $C000   | $4000 |       | PRG-ROM               |
+// +---------+-------+-------+-----------------------+
+//        Flag Legend: M = Mirror of $0000
+//                     R = Mirror of $2000-2008 every 8 bytes
+//                         (e.g. $2008=$2000, $2018=$2000, etc.)
 
 const ADDRESSABLE_MEMORY: usize = 0xFFFF;
 
