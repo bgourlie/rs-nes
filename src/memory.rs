@@ -26,6 +26,7 @@ pub struct Memory {
   addr:[u8; ADDRESSABLE_MEMORY]
 }
 
+#[derive(Debug)]
 pub enum MemoryError {
   AddressOutOfBounds,
   WriteToMirror,
@@ -59,15 +60,15 @@ impl Memory {
       0x6000 ... 0x7FFF => {
         // sram
         self.addr[addr] = data;
-        Ok(()
+        Ok(())
       },
       _ => Err(MemoryError::AddressOutOfBounds)
     }
   }
 
-  pub fn load(&mut self, addr: usize) -> Result<u8, &'static str> {
+  pub fn load(&mut self, addr: usize) -> Result<u8, MemoryError> {
     if addr > ADDRESSABLE_MEMORY {
-      Err("memory address out of bounds")
+      Err(MemoryError::AddressOutOfBounds)
     } else {
       Ok(self.addr[addr])
     }
