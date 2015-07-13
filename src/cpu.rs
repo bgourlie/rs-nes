@@ -1,4 +1,3 @@
-use std::fmt::{Display, Formatter, Error};
 use memory::Memory;
 
 const FL_CARRY: u8 = 1 << 0;
@@ -113,13 +112,5 @@ impl Cpu6502 {
         panic!("not implemented");
       }
     }
-  }
-}
-
-impl Display for Cpu6502 {
-  fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-    write!(formatter, "{}|{}|{}|{}|{}|{}",
-        self.registers.pc, self.registers.sp, self.registers.acc,
-        self.registers.irx, self.registers.iry, self.registers.stat)
   }
 }
