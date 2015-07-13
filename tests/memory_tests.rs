@@ -50,3 +50,12 @@ fn store_out_of_bounds_address_returns_error() {
     _ => assert!(false)
   };
 }
+
+#[test]
+fn load_out_of_bounds_address_returns_error() {
+  let mut mem = Memory::new();
+  match mem.load(0xffffff) {
+    Err(MemoryError::AddressOutOfBounds) => { /* expected */ },
+    _ => assert!(false)
+  };
+}
