@@ -3,7 +3,7 @@ extern crate rs_nes;
 use rs_nes::memory::{Memory, MemoryError};
 
 #[test]
-fn store_and_load_smoke_test() {
+fn store_and_load_from_ram_succeeds() {
   let mut mem = Memory::new();
   let stored = 0xB;
   let _ = mem.store(0x0, stored);
@@ -25,7 +25,7 @@ fn ram_should_be_mirrored() {
 }
 
 #[test]
-fn write_to_mirrored_ram_returns_error() {
+fn write_to_mirrored_ram_should_error() {
   let mut mem = Memory::new();
   match mem.store(0x1000, 0x0) {
     Err(MemoryError::WriteToMirror) => { /* expected */ },
@@ -34,7 +34,7 @@ fn write_to_mirrored_ram_returns_error() {
 }
 
 #[test]
-fn write_to_rom_returns_error() {
+fn store_to_rom_should_error() {
   let mut mem = Memory::new();
   match mem.store(0x8000, 0x0) {
     Err(MemoryError::WriteToROM) => { /* expected */ },
@@ -43,7 +43,7 @@ fn write_to_rom_returns_error() {
 }
 
 #[test]
-fn out_of_bounds_address_returns_error() {
+fn store_out_of_bounds_address_returns_error() {
   let mut mem = Memory::new();
   match mem.store(0xffffff, 0xb) {
     Err(MemoryError::AddressOutOfBounds) => { /* expected */ },
