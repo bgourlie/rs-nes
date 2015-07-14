@@ -100,6 +100,9 @@ impl Cpu6502 {
 
         // Set the overflow flag when both operands have the same sign bit AND
         // the sign bit of the result differs from the two.
+        
+        // A good explanation can be found here:
+        // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
         let has_overflow = (arg ^ res) & (acc ^ res) & 0x80 == 0;
         self.registers.set_flag(FL_OVERFLOW, has_overflow);
 
