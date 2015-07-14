@@ -100,11 +100,8 @@ impl Cpu6502 {
 
         // Set the overflow flag when both operands have the same sign bit AND
         // the sign bit of the result differs from the two.
-        //
-        // This is a clever way of determining whether or not the result overflows
-        // 8-bits and works with both signed and unsigned values.
-        self.registers.set_flag(FL_OVERFLOW, (acc ^ arg) & 0x80 == 0
-            && (acc ^ res) & 0x80 == 0x80);
+        let has_overflow = (arg ^ res) & (acc ^ res) & 0x80 == 0;
+        self.registers.set_flag(FL_OVERFLOW, has_overflow);
 
         // TODO: Set remaining flags
       },
