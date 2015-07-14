@@ -78,7 +78,7 @@ impl Registers {
 }
 
 impl Cpu6502 {
- pub fn new() -> Cpu6502 {
+  pub fn new() -> Cpu6502 {
     Cpu6502 {
       registers: Registers::new(),
       memory: Memory::new()
@@ -105,9 +105,7 @@ impl Cpu6502 {
 
         // TODO: Set remaining flags
       },
-      _ => {
-        panic!("not implemented");
-      }
+      _ => { panic!("not implemented"); }
     }
   }
 }
