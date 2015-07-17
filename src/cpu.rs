@@ -1,11 +1,11 @@
 use memory::Memory;
 
-const FL_CARRY: u8 = 1 << 0;
-const FL_STATUS: u8 = 1 << 1;
-const FL_INTERRUPT_DISABLE: u8 = 1 << 2;
-const FL_BRK: u8 = 1 << 4;
-const FL_OVERFLOW: u8 = 1 << 6;
-const FL_SIGN: u8 = 1 << 7;
+pub const FL_CARRY: u8 = 1 << 0;
+pub const FL_ZERO: u8 = 1 << 1;
+pub const FL_INTERRUPT_DISABLE: u8 = 1 << 2;
+pub const FL_BRK: u8 = 1 << 4;
+pub const FL_OVERFLOW: u8 = 1 << 6;
+pub const FL_SIGN: u8 = 1 << 7;
 
 // Graciously taken from https://github.com/pcwalton/sprocketnes
 static CYCLE_TABLE: [u8; 256] = [
@@ -28,17 +28,17 @@ static CYCLE_TABLE: [u8; 256] = [
 ];
 
 pub struct Cpu6502 {
-  registers: Registers,
+  pub registers: Registers,
   memory: Memory
 }
 
 pub struct Registers {
-  pc: u16, // Program Counter
-  sp: u8, // Stack Pointer
-  acc: u8, // Accumulator
-  irx: u8, // Index Register X
-  iry: u8, // Index Register Y
-  stat: u8 // Processor Status Flags
+  pub pc: u16, // Program Counter
+  pub sp: u8, // Stack Pointer
+  pub acc: u8, // Accumulator
+  pub irx: u8, // Index Register X
+  pub iry: u8, // Index Register Y
+  pub stat: u8 // Processor Status Flags
 }
 
 pub enum AddressingMode {
@@ -64,7 +64,7 @@ impl Registers {
     }
   }
 
-  fn get_flag(&self, mask: u8) -> bool {
+  pub fn get_flag(&self, mask: u8) -> bool {
     self.stat & mask != 0
   }
 
@@ -85,30 +85,23 @@ impl Cpu6502 {
     }
   }
 
-  pub fn adc(&mut self, arg: u8, mode: AddressingMode) {
-    match mode {
-      AddressingMode::Immediate => {
-        // Cheaply determine carry flag by casting the values to the native
-        // word size and checking if the result carries over to the 9th bit.
-        let res = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 }
-            + self.registers.acc as usize + arg as usize;
+  pub fn adc(&mut self, lop: u8, rop: u8) {
+    // do the add using the native word size
+    let res = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 }
+        + lop as usize + rop as usize;
 
-        self.registers.set_flag(FL_CARRY, res & 0x100 != 0);
+    // if the operation carries into the 8th bit, carry flag will be 1, 
+    // and zero othersize.
+    self.registers.set_flag(FL_CARRY, res & 0x100 != 0);
 
-        let res = res as u8;
-        let acc = self.registers.acc;
+    let res = res as u8;
 
-        // Set the overflow flag when both operands have the same sign bit AND
-        // the sign bit of the result differs from the two.
-        
-        // A good explanation can be found here:
-        // http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-        let has_overflow = (arg ^ res) & (acc ^ res) & 0x80 == 0;
-        self.registers.set_flag(FL_OVERFLOW, has_overflow);
-
-        // TODO: Set remaining flags
-      },
-      _ => { panic!("not implemented"); }
-    }
+    // Set the overflow flag when both operands have the same sign bit AND
+    // the sign bit of the result differs from the two.
+    // See: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+    let has_overflow = (lop ^ res) & (rop ^ res) & 0x80 == 0;
+    self.registers.set_flag(FL_OVERFLOW, has_overflow);
+    self.registers.set_flag(FL_SIGN, res & 0x80 != 0);
+    self.registers.acc = res;
   }
 }
