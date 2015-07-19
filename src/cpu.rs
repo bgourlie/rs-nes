@@ -91,7 +91,9 @@ impl Cpu6502 {
     }
   }
 
-  pub fn adc(&mut self, lop: u8, rop: u8) {
+  pub fn adc(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+
     // add using the native word size
     let res = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 }
         + lop as usize + rop as usize;
@@ -112,8 +114,13 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
-  pub fn and(&mut self, lop: u8, rop:u8) {
+  pub fn and(&mut self, rop:u8) {
+    let lop = self.registers.acc;
     let res = lop & rop;
     self.registers.set_acc(res);
+  }
+
+  pub fn lda(&mut self, val: u8) {
+    self.registers.set_acc(val);
   }
 }

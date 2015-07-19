@@ -20,7 +20,8 @@ fn adc_flags_sign_and_zero_1() {
   assert_eq!(0, lop as i8);
   assert_eq!(0, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_ZERO));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_SIGN));
   assert_eq!(0x0, cpu.registers.acc);
@@ -44,7 +45,8 @@ fn adc_flags_sign_and_zero_2() {
   assert_eq!(0, lop as i8);
   assert_eq!(1, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_ZERO));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_SIGN));
   assert_eq!(0x1, cpu.registers.acc);
@@ -68,7 +70,8 @@ fn adc_flags_sign_and_zero_3() {
   assert_eq!(0, lop as i8);
   assert_eq!(-1, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_ZERO));
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_SIGN));
   assert_eq!(0xff, cpu.registers.acc);
@@ -101,7 +104,8 @@ fn adc_flags_carry_and_overflow_1() {
   assert_eq!(80, lop as i8);
   assert_eq!(16, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0x60, cpu.registers.acc);
@@ -125,7 +129,8 @@ fn adc_flags_carry_and_overflow_2() {
   assert_eq!(80, lop as i8);
   assert_eq!(80, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0xa0, cpu.registers.acc);
@@ -149,7 +154,8 @@ fn adc_flags_carry_and_overflow_3() {
   assert_eq!(80, lop as i8);
   assert_eq!(-112, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0xe0, cpu.registers.acc);
@@ -173,7 +179,8 @@ fn adc_flags_carry_and_overflow_4() {
   assert_eq!(80, lop as i8);
   assert_eq!(-48, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0x20, cpu.registers.acc);
@@ -197,7 +204,8 @@ fn adc_flags_carry_and_overflow_5() {
   assert_eq!(-48, lop as i8);
   assert_eq!(16, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0xe0, cpu.registers.acc);
@@ -221,7 +229,8 @@ fn adc_flags_carry_and_overflow_6() {
   assert_eq!(-48, lop as i8);
   assert_eq!(80, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0x20, cpu.registers.acc);
@@ -245,7 +254,8 @@ fn adc_flags_carry_and_overflow_7() {
   assert_eq!(-48, lop as i8);
   assert_eq!(-112, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0x60, cpu.registers.acc);
@@ -269,7 +279,8 @@ fn adc_flags_carry_and_overflow_8() {
   assert_eq!(-48, lop as i8);
   assert_eq!(-48, rop as i8);
 
-  cpu.adc(lop, rop);
+  cpu.lda(lop);
+  cpu.adc(rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
   assert_eq!(0xa0, cpu.registers.acc);
