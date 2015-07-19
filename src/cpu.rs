@@ -86,22 +86,26 @@ impl Cpu6502 {
   }
 
   pub fn adc(&mut self, lop: u8, rop: u8) {
-    // do the add using the native word size
+    // add using the native word size
     let res = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 }
         + lop as usize + rop as usize;
 
     // if the operation carries into the 8th bit, carry flag will be 1, 
     // and zero othersize.
-    self.registers.set_flag(FL_CARRY, res & 0x100 != 0);
+    let has_carry = res & 0x100 != 0;
 
     let res = res as u8;
 
     // Set the overflow flag when both operands have the same sign bit AND
     // the sign bit of the result differs from the two.
     // See: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-    let has_overflow = (lop ^ res) & (rop ^ res) & 0x80 == 0;
+    let has_overflow = (lop ^ rop) & 0x80 == 0 && (lop ^ res) & 0x80 != 0;
+
+    let is_negative = if !has_overflow { res & 0x80 != 0 } else { res & 0x80 == 0 };
+    self.registers.set_flag(FL_CARRY, has_carry);
     self.registers.set_flag(FL_OVERFLOW, has_overflow);
-    self.registers.set_flag(FL_SIGN, res & 0x80 != 0);
+    self.registers.set_flag(FL_SIGN, is_negative);
+    self.registers.set_flag(FL_ZERO, res == 0);
     self.registers.acc = res;
   }
 }
