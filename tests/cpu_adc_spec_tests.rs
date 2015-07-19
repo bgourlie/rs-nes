@@ -248,8 +248,6 @@ fn adc_flags_carry_and_overflow_7() {
   cpu.adc(lop, rop);
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_CARRY));
   assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_OVERFLOW));
-  assert_eq!(false, cpu.registers.get_flag(rs_nes::cpu::FL_ZERO));
-  assert_eq!(true, cpu.registers.get_flag(rs_nes::cpu::FL_SIGN));
   assert_eq!(0x60, cpu.registers.acc);
 
   // decimal values sanity check

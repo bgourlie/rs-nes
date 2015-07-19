@@ -75,6 +75,12 @@ impl Registers {
       self.stat &= !mask;
     }
   }
+
+  fn set_acc(&mut self, res: u8) {
+    self.set_flag(FL_SIGN, res & 0x80 != 0);
+    self.set_flag(FL_ZERO, res == 0);
+    self.acc = res;
+  }
 }
 
 impl Cpu6502 {
@@ -101,11 +107,13 @@ impl Cpu6502 {
     // See: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     let has_overflow = (lop ^ rop) & 0x80 == 0 && (lop ^ res) & 0x80 != 0;
 
-    let is_negative = if !has_overflow { res & 0x80 != 0 } else { res & 0x80 == 0 };
     self.registers.set_flag(FL_CARRY, has_carry);
     self.registers.set_flag(FL_OVERFLOW, has_overflow);
-    self.registers.set_flag(FL_SIGN, is_negative);
-    self.registers.set_flag(FL_ZERO, res == 0);
-    self.registers.acc = res;
+    self.registers.set_acc(res);
+  }
+
+  pub fn and(&mut self, lop: u8, rop:u8) {
+    let res = lop & rop;
+    self.registers.set_acc(res);
   }
 }
