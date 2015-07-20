@@ -68,7 +68,7 @@ impl Registers {
     self.stat & mask != 0
   }
 
-  fn set_flag(&mut self, mask: u8, val: bool) {
+  pub fn set_flag(&mut self, mask: u8, val: bool) {
     if val {
       self.stat |= mask;
     } else {
@@ -81,7 +81,17 @@ impl Registers {
     self.set_flag(FL_ZERO, res == 0);
     self.acc = res;
   }
+
+  fn page_boundary_crossed(&self, old_pc: u16) -> bool {
+    old_pc & 0xFF00 != self.pc & 0xFF00
+  }
 }
+
+/// ## Implementation of the 6502 instruction set
+///
+/// Any instruction that consumes additional cycles under certain conditions
+/// will return the number of conditional cycles.  To reiterate, this will 
+/// not include cycles that can be determined simply by decoding the instruction.
 
 impl Cpu6502 {
   pub fn new() -> Cpu6502 {
@@ -114,13 +124,32 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
-  pub fn and(&mut self, rop:u8) {
+  pub fn and(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop & rop;
     self.registers.set_acc(res);
   }
 
+  pub fn asl(&mut self) {
+    let acc = self.registers.acc;
+    self.registers.set_flag(FL_CARRY, acc & 0x80 != 0);
+    self.registers.set_acc(acc << 1);
+  }
+
   pub fn lda(&mut self, val: u8) {
     self.registers.set_acc(val);
+  }
+
+  fn branch(&mut self, condition: bool, rel_addr: i8) -> u8 {
+    if condition {
+      let old_pc = self.registers.pc;
+      self.registers.pc = (self.registers.pc as i32 + rel_addr as i32) as u16;
+      if self.registers.page_boundary_crossed(old_pc) { 2 } else { 1 }
+    } else { 0 }
+  }
+
+  pub fn bcc(&mut self, rel_addr: i8) -> u8 {
+    let carry_clear = !self.registers.get_flag(FL_CARRY);
+    self.branch(carry_clear, rel_addr)
   }
 }
