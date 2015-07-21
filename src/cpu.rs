@@ -8,7 +8,7 @@ pub const FL_OVERFLOW: u8 = 1 << 6;
 pub const FL_SIGN: u8 = 1 << 7;
 
 // Graciously taken from https://github.com/pcwalton/sprocketnes
-static CYCLE_TABLE: [u8; 256] = [
+const CYCLE_TABLE: [u8; 256] = [
   /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
   /*0x10*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
   /*0x20*/ 6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6,
@@ -151,5 +151,40 @@ impl Cpu6502 {
   pub fn bcc(&mut self, rel_addr: i8) -> u8 {
     let carry_clear = !self.registers.get_flag(FL_CARRY);
     self.branch(carry_clear, rel_addr)
+  }
+
+  pub fn bcs(&mut self, rel_addr: i8) -> u8 {
+    let carry_set = self.registers.get_flag(FL_CARRY);
+    self.branch(carry_set, rel_addr)
+  }
+
+  pub fn beq(&mut self, rel_addr: i8) -> u8 {
+    let zero_set = self.registers.get_flag(FL_ZERO);
+    self.branch(zero_set, rel_addr)
+  }
+
+  pub fn bmi(&mut self, rel_addr: i8) -> u8 {
+    let sign_set = self.registers.get_flag(FL_SIGN);
+    self.branch(sign_set, rel_addr)
+  }
+
+  pub fn bne(&mut self, rel_addr: i8) -> u8 {
+    let zero_clear = !self.registers.get_flag(FL_ZERO);
+    self.branch(zero_clear, rel_addr)
+  }
+
+  pub fn bpl(&mut self, rel_addr: i8) -> u8 {
+    let sign_clear = !self.registers.get_flag(FL_SIGN);
+    self.branch(sign_clear, rel_addr)
+  }
+
+  pub fn bvc(&mut self, rel_addr: i8) -> u8 {
+    let overflow_clear = !self.registers.get_flag(FL_OVERFLOW);
+    self.branch(overflow_clear, rel_addr)
+  }
+
+  pub fn bvs(&mut self, rel_addr: i8) -> u8 {
+    let overflow_set = self.registers.get_flag(FL_OVERFLOW);
+    self.branch(overflow_set, rel_addr)
   }
 }
