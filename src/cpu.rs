@@ -140,6 +140,8 @@ impl Cpu6502 {
     self.registers.set_acc(val);
   }
 
+  /// ##  Branching instructions
+
   fn branch(&mut self, condition: bool, rel_addr: i8) -> u8 {
     if condition {
       let old_pc = self.registers.pc;
@@ -187,4 +189,15 @@ impl Cpu6502 {
     let overflow_set = self.registers.get_flag(FL_OVERFLOW);
     self.branch(overflow_set, rel_addr)
   }
+
+  /// Status setters
+
+  pub fn sec(&mut self) {
+    self.registers.set_flag(FL_CARRY, true);
+  }
+
+  pub fn sei(&mut self) {
+    self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
+  }
 }
+
