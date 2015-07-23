@@ -26,13 +26,6 @@ pub struct Memory {
   addr:[u8; ADDRESSABLE_MEMORY]
 }
 
-#[derive(Debug)]
-pub enum MemoryError {
-  AddressOutOfBounds,
-  WriteToMirror,
-  WriteToROM
-}
-
 impl Memory {
   pub fn new() -> Memory {
     Memory {
@@ -40,7 +33,8 @@ impl Memory {
     }
   }
 
-  pub fn store(&mut self, addr: usize, data: u8) -> Result<(), MemoryError> {
+  pub fn store(&mut self, addr: u16, data: u8) {
+    let addr = addr as usize;
     match addr {
       0x0 ... 0x7FF => {
         // mirrored ram
@@ -48,29 +42,26 @@ impl Memory {
         self.addr[addr + 0x800] = data;
         self.addr[addr + 0x1000] = data;
         self.addr[addr + 0x1800] = data;
-        Ok(())
       },
-      0x800 ... 0x1FFF => Err(MemoryError::WriteToMirror),
+      0x800 ... 0x1FFF => panic!("write to mirrored memory"),
       0x2000 ... 0x401F => {
         // registers
         self.addr[addr] = data;
-        Ok(())
       },
-      0x4020 ... 0x5FFF | 0x8000 ... 0xEFFF => Err(MemoryError::WriteToROM),
+      0x4020 ... 0x5FFF | 0x8000 ... 0xEFFF => panic!("write to rom"),
       0x6000 ... 0x7FFF => {
         // sram
         self.addr[addr] = data;
-        Ok(())
       },
-      _ => Err(MemoryError::AddressOutOfBounds)
+      _ => panic!("memory access out of bounds")
     }
   }
 
-  pub fn load(&mut self, addr: usize) -> Result<u8, MemoryError> {
+  pub fn load(&mut self, addr: usize) -> u8 {
     if addr > ADDRESSABLE_MEMORY {
-      Err(MemoryError::AddressOutOfBounds)
+      panic!("memory access out of bounds")
     } else {
-      Ok(self.addr[addr])
+      self.addr[addr]
     }
   }
 }

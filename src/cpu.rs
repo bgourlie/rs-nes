@@ -199,5 +199,18 @@ impl Cpu6502 {
   pub fn sei(&mut self) {
     self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
   }
-}
 
+  /// ## Stores (todo: tests)
+  
+  pub fn sta(&mut self, addr: u16) {
+    self.memory.store(addr, self.registers.acc);
+  }
+
+  pub fn stx(&mut self, addr: u16) {
+    self.memory.store(addr, self.registers.irx);
+  }
+
+  pub fn sty(&mut self, addr: u16) {
+    self.memory.store(addr, self.registers.iry);
+  }
+}
