@@ -9,3 +9,11 @@ fn sec_test() {
   cpu.sec();
   assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
 }
+
+#[test]
+fn sei_test() {
+  let mut cpu = Cpu6502::new();
+  cpu.registers.set_flag(FL_INTERRUPT_DISABLE, false);
+  cpu.sei();
+  assert_eq!(true, cpu.registers.get_flag(FL_INTERRUPT_DISABLE));
+}

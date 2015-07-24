@@ -29,7 +29,7 @@ const CYCLE_TABLE: [u8; 256] = [
 
 pub struct Cpu6502 {
   pub registers: Registers,
-  memory: Memory
+  pub memory: Memory
 }
 
 pub struct Registers {
@@ -200,7 +200,7 @@ impl Cpu6502 {
     self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
   }
 
-  /// ## Stores (todo: tests)
+  /// ## Stores
   
   pub fn sta(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.acc);
