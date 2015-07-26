@@ -137,7 +137,6 @@ fn adc_flags_carry_and_overflow_2() {
 
   // decimal values sanity check
   assert_eq!(160, cpu.registers.acc);
-  assert_eq!(160, cpu.registers.acc as i8);
 }
 
 #[test]
