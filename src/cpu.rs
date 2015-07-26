@@ -124,12 +124,6 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
-  pub fn and(&mut self, rop: u8) {
-    let lop = self.registers.acc;
-    let res = lop & rop;
-    self.registers.set_acc(res);
-  }
-
   pub fn asl(&mut self) {
     let acc = self.registers.acc;
     self.registers.set_flag(FL_CARRY, acc & 0x80 != 0);
@@ -212,5 +206,33 @@ impl Cpu6502 {
 
   pub fn sty(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.iry);
+  }
+
+  /// ## Logical (todo: tests)
+
+  pub fn and(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+    let res = lop & rop;
+    self.registers.set_acc(res);
+  }
+
+  pub fn eor(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+    let res = lop ^ rop;
+    self.registers.set_acc(res);
+  }
+
+  pub fn ora(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+    let res = lop | rop;
+    self.registers.set_acc(res);
+  }
+
+  pub fn bit(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+    let res = lop & rop;
+    self.registers.set_flag(FL_SIGN, res & 0x80 != 0);
+    self.registers.set_flag(FL_OVERFLOW, res & 0x40 != 0);
+    self.registers.set_flag(FL_ZERO, res == 0);
   }
 }
