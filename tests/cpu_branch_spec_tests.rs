@@ -9,15 +9,15 @@ fn branch_not_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
 
   let mut cpu = Cpu6502::new();
 
-  const pc_start: u16 = 0xaa88;
-  const rel_addr: i8 = 0x5;
+  const PC_START: u16 = 0xaa88;
+  const REL_ADDR: i8 = 0x5;
 
   // decimal values sanity check
-  assert_eq!(43656, pc_start);
-  assert_eq!(5, rel_addr);
+  assert_eq!(43656, PC_START);
+  assert_eq!(5, REL_ADDR);
 
-  cpu.registers.pc = pc_start;
-  let cycles = setup_and_branch(&mut cpu, rel_addr);
+  cpu.registers.pc = PC_START;
+  let cycles = setup_and_branch(&mut cpu, REL_ADDR);
 
   assert_eq!(1, cycles);
   assert_eq!(0xaa8d, cpu.registers.pc);
@@ -31,16 +31,16 @@ fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
 
   let mut cpu = Cpu6502::new();
 
-  const pc_start: u16 = 0xaa88;
-  const rel_addr: i8 = 0xffff;
+  const PC_START: u16 = 0xaa88;
+  const REL_ADDR: i8 = 0xffff;
 
   // decimal values sanity check
-  assert_eq!(43656, pc_start);
-  assert_eq!(-1, rel_addr);
+  assert_eq!(43656, PC_START);
+  assert_eq!(-1, REL_ADDR);
 
-  cpu.registers.pc = pc_start;
+  cpu.registers.pc = PC_START;
 
-  let cycles = setup_and_branch(&mut cpu, rel_addr);
+  let cycles = setup_and_branch(&mut cpu, REL_ADDR);
 
   assert_eq!(1, cycles);
   assert_eq!(0xaa87, cpu.registers.pc);
@@ -54,16 +54,16 @@ fn branch_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
 
   let mut cpu = Cpu6502::new();
 
-  const pc_start: u16 = 0xaa88;
-  const rel_addr: i8 = 0x7f;
+  const PC_START: u16 = 0xaa88;
+  const REL_ADDR: i8 = 0x7f;
 
   // decimal values sanity check
-  assert_eq!(43656, pc_start);
-  assert_eq!(127, rel_addr);
+  assert_eq!(43656, PC_START);
+  assert_eq!(127, REL_ADDR);
 
-  cpu.registers.pc = pc_start;
+  cpu.registers.pc = PC_START;
 
-  let cycles = setup_and_branch(&mut cpu, rel_addr);
+  let cycles = setup_and_branch(&mut cpu, REL_ADDR);
 
   assert_eq!(2, cycles);
   assert_eq!(0xab07, cpu.registers.pc);
@@ -77,16 +77,16 @@ fn branch_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
 
   let mut cpu = Cpu6502::new();
 
-  const pc_start: u16 = 0xaa00;
-  const rel_addr: i8 = 0x80;
+  const PC_START: u16 = 0xaa00;
+  const REL_ADDR: i8 = 0x80;
 
   // decimal values sanity check
-  assert_eq!(43520, pc_start);
-  assert_eq!(-128, rel_addr);
+  assert_eq!(43520, PC_START);
+  assert_eq!(-128, REL_ADDR);
 
-  cpu.registers.pc = pc_start;
+  cpu.registers.pc = PC_START;
 
-  let cycles = setup_and_branch(&mut cpu, rel_addr);
+  let cycles = setup_and_branch(&mut cpu, REL_ADDR);
 
   assert_eq!(0xa980, cpu.registers.pc);
   assert_eq!(2, cycles);
