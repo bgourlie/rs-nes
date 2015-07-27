@@ -3,6 +3,8 @@ sudo: false
 rust:
   - stable
   - beta
+cache:
+  apt: true
 addons: 
   apt: 
     packages:
