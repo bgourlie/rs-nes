@@ -101,6 +101,52 @@ impl Cpu6502 {
     }
   }
 
+  /// ## Register Transfers
+
+  pub fn tax(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn tay(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn txa(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn tya(&mut self) {
+    panic!("unimplemented");
+  }
+
+  /// ## Stack Operations
+
+  pub fn tsx(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn txs(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn pha(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn php(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn pla(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn plp(&mut self) {
+    panic!("unimplemented");
+  }
+
+  /// ## Arithmetic
+
   pub fn adc(&mut self, rop: u8) {
     let lop = self.registers.acc;
 
@@ -108,7 +154,7 @@ impl Cpu6502 {
     let res = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 }
         + lop as usize + rop as usize;
 
-    // if the operation carries into the 8th bit, carry flag will be 1, 
+    // if the operation carries into the 8th bit, carry flag will be 1,
     // and zero othersize.
     let has_carry = res & 0x100 != 0;
 
@@ -124,17 +170,83 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
+  pub fn sbc(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn cmp(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn cpx(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn cpy(&mut self) {
+    panic!("unimplemented");
+  }
+
+  /// ## Increments and Decrements
+
+  pub fn inc(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn inx(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn iny(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn dec(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn dex(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn dey(&mut self) {
+    panic!("unimplemented");
+  }
+
+  /// ## Shifts
+
   pub fn asl(&mut self) {
     let acc = self.registers.acc;
     self.registers.set_flag(FL_CARRY, acc & 0x80 != 0);
     self.registers.set_acc(acc << 1);
   }
 
-  pub fn lda(&mut self, val: u8) {
-    self.registers.set_acc(val);
+  pub fn lsr(&mut self) {
+    panic!("unimplmented");
   }
 
-  /// ##  Branching instructions
+  pub fn rol(&mut self) {
+    panic!("unimplmented");
+  }
+
+  pub fn ror(&mut self) {
+    panic!("unimplmented");
+  }
+
+  /// ## Jumps and Calls
+
+  pub fn jmp(&mut self) {
+    panic!("unimplmented");
+  }
+
+  pub fn jsr(&mut self) {
+    panic!("unimplmented");
+  }
+
+  pub fn rts(&mut self) {
+    panic!("unimplmented");
+  }
+
+  /// ##  Branches
 
   fn branch(&mut self, condition: bool, rel_addr: i8) -> u8 {
     if condition {
@@ -184,18 +296,50 @@ impl Cpu6502 {
     self.branch(overflow_set, rel_addr)
   }
 
-  /// Status setters
+  /// Status Flag Changes
+
+  pub fn clc(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn cld(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn cli(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn clv(&mut self) {
+    panic!("unimplemented");
+  }
 
   pub fn sec(&mut self) {
     self.registers.set_flag(FL_CARRY, true);
+  }
+
+  pub fn sed(&mut self) {
+    panic!("unimplemented");
   }
 
   pub fn sei(&mut self) {
     self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
   }
 
-  /// ## Stores
-  
+  /// ## Load/Store Operations
+
+  pub fn lda(&mut self, val: u8) {
+    self.registers.set_acc(val);
+  }
+
+  pub fn ldx(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn ldy(&mut self) {
+    panic!("unimplemented");
+  }
+
   pub fn sta(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.acc);
   }
@@ -234,5 +378,19 @@ impl Cpu6502 {
     self.registers.set_flag(FL_SIGN, res & 0x80 != 0);
     self.registers.set_flag(FL_OVERFLOW, res & 0x40 != 0);
     self.registers.set_flag(FL_ZERO, res == 0);
+  }
+
+  /// ## System Functions
+
+  pub fn brk(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn nop(&mut self) {
+    panic!("unimplemented");
+  }
+
+  pub fn rti(&mut self) {
+    panic!("unimplemented");
   }
 }
