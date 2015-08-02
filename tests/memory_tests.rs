@@ -37,17 +37,3 @@ fn store_to_rom_should_error() {
   let mut mem = Memory::new();
   mem.store(0x8000, 0x0);
 }
-
-#[test]
-#[should_panic(expected = "memory access out of bounds")]
-fn store_out_of_bounds_address_returns_error() {
-  let mut mem = Memory::new();
-  mem.store(0xffffff, 0xb);
-}
-
-#[test]
-#[should_panic(expected = "memory access out of bounds")]
-fn load_out_of_bounds_address_returns_error() {
-  let mut mem = Memory::new();
-  mem.load(0xffffff);
-}

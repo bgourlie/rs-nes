@@ -57,12 +57,23 @@ impl Memory {
     }
   }
 
-  pub fn load(&mut self, addr: usize) -> u8 {
-    if addr > ADDRESSABLE_MEMORY {
-      panic!("memory access out of bounds")
-    } else {
-      self.addr[addr]
-    }
+  pub fn load(&mut self, addr: u16) -> u8 {
+    let addr = addr as usize;
+    self.addr[addr]
+  }
+
+  // probably a premature optimization, but we implement inc and dec here so
+  // that we can alter the values in place.
+  pub fn inc(&mut self, addr: u16) -> u8 {
+    let addr = addr as usize;
+    self.addr[addr] += 1;
+    self.addr[addr]
+  }
+
+  pub fn dec(&mut self, addr: u16) -> u8 {
+    let addr = addr as usize;
+    self.addr[addr] -= 1;
+    self.addr[addr]
   }
 }
 

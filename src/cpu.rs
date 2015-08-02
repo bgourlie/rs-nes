@@ -56,7 +56,9 @@ impl Registers {
   fn new() -> Registers {
     Registers {
       pc: 0,
-      sp: 0,
+      // http://www.pagetable.com/?p=410 explains why the stack pointer has
+      // an initial value of 0xfd.
+      sp: 0xfd,
       acc: 0,
       irx: 0,
       iry: 0,
@@ -76,9 +78,13 @@ impl Registers {
     }
   }
 
+  fn set_sign_and_zero_flag(&mut self, val: u8) {
+    self.set_flag(FL_SIGN, val & 0x80 != 0);
+    self.set_flag(FL_ZERO, val == 0);
+  }
+
   fn set_acc(&mut self, res: u8) {
-    self.set_flag(FL_SIGN, res & 0x80 != 0);
-    self.set_flag(FL_ZERO, res == 0);
+    self.set_sign_and_zero_flag(res);
     self.acc = res;
   }
 
@@ -86,12 +92,6 @@ impl Registers {
     old_pc & 0xFF00 != self.pc & 0xFF00
   }
 }
-
-/// ## Implementation of the 6502 instruction set
-///
-/// Any instruction that consumes additional cycles under certain conditions
-/// will return the number of conditional cycles.  To reiterate, this will 
-/// not include cycles that can be determined simply by decoding the instruction.
 
 impl Cpu6502 {
   pub fn new() -> Cpu6502 {
@@ -101,48 +101,84 @@ impl Cpu6502 {
     }
   }
 
-  /// ## Register Transfers
+  fn push_stack(&mut self, value: u8) {
+    if(self.registers.sp == 0) {
+      panic!("stack overflow");
+    }
+    self.memory.store(0x100 + self.registers.sp as u16, value);
+    self.registers.sp -= 1;
+  }
+
+  fn pop_stack(&mut self) -> u8 {
+    let val = self.memory.load(self.registers.sp as u16 + 1);
+    self.registers.sp += 1;
+    val
+  }
+
+  /// ## Implementation of the 6502 instruction set
+  ///
+  /// Any instruction that consumes additional cycles under certain conditions
+  /// will return the number of conditional cycles.  This will not include
+  /// cycles that can be determined simply by decoding the instruction.
+
+  /// ## Register Transfers (TODO: tests)
 
   pub fn tax(&mut self) {
-    panic!("unimplemented");
+    self.registers.irx = self.registers.acc;
+    let x = self.registers.irx;
+    self.registers.set_sign_and_zero_flag(x);
   }
 
   pub fn tay(&mut self) {
-    panic!("unimplemented");
+    self.registers.iry = self.registers.acc;
+    let y = self.registers.iry;
+    self.registers.set_sign_and_zero_flag(y);
   }
 
   pub fn txa(&mut self) {
-    panic!("unimplemented");
+    self.registers.acc = self.registers.irx;
+    let acc = self.registers.acc;
+    self.registers.set_sign_and_zero_flag(acc);
   }
 
   pub fn tya(&mut self) {
-    panic!("unimplemented");
+    self.registers.acc = self.registers.iry;
+    let acc = self.registers.acc;
+    self.registers.set_sign_and_zero_flag(acc);
   }
 
   /// ## Stack Operations
 
   pub fn tsx(&mut self) {
-    panic!("unimplemented");
+    self.registers.irx = self.registers.sp;
+    let x = self.registers.irx;
+    self.registers.set_sign_and_zero_flag(x);
   }
 
   pub fn txs(&mut self) {
-    panic!("unimplemented");
+    self.registers.sp = self.registers.irx;
+    let sp = self.registers.sp;
+    self.registers.set_sign_and_zero_flag(sp);
   }
 
   pub fn pha(&mut self) {
-    panic!("unimplemented");
+    let acc = self.registers.acc;
+    self.push_stack(acc);
   }
 
   pub fn php(&mut self) {
-    panic!("unimplemented");
+    let stat = self.registers.stat;
+    self.push_stack(stat);
   }
 
   pub fn pla(&mut self) {
-    panic!("unimplemented");
+    let val = self.pop_stack();
+    self.registers.set_acc(val);
   }
 
   pub fn plp(&mut self) {
-    panic!("unimplemented");
+    let val = self.pop_stack();
+    self.registers.stat = val;
   }
 
   /// ## Arithmetic
@@ -188,8 +224,9 @@ impl Cpu6502 {
 
   /// ## Increments and Decrements
 
-  pub fn inc(&mut self) {
-    panic!("unimplemented");
+  pub fn inc(&mut self, addr: u16) {
+    let val = self.memory.inc(addr);
+    self.registers.set_sign_and_zero_flag(val);
   }
 
   pub fn inx(&mut self) {
@@ -375,9 +412,8 @@ impl Cpu6502 {
   pub fn bit(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop & rop;
-    self.registers.set_flag(FL_SIGN, res & 0x80 != 0);
+    self.registers.set_sign_and_zero_flag(res);
     self.registers.set_flag(FL_OVERFLOW, res & 0x40 != 0);
-    self.registers.set_flag(FL_ZERO, res == 0);
   }
 
   /// ## System Functions
