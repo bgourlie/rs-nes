@@ -66,13 +66,13 @@ impl Memory {
   // that we can alter the values in place.
   pub fn inc(&mut self, addr: u16) -> u8 {
     let addr = addr as usize;
-    self.addr[addr] += 1;
+    self.addr[addr] = (self.addr[addr] as u16 + 1) as u8;
     self.addr[addr]
   }
 
   pub fn dec(&mut self, addr: u16) -> u8 {
     let addr = addr as usize;
-    self.addr[addr] -= 1;
+    self.addr[addr] = (self.addr[addr] as i16 - 1) as u8;
     self.addr[addr]
   }
 }

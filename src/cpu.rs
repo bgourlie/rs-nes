@@ -245,23 +245,32 @@ impl Cpu6502 {
   }
 
   pub fn inx(&mut self) {
-    panic!("unimplemented");
+    self.registers.irx = (self.registers.irx as u16 + 1) as u8;
+    let x = self.registers.irx;
+    self.registers.set_sign_and_zero_flag(x);
   }
 
   pub fn iny(&mut self) {
-    panic!("unimplemented");
+    self.registers.iry = (self.registers.iry as u16 + 1) as u8;
+    let y = self.registers.iry;
+    self.registers.set_sign_and_zero_flag(y);
   }
 
-  pub fn dec(&mut self) {
-    panic!("unimplemented");
+  pub fn dec(&mut self, addr: u16) {
+    let val = self.memory.dec(addr);
+    self.registers.set_sign_and_zero_flag(val);
   }
 
   pub fn dex(&mut self) {
-    panic!("unimplemented");
+    self.registers.irx = (self.registers.irx as i16 - 1) as u8;
+    let x = self.registers.irx;
+    self.registers.set_sign_and_zero_flag(x);
   }
 
   pub fn dey(&mut self) {
-    panic!("unimplemented");
+    self.registers.iry = (self.registers.iry as i16 - 1) as u8;
+    let y = self.registers.iry;
+    self.registers.set_sign_and_zero_flag(y);
   }
 
   /// ## Shifts
