@@ -216,16 +216,25 @@ impl Cpu6502 {
     self.adc_sbc_base(rop, borrow);
   }
 
-  pub fn cmp(&mut self) {
-    panic!("unimplemented");
+  fn cmp_base(&mut self, lop: u8, rop: u8) {
+    let res = lop as i32 - rop as i32;
+    self.registers.set_flag(FL_CARRY, res & 0x100 == 0);
+    self.registers.set_sign_and_zero_flag(res as u8);
   }
 
-  pub fn cpx(&mut self) {
-    panic!("unimplemented");
+  pub fn cmp(&mut self, rop: u8) {
+    let lop = self.registers.acc;
+    self.cmp_base(lop, rop);
   }
 
-  pub fn cpy(&mut self) {
-    panic!("unimplemented");
+  pub fn cpx(&mut self, rop: u8) {
+    let lop = self.registers.irx;
+    self.cmp_base(lop, rop);
+  }
+
+  pub fn cpy(&mut self, rop: u8) {
+    let lop = self.registers.iry;
+    self.cmp_base(lop, rop);
   }
 
   /// ## Increments and Decrements
