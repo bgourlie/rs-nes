@@ -102,7 +102,7 @@ impl Cpu6502 {
   }
 
   fn push_stack(&mut self, value: u8) {
-    if(self.registers.sp == 0) {
+    if self.registers.sp == 0 {
       panic!("stack overflow");
     }
     self.memory.store(0x100 + self.registers.sp as u16, value);

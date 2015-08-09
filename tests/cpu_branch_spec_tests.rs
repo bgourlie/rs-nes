@@ -140,7 +140,7 @@ fn bcc_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bcc_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_CARRY, false);
     cpu.bcc(rel_addr)
   });
@@ -184,7 +184,7 @@ fn bcs_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bcs_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_CARRY, true);
     cpu.bcs(rel_addr)
   });
@@ -228,7 +228,7 @@ fn beq_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn beq_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_ZERO, true);
     cpu.beq(rel_addr)
   });
@@ -272,7 +272,7 @@ fn bmi_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bmi_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_SIGN, true);
     cpu.bmi(rel_addr)
   });
@@ -316,7 +316,7 @@ fn bne_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bne_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_ZERO, false);
     cpu.bne(rel_addr)
   });
@@ -360,7 +360,7 @@ fn bpl_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bpl_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_SIGN, false);
     cpu.bpl(rel_addr)
   });
@@ -404,7 +404,7 @@ fn bvc_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bvc_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_OVERFLOW, false);
     cpu.bvc(rel_addr)
   });
@@ -448,7 +448,7 @@ fn bvs_test_branch_crossing_page_boundary_positive_rel_addr() {
 
 #[test]
 fn bvs_test_branch_crossing_page_boundary_negative_rel_addr() {
-  branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
+  branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
     cpu.registers.set_flag(FL_OVERFLOW, true);
     cpu.bvs(rel_addr)
   });
