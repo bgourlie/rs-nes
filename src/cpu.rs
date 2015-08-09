@@ -360,19 +360,19 @@ impl Cpu6502 {
   /// Status Flag Changes
 
   pub fn clc(&mut self) {
-    panic!("unimplemented");
+    self.registers.set_flag(FL_CARRY, false);
   }
 
   pub fn cld(&mut self) {
-    panic!("unimplemented");
+    panic!("Not implemented by Nintendo's 6502");
   }
 
   pub fn cli(&mut self) {
-    panic!("unimplemented");
+    self.registers.set_flag(FL_INTERRUPT_DISABLE, false);
   }
 
   pub fn clv(&mut self) {
-    panic!("unimplemented");
+    self.registers.set_flag(FL_OVERFLOW, false);
   }
 
   pub fn sec(&mut self) {
@@ -380,7 +380,7 @@ impl Cpu6502 {
   }
 
   pub fn sed(&mut self) {
-    panic!("unimplemented");
+    panic!("Not implemented by Nintendo's 6502");
   }
 
   pub fn sei(&mut self) {
