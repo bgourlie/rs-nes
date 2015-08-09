@@ -274,23 +274,43 @@ impl Cpu6502 {
   }
 
   /// ## Shifts
+  ///
+  /// All shift operations return the shifted value.  It will be up to the
+  /// instruction decoder to apply the value to the accumulator or memory
+  /// location.
 
-  pub fn asl(&mut self) {
-    let acc = self.registers.acc;
-    self.registers.set_flag(FL_CARRY, acc & 0x80 != 0);
-    self.registers.set_acc(acc << 1);
+  fn shift_left(&mut self, val: u8, lsb: bool) -> u8 {
+    let carry = (val & 0x80) != 0;
+    let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
+    self.registers.set_flag(FL_CARRY, carry);
+    self.registers.set_sign_and_zero_flag(res);
+    res
   }
 
-  pub fn lsr(&mut self) {
-    panic!("unimplmented");
+  fn shift_right(&mut self, val: u8, msb: bool) -> u8 {
+    let carry = (val & 0x1) != 0;
+    let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };
+    self.registers.set_flag(FL_CARRY, carry);
+    self.registers.set_sign_and_zero_flag(res);
+    res
   }
 
-  pub fn rol(&mut self) {
-    panic!("unimplmented");
+  pub fn asl(&mut self, val: u8) -> u8 {
+    self.shift_left(val, false)
   }
 
-  pub fn ror(&mut self) {
-    panic!("unimplmented");
+  pub fn lsr(&mut self, val: u8) -> u8 {
+    self.shift_right(val, false)
+  }
+
+  pub fn rol(&mut self, val: u8) -> u8 {
+    let carry_set = self.registers.get_flag(FL_CARRY);
+    self.shift_left(val, carry_set)
+  }
+
+  pub fn ror(&mut self, val: u8) -> u8 {
+    let carry_set = self.registers.get_flag(FL_CARRY);
+    self.shift_right(val, carry_set)
   }
 
   /// ## Jumps and Calls
@@ -393,12 +413,14 @@ impl Cpu6502 {
     self.registers.set_acc(val);
   }
 
-  pub fn ldx(&mut self) {
-    panic!("unimplemented");
+  pub fn ldx(&mut self, val: u8) {
+    self.registers.irx = val;
+    self.registers.set_sign_and_zero_flag(val);
   }
 
-  pub fn ldy(&mut self) {
-    panic!("unimplemented");
+  pub fn ldy(&mut self, val: u8) {
+    self.registers.iry = val;
+    self.registers.set_sign_and_zero_flag(val);
   }
 
   pub fn sta(&mut self, addr: u16) {
