@@ -101,6 +101,290 @@ impl Cpu6502 {
     }
   }
 
+
+  fn do_op(&mut self, opcode: u8) {
+    match opcode {
+      // # Loads
+      // lda
+      0xa1 => { panic!("unimplemented"); }
+      0xa5 => { panic!("unimplemented"); }
+      0xa9 => { panic!("unimplemented"); }
+      0xad => { panic!("unimplemented"); }
+      0xb1 => { panic!("unimplemented"); }
+      0xb5 => { panic!("unimplemented"); }
+      0xb9 => { panic!("unimplemented"); }
+      0xbd => { panic!("unimplemented"); }
+
+      // ldx
+      0xa2 => { panic!("unimplemented"); }
+      0xa6 => { panic!("unimplemented"); }
+      0xb6 => { panic!("unimplemented"); }
+      0xae => { panic!("unimplemented"); }
+      0xbe => { panic!("unimplemented"); }
+
+      // ldy
+      0xa0 => { panic!("unimplemented"); }
+      0xa4 => { panic!("unimplemented"); }
+      0xb4 => { panic!("unimplemented"); }
+      0xac => { panic!("unimplemented"); }
+      0xbc => { panic!("unimplemented"); }
+
+      // # Stores
+      // sta
+      0x85 => { panic!("unimplemented"); }
+      0x95 => { panic!("unimplemented"); }
+      0x8d => { panic!("unimplemented"); }
+      0x9d => { panic!("unimplemented"); }
+      0x99 => { panic!("unimplemented"); }
+      0x81 => { panic!("unimplemented"); }
+      0x91 => { panic!("unimplemented"); }
+
+      // stx
+      0x86 => { panic!("unimplemented"); }
+      0x96 => { panic!("unimplemented"); }
+      0x8e => { panic!("unimplemented"); }
+
+      // sty
+      0x84 => { panic!("unimplemented"); }
+      0x94 => { panic!("unimplemented"); }
+      0x8c => { panic!("unimplemented"); }
+
+      // # Arithmetic
+      // adc
+      0x69 => { panic!("unimplemented"); }
+      0x65 => { panic!("unimplemented"); }
+      0x75 => { panic!("unimplemented"); }
+      0x6d => { panic!("unimplemented"); }
+      0x7d => { panic!("unimplemented"); }
+      0x79 => { panic!("unimplemented"); }
+      0x61 => { panic!("unimplemented"); }
+      0x71 => { panic!("unimplemented"); }
+
+      // sbc
+      0xe9 => { panic!("unimplemented"); }
+      0xe5 => { panic!("unimplemented"); }
+      0xf5 => { panic!("unimplemented"); }
+      0xed => { panic!("unimplemented"); }
+      0xfd => { panic!("unimplemented"); }
+      0xf9 => { panic!("unimplemented"); }
+      0xe1 => { panic!("unimplemented"); }
+      0xf1 => { panic!("unimplemented"); }
+
+      // # Comparisons
+      // cmp
+      0xc9 => { panic!("unimplemented"); }
+      0xc5 => { panic!("unimplemented"); }
+      0xd5 => { panic!("unimplemented"); }
+      0xcd => { panic!("unimplemented"); }
+      0xdd => { panic!("unimplemented"); }
+      0xd9 => { panic!("unimplemented"); }
+      0xc1 => { panic!("unimplemented"); }
+      0xd1 => { panic!("unimplemented"); }
+
+      // cpx
+      0xe0 => { panic!("unimplemented"); }
+      0xe4 => { panic!("unimplemented"); }
+      0xec => { panic!("unimplemented"); }
+
+      // cpy
+      0xc0 => { panic!("unimplemented"); }
+      0xc4 => { panic!("unimplemented"); }
+      0xcc => { panic!("unimplemented"); }
+
+      // # Bitwise operations
+      // and
+      0x29 => { panic!("unimplemented"); }
+      0x25 => { panic!("unimplemented"); }
+      0x35 => { panic!("unimplemented"); }
+      0x2d => { panic!("unimplemented"); }
+      0x3d => { panic!("unimplemented"); }
+      0x39 => { panic!("unimplemented"); }
+      0x21 => { panic!("unimplemented"); }
+      0x31 => { panic!("unimplemented"); }
+
+      // ora
+      0x09 => { panic!("unimplemented"); }
+      0x05 => { panic!("unimplemented"); }
+      0x15 => { panic!("unimplemented"); }
+      0x0d => { panic!("unimplemented"); }
+      0x1d => { panic!("unimplemented"); }
+      0x19 => { panic!("unimplemented"); }
+      0x01 => { panic!("unimplemented"); }
+      0x11 => { panic!("unimplemented"); }
+
+      // eor
+      0x49 => { panic!("unimplemented"); }
+      0x45 => { panic!("unimplemented"); }
+      0x55 => { panic!("unimplemented"); }
+      0x4d => { panic!("unimplemented"); }
+      0x5d => { panic!("unimplemented"); }
+      0x59 => { panic!("unimplemented"); }
+      0x41 => { panic!("unimplemented"); }
+      0x51 => { panic!("unimplemented"); }
+
+      // bit
+      0x24 => { panic!("unimplemented"); }
+      0x2c => { panic!("unimplemented"); }
+
+      // # Shifts and rotates
+      // rol
+      0x2a => { panic!("unimplemented"); }
+      0x26 => { panic!("unimplemented"); }
+      0x36 => { panic!("unimplemented"); }
+      0x2e => { panic!("unimplemented"); }
+      0x3e => { panic!("unimplemented"); }
+
+      // ror
+      0x6a => { panic!("unimplemented"); }
+      0x66 => { panic!("unimplemented"); }
+      0x76 => { panic!("unimplemented"); }
+      0x6e => { panic!("unimplemented"); }
+      0x7e => { panic!("unimplemented"); }
+
+      // asl
+      0x0a => { panic!("unimplemented"); }
+      0x06 => { panic!("unimplemented"); }
+      0x16 => { panic!("unimplemented"); }
+      0x0e => { panic!("unimplemented"); }
+      0x1e => { panic!("unimplemented"); }
+
+      // lsr
+      0x4a => { panic!("unimplemented"); }
+      0x46 => { panic!("unimplemented"); }
+      0x56 => { panic!("unimplemented"); }
+      0x4e => { panic!("unimplemented"); }
+      0x5e => { panic!("unimplemented"); }
+
+      // # Increments and decrements
+      // inc
+      0xe6 => { panic!("unimplemented"); }
+      0xf6 => { panic!("unimplemented"); }
+      0xee => { panic!("unimplemented"); }
+      0xfe => { panic!("unimplemented"); }
+
+      // dec
+      0xc6 => { panic!("unimplemented"); }
+      0xd6 => { panic!("unimplemented"); }
+      0xce => { panic!("unimplemented"); }
+      0xde => { panic!("unimplemented"); }
+
+      // inx
+      0xe8 => { panic!("unimplemented"); }
+
+      // dex
+      0xca => { panic!("unimplemented"); }
+
+      // iny
+      0xc8 => { panic!("unimplemented"); }
+
+      // dey
+      0x88 => { panic!("unimplemented"); }
+
+      // # Register moves
+      // tax
+      0xaa => { panic!("unimplemented"); }
+
+      // tay
+      0xa8 => { panic!("unimplemented"); }
+
+      // txa
+      0x8a => { panic!("unimplemented"); }
+
+      // tya
+      0x98 => { panic!("unimplemented"); }
+
+      // txs
+      0x9a => { panic!("unimplemented"); }
+
+      // tsx
+      0xba => { panic!("unimplemented"); }
+
+      // # Flag operations
+      // clc
+      0x18 => { panic!("unimplemented"); }
+
+      // sec
+      0x38 => { panic!("unimplemented"); }
+
+      // cli
+      0x58 => { panic!("unimplemented"); }
+
+      // sei
+      0x78 => { panic!("unimplemented"); }
+
+      // clv
+      0xb8 => { panic!("unimplemented"); }
+
+      // cld
+      0xd8 => { panic!("unimplemented"); }
+
+      // sed
+      0xf8 => { panic!("unimplemented"); }
+
+      // # Branches
+      // bpl
+      0x10 => { panic!("unimplemented"); }
+
+      // bmi
+      0x30 => { panic!("unimplemented"); }
+
+      // bvc
+      0x50 => { panic!("unimplemented"); }
+
+      // bvs
+      0x70 => { panic!("unimplemented"); }
+
+      // bcc
+      0x90 => { panic!("unimplemented"); }
+
+      // bcs
+      0xb0 => { panic!("unimplemented"); }
+
+      // bne
+      0xd0 => { panic!("unimplemented"); }
+
+      // beq
+      0xf0 => { panic!("unimplemented"); }
+
+      // # Jumps
+      // jmp
+      0x4c => { panic!("unimplemented"); }
+      0x6c => { panic!("unimplemented"); },
+
+      // # Procedure calls
+      // jsr
+      0x20 => { panic!("unimplemented"); }
+
+      // rts
+      0x60 => { panic!("unimplemented"); }
+
+      // brk
+      0x00 => { panic!("unimplemented"); }
+
+      // rti
+      0x40 => { panic!("unimplemented"); }
+
+      // # Stack operations
+      // pha
+      0x48 => { panic!("unimplemented"); }
+
+      // pla
+      0x68 => { panic!("unimplemented"); }
+
+      // php
+      0x08 => { panic!("unimplemented"); }
+
+      // plp
+      0x28 => { panic!("unimplemented"); }
+
+      // No operation
+      // nop
+      0xea => { panic!("unimplemented"); }
+
+      _ => { panic!("unexpected opcode encountered"); }
+    }
+  }
+
   fn push_stack(&mut self, value: u8) {
     if self.registers.sp == 0 {
       panic!("stack overflow");
