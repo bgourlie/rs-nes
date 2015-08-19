@@ -1,6 +1,7 @@
 use memory::Memory;
 
 pub const STACK_LOC: u16 = 0x100;
+pub const IRQ_VECTOR_LOC: u16 = 0xfffe;
 
 pub const FL_CARRY: u8 = 1 << 0;
 pub const FL_ZERO: u8 = 1 << 1;
@@ -776,17 +777,24 @@ impl Cpu6502 {
     self.registers.set_flag(FL_OVERFLOW, res & 0x40 != 0);
   }
 
-  /// ## System Functions
+  /// ## System Functions (todo: tests)
 
   pub fn brk(&mut self) {
-    panic!("unimplemented");
+    let pc = self.registers.pc;
+    let status = self.registers.stat;
+    self.push_stack16(pc + 1);
+    self.push_stack(status);
+    let irq_handler = self.memory.load16(IRQ_VECTOR_LOC);
+    self.registers.pc = irq_handler;
+    self.registers.set_flag(FL_BRK, true);
   }
 
-  pub fn nop(&mut self) {
-    panic!("unimplemented");
-  }
+  pub fn nop(&mut self) { }
 
   pub fn rti(&mut self) {
-    panic!("unimplemented");
+    let stat = self.pop_stack();
+    let pc = self.pop_stack16();
+    self.registers.stat = stat;
+    self.registers.pc = pc;
   }
 }
