@@ -57,9 +57,21 @@ impl Memory {
     }
   }
 
+  pub fn store16(&mut self, addr: u16, data: u16) {
+    let lowb = (data & 0xff) as u8;
+    let highb = ((data >> 8) & 0xff) as u8;
+    self.store(addr, lowb);
+    self.store(addr + 1, highb);
+  }
+
   pub fn load(&mut self, addr: u16) -> u8 {
     let addr = addr as usize;
     self.addr[addr]
+  }
+
+  pub fn load16(&mut self, addr: u16) -> u16 {
+    let addr = addr as usize;
+    self.addr[addr] as u16 | (self.addr[addr + 1] as u16) << 8
   }
 
   // probably a premature optimization, but we implement inc and dec here so

@@ -385,7 +385,7 @@ impl Cpu6502 {
     }
   }
 
-  fn push_stack(&mut self, value: u8) {
+  pub fn push_stack8(&mut self, value: u8) {
     if self.registers.sp == 0 {
       panic!("stack overflow");
     }
@@ -393,9 +393,30 @@ impl Cpu6502 {
     self.registers.sp -= 1;
   }
 
-  fn pop_stack(&mut self) -> u8 {
-    let val = self.memory.load(self.registers.sp as u16 + 1);
+  pub fn peek_stack8(&mut self) -> u8 {
+    self.memory.load(0x100 + self.registers.sp as u16 + 1)
+  }
+
+  pub fn pop_stack8(&mut self) -> u8 {
+    let val = self.peek_stack8();
     self.registers.sp += 1;
+    val
+  }
+
+  pub fn push_stack16(&mut self, value: u16) {
+    self.memory.store16(0x100 + (self.registers.sp as u16 - 1), value);
+    self.registers.sp -= 2;
+  }
+
+  pub fn peek_stack16(&mut self) -> u16 {
+    let lowb = self.memory.load(0x100 + self.registers.sp as u16 + 1) as u16;
+    let highb = self.memory.load(0x100 + self.registers.sp as u16 + 2) as u16;
+    lowb | (highb << 8)
+  }
+
+  pub fn pop_stack16(&mut self) -> u16 {
+    let val = self.peek_stack16();
+    self.registers.sp += 2;
     val
   }
 
@@ -447,21 +468,21 @@ impl Cpu6502 {
 
   pub fn pha(&mut self) {
     let acc = self.registers.acc;
-    self.push_stack(acc);
+    self.push_stack8(acc);
   }
 
   pub fn php(&mut self) {
     let stat = self.registers.stat;
-    self.push_stack(stat);
+    self.push_stack8(stat);
   }
 
   pub fn pla(&mut self) {
-    let val = self.pop_stack();
+    let val = self.pop_stack8();
     self.registers.set_acc(val);
   }
 
   pub fn plp(&mut self) {
-    let val = self.pop_stack();
+    let val = self.pop_stack8();
     self.registers.stat = val;
   }
 
@@ -599,16 +620,18 @@ impl Cpu6502 {
 
   /// ## Jumps and Calls
 
-  pub fn jmp(&mut self) {
-    panic!("unimplmented");
+  pub fn jmp(&mut self, loc: u16) {
+    self.registers.pc = loc;
   }
 
-  pub fn jsr(&mut self) {
-    panic!("unimplmented");
+  pub fn jsr(&mut self, loc: u16) {
+    let pc = self.registers.pc;
+    self.push_stack16(pc - 1);
+    self.registers.pc = loc;
   }
 
   pub fn rts(&mut self) {
-    panic!("unimplmented");
+    self.registers.pc = self.pop_stack16() + 1;
   }
 
   /// ##  Branches
