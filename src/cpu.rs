@@ -395,17 +395,20 @@ impl Cpu6502 {
     self.registers.sp -= 1;
   }
 
-  pub fn peek_stack8(&mut self) -> u8 {
+  pub fn peek_stack(&mut self) -> u8 {
     self.memory.load(STACK_LOC + self.registers.sp as u16 + 1)
   }
 
   pub fn pop_stack(&mut self) -> u8 {
-    let val = self.peek_stack8();
+    let val = self.peek_stack();
     self.registers.sp += 1;
     val
   }
 
   pub fn push_stack16(&mut self, value: u16) {
+    if self.registers.sp < 2 {
+      panic!("stack overflow");
+    }
     self.memory.store16(STACK_LOC + (self.registers.sp as u16 - 1), value);
     self.registers.sp -= 2;
   }
