@@ -1,5 +1,7 @@
 use memory::Memory;
 
+pub const STACK_LOC: u16 = 0x100;
+
 pub const FL_CARRY: u8 = 1 << 0;
 pub const FL_ZERO: u8 = 1 << 1;
 pub const FL_INTERRUPT_DISABLE: u8 = 1 << 2;
@@ -385,7 +387,7 @@ impl Cpu6502 {
     }
   }
 
-  pub fn push_stack8(&mut self, value: u8) {
+  pub fn push_stack(&mut self, value: u8) {
     if self.registers.sp == 0 {
       panic!("stack overflow");
     }
@@ -397,7 +399,7 @@ impl Cpu6502 {
     self.memory.load(0x100 + self.registers.sp as u16 + 1)
   }
 
-  pub fn pop_stack8(&mut self) -> u8 {
+  pub fn pop_stack(&mut self) -> u8 {
     let val = self.peek_stack8();
     self.registers.sp += 1;
     val
@@ -468,21 +470,21 @@ impl Cpu6502 {
 
   pub fn pha(&mut self) {
     let acc = self.registers.acc;
-    self.push_stack8(acc);
+    self.push_stack(acc);
   }
 
   pub fn php(&mut self) {
     let stat = self.registers.stat;
-    self.push_stack8(stat);
+    self.push_stack(stat);
   }
 
   pub fn pla(&mut self) {
-    let val = self.pop_stack8();
+    let val = self.pop_stack();
     self.registers.set_acc(val);
   }
 
   pub fn plp(&mut self) {
-    let val = self.pop_stack8();
+    let val = self.pop_stack();
     self.registers.stat = val;
   }
 
