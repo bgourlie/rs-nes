@@ -1,6 +1,5 @@
-extern crate rs_nes;
-
-use rs_nes::cpu::*;
+use cpu::*;
+use constants::*;
 
 // TODO: assert that sed and cld panic (clear/set decimal flag)
 

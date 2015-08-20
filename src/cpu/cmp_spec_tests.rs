@@ -1,6 +1,5 @@
-extern crate rs_nes;
-
-use rs_nes::cpu::*;
+use cpu::*;
+use constants::*;
 
 fn cmp_base_equal_flag_check<F>(setup_and_compare: F)
     where F : Fn(&mut Cpu6502, u8, u8) {

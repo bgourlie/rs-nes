@@ -20,6 +20,9 @@
 //                     R = Mirror of $2000-2008 every 8 bytes
 //                         (e.g. $2008=$2000, $2018=$2000, etc.)
 
+#[cfg(test)]
+mod spec_tests;
+
 const ADDRESSABLE_MEMORY: usize = 0xFFFF;
 
 pub struct Memory {

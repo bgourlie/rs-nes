@@ -1,6 +1,4 @@
-extern crate rs_nes;
-
-use rs_nes::memory::Memory;
+use memory::Memory;
 
 #[test]
 fn store_and_load_from_ram_succeeds() {

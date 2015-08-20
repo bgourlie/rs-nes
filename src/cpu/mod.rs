@@ -1,14 +1,41 @@
+#[cfg(test)]
+mod adc_spec_tests;
+
+#[cfg(test)]
+mod branching_spec_tests;
+
+#[cfg(test)]
+mod cmp_spec_tests;
+
+#[cfg(test)]
+mod inc_and_dec_spec_tests;
+
+#[cfg(test)]
+mod jumps_and_calls_spec_tests;
+
+#[cfg(test)]
+mod lda_spec_tests;
+
+#[cfg(test)]
+mod sbc_spec_tests;
+
+#[cfg(test)]
+mod shifts_spec_tests;
+
+#[cfg(test)]
+mod stack_utils_spec_tests;
+
+#[cfg(test)]
+mod status_flag_spec_tests;
+
+#[cfg(test)]
+mod store_spec_tests;
+
+mod registers;
+
+use constants::*;
+use cpu::registers::*;
 use memory::Memory;
-
-pub const STACK_LOC: u16 = 0x100;
-pub const IRQ_VECTOR_LOC: u16 = 0xfffe;
-
-pub const FL_CARRY: u8 = 1 << 0;
-pub const FL_ZERO: u8 = 1 << 1;
-pub const FL_INTERRUPT_DISABLE: u8 = 1 << 2;
-pub const FL_BRK: u8 = 1 << 4;
-pub const FL_OVERFLOW: u8 = 1 << 6;
-pub const FL_SIGN: u8 = 1 << 7;
 
 //// Graciously taken from https://github.com/pcwalton/sprocketnes
 // const CYCLE_TABLE: [u8; 256] = [
@@ -33,67 +60,6 @@ pub const FL_SIGN: u8 = 1 << 7;
 pub struct Cpu6502 {
   pub registers: Registers,
   pub memory: Memory
-}
-
-pub struct Registers {
-  pub pc: u16, // Program Counter
-  pub sp: u8, // Stack Pointer
-  pub acc: u8, // Accumulator
-  pub irx: u8, // Index Register X
-  pub iry: u8, // Index Register Y
-  pub stat: u8 // Processor Status Flags
-}
-
-pub enum AddressingMode {
-  Immediate,
-  ZeroPage,
-  ZeroPageX,
-  Absolute,
-  AboluteX,
-  AbsoluteY,
-  IndirectX,
-  IndirectY
-}
-
-impl Registers {
-  fn new() -> Registers {
-    Registers {
-      pc: 0,
-      // http://www.pagetable.com/?p=410 explains why the stack pointer has
-      // an initial value of 0xfd.
-      sp: 0xfd,
-      acc: 0,
-      irx: 0,
-      iry: 0,
-      stat: 0b00010000
-    }
-  }
-
-  pub fn get_flag(&self, mask: u8) -> bool {
-    self.stat & mask != 0
-  }
-
-  pub fn set_flag(&mut self, mask: u8, val: bool) {
-    if val {
-      self.stat |= mask;
-    } else {
-      self.stat &= !mask;
-    }
-  }
-
-  fn set_sign_and_zero_flag(&mut self, val: u8) {
-    self.set_flag(FL_SIGN, val & 0x80 != 0);
-    self.set_flag(FL_ZERO, val == 0);
-  }
-
-  fn set_acc(&mut self, res: u8) {
-    self.set_sign_and_zero_flag(res);
-    self.acc = res;
-  }
-
-  fn page_boundary_crossed(&self, old_pc: u16) -> bool {
-    old_pc & 0xFF00 != self.pc & 0xFF00
-  }
 }
 
 impl Cpu6502 {

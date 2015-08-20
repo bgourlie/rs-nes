@@ -1,6 +1,4 @@
-extern crate rs_nes;
-
-use rs_nes::cpu::*;
+use cpu::*;
 
 #[test]
 fn jmp() {

@@ -1,6 +1,5 @@
-extern crate rs_nes;
-
-use rs_nes::cpu::*;
+use cpu::*;
+use constants::*;
 
 fn shift_left_base_1<F>(do_shift: F)
     where F : Fn(&mut Cpu6502, u8) -> (u8, bool) {
