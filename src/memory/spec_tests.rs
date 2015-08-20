@@ -32,6 +32,24 @@ fn ram_should_be_mirrored() {
 }
 
 #[test]
+fn load16_zp_indexed_should_wrap_on_carry() {
+  let mut mem = Memory::new();
+  mem.store16(0x20, 0xbeef);
+  // 0xC0 + 0x60 = 0x120, but the carry will be dropped (wrap) back around
+  // into the zero page.  So, we'll expect to find 0xbeef at 0x20
+  let val = mem.load16_zp_indexed(0xC0, 0x60);
+  assert_eq!(0xbeef, val);
+}
+
+#[test]
+fn load16_zp_indexed_shouldnt_wrap_no_carry() {
+  let mut mem = Memory::new();
+  mem.store16(0x20, 0xbeef);
+  let val = mem.load16_zp_indexed(0x10, 0x10);
+  assert_eq!(0xbeef, val);
+}
+
+#[test]
 #[should_panic(expected = "write to mirrored memory")]
 fn write_to_mirrored_ram_should_error() {
   let mut mem = Memory::new();

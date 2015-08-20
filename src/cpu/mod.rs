@@ -37,27 +37,33 @@ use constants::*;
 use cpu::registers::*;
 use memory::Memory;
 
-//// Graciously taken from https://github.com/pcwalton/sprocketnes
-// const CYCLE_TABLE: [u8; 256] = [
-//   /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
-//   /*0x10*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-//   /*0x20*/ 6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6,
-//   /*0x30*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-//   /*0x40*/ 6,6,2,8,3,3,5,5,3,2,2,2,3,4,6,6,
-//   /*0x50*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-//   /*0x60*/ 6,6,2,8,3,3,5,5,4,2,2,2,5,4,6,6,
-//   /*0x70*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-//   /*0x80*/ 2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
-//   /*0x90*/ 2,6,2,6,4,4,4,4,2,5,2,5,5,5,5,5,
-//   /*0xA0*/ 2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
-//   /*0xB0*/ 2,5,2,5,4,4,4,4,2,4,2,4,4,4,4,4,
-//   /*0xC0*/ 2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6,
-//   /*0xD0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-//   /*0xE0*/ 2,6,3,8,3,3,5,5,2,2,2,2,4,4,6,6,
-//   /*0xF0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
-// ];
+// Graciously taken from FCEU
+const CYCLE_TABLE: [u8; 256] = [
+ /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
+ /*0x10*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+ /*0x20*/ 6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6,
+ /*0x30*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+ /*0x40*/ 6,6,2,8,3,3,5,5,3,2,2,2,3,4,6,6,
+ /*0x50*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+ /*0x60*/ 6,6,2,8,3,3,5,5,4,2,2,2,5,4,6,6,
+ /*0x70*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+ /*0x80*/ 2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
+ /*0x90*/ 2,6,2,6,4,4,4,4,2,5,2,5,5,5,5,5,
+ /*0xA0*/ 2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4,
+ /*0xB0*/ 2,5,2,5,4,4,4,4,2,4,2,4,4,4,4,4,
+ /*0xC0*/ 2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6,
+ /*0xD0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+ /*0xE0*/ 2,6,3,8,3,3,5,5,2,2,2,2,4,4,6,6,
+ /*0xF0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
+];
+
+// TODO: consolidate logic with similar implementation in Register
+fn get_page_crossed(val1: u16, val2: u16) -> bool {
+  val1 & 0xFF00 != val2 & 0xFF00
+}
 
 pub struct Cpu6502 {
+  pub cycles: u16,
   pub registers: Registers,
   pub memory: Memory
 }
@@ -65,24 +71,107 @@ pub struct Cpu6502 {
 impl Cpu6502 {
   pub fn new() -> Cpu6502 {
     Cpu6502 {
+      cycles: 0,
       registers: Registers::new(),
       memory: Memory::new()
     }
   }
 
+  fn get_operand(&mut self) -> u8 {
+    let pc = self.registers.pc;
+    let operand = self.memory.load(pc);
+    self.registers.pc += 1;
+    operand
+  }
 
-  fn do_op(&mut self, opcode: u8) {
+  fn get_operand16(&mut self) -> u16 {
+    let pc = self.registers.pc;
+    let operand = self.memory.load16(pc);
+    self.registers.pc += 1;
+    operand
+  }
+
+  fn get_immed(&mut self) -> u8 {
+    self.get_operand()
+  }
+
+  fn get_zp(&mut self) -> u8 {
+    let addr = self.get_operand() as u16;
+    self.memory.load(addr)
+  }
+
+  fn get_zpx(&mut self) -> u8 {
+    let addr: u16 = self.get_operand() as u16 + self.registers.irx as u16;
+    self.memory.load(addr)
+  }
+
+  fn get_abs(&mut self) -> u8 {
+    let addr = self.get_operand16();
+    self.memory.load(addr)
+  }
+
+  fn get_abs_indexed_base(&mut self, index: u8) -> (u8, bool) {
+    let abs = self.get_operand16();
+    let addr = abs + index as u16;
+
+    // TODO: do we check that there is a page crossed when adding
+    // the register to the absolute address?  That's what we're assuming now.
+    (self.memory.load(addr), get_page_crossed(abs, addr))
+  }
+
+  fn get_absx(&mut self) -> (u8, bool) {
+    let x = self.registers.irx;
+    self.get_abs_indexed_base(x)
+  }
+
+  fn get_absy(&mut self) -> (u8, bool) {
+    let y = self.registers.iry;
+    self.get_abs_indexed_base(y)
+  }
+
+  fn get_indx(&mut self) -> u8 {
+    let val = self.get_operand();
+    let x = self.registers.irx;
+    let addr = self.memory.load16_zp_indexed(val, x);
+    self.memory.load(addr)
+  }
+
+  fn get_indy(&mut self) -> (u8, bool) {
+    let val = self.get_operand();
+    let y = self.registers.iry;
+    let addr = self.memory.load16(val as u16) + y as u16;
+
+    // TODO: is this the correct way to determine if page is crossed?
+    let page_boundary_crossed = get_page_crossed(val as u16, addr);
+    (self.memory.load(addr), page_boundary_crossed)
+  }
+
+  // performs an operation, returns number of cycles consumed
+  fn do_op(&mut self, opcode: u8) -> u8 {
+    let mut cycles = CYCLE_TABLE[opcode as usize];
     match opcode {
       // # Loads
       // lda
-      0xa1 => { panic!("unimplemented"); }
-      0xa5 => { panic!("unimplemented"); }
-      0xa9 => { panic!("unimplemented"); }
-      0xad => { panic!("unimplemented"); }
-      0xb1 => { panic!("unimplemented"); }
-      0xb5 => { panic!("unimplemented"); }
-      0xb9 => { panic!("unimplemented"); }
-      0xbd => { panic!("unimplemented"); }
+      0xa1 => { let val = self.get_indx(); self.lda(val); }
+      0xa5 => { let val = self.get_zp(); self.lda(val); }
+      0xa9 => { let val = self.get_immed(); self.lda(val); }
+      0xad => { let val = self.get_abs(); self.lda(val); }
+      0xb1 => {
+        let (val, page_crossed) = self.get_indy();
+        if page_crossed { cycles += 1; }
+        self.lda(val);
+      }
+      0xb5 => { let val = self.get_zpx(); self.lda(val); }
+      0xb9 => {
+        let (val, page_crossed) = self.get_absy();
+        if page_crossed { cycles += 1; }
+        self.lda(val);
+      }
+      0xbd => {
+        let (val, page_crossed) = self.get_absx();
+        if page_crossed { cycles += 1; }
+        self.lda(val);
+      }
 
       // ldx
       0xa2 => { panic!("unimplemented"); }
@@ -352,6 +441,8 @@ impl Cpu6502 {
 
       _ => { panic!("unexpected opcode encountered"); }
     }
+
+    cycles
   }
 
   pub fn push_stack(&mut self, value: u8) {

@@ -77,6 +77,11 @@ impl Memory {
     self.addr[addr] as u16 | (self.addr[addr + 1] as u16) << 8
   }
 
+  pub fn load16_zp_indexed(&mut self, addr: u8, index: u8) -> u16 {
+    let wrapped_addr = (addr as u16 + index as u16) as u8;
+    self.load16(wrapped_addr as u16)
+  }
+
   // probably a premature optimization, but we implement inc and dec here so
   // that we can alter the values in place.
   pub fn inc(&mut self, addr: u16) -> u8 {
