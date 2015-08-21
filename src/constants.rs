@@ -1,5 +1,8 @@
 pub const STACK_LOC: u16 = 0x100;
-pub const IRQ_VECTOR_LOC: u16 = 0xfffe;
+
+pub const BRK_VECTOR: u16 = 0xfffe;
+pub const NMI_VECTOR:   u16 = 0xfffa;
+pub const RESET_VECTOR: u16 = 0xfffc;
 
 pub const FL_CARRY: u8 = 1 << 0;
 pub const FL_ZERO: u8 = 1 << 1;

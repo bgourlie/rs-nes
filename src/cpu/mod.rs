@@ -63,7 +63,7 @@ fn get_page_crossed(val1: u16, val2: u16) -> bool {
 }
 
 pub struct Cpu6502 {
-  pub cycles: u16,
+  pub cycles: u64,
   pub registers: Registers,
   pub memory: Memory
 }
@@ -77,14 +77,32 @@ impl Cpu6502 {
     }
   }
 
-  fn get_operand(&mut self) -> u8 {
+  pub fn reset(&mut self) {
+    let pc_start = self.memory.load16(RESET_VECTOR);
+    self.registers.pc = pc_start;
+  }
+  
+  pub fn nmi(&mut self) {
+    let (pc, stat) = (self.registers.pc, self.registers.stat);
+    self.push_stack16(pc);
+    self.push_stack(stat);
+    self.registers.pc = self.memory.load16(NMI_VECTOR);
+  }
+
+  pub fn step(&mut self) {
+    let op = self.read_op();
+    let cycles = self.do_op(op);
+    self.cycles += cycles as u64;
+  }
+
+  fn read_op(&mut self) -> u8 {
     let pc = self.registers.pc;
     let operand = self.memory.load(pc);
     self.registers.pc += 1;
     operand
   }
 
-  fn get_operand16(&mut self) -> u16 {
+  fn read_op16(&mut self) -> u16 {
     let pc = self.registers.pc;
     let operand = self.memory.load16(pc);
     self.registers.pc += 1;
@@ -92,26 +110,26 @@ impl Cpu6502 {
   }
 
   fn get_immed(&mut self) -> u8 {
-    self.get_operand()
+    self.read_op()
   }
 
   fn get_zp(&mut self) -> u8 {
-    let addr = self.get_operand() as u16;
+    let addr = self.read_op() as u16;
     self.memory.load(addr)
   }
 
   fn get_zpx(&mut self) -> u8 {
-    let addr: u16 = self.get_operand() as u16 + self.registers.irx as u16;
+    let addr: u16 = self.read_op() as u16 + self.registers.irx as u16;
     self.memory.load(addr)
   }
 
   fn get_abs(&mut self) -> u8 {
-    let addr = self.get_operand16();
+    let addr = self.read_op16();
     self.memory.load(addr)
   }
 
   fn get_abs_indexed_base(&mut self, index: u8) -> (u8, bool) {
-    let abs = self.get_operand16();
+    let abs = self.read_op16();
     let addr = abs + index as u16;
 
     // TODO: do we check that there is a page crossed when adding
@@ -130,14 +148,14 @@ impl Cpu6502 {
   }
 
   fn get_indx(&mut self) -> u8 {
-    let val = self.get_operand();
+    let val = self.read_op();
     let x = self.registers.irx;
     let addr = self.memory.load16_zp_indexed(val, x);
     self.memory.load(addr)
   }
 
   fn get_indy(&mut self) -> (u8, bool) {
-    let val = self.get_operand();
+    let val = self.read_op();
     let y = self.registers.iry;
     let addr = self.memory.load16(val as u16) + y as u16;
 
@@ -445,7 +463,7 @@ impl Cpu6502 {
     cycles
   }
 
-  pub fn push_stack(&mut self, value: u8) {
+  fn push_stack(&mut self, value: u8) {
     if self.registers.sp == 0 {
       panic!("stack overflow");
     }
@@ -453,17 +471,17 @@ impl Cpu6502 {
     self.registers.sp -= 1;
   }
 
-  pub fn peek_stack(&mut self) -> u8 {
+  fn peek_stack(&mut self) -> u8 {
     self.memory.load(STACK_LOC + self.registers.sp as u16 + 1)
   }
 
-  pub fn pop_stack(&mut self) -> u8 {
+  fn pop_stack(&mut self) -> u8 {
     let val = self.peek_stack();
     self.registers.sp += 1;
     val
   }
 
-  pub fn push_stack16(&mut self, value: u16) {
+  fn push_stack16(&mut self, value: u16) {
     if self.registers.sp < 2 {
       panic!("stack overflow");
     }
@@ -471,7 +489,7 @@ impl Cpu6502 {
     self.registers.sp -= 2;
   }
 
-  pub fn peek_stack16(&mut self) -> u16 {
+  fn peek_stack16(&mut self) -> u16 {
     let lowb = self.memory.load(STACK_LOC + self.registers.sp as u16 + 1)
          as u16;
     let highb = self.memory.load(STACK_LOC + self.registers.sp as u16 + 2)
@@ -479,7 +497,7 @@ impl Cpu6502 {
     lowb | (highb << 8)
   }
 
-  pub fn pop_stack16(&mut self) -> u16 {
+  fn pop_stack16(&mut self) -> u16 {
     let val = self.peek_stack16();
     self.registers.sp += 2;
     val
@@ -493,25 +511,25 @@ impl Cpu6502 {
 
   /// ## Register Transfers (TODO: tests)
 
-  pub fn tax(&mut self) {
+  fn tax(&mut self) {
     self.registers.irx = self.registers.acc;
     let x = self.registers.irx;
     self.registers.set_sign_and_zero_flag(x);
   }
 
-  pub fn tay(&mut self) {
+  fn tay(&mut self) {
     self.registers.iry = self.registers.acc;
     let y = self.registers.iry;
     self.registers.set_sign_and_zero_flag(y);
   }
 
-  pub fn txa(&mut self) {
+  fn txa(&mut self) {
     self.registers.acc = self.registers.irx;
     let acc = self.registers.acc;
     self.registers.set_sign_and_zero_flag(acc);
   }
 
-  pub fn tya(&mut self) {
+  fn tya(&mut self) {
     self.registers.acc = self.registers.iry;
     let acc = self.registers.acc;
     self.registers.set_sign_and_zero_flag(acc);
@@ -519,34 +537,34 @@ impl Cpu6502 {
 
   /// ## Stack Operations
 
-  pub fn tsx(&mut self) {
+  fn tsx(&mut self) {
     self.registers.irx = self.registers.sp;
     let x = self.registers.irx;
     self.registers.set_sign_and_zero_flag(x);
   }
 
-  pub fn txs(&mut self) {
+  fn txs(&mut self) {
     self.registers.sp = self.registers.irx;
     let sp = self.registers.sp;
     self.registers.set_sign_and_zero_flag(sp);
   }
 
-  pub fn pha(&mut self) {
+  fn pha(&mut self) {
     let acc = self.registers.acc;
     self.push_stack(acc);
   }
 
-  pub fn php(&mut self) {
+  fn php(&mut self) {
     let stat = self.registers.stat;
     self.push_stack(stat);
   }
 
-  pub fn pla(&mut self) {
+  fn pla(&mut self) {
     let val = self.pop_stack();
     self.registers.set_acc(val);
   }
 
-  pub fn plp(&mut self) {
+  fn plp(&mut self) {
     let val = self.pop_stack();
     self.registers.stat = val;
   }
@@ -575,12 +593,12 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
-  pub fn adc(&mut self, rop: u8) {
+  fn adc(&mut self, rop: u8) {
     let carry = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 };
     self.adc_sbc_base(rop, carry);
   }
 
-  pub fn sbc(&mut self, rop: u8) {
+  fn sbc(&mut self, rop: u8) {
     let rop = !rop;
     let borrow = if self.registers.get_flag(FL_CARRY) { 0 } else { 1 };
     self.adc_sbc_base(rop, borrow);
@@ -592,52 +610,52 @@ impl Cpu6502 {
     self.registers.set_sign_and_zero_flag(res as u8);
   }
 
-  pub fn cmp(&mut self, rop: u8) {
+  fn cmp(&mut self, rop: u8) {
     let lop = self.registers.acc;
     self.cmp_base(lop, rop);
   }
 
-  pub fn cpx(&mut self, rop: u8) {
+  fn cpx(&mut self, rop: u8) {
     let lop = self.registers.irx;
     self.cmp_base(lop, rop);
   }
 
-  pub fn cpy(&mut self, rop: u8) {
+  fn cpy(&mut self, rop: u8) {
     let lop = self.registers.iry;
     self.cmp_base(lop, rop);
   }
 
   /// ## Increments and Decrements
 
-  pub fn inc(&mut self, addr: u16) {
+  fn inc(&mut self, addr: u16) {
     let val = self.memory.inc(addr);
     self.registers.set_sign_and_zero_flag(val);
   }
 
-  pub fn inx(&mut self) {
+  fn inx(&mut self) {
     self.registers.irx = (self.registers.irx as u16 + 1) as u8;
     let x = self.registers.irx;
     self.registers.set_sign_and_zero_flag(x);
   }
 
-  pub fn iny(&mut self) {
+  fn iny(&mut self) {
     self.registers.iry = (self.registers.iry as u16 + 1) as u8;
     let y = self.registers.iry;
     self.registers.set_sign_and_zero_flag(y);
   }
 
-  pub fn dec(&mut self, addr: u16) {
+  fn dec(&mut self, addr: u16) {
     let val = self.memory.dec(addr);
     self.registers.set_sign_and_zero_flag(val);
   }
 
-  pub fn dex(&mut self) {
+  fn dex(&mut self) {
     self.registers.irx = (self.registers.irx as i16 - 1) as u8;
     let x = self.registers.irx;
     self.registers.set_sign_and_zero_flag(x);
   }
 
-  pub fn dey(&mut self) {
+  fn dey(&mut self) {
     self.registers.iry = (self.registers.iry as i16 - 1) as u8;
     let y = self.registers.iry;
     self.registers.set_sign_and_zero_flag(y);
@@ -665,37 +683,37 @@ impl Cpu6502 {
     res
   }
 
-  pub fn asl(&mut self, val: u8) -> u8 {
+  fn asl(&mut self, val: u8) -> u8 {
     self.shift_left(val, false)
   }
 
-  pub fn lsr(&mut self, val: u8) -> u8 {
+  fn lsr(&mut self, val: u8) -> u8 {
     self.shift_right(val, false)
   }
 
-  pub fn rol(&mut self, val: u8) -> u8 {
+  fn rol(&mut self, val: u8) -> u8 {
     let carry_set = self.registers.get_flag(FL_CARRY);
     self.shift_left(val, carry_set)
   }
 
-  pub fn ror(&mut self, val: u8) -> u8 {
+  fn ror(&mut self, val: u8) -> u8 {
     let carry_set = self.registers.get_flag(FL_CARRY);
     self.shift_right(val, carry_set)
   }
 
   /// ## Jumps and Calls
 
-  pub fn jmp(&mut self, loc: u16) {
+  fn jmp(&mut self, loc: u16) {
     self.registers.pc = loc;
   }
 
-  pub fn jsr(&mut self, loc: u16) {
+  fn jsr(&mut self, loc: u16) {
     let pc = self.registers.pc;
     self.push_stack16(pc - 1);
     self.registers.pc = loc;
   }
 
-  pub fn rts(&mut self) {
+  fn rts(&mut self) {
     self.registers.pc = self.pop_stack16() + 1;
   }
 
@@ -709,125 +727,125 @@ impl Cpu6502 {
     } else { 0 }
   }
 
-  pub fn bcc(&mut self, rel_addr: i8) -> u8 {
+  fn bcc(&mut self, rel_addr: i8) -> u8 {
     let carry_clear = !self.registers.get_flag(FL_CARRY);
     self.branch(carry_clear, rel_addr)
   }
 
-  pub fn bcs(&mut self, rel_addr: i8) -> u8 {
+  fn bcs(&mut self, rel_addr: i8) -> u8 {
     let carry_set = self.registers.get_flag(FL_CARRY);
     self.branch(carry_set, rel_addr)
   }
 
-  pub fn beq(&mut self, rel_addr: i8) -> u8 {
+  fn beq(&mut self, rel_addr: i8) -> u8 {
     let zero_set = self.registers.get_flag(FL_ZERO);
     self.branch(zero_set, rel_addr)
   }
 
-  pub fn bmi(&mut self, rel_addr: i8) -> u8 {
+  fn bmi(&mut self, rel_addr: i8) -> u8 {
     let sign_set = self.registers.get_flag(FL_SIGN);
     self.branch(sign_set, rel_addr)
   }
 
-  pub fn bne(&mut self, rel_addr: i8) -> u8 {
+  fn bne(&mut self, rel_addr: i8) -> u8 {
     let zero_clear = !self.registers.get_flag(FL_ZERO);
     self.branch(zero_clear, rel_addr)
   }
 
-  pub fn bpl(&mut self, rel_addr: i8) -> u8 {
+  fn bpl(&mut self, rel_addr: i8) -> u8 {
     let sign_clear = !self.registers.get_flag(FL_SIGN);
     self.branch(sign_clear, rel_addr)
   }
 
-  pub fn bvc(&mut self, rel_addr: i8) -> u8 {
+  fn bvc(&mut self, rel_addr: i8) -> u8 {
     let overflow_clear = !self.registers.get_flag(FL_OVERFLOW);
     self.branch(overflow_clear, rel_addr)
   }
 
-  pub fn bvs(&mut self, rel_addr: i8) -> u8 {
+  fn bvs(&mut self, rel_addr: i8) -> u8 {
     let overflow_set = self.registers.get_flag(FL_OVERFLOW);
     self.branch(overflow_set, rel_addr)
   }
 
   /// Status Flag Changes
 
-  pub fn clc(&mut self) {
+  fn clc(&mut self) {
     self.registers.set_flag(FL_CARRY, false);
   }
 
-  pub fn cld(&mut self) {
+  fn cld(&mut self) {
     panic!("Not implemented by Nintendo's 6502");
   }
 
-  pub fn cli(&mut self) {
+  fn cli(&mut self) {
     self.registers.set_flag(FL_INTERRUPT_DISABLE, false);
   }
 
-  pub fn clv(&mut self) {
+  fn clv(&mut self) {
     self.registers.set_flag(FL_OVERFLOW, false);
   }
 
-  pub fn sec(&mut self) {
+  fn sec(&mut self) {
     self.registers.set_flag(FL_CARRY, true);
   }
 
-  pub fn sed(&mut self) {
+  fn sed(&mut self) {
     panic!("Not implemented by Nintendo's 6502");
   }
 
-  pub fn sei(&mut self) {
+  fn sei(&mut self) {
     self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
   }
 
   /// ## Load/Store Operations
 
-  pub fn lda(&mut self, val: u8) {
+  fn lda(&mut self, val: u8) {
     self.registers.set_acc(val);
   }
 
-  pub fn ldx(&mut self, val: u8) {
+  fn ldx(&mut self, val: u8) {
     self.registers.irx = val;
     self.registers.set_sign_and_zero_flag(val);
   }
 
-  pub fn ldy(&mut self, val: u8) {
+  fn ldy(&mut self, val: u8) {
     self.registers.iry = val;
     self.registers.set_sign_and_zero_flag(val);
   }
 
-  pub fn sta(&mut self, addr: u16) {
+  fn sta(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.acc);
   }
 
-  pub fn stx(&mut self, addr: u16) {
+  fn stx(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.irx);
   }
 
-  pub fn sty(&mut self, addr: u16) {
+  fn sty(&mut self, addr: u16) {
     self.memory.store(addr, self.registers.iry);
   }
 
   /// ## Logical (todo: tests)
 
-  pub fn and(&mut self, rop: u8) {
+  fn and(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop & rop;
     self.registers.set_acc(res);
   }
 
-  pub fn eor(&mut self, rop: u8) {
+  fn eor(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop ^ rop;
     self.registers.set_acc(res);
   }
 
-  pub fn ora(&mut self, rop: u8) {
+  fn ora(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop | rop;
     self.registers.set_acc(res);
   }
 
-  pub fn bit(&mut self, rop: u8) {
+  fn bit(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop & rop;
     self.registers.set_sign_and_zero_flag(res);
@@ -836,19 +854,19 @@ impl Cpu6502 {
 
   /// ## System Functions (todo: tests)
 
-  pub fn brk(&mut self) {
+  fn brk(&mut self) {
     let pc = self.registers.pc;
     let status = self.registers.stat;
     self.push_stack16(pc + 1);
     self.push_stack(status);
-    let irq_handler = self.memory.load16(IRQ_VECTOR_LOC);
+    let irq_handler = self.memory.load16(BRK_VECTOR);
     self.registers.pc = irq_handler;
     self.registers.set_flag(FL_BRK, true);
   }
 
-  pub fn nop(&mut self) { }
+  fn nop(&mut self) { }
 
-  pub fn rti(&mut self) {
+  fn rti(&mut self) {
     let stat = self.pop_stack();
     let pc = self.pop_stack16();
     self.registers.stat = stat;
