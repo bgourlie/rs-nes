@@ -1,3 +1,3 @@
 mod constants;
-mod memory;
+pub mod memory;
 pub mod cpu;

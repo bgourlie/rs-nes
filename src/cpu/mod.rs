@@ -81,7 +81,7 @@ impl Cpu6502 {
     let pc_start = self.memory.load16(RESET_VECTOR);
     self.registers.pc = pc_start;
   }
-  
+
   pub fn nmi(&mut self) {
     let (pc, stat) = (self.registers.pc, self.registers.stat);
     self.push_stack16(pc);
@@ -105,7 +105,7 @@ impl Cpu6502 {
   fn read_op16(&mut self) -> u16 {
     let pc = self.registers.pc;
     let operand = self.memory.load16(pc);
-    self.registers.pc += 1;
+    self.registers.pc += 2;
     operand
   }
 
@@ -119,8 +119,13 @@ impl Cpu6502 {
   }
 
   fn get_zpx(&mut self) -> u8 {
-    let addr: u16 = self.read_op() as u16 + self.registers.irx as u16;
-    self.memory.load(addr)
+    let addr = self.read_op();
+    self.memory.load_zp_indexed(addr, self.registers.irx)
+  }
+
+  fn get_zpy(&mut self) -> u8 {
+    let addr = self.read_op();
+    self.memory.load_zp_indexed(addr, self.registers.iry)
   }
 
   fn get_abs(&mut self) -> u8 {
@@ -192,18 +197,26 @@ impl Cpu6502 {
       }
 
       // ldx
-      0xa2 => { panic!("unimplemented"); }
-      0xa6 => { panic!("unimplemented"); }
-      0xb6 => { panic!("unimplemented"); }
-      0xae => { panic!("unimplemented"); }
-      0xbe => { panic!("unimplemented"); }
+      0xa2 => { let val = self.get_immed(); self.ldx(val); }
+      0xa6 => { let val = self.get_zp(); self.ldx(val); }
+      0xb6 => { let val = self.get_zpy(); self.ldx(val); }
+      0xae => { let val = self.get_abs(); self.ldx(val); }
+      0xbe => {
+        let (val, page_crossed) = self.get_absy();
+        if page_crossed { cycles += 1; }
+        self.ldx(val);
+      }
 
       // ldy
-      0xa0 => { panic!("unimplemented"); }
-      0xa4 => { panic!("unimplemented"); }
-      0xb4 => { panic!("unimplemented"); }
-      0xac => { panic!("unimplemented"); }
-      0xbc => { panic!("unimplemented"); }
+      0xa0 => { let val = self.get_immed(); self.ldy(val); }
+      0xa4 => { let val = self.get_zp(); self.ldy(val); }
+      0xb4 => { let val = self.get_zpx(); self.ldy(val); }
+      0xac => { let val = self.get_abs(); self.ldy(val); }
+      0xbc => { 
+        let (val, page_crossed) = self.get_absx();
+        if page_crossed { cycles += 1; }
+        self.ldy(val);
+      }
 
       // # Stores
       // sta
