@@ -118,9 +118,19 @@ impl Cpu6502 {
     self.memory.load(addr)
   }
 
+  fn get_zp16(&mut self) -> u16 {
+    let addr = self.read_op() as u16;
+    self.memory.load16(addr)
+  }
+
   fn get_zpx(&mut self) -> u8 {
     let addr = self.read_op();
     self.memory.load_zp_indexed(addr, self.registers.irx)
+  }
+
+  fn get_zpx16(&mut self) -> u16 {
+    let addr = self.read_op();
+    self.memory.load16_zp_indexed(addr, self.registers.irx)
   }
 
   fn get_zpy(&mut self) -> u8 {
@@ -128,9 +138,19 @@ impl Cpu6502 {
     self.memory.load_zp_indexed(addr, self.registers.iry)
   }
 
+  fn get_zpy16(&mut self) -> u16 {
+    let addr = self.read_op();
+    self.memory.load16_zp_indexed(addr, self.registers.iry)
+  }
+
   fn get_abs(&mut self) -> u8 {
     let addr = self.read_op16();
     self.memory.load(addr)
+  }
+
+  fn get_abs16(&mut self) -> u16 {
+    let addr = self.read_op16();
+    self.memory.load16(addr)
   }
 
   fn get_abs_indexed_base(&mut self, index: u8) -> (u8, bool) {
@@ -142,9 +162,23 @@ impl Cpu6502 {
     (self.memory.load(addr), get_page_crossed(abs, addr))
   }
 
+  fn get_abs_indexed_base16(&mut self, index: u8) -> (u16, bool) {
+    let abs = self.read_op16();
+    let addr = abs + index as u16;
+
+    // TODO: do we check that there is a page crossed when adding
+    // the register to the absolute address?  That's what we're assuming now.
+    (self.memory.load16(addr), get_page_crossed(abs, addr))
+  }
+
   fn get_absx(&mut self) -> (u8, bool) {
     let x = self.registers.irx;
     self.get_abs_indexed_base(x)
+  }
+
+  fn get_absx16(&mut self) -> (u16, bool) {
+    let x = self.registers.irx;
+    self.get_abs_indexed_base16(x)
   }
 
   fn get_absy(&mut self) -> (u8, bool) {
@@ -152,11 +186,23 @@ impl Cpu6502 {
     self.get_abs_indexed_base(y)
   }
 
+  fn get_absy16(&mut self) -> (u16, bool) {
+    let y = self.registers.iry;
+    self.get_abs_indexed_base16(y)
+  }
+
   fn get_indx(&mut self) -> u8 {
     let val = self.read_op();
     let x = self.registers.irx;
     let addr = self.memory.load16_zp_indexed(val, x);
     self.memory.load(addr)
+  }
+
+  fn get_indx16(&mut self) -> u16 {
+    let val = self.read_op();
+    let x = self.registers.irx;
+    let addr = self.memory.load16_zp_indexed(val, x);
+    self.memory.load16(addr)
   }
 
   fn get_indy(&mut self) -> (u8, bool) {
@@ -167,6 +213,16 @@ impl Cpu6502 {
     // TODO: is this the correct way to determine if page is crossed?
     let page_boundary_crossed = get_page_crossed(val as u16, addr);
     (self.memory.load(addr), page_boundary_crossed)
+  }
+
+  fn get_indy16(&mut self) -> (u16, bool) {
+    let val = self.read_op();
+    let y = self.registers.iry;
+    let addr = self.memory.load16(val as u16) + y as u16;
+
+    // TODO: is this the correct way to determine if page is crossed?
+    let page_boundary_crossed = get_page_crossed(val as u16, addr);
+    (self.memory.load16(addr), page_boundary_crossed)
   }
 
   // performs an operation, returns number of cycles consumed
@@ -181,19 +237,19 @@ impl Cpu6502 {
       0xad => { let val = self.get_abs(); self.lda(val); }
       0xb1 => {
         let (val, page_crossed) = self.get_indy();
-        if page_crossed { cycles += 1; }
         self.lda(val);
+        if page_crossed { cycles += 1; }
       }
       0xb5 => { let val = self.get_zpx(); self.lda(val); }
       0xb9 => {
         let (val, page_crossed) = self.get_absy();
-        if page_crossed { cycles += 1; }
         self.lda(val);
+        if page_crossed { cycles += 1; }
       }
       0xbd => {
         let (val, page_crossed) = self.get_absx();
-        if page_crossed { cycles += 1; }
         self.lda(val);
+        if page_crossed { cycles += 1; }
       }
 
       // ldx
@@ -203,8 +259,8 @@ impl Cpu6502 {
       0xae => { let val = self.get_abs(); self.ldx(val); }
       0xbe => {
         let (val, page_crossed) = self.get_absy();
-        if page_crossed { cycles += 1; }
         self.ldx(val);
+        if page_crossed { cycles += 1; }
       }
 
       // ldy
@@ -214,82 +270,130 @@ impl Cpu6502 {
       0xac => { let val = self.get_abs(); self.ldy(val); }
       0xbc => { 
         let (val, page_crossed) = self.get_absx();
-        if page_crossed { cycles += 1; }
         self.ldy(val);
+        if page_crossed { cycles += 1; }
       }
 
       // # Stores
       // sta
-      0x85 => { panic!("unimplemented"); }
-      0x95 => { panic!("unimplemented"); }
-      0x8d => { panic!("unimplemented"); }
-      0x9d => { panic!("unimplemented"); }
-      0x99 => { panic!("unimplemented"); }
-      0x81 => { panic!("unimplemented"); }
-      0x91 => { panic!("unimplemented"); }
+      0x85 => { let val = self.get_zp16(); self.sta(val); }
+      0x95 => { let val = self.get_zpx16(); self.sta(val); }
+      0x8d => { let val = self.get_abs16(); self.sta(val); }
+      0x9d => { let (val, _) = self.get_absx16(); self.sta(val); }
+      0x99 => { let (val, _) = self.get_absy16(); self.sta(val); }
+      0x81 => { let val = self.get_indx16(); self.sta(val); }
+      0x91 => { let (val, _) = self.get_indy16(); self.sta(val); }
 
       // stx
-      0x86 => { panic!("unimplemented"); }
-      0x96 => { panic!("unimplemented"); }
-      0x8e => { panic!("unimplemented"); }
+      0x86 => { let val = self.get_zp16(); self.stx(val); }
+      0x96 => { let val = self.get_zpy16(); self.stx(val); }
+      0x8e => { let val = self.get_abs16(); self.stx(val); }
 
       // sty
-      0x84 => { panic!("unimplemented"); }
-      0x94 => { panic!("unimplemented"); }
-      0x8c => { panic!("unimplemented"); }
+      0x84 => { let val = self.get_zp16(); self.sty(val); }
+      0x94 => { let val = self.get_zpx16(); self.sty(val); }
+      0x8c => { let val = self.get_abs16(); self.sty(val); }
 
       // # Arithmetic
       // adc
-      0x69 => { panic!("unimplemented"); }
-      0x65 => { panic!("unimplemented"); }
-      0x75 => { panic!("unimplemented"); }
-      0x6d => { panic!("unimplemented"); }
-      0x7d => { panic!("unimplemented"); }
-      0x79 => { panic!("unimplemented"); }
-      0x61 => { panic!("unimplemented"); }
-      0x71 => { panic!("unimplemented"); }
+      0x69 => { let val = self.get_immed(); self.adc(val); }
+      0x65 => { let val = self.get_zp(); self.adc(val); }
+      0x75 => { let val = self.get_zpx(); self.adc(val); }
+      0x6d => { let val = self.get_abs(); self.adc(val); }
+      0x7d => { 
+        let (val, page_crossed) = self.get_absx(); 
+        self.adc(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x79 => {
+        let (val, page_crossed) = self.get_absy();
+        self.adc(val);
+        if page_crossed { cycles += 1 }
+      }
+      0x61 => { let val = self.get_indx(); self.adc(val); }
+      0x71 => {
+        let (val, page_crossed) = self.get_indy(); 
+        self.adc(val);
+        if page_crossed { cycles += 1; }
+      }
 
       // sbc
-      0xe9 => { panic!("unimplemented"); }
-      0xe5 => { panic!("unimplemented"); }
-      0xf5 => { panic!("unimplemented"); }
-      0xed => { panic!("unimplemented"); }
-      0xfd => { panic!("unimplemented"); }
-      0xf9 => { panic!("unimplemented"); }
-      0xe1 => { panic!("unimplemented"); }
-      0xf1 => { panic!("unimplemented"); }
+      0xe9 => { let val = self.get_immed(); self.sbc(val); }
+      0xe5 => { let val = self.get_zp(); self.sbc(val); }
+      0xf5 => { let val = self.get_zpx(); self.sbc(val); }
+      0xed => { let val = self.get_abs(); self.sbc(val); }
+      0xfd => { 
+        let (val, page_crossed) = self.get_absx();
+        self.sbc(val);
+        if page_crossed { cycles += 1; }
+      }
+      0xf9 => {
+        let (val, page_crossed) = self.get_absy();
+        self.sbc(val);
+        if page_crossed { cycles += 1; }
+      }
+      0xe1 => { let val = self.get_indx(); self.sbc(val); }
+      0xf1 => { 
+        let (val, page_crossed) = self.get_indy(); 
+        self.sbc(val); 
+        if page_crossed { cycles += 1; }
+      }
 
       // # Comparisons
       // cmp
-      0xc9 => { panic!("unimplemented"); }
-      0xc5 => { panic!("unimplemented"); }
-      0xd5 => { panic!("unimplemented"); }
-      0xcd => { panic!("unimplemented"); }
-      0xdd => { panic!("unimplemented"); }
-      0xd9 => { panic!("unimplemented"); }
-      0xc1 => { panic!("unimplemented"); }
-      0xd1 => { panic!("unimplemented"); }
+      0xc9 => { let val = self.get_immed(); self.cmp(val); }
+      0xc5 => { let val = self.get_zp(); self.cmp(val); }
+      0xd5 => { let val = self.get_zpx(); self.cmp(val); }
+      0xcd => { let val = self.get_abs(); self.cmp(val); }
+      0xdd => { 
+        let (val, page_crossed) = self.get_absx(); 
+        self.cmp(val); 
+        if page_crossed { cycles += 1; }
+      }
+      0xd9 => {
+        let (val, page_crossed) = self.get_absy();
+        self.cmp(val);
+        if page_crossed { cycles += 1; }
+      }
+      0xc1 => { let val = self.get_indx(); self.cmp(val); }
+      0xd1 => {
+        let (val, page_crossed) = self.get_indy();
+        self.cmp(val);
+        if page_crossed { cycles += 1; }
+      }
 
       // cpx
-      0xe0 => { panic!("unimplemented"); }
-      0xe4 => { panic!("unimplemented"); }
-      0xec => { panic!("unimplemented"); }
+      0xe0 => { let val = self.get_immed(); self.cpx(val); }
+      0xe4 => { let val = self.get_zp(); self.cpx(val); }
+      0xec => { let val = self.get_abs(); self.cpx(val); }
 
       // cpy
-      0xc0 => { panic!("unimplemented"); }
-      0xc4 => { panic!("unimplemented"); }
-      0xcc => { panic!("unimplemented"); }
+      0xc0 => { let val = self.get_immed(); self.cpy(val); }
+      0xc4 => { let val = self.get_zp(); self.cpy(val); }
+      0xcc => { let val = self.get_abs(); self.cpy(val); }
 
       // # Bitwise operations
       // and
-      0x29 => { panic!("unimplemented"); }
-      0x25 => { panic!("unimplemented"); }
-      0x35 => { panic!("unimplemented"); }
-      0x2d => { panic!("unimplemented"); }
-      0x3d => { panic!("unimplemented"); }
-      0x39 => { panic!("unimplemented"); }
-      0x21 => { panic!("unimplemented"); }
-      0x31 => { panic!("unimplemented"); }
+      0x29 => { let val = self.get_immed(); self.and(val); }
+      0x25 => { let val = self.get_zp(); self.and(val); }
+      0x35 => { let val = self.get_zpx(); self.and(val); }
+      0x2d => { let val = self.get_abs(); self.and(val); }
+      0x3d => { 
+        let (val, page_crossed) = self.get_absx();
+        self.and(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x39 => {
+        let (val, page_crossed) = self.get_absy();
+        self.and(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x21 => { let val = self.get_indx(); self.and(val); }
+      0x31 => {
+        let (val, page_crossed) = self.get_indy();
+        self.and(val);
+        if page_crossed { cycles += 1; }
+      }
 
       // ora
       0x09 => { panic!("unimplemented"); }
