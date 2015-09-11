@@ -113,116 +113,116 @@ impl Cpu6502 {
     self.read_op()
   }
 
-  fn get_zp(&mut self) -> u8 {
+  fn get_zp(&mut self) -> (u8, u16) {
     let addr = self.read_op() as u16;
-    self.memory.load(addr)
+    (self.memory.load(addr), addr)
   }
 
-  fn get_zp16(&mut self) -> u16 {
+  fn get_zp16(&mut self) -> (u16, u16) {
     let addr = self.read_op() as u16;
-    self.memory.load16(addr)
+    (self.memory.load16(addr), addr)
   }
 
-  fn get_zpx(&mut self) -> u8 {
+  fn get_zpx(&mut self) -> (u8, u16) {
     let addr = self.read_op();
-    self.memory.load_zp_indexed(addr, self.registers.irx)
+    (self.memory.load_zp_indexed(addr, self.registers.irx), addr as u16)
   }
 
-  fn get_zpx16(&mut self) -> u16 {
+  fn get_zpx16(&mut self) -> (u16, u16) {
     let addr = self.read_op();
-    self.memory.load16_zp_indexed(addr, self.registers.irx)
+    (self.memory.load16_zp_indexed(addr, self.registers.irx), addr as u16)
   }
 
-  fn get_zpy(&mut self) -> u8 {
+  fn get_zpy(&mut self) -> (u8, u16) {
     let addr = self.read_op();
-    self.memory.load_zp_indexed(addr, self.registers.iry)
+    (self.memory.load_zp_indexed(addr, self.registers.iry), addr as u16)
   }
 
-  fn get_zpy16(&mut self) -> u16 {
+  fn get_zpy16(&mut self) -> (u16, u16) {
     let addr = self.read_op();
-    self.memory.load16_zp_indexed(addr, self.registers.iry)
+    (self.memory.load16_zp_indexed(addr, self.registers.iry), addr as u16)
   }
 
-  fn get_abs(&mut self) -> u8 {
+  fn get_abs(&mut self) -> (u8, u16) {
     let addr = self.read_op16();
-    self.memory.load(addr)
+    (self.memory.load(addr), addr)
   }
 
-  fn get_abs16(&mut self) -> u16 {
+  fn get_abs16(&mut self) -> (u16, u16) {
     let addr = self.read_op16();
-    self.memory.load16(addr)
+    (self.memory.load16(addr), addr)
   }
 
-  fn get_abs_indexed_base(&mut self, index: u8) -> (u8, bool) {
+  fn get_abs_indexed_base(&mut self, index: u8) -> (u8, u16, bool) {
     let abs = self.read_op16();
     let addr = abs + index as u16;
 
     // TODO: do we check that there is a page crossed when adding
     // the register to the absolute address?  That's what we're assuming now.
-    (self.memory.load(addr), get_page_crossed(abs, addr))
+    (self.memory.load(addr), addr, get_page_crossed(abs, addr))
   }
 
-  fn get_abs_indexed_base16(&mut self, index: u8) -> (u16, bool) {
+  fn get_abs_indexed_base16(&mut self, index: u8) -> (u16, u16, bool) {
     let abs = self.read_op16();
     let addr = abs + index as u16;
 
     // TODO: do we check that there is a page crossed when adding
     // the register to the absolute address?  That's what we're assuming now.
-    (self.memory.load16(addr), get_page_crossed(abs, addr))
+    (self.memory.load16(addr), addr, get_page_crossed(abs, addr))
   }
 
-  fn get_absx(&mut self) -> (u8, bool) {
+  fn get_absx(&mut self) -> (u8, u16, bool) {
     let x = self.registers.irx;
     self.get_abs_indexed_base(x)
   }
 
-  fn get_absx16(&mut self) -> (u16, bool) {
+  fn get_absx16(&mut self) -> (u16, u16, bool) {
     let x = self.registers.irx;
     self.get_abs_indexed_base16(x)
   }
 
-  fn get_absy(&mut self) -> (u8, bool) {
+  fn get_absy(&mut self) -> (u8, u16, bool) {
     let y = self.registers.iry;
     self.get_abs_indexed_base(y)
   }
 
-  fn get_absy16(&mut self) -> (u16, bool) {
+  fn get_absy16(&mut self) -> (u16, u16, bool) {
     let y = self.registers.iry;
     self.get_abs_indexed_base16(y)
   }
 
-  fn get_indx(&mut self) -> u8 {
+  fn get_indx(&mut self) -> (u8, u16) {
     let val = self.read_op();
     let x = self.registers.irx;
     let addr = self.memory.load16_zp_indexed(val, x);
-    self.memory.load(addr)
+    (self.memory.load(addr), addr)
   }
 
-  fn get_indx16(&mut self) -> u16 {
+  fn get_indx16(&mut self) -> (u16, u16) {
     let val = self.read_op();
     let x = self.registers.irx;
     let addr = self.memory.load16_zp_indexed(val, x);
-    self.memory.load16(addr)
+    (self.memory.load16(addr), addr)
   }
 
-  fn get_indy(&mut self) -> (u8, bool) {
+  fn get_indy(&mut self) -> (u8, u16, bool) {
     let val = self.read_op();
     let y = self.registers.iry;
     let addr = self.memory.load16(val as u16) + y as u16;
 
     // TODO: is this the correct way to determine if page is crossed?
     let page_boundary_crossed = get_page_crossed(val as u16, addr);
-    (self.memory.load(addr), page_boundary_crossed)
+    (self.memory.load(addr), addr, page_boundary_crossed)
   }
 
-  fn get_indy16(&mut self) -> (u16, bool) {
+  fn get_indy16(&mut self) -> (u16, u16, bool) {
     let val = self.read_op();
     let y = self.registers.iry;
     let addr = self.memory.load16(val as u16) + y as u16;
 
     // TODO: is this the correct way to determine if page is crossed?
     let page_boundary_crossed = get_page_crossed(val as u16, addr);
-    (self.memory.load16(addr), page_boundary_crossed)
+    (self.memory.load16(addr), addr, page_boundary_crossed)
   }
 
   // performs an operation, returns number of cycles consumed
@@ -231,110 +231,110 @@ impl Cpu6502 {
     match opcode {
       // # Loads
       // lda
-      0xa1 => { let val = self.get_indx(); self.lda(val); }
-      0xa5 => { let val = self.get_zp(); self.lda(val); }
+      0xa1 => { let (val, _) = self.get_indx(); self.lda(val); }
+      0xa5 => { let (val, _) = self.get_zp(); self.lda(val); }
       0xa9 => { let val = self.get_immed(); self.lda(val); }
-      0xad => { let val = self.get_abs(); self.lda(val); }
+      0xad => { let (val, _) = self.get_abs(); self.lda(val); }
       0xb1 => {
-        let (val, page_crossed) = self.get_indy();
+        let (val, _, page_crossed) = self.get_indy();
         self.lda(val);
         if page_crossed { cycles += 1; }
       }
-      0xb5 => { let val = self.get_zpx(); self.lda(val); }
+      0xb5 => { let (val, _) = self.get_zpx(); self.lda(val); }
       0xb9 => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.lda(val);
         if page_crossed { cycles += 1; }
       }
       0xbd => {
-        let (val, page_crossed) = self.get_absx();
+        let (val, _, page_crossed) = self.get_absx();
         self.lda(val);
         if page_crossed { cycles += 1; }
       }
 
       // ldx
       0xa2 => { let val = self.get_immed(); self.ldx(val); }
-      0xa6 => { let val = self.get_zp(); self.ldx(val); }
-      0xb6 => { let val = self.get_zpy(); self.ldx(val); }
-      0xae => { let val = self.get_abs(); self.ldx(val); }
+      0xa6 => { let (val, _) = self.get_zp(); self.ldx(val); }
+      0xb6 => { let (val, _) = self.get_zpy(); self.ldx(val); }
+      0xae => { let (val, _) = self.get_abs(); self.ldx(val); }
       0xbe => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.ldx(val);
         if page_crossed { cycles += 1; }
       }
 
       // ldy
       0xa0 => { let val = self.get_immed(); self.ldy(val); }
-      0xa4 => { let val = self.get_zp(); self.ldy(val); }
-      0xb4 => { let val = self.get_zpx(); self.ldy(val); }
-      0xac => { let val = self.get_abs(); self.ldy(val); }
+      0xa4 => { let (val, _) = self.get_zp(); self.ldy(val); }
+      0xb4 => { let (val, _) = self.get_zpx(); self.ldy(val); }
+      0xac => { let (val, _) = self.get_abs(); self.ldy(val); }
       0xbc => { 
-        let (val, page_crossed) = self.get_absx();
+        let (val, _, page_crossed) = self.get_absx();
         self.ldy(val);
         if page_crossed { cycles += 1; }
       }
 
       // # Stores
       // sta
-      0x85 => { let val = self.get_zp16(); self.sta(val); }
-      0x95 => { let val = self.get_zpx16(); self.sta(val); }
-      0x8d => { let val = self.get_abs16(); self.sta(val); }
-      0x9d => { let (val, _) = self.get_absx16(); self.sta(val); }
-      0x99 => { let (val, _) = self.get_absy16(); self.sta(val); }
-      0x81 => { let val = self.get_indx16(); self.sta(val); }
-      0x91 => { let (val, _) = self.get_indy16(); self.sta(val); }
+      0x85 => { let (val, _) = self.get_zp16(); self.sta(val); }
+      0x95 => { let (val, _) = self.get_zpx16(); self.sta(val); }
+      0x8d => { let (val, _) = self.get_abs16(); self.sta(val); }
+      0x9d => { let (val, _, _) = self.get_absx16(); self.sta(val); }
+      0x99 => { let (val, _, _) = self.get_absy16(); self.sta(val); }
+      0x81 => { let (val, _) = self.get_indx16(); self.sta(val); }
+      0x91 => { let (val, _, _) = self.get_indy16(); self.sta(val); }
 
       // stx
-      0x86 => { let val = self.get_zp16(); self.stx(val); }
-      0x96 => { let val = self.get_zpy16(); self.stx(val); }
-      0x8e => { let val = self.get_abs16(); self.stx(val); }
+      0x86 => { let (val, _) = self.get_zp16(); self.stx(val); }
+      0x96 => { let (val, _) = self.get_zpy16(); self.stx(val); }
+      0x8e => { let (val, _) = self.get_abs16(); self.stx(val); }
 
       // sty
-      0x84 => { let val = self.get_zp16(); self.sty(val); }
-      0x94 => { let val = self.get_zpx16(); self.sty(val); }
-      0x8c => { let val = self.get_abs16(); self.sty(val); }
+      0x84 => { let (val, _) = self.get_zp16(); self.sty(val); }
+      0x94 => { let (val, _) = self.get_zpx16(); self.sty(val); }
+      0x8c => { let (val, _) = self.get_abs16(); self.sty(val); }
 
       // # Arithmetic
       // adc
       0x69 => { let val = self.get_immed(); self.adc(val); }
-      0x65 => { let val = self.get_zp(); self.adc(val); }
-      0x75 => { let val = self.get_zpx(); self.adc(val); }
-      0x6d => { let val = self.get_abs(); self.adc(val); }
+      0x65 => { let (val, _) = self.get_zp(); self.adc(val); }
+      0x75 => { let (val, _) = self.get_zpx(); self.adc(val); }
+      0x6d => { let (val, _) = self.get_abs(); self.adc(val); }
       0x7d => { 
-        let (val, page_crossed) = self.get_absx(); 
+        let (val, _, page_crossed) = self.get_absx(); 
         self.adc(val);
         if page_crossed { cycles += 1; }
       }
       0x79 => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.adc(val);
         if page_crossed { cycles += 1 }
       }
-      0x61 => { let val = self.get_indx(); self.adc(val); }
+      0x61 => { let (val, _) = self.get_indx(); self.adc(val); }
       0x71 => {
-        let (val, page_crossed) = self.get_indy(); 
+        let (val, _, page_crossed) = self.get_indy(); 
         self.adc(val);
         if page_crossed { cycles += 1; }
       }
 
       // sbc
       0xe9 => { let val = self.get_immed(); self.sbc(val); }
-      0xe5 => { let val = self.get_zp(); self.sbc(val); }
-      0xf5 => { let val = self.get_zpx(); self.sbc(val); }
-      0xed => { let val = self.get_abs(); self.sbc(val); }
+      0xe5 => { let (val, _) = self.get_zp(); self.sbc(val); }
+      0xf5 => { let (val, _) = self.get_zpx(); self.sbc(val); }
+      0xed => { let (val, _) = self.get_abs(); self.sbc(val); }
       0xfd => { 
-        let (val, page_crossed) = self.get_absx();
+        let (val, _, page_crossed) = self.get_absx();
         self.sbc(val);
         if page_crossed { cycles += 1; }
       }
       0xf9 => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.sbc(val);
         if page_crossed { cycles += 1; }
       }
-      0xe1 => { let val = self.get_indx(); self.sbc(val); }
+      0xe1 => { let (val, _) = self.get_indx(); self.sbc(val); }
       0xf1 => { 
-        let (val, page_crossed) = self.get_indy(); 
+        let (val, _, page_crossed) = self.get_indy(); 
         self.sbc(val); 
         if page_crossed { cycles += 1; }
       }
@@ -342,237 +342,389 @@ impl Cpu6502 {
       // # Comparisons
       // cmp
       0xc9 => { let val = self.get_immed(); self.cmp(val); }
-      0xc5 => { let val = self.get_zp(); self.cmp(val); }
-      0xd5 => { let val = self.get_zpx(); self.cmp(val); }
-      0xcd => { let val = self.get_abs(); self.cmp(val); }
+      0xc5 => { let (val, _) = self.get_zp(); self.cmp(val); }
+      0xd5 => { let (val, _) = self.get_zpx(); self.cmp(val); }
+      0xcd => { let (val, _) = self.get_abs(); self.cmp(val); }
       0xdd => { 
-        let (val, page_crossed) = self.get_absx(); 
+        let (val, _, page_crossed) = self.get_absx(); 
         self.cmp(val); 
         if page_crossed { cycles += 1; }
       }
       0xd9 => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.cmp(val);
         if page_crossed { cycles += 1; }
       }
-      0xc1 => { let val = self.get_indx(); self.cmp(val); }
+      0xc1 => { let (val, _) = self.get_indx(); self.cmp(val); }
       0xd1 => {
-        let (val, page_crossed) = self.get_indy();
+        let (val, _, page_crossed) = self.get_indy();
         self.cmp(val);
         if page_crossed { cycles += 1; }
       }
 
       // cpx
       0xe0 => { let val = self.get_immed(); self.cpx(val); }
-      0xe4 => { let val = self.get_zp(); self.cpx(val); }
-      0xec => { let val = self.get_abs(); self.cpx(val); }
+      0xe4 => { let (val, _) = self.get_zp(); self.cpx(val); }
+      0xec => { let (val, _) = self.get_abs(); self.cpx(val); }
 
       // cpy
       0xc0 => { let val = self.get_immed(); self.cpy(val); }
-      0xc4 => { let val = self.get_zp(); self.cpy(val); }
-      0xcc => { let val = self.get_abs(); self.cpy(val); }
+      0xc4 => { let (val, _) = self.get_zp(); self.cpy(val); }
+      0xcc => { let (val, _) = self.get_abs(); self.cpy(val); }
 
       // # Bitwise operations
       // and
       0x29 => { let val = self.get_immed(); self.and(val); }
-      0x25 => { let val = self.get_zp(); self.and(val); }
-      0x35 => { let val = self.get_zpx(); self.and(val); }
-      0x2d => { let val = self.get_abs(); self.and(val); }
+      0x25 => { let (val, _) = self.get_zp(); self.and(val); }
+      0x35 => { let (val, _) = self.get_zpx(); self.and(val); }
+      0x2d => { let (val, _) = self.get_abs(); self.and(val); }
       0x3d => { 
-        let (val, page_crossed) = self.get_absx();
+        let (val, _, page_crossed) = self.get_absx();
         self.and(val);
         if page_crossed { cycles += 1; }
       }
       0x39 => {
-        let (val, page_crossed) = self.get_absy();
+        let (val, _, page_crossed) = self.get_absy();
         self.and(val);
         if page_crossed { cycles += 1; }
       }
-      0x21 => { let val = self.get_indx(); self.and(val); }
+      0x21 => { let (val, _) = self.get_indx(); self.and(val); }
       0x31 => {
-        let (val, page_crossed) = self.get_indy();
+        let (val, _, page_crossed) = self.get_indy();
         self.and(val);
         if page_crossed { cycles += 1; }
       }
 
       // ora
-      0x09 => { panic!("unimplemented"); }
-      0x05 => { panic!("unimplemented"); }
-      0x15 => { panic!("unimplemented"); }
-      0x0d => { panic!("unimplemented"); }
-      0x1d => { panic!("unimplemented"); }
-      0x19 => { panic!("unimplemented"); }
-      0x01 => { panic!("unimplemented"); }
-      0x11 => { panic!("unimplemented"); }
+      0x09 => { let val = self.get_immed(); self.ora(val); }
+      0x05 => { let (val, _) = self.get_zp(); self.ora(val); }
+      0x15 => { let (val, _) = self.get_zpx(); self.ora(val); }
+      0x0d => { let (val, _) = self.get_abs(); self.ora(val); }
+      0x1d => { 
+        let (val, _, page_crossed) = self.get_absx(); 
+        self.ora(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x19 => {
+        let (val, _, page_crossed) = self.get_absy(); 
+        self.ora(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x01 => { let (val, _) = self.get_indx(); self.ora(val);}
+      0x11 => {
+        let (val, _, page_crossed) = self.get_indy(); 
+        self.ora(val);
+        if page_crossed { cycles += 1; }
+      }
 
       // eor
-      0x49 => { panic!("unimplemented"); }
-      0x45 => { panic!("unimplemented"); }
-      0x55 => { panic!("unimplemented"); }
-      0x4d => { panic!("unimplemented"); }
-      0x5d => { panic!("unimplemented"); }
-      0x59 => { panic!("unimplemented"); }
-      0x41 => { panic!("unimplemented"); }
-      0x51 => { panic!("unimplemented"); }
+      0x49 => { let val = self.get_immed(); self.eor(val); }
+      0x45 => { let (val, _) = self.get_zp(); self.eor(val); }
+      0x55 => { let (val, _) = self.get_zpx(); self.eor(val); }
+      0x4d => { let (val, _) = self.get_abs(); self.eor(val); }
+      0x5d => { 
+        let (val, _, page_crossed) = self.get_absx(); 
+        self.eor(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x59 => {
+        let (val, _, page_crossed) = self.get_absy(); 
+        self.eor(val);
+        if page_crossed { cycles += 1; }
+      }
+      0x41 => { let (val, _) = self.get_indx(); self.eor(val); }
+      0x51 => {
+        let (val, _, page_crossed) = self.get_indy(); 
+        self.eor(val);
+        if page_crossed { cycles += 1; }
+      }
 
       // bit
-      0x24 => { panic!("unimplemented"); }
-      0x2c => { panic!("unimplemented"); }
+      0x24 => { let (val, _) = self.get_zp(); self.bit(val); }
+      0x2c => { let (val, _) = self.get_abs(); self.bit(val); }
 
       // # Shifts and rotates
       // rol
-      0x2a => { panic!("unimplemented"); }
-      0x26 => { panic!("unimplemented"); }
-      0x36 => { panic!("unimplemented"); }
-      0x2e => { panic!("unimplemented"); }
-      0x3e => { panic!("unimplemented"); }
+      0x2a => { 
+        let val = self.registers.acc; 
+        self.registers.acc = self.rol(val); 
+      }
+      0x26 => { 
+        let (val, addr) = self.get_zp(); 
+        let val = self.rol(val);
+        self.memory.store(addr, val);
+      }
+      0x36 => { 
+        let (val, addr) = self.get_zpx(); 
+        let val = self.rol(val);
+        self.memory.store(addr, val);
+      }
+      0x2e => {
+        let (val, addr) = self.get_abs();
+        let val = self.rol(val);
+        self.memory.store(addr, val);
+      }
+      0x3e => {
+        let (val, addr, _) = self.get_absx();
+        let val = self.rol(val);
+        self.memory.store(addr, val);
+      }
 
       // ror
-      0x6a => { panic!("unimplemented"); }
-      0x66 => { panic!("unimplemented"); }
-      0x76 => { panic!("unimplemented"); }
-      0x6e => { panic!("unimplemented"); }
-      0x7e => { panic!("unimplemented"); }
+      0x6a => {
+        let val = self.registers.acc;
+        self.registers.acc = self.ror(val);
+      }
+      0x66 => {
+        let (val, addr) = self.get_zp();
+        let val = self.ror(val);
+        self.memory.store(addr, val);
+      }
+      0x76 => {
+        let (val, addr) = self.get_zpx();
+        let val = self.ror(val);
+        self.memory.store(addr, val);
+      }
+      0x6e => {
+        let (val, addr) = self.get_abs();
+        let val = self.ror(val);
+        self.memory.store(addr, val);
+      }
+      0x7e => {
+        let (val, addr, _) = self.get_absx();
+        let val = self.ror(val);
+        self.memory.store(addr, val);
+      }
 
       // asl
-      0x0a => { panic!("unimplemented"); }
-      0x06 => { panic!("unimplemented"); }
-      0x16 => { panic!("unimplemented"); }
-      0x0e => { panic!("unimplemented"); }
-      0x1e => { panic!("unimplemented"); }
+      0x0a => {
+        let val = self.registers.acc;
+        self.registers.acc = self.asl(val);
+      }
+      0x06 => {
+        let (val, addr) = self.get_zp();
+        let val = self.asl(val);
+        self.memory.store(addr, val);
+      }
+      0x16 => {
+        let (val, addr) = self.get_zpx();
+        let val = self.asl(val);
+        self.memory.store(addr, val);
+      }
+      0x0e => {
+        let (val, addr) = self.get_abs();
+        let val = self.asl(val);
+        self.memory.store(addr, val);
+      }
+      0x1e => {
+        let (val, addr, _) = self.get_absx();
+        let val = self.asl(val);
+        self.memory.store(addr, val);
+      }
 
       // lsr
-      0x4a => { panic!("unimplemented"); }
-      0x46 => { panic!("unimplemented"); }
-      0x56 => { panic!("unimplemented"); }
-      0x4e => { panic!("unimplemented"); }
-      0x5e => { panic!("unimplemented"); }
+      0x4a => {
+        let val = self.registers.acc;
+        self.registers.acc = self.lsr(val);
+      }
+      0x46 => {
+        let (val, addr) = self.get_zp();
+        let val = self.lsr(val);
+        self.memory.store(addr, val);
+      }
+      0x56 => {
+        let (val, addr) = self.get_zpx();
+        let val = self.lsr(val);
+        self.memory.store(addr, val);
+      }
+      0x4e => {
+        let (val, addr) = self.get_abs();
+        let val = self.lsr(val);
+        self.memory.store(addr, val);
+      }
+      0x5e => {
+        let (val, addr, _) = self.get_absx();
+        let val = self.lsr(val);
+        self.memory.store(addr, val);
+      }
 
       // # Increments and decrements
       // inc
-      0xe6 => { panic!("unimplemented"); }
-      0xf6 => { panic!("unimplemented"); }
-      0xee => { panic!("unimplemented"); }
-      0xfe => { panic!("unimplemented"); }
+      0xe6 => { let (addr, _) = self.get_zp16(); self.inc(addr); }
+      0xf6 => { let (addr, _) = self.get_zpx16(); self.inc(addr); }
+      0xee => { let (addr, _) = self.get_abs16(); self.inc(addr); }
+      0xfe => { let (addr, _, _) = self.get_absx16(); self.inc(addr); }
 
       // dec
-      0xc6 => { panic!("unimplemented"); }
-      0xd6 => { panic!("unimplemented"); }
-      0xce => { panic!("unimplemented"); }
-      0xde => { panic!("unimplemented"); }
+      0xc6 => { let (addr, _) = self.get_zp16(); self.dec(addr); }
+      0xd6 => { let (addr, _) = self.get_zpx16(); self.dec(addr); }
+      0xce => { let (addr, _) = self.get_abs16(); self.dec(addr); }
+      0xde => { let (addr, _, _) = self.get_absx16(); self.dec(addr); }
 
       // inx
-      0xe8 => { panic!("unimplemented"); }
+      0xe8 => { self.inx(); }
 
       // dex
-      0xca => { panic!("unimplemented"); }
+      0xca => { self.dex(); }
 
       // iny
-      0xc8 => { panic!("unimplemented"); }
+      0xc8 => { self.iny(); }
 
       // dey
-      0x88 => { panic!("unimplemented"); }
+      0x88 => { self.dey(); }
 
       // # Register moves
       // tax
-      0xaa => { panic!("unimplemented"); }
+      0xaa => { self.tax(); }
 
       // tay
-      0xa8 => { panic!("unimplemented"); }
+      0xa8 => { self.tay(); }
 
       // txa
-      0x8a => { panic!("unimplemented"); }
+      0x8a => { self.txa(); }
 
       // tya
-      0x98 => { panic!("unimplemented"); }
+      0x98 => { self.tya(); }
 
       // txs
-      0x9a => { panic!("unimplemented"); }
+      0x9a => { self.txs(); }
 
       // tsx
-      0xba => { panic!("unimplemented"); }
+      0xba => { self.tsx(); }
 
       // # Flag operations
       // clc
-      0x18 => { panic!("unimplemented"); }
+      0x18 => { self.clc(); }
 
       // sec
-      0x38 => { panic!("unimplemented"); }
+      0x38 => { self.sec(); }
 
       // cli
-      0x58 => { panic!("unimplemented"); }
+      0x58 => { self.cli(); }
 
       // sei
-      0x78 => { panic!("unimplemented"); }
+      0x78 => { self.sei(); }
 
       // clv
-      0xb8 => { panic!("unimplemented"); }
+      0xb8 => { self.clv(); }
 
       // cld
-      0xd8 => { panic!("unimplemented"); }
+      0xd8 => { self.cld(); }
 
       // sed
-      0xf8 => { panic!("unimplemented"); }
+      0xf8 => { self.sed(); }
 
       // # Branches
       // bpl
-      0x10 => { panic!("unimplemented"); }
+      0x10 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bpl(rel_addr);
+      }
 
       // bmi
-      0x30 => { panic!("unimplemented"); }
+      0x30 => { 
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bmi(rel_addr);
+      }
 
       // bvc
-      0x50 => { panic!("unimplemented"); }
+      0x50 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bvc(rel_addr);
+      }
 
       // bvs
-      0x70 => { panic!("unimplemented"); }
+      0x70 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bvs(rel_addr);
+      }
 
       // bcc
-      0x90 => { panic!("unimplemented"); }
+      0x90 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bcc(rel_addr);
+      }
 
       // bcs
-      0xb0 => { panic!("unimplemented"); }
+      0xb0 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bcs(rel_addr);
+      }
 
       // bne
-      0xd0 => { panic!("unimplemented"); }
+      0xd0 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.bne(rel_addr);
+      }
 
       // beq
-      0xf0 => { panic!("unimplemented"); }
+      0xf0 => {
+        let rel_addr = self.read_op() as i8;
+        cycles += self.beq(rel_addr);
+      }
 
       // # Jumps
       // jmp
-      0x4c => { panic!("unimplemented"); }
-      0x6c => { panic!("unimplemented"); },
+      0x4c => {
+        let (addr, _) = self.get_abs16();
+        self.jmp(addr);
+      }
+      0x6c => {
+        let addr = self.read_op16();
+        let lo_byte = self.memory.load(addr);
+        let hi_byte;
+        
+        // recreate indirect jump bug in nmos 6502
+        if addr & 0x00ff == 0x00ff {
+          hi_byte = self.memory.load(addr & 0xff00);
+        } else {
+          hi_byte = self.memory.load(addr + 1);
+        }
+
+        let addr = (hi_byte as u16) << 8 | lo_byte as u16; 
+        self.jmp(addr);
+      },
 
       // # Procedure calls
       // jsr
-      0x20 => { panic!("unimplemented"); }
+      0x20 => { 
+        let (addr, _) = self.get_abs16();
+        self.jsr(addr);
+      }
 
       // rts
-      0x60 => { panic!("unimplemented"); }
+      0x60 => { self.rts(); }
 
       // brk
-      0x00 => { panic!("unimplemented"); }
+      0x00 => { 
+        // The BRK instruction is actually encoded as 2 bytes, one for the
+        // instruction, and an additional padding byte.  We increment the 
+        // program counter to accommodate this, which *must* be done before
+        // invoking the brk instruction since it pushes the program counter
+        // to the stack.
+        self.registers.pc += 1;
+        self.brk();
+      }
 
       // rti
-      0x40 => { panic!("unimplemented"); }
+      0x40 => { self.rti(); }
 
       // # Stack operations
       // pha
-      0x48 => { panic!("unimplemented"); }
+      0x48 => { self.pha(); }
 
       // pla
-      0x68 => { panic!("unimplemented"); }
+      0x68 => { self.pla(); }
 
       // php
-      0x08 => { panic!("unimplemented"); }
+      0x08 => { self.php(); }
 
       // plp
-      0x28 => { panic!("unimplemented"); }
+      0x28 => { self.plp(); }
 
       // No operation
       // nop
-      0xea => { panic!("unimplemented"); }
+      0xea => { /* do nothing  */ }
 
       _ => { panic!("unexpected opcode encountered"); }
     }
@@ -974,7 +1126,7 @@ impl Cpu6502 {
   fn brk(&mut self) {
     let pc = self.registers.pc;
     let status = self.registers.stat;
-    self.push_stack16(pc + 1);
+    self.push_stack16(pc);
     self.push_stack(status);
     let irq_handler = self.memory.load16(BRK_VECTOR);
     self.registers.pc = irq_handler;
