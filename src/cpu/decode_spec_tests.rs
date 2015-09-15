@@ -1,7 +1,5 @@
-extern crate rs_nes;
-
-use rs_nes::cpu::*;
-use rs_nes::memory::*;
+use cpu::*;
+use memory::*;
 
 #[test]
 fn adc_immed() {

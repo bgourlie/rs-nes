@@ -1,4 +1,8 @@
+mod constants;
+mod memory;
+mod cpu;
 mod rom_loader;
+
 use rom_loader::NesRom;
 
 fn main() {
