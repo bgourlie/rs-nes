@@ -1,0 +1,4 @@
+[package]
+name = "rom-loader"
+version = "0.1.0"
+authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
