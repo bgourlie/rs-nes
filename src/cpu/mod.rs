@@ -80,6 +80,11 @@ impl Cpu6502 {
     }
   }
 
+  pub fn load(&mut self, loc: u16, prg: &[u8], pc: u16) {
+    self.memory.store_many(loc, prg);
+    self.registers.pc = pc;
+  }
+
   pub fn reset(&mut self) {
     let pc_start = self.memory.load16(RESET_VECTOR);
     self.registers.pc = pc_start;
@@ -1046,7 +1051,7 @@ impl Cpu6502 {
   }
 
   fn cld(&mut self) {
-    panic!("Not implemented by Nintendo's 6502");
+    self.registers.set_flag(FL_DECIMAL, false);
   }
 
   fn cli(&mut self) {
@@ -1062,7 +1067,7 @@ impl Cpu6502 {
   }
 
   fn sed(&mut self) {
-    panic!("Not implemented by Nintendo's 6502");
+    self.registers.set_flag(FL_DECIMAL, true);
   }
 
   fn sei(&mut self) {
