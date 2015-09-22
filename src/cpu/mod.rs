@@ -457,11 +457,11 @@ impl Cpu6502 {
         self.ldy(val);
         if page_crossed { cycles += 1; }
       }
-      0x8d => { let (val, _) = self.get_abs16(operand); self.sta(val); }
-      0x9d => { let (val, _, _) = self.get_absx16(operand); self.sta(val); }
-      0x99 => { let (val, _, _) = self.get_absy16(operand); self.sta(val); }
-      0x8e => { let (val, _) = self.get_abs16(operand); self.stx(val); }
-      0x8c => { let (val, _) = self.get_abs16(operand); self.sty(val); }
+      0x8d => { let (_, addr) = self.get_abs16(operand); self.sta(addr); }
+      0x9d => { let (_, addr, _) = self.get_absx16(operand); self.sta(addr); }
+      0x99 => { let (_, addr, _) = self.get_absy16(operand); self.sta(addr); }
+      0x8e => { let (_, addr) = self.get_abs16(operand); self.stx(addr); }
+      0x8c => { let (_, addr) = self.get_abs16(operand); self.sty(addr); }
       0x6d => { let (val, _) = self.get_abs(operand); self.adc(val); }
       0x7d => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
