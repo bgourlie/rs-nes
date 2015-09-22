@@ -19,7 +19,7 @@ impl Registers {
       acc: 0,
       irx: 0,
       iry: 0,
-      stat: 0b00010000
+      stat: 0b00000000
     }
   }
 
@@ -47,5 +47,19 @@ impl Registers {
 
   pub fn page_boundary_crossed(&self, old_pc: u16) -> bool {
     old_pc & 0xFF00 != self.pc & 0xFF00
+  }
+}
+
+impl ToString for Registers {
+  fn to_string(&self) -> String {
+    let c = if self.stat & 0x1 > 0 { 1 } else { 0 };
+    let z = if self.stat & 0x2 > 0 { 1 } else { 0 };
+    let i = if self.stat & 0x4 > 0 { 1 } else { 0 };
+    let d = if self.stat & 0x8 > 0 { 1 } else { 0 };
+    let b = if self.stat & 0x10 > 0 { 1 } else { 0 };
+    let v = if self.stat & 0x40 > 0 { 1 } else { 0 };
+    let s = if self.stat & 0x80 > 0 { 1 } else { 0 };
+    format!("PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Status: s={} v={} b={} d={} i={} z={} c={}",
+        self.pc, self.sp, self.acc, self.irx, self.iry, s, v, b, d, i, z, c)
   }
 }

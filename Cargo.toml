@@ -2,8 +2,3 @@
 name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
-
-[dependencies]
-iron = "*"
-mount = "*"
-staticfile = "*"
