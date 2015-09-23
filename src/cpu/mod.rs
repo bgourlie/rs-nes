@@ -595,7 +595,7 @@ impl Cpu6502 {
         self.jmp(addr);
       }
       0x20 => { 
-        let (addr, _) = self.get_abs16(operand);
+        let (_, addr) = self.get_abs16(operand);
         self.jsr(addr);
       }
       _ => { panic!("Unexpected 3-byte instruction encountered"); }
