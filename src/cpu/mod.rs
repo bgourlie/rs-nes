@@ -736,7 +736,8 @@ impl Cpu6502 {
   }
 
   /// ## Stack Operations
-
+  /// See http://wiki.nesdev.com/w/index.php/Status_flags regarding
+  /// status flags and nuances with bytes 4 and 5
   fn tsx(&mut self) {
     self.registers.irx = self.registers.sp;
     let x = self.registers.irx;
@@ -756,7 +757,8 @@ impl Cpu6502 {
 
   fn php(&mut self) {
     let stat = self.registers.stat;
-    self.push_stack(stat);
+    // Break and unused bits are always set when pushing to stack
+    self.push_stack(stat | FL_BRK | FL_UNUSED);
   }
 
   fn pla(&mut self) {
@@ -766,7 +768,9 @@ impl Cpu6502 {
 
   fn plp(&mut self) {
     let val = self.pop_stack();
-    self.registers.stat = val;
+    let stat = self.registers.stat;
+    // Break and unused bits are always ignored when pulling from stack
+    self.registers.stat = val | (stat & (FL_BRK | FL_UNUSED));
   }
 
   /// ## Arithmetic
