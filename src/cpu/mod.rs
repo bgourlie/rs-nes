@@ -1064,7 +1064,7 @@ impl Cpu6502 {
     self.push_stack(status);
     let irq_handler = self.memory.load16(BRK_VECTOR);
     self.registers.pc = irq_handler;
-    self.registers.set_flag(FL_BRK, true);
+    self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
   }
 
   fn nop(&mut self) {}
