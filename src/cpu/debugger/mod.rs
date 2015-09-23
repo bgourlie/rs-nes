@@ -82,19 +82,19 @@ pub struct Instruction {
 impl ToString for Instruction {
   fn to_string(&self) -> String {
     match self.addressing_mode {
-      AddressingMode::Accumulator => format!("{:?} A        ", self.opcode),
-      AddressingMode::Immediate(val) => format!("{:?} #${:0>2X}   ", self.opcode, val),
-      AddressingMode::Implied => format!("{:?}        ", self.opcode),
-      AddressingMode::Relative(val) => format!("{:?} {:0>3}    ", self.opcode, val as i8),
-      AddressingMode::Absolute(val) => format!("{:?} ${:0>4X}  ", self.opcode, val),
-      AddressingMode::ZeroPage(val) => format!("{:?} ${:0>2X}    ", self.opcode, val),
-      AddressingMode::Indirect(val) => format!("{:?} (${:0>4X})", self.opcode, val),
-      AddressingMode::AbsoluteIndexedX(val) => format!("{:?} ${:0>4X},X  ", self.opcode, val),
-      AddressingMode::AbsoluteIndexedY(val) => format!("{:?} ${:0>4X},Y  ", self.opcode, val),
-      AddressingMode::ZeroPageIndexedX(val) => format!("{:?} ${:0>2X},X  ", self.opcode, val),
-      AddressingMode::ZeroPageIndexedY(val) => format!("{:?} ${:0>2X},Y  ", self.opcode, val),
-      AddressingMode::IndexedIndirect(val) => format!("{:?} (${:0>2X},X)", self.opcode, val),
-      AddressingMode::IndirectIndexed(val) => format!("{:?} (${:0>2X},Y)", self.opcode, val)
+      AddressingMode::Accumulator => format!("{:?} A         ", self.opcode),
+      AddressingMode::Immediate(val) => format!("{:?} #${:0>2X}    ", self.opcode, val),
+      AddressingMode::Implied => format!("{:?}         ", self.opcode),
+      AddressingMode::Relative(val) => format!("{:?} {:0>3}     ", self.opcode, val as i8),
+      AddressingMode::Absolute(val) => format!("{:?} ${:0>4X}   ", self.opcode, val),
+      AddressingMode::ZeroPage(val) => format!("{:?} ${:0>2X}     ", self.opcode, val),
+      AddressingMode::Indirect(val) => format!("{:?} (${:0>4X}) ", self.opcode, val),
+      AddressingMode::AbsoluteIndexedX(val) => format!("{:?} ${:0>4X},X ", self.opcode, val),
+      AddressingMode::AbsoluteIndexedY(val) => format!("{:?} ${:0>4X},Y ", self.opcode, val),
+      AddressingMode::ZeroPageIndexedX(val) => format!("{:?} ${:0>2X},X   ", self.opcode, val),
+      AddressingMode::ZeroPageIndexedY(val) => format!("{:?} ${:0>2X},Y   ", self.opcode, val),
+      AddressingMode::IndexedIndirect(val) => format!("{:?} (${:0>2X},X) ", self.opcode, val),
+      AddressingMode::IndirectIndexed(val) => format!("{:?} (${:0>2X},Y) ", self.opcode, val)
     }
   }
 }
