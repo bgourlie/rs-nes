@@ -88,7 +88,7 @@ impl ToString for Instruction {
       AddressingMode::Relative(val) => format!("{:?} {:0>3}    ", self.opcode, val as i8),
       AddressingMode::Absolute(val) => format!("{:?} ${:0>4X}  ", self.opcode, val),
       AddressingMode::ZeroPage(val) => format!("{:?} ${:0>2X}    ", self.opcode, val),
-      AddressingMode::Indirect(val) => format!("{:?} (${:0>4X})  ", self.opcode, val),
+      AddressingMode::Indirect(val) => format!("{:?} (${:0>4X})", self.opcode, val),
       AddressingMode::AbsoluteIndexedX(val) => format!("{:?} ${:0>4X},X  ", self.opcode, val),
       AddressingMode::AbsoluteIndexedY(val) => format!("{:?} ${:0>4X},Y  ", self.opcode, val),
       AddressingMode::ZeroPageIndexedX(val) => format!("{:?} ${:0>2X},X  ", self.opcode, val),

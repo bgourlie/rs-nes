@@ -24,9 +24,16 @@ fn main() {
   println!("Press enter to step");
   let mut buffer = [0; 10];
   cpu.load(0, &vec, 0x400);
+  let mut last_pc: u16 = 0x400;;
+
   loop {
-    io::stdin().read(&mut buffer).unwrap();
     let instr = cpu.step();
-    println!("{} [{}]", instr.to_string(), cpu.registers.to_string());
+    if last_pc == cpu.registers.pc {
+      println!("Detected Trap");
+      io::stdin().read(&mut buffer).unwrap();
+    }
+    last_pc = cpu.registers.pc;
+    println!("{} {} cycles: {}", instr.to_string(), cpu.registers.to_string(),
+        cpu.cycles);
   }
 }
