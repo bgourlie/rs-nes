@@ -19,7 +19,7 @@ impl Registers {
       acc: 0,
       irx: 0,
       iry: 0,
-      stat: 0b00100000
+      stat: 0b00100100
     }
   }
 

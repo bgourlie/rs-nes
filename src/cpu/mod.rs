@@ -279,14 +279,14 @@ impl Cpu6502 {
       0xa0 => { let val = operand; self.ldy(val); }
       0xa4 => { let (val, _) = self.get_zp(operand); self.ldy(val); }
       0xb4 => { let (val, _) = self.get_zpx(operand); self.ldy(val); }
-      0x85 => { let (val, _) = self.get_zp16(operand); self.sta(val); }
-      0x95 => { let (val, _) = self.get_zpx16(operand); self.sta(val); }
+      0x85 => { let addr = operand as u16; self.sta(addr); }
+      0x95 => { let addr = (operand + self.registers.irx) as u16; self.sta(addr); }
       0x81 => { let (val, _) = self.get_indx16(operand); self.sta(val); }
       0x91 => { let (val, _, _) = self.get_indy16(operand); self.sta(val); }
-      0x86 => { let (val, _) = self.get_zp16(operand); self.stx(val); }
-      0x96 => { let (val, _) = self.get_zpy16(operand); self.stx(val); }
-      0x84 => { let (val, _) = self.get_zp16(operand); self.sty(val); }
-      0x94 => { let (val, _) = self.get_zpx16(operand); self.sty(val); }
+      0x86 => { let addr = operand as u16; self.stx(addr); }
+      0x96 => { let addr = (operand + self.registers.iry) as u16; self.stx(addr); }
+      0x84 => { let addr = operand as u16; self.sty(addr); }
+      0x94 => { let addr = (operand + self.registers.irx) as u16; self.sty(addr); }
       0x69 => { let val = operand; self.adc(val); }
       0x65 => { let (val, _) = self.get_zp(operand); self.adc(val); }
       0x75 => { let (val, _) = self.get_zpx(operand); self.adc(val); }
@@ -457,11 +457,11 @@ impl Cpu6502 {
         self.ldy(val);
         if page_crossed { cycles += 1; }
       }
-      0x8d => { let (_, addr) = self.get_abs16(operand); self.sta(addr); }
-      0x9d => { let (_, addr, _) = self.get_absx16(operand); self.sta(addr); }
-      0x99 => { let (_, addr, _) = self.get_absy16(operand); self.sta(addr); }
-      0x8e => { let (_, addr) = self.get_abs16(operand); self.stx(addr); }
-      0x8c => { let (_, addr) = self.get_abs16(operand); self.sty(addr); }
+      0x8d => { let addr = operand; self.sta(addr); }
+      0x9d => { let addr = operand + self.registers.irx as u16; self.sta(addr); }
+      0x99 => { let addr = operand + self.registers.iry as u16; self.sta(addr); }
+      0x8e => { let addr = operand; self.stx(addr); }
+      0x8c => { let addr = operand; self.sty(addr); }
       0x6d => { let (val, _) = self.get_abs(operand); self.adc(val); }
       0x7d => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
