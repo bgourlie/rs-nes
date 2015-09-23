@@ -747,7 +747,6 @@ impl Cpu6502 {
   fn txs(&mut self) {
     self.registers.sp = self.registers.irx;
     let sp = self.registers.sp;
-    self.registers.set_sign_and_zero_flag(sp);
   }
 
   fn pha(&mut self) {
