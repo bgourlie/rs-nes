@@ -75,6 +75,7 @@ pub enum AddressingMode {
 }
 
 pub struct Instruction {
+  op_raw: u8,
   opcode: Opcode,
   addressing_mode: AddressingMode
 }
@@ -82,19 +83,19 @@ pub struct Instruction {
 impl ToString for Instruction {
   fn to_string(&self) -> String {
     match self.addressing_mode {
-      AddressingMode::Accumulator => format!("{:?} A         ", self.opcode),
-      AddressingMode::Immediate(val) => format!("{:?} #${:0>2X}    ", self.opcode, val),
-      AddressingMode::Implied => format!("{:?}         ", self.opcode),
-      AddressingMode::Relative(val) => format!("{:?} {:0>3}     ", self.opcode, val as i8),
-      AddressingMode::Absolute(val) => format!("{:?} ${:0>4X}   ", self.opcode, val),
-      AddressingMode::ZeroPage(val) => format!("{:?} ${:0>2X}     ", self.opcode, val),
-      AddressingMode::Indirect(val) => format!("{:?} (${:0>4X}) ", self.opcode, val),
-      AddressingMode::AbsoluteIndexedX(val) => format!("{:?} ${:0>4X},X ", self.opcode, val),
-      AddressingMode::AbsoluteIndexedY(val) => format!("{:?} ${:0>4X},Y ", self.opcode, val),
-      AddressingMode::ZeroPageIndexedX(val) => format!("{:?} ${:0>2X},X   ", self.opcode, val),
-      AddressingMode::ZeroPageIndexedY(val) => format!("{:?} ${:0>2X},Y   ", self.opcode, val),
-      AddressingMode::IndexedIndirect(val) => format!("{:?} (${:0>2X},X) ", self.opcode, val),
-      AddressingMode::IndirectIndexed(val) => format!("{:?} (${:0>2X},Y) ", self.opcode, val)
+      AddressingMode::Accumulator => format!("{:0>2X} {:?} A         ", self.op_raw, self.opcode),
+      AddressingMode::Immediate(val) => format!("{:0>2X} {:?} #${:0>2X}    ", self.op_raw, self.opcode, val),
+      AddressingMode::Implied => format!("{:0>2X} {:?}         ", self.op_raw, self.opcode),
+      AddressingMode::Relative(val) => format!("{:0>2X} {:?} {:0>3}     ", self.op_raw, self.opcode, val as i8),
+      AddressingMode::Absolute(val) => format!("{:0>2X} {:?} ${:0>4X}   ", self.op_raw, self.opcode, val),
+      AddressingMode::ZeroPage(val) => format!("{:0>2X} {:?} ${:0>2X}     ", self.op_raw, self.opcode, val),
+      AddressingMode::Indirect(val) => format!("{:0>2X} {:?} (${:0>4X}) ", self.op_raw, self.opcode, val),
+      AddressingMode::AbsoluteIndexedX(val) => format!("{:0>2X} {:?} ${:0>4X},X ", self.op_raw, self.opcode, val),
+      AddressingMode::AbsoluteIndexedY(val) => format!("{:0>2X} {:?} ${:0>4X},Y ", self.op_raw, self.opcode, val),
+      AddressingMode::ZeroPageIndexedX(val) => format!("{:0>2X} {:?} ${:0>2X},X   ", self.op_raw, self.opcode, val),
+      AddressingMode::ZeroPageIndexedY(val) => format!("{:0>2X} {:?} ${:0>2X},Y   ", self.op_raw, self.opcode, val),
+      AddressingMode::IndexedIndirect(val) => format!("{:0>2X} {:?} (${:0>2X},X) ", self.op_raw, self.opcode, val),
+      AddressingMode::IndirectIndexed(val) => format!("{:0>2X} {:?} (${:0>2X},Y) ", self.op_raw, self.opcode, val)
     }
   }
 }
@@ -104,6 +105,7 @@ impl Instruction {
     let op = Instruction::get_opcode(opcode);
     let am = Instruction::get_addressing_mode1(opcode);
     Instruction {
+      op_raw: opcode,
       opcode: op,
       addressing_mode: am
     }
@@ -113,6 +115,7 @@ impl Instruction {
     let op = Instruction::get_opcode(opcode);
     let am = Instruction::get_addressing_mode2(opcode, operand);
     Instruction {
+      op_raw: opcode,
       opcode: op,
       addressing_mode: am
     }
@@ -122,6 +125,7 @@ impl Instruction {
     let op = Instruction::get_opcode(opcode);
     let am = Instruction::get_addressing_mode3(opcode, operand);
     Instruction {
+      op_raw: opcode,
       opcode: op,
       addressing_mode: am
     }
