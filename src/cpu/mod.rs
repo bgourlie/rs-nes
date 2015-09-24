@@ -37,6 +37,8 @@ mod decode_spec_tests;
 mod registers;
 mod debugger;
 
+use std::num::Wrapping;
+
 use constants::*;
 use cpu::debugger::*;
 use cpu::registers::*;
@@ -664,42 +666,39 @@ impl Cpu6502 {
   }
 
   fn push_stack(&mut self, value: u8) {
-    if self.registers.sp == 0 {
-      panic!("stack overflow");
-    }
     self.memory.store(STACK_LOC + self.registers.sp as u16, value);
-    self.registers.sp -= 1;
+    self.registers.sp = (Wrapping(self.registers.sp) - Wrapping(1_u8)).0;
   }
 
   fn peek_stack(&mut self) -> u8 {
-    self.memory.load(STACK_LOC + self.registers.sp as u16 + 1)
+    self.memory.load(STACK_LOC + ((Wrapping(self.registers.sp) + Wrapping(1_u8)).0) as u16)
   }
 
   fn pop_stack(&mut self) -> u8 {
     let val = self.peek_stack();
-    self.registers.sp += 1;
+    self.registers.sp = (Wrapping(self.registers.sp) + Wrapping(1_u8)).0;
     val
   }
 
   fn push_stack16(&mut self, value: u16) {
     if self.registers.sp < 2 {
-      panic!("stack overflow");
+      panic!("stack overflow"); // FIXME: this should wrap, not panic
     }
-    self.memory.store16(STACK_LOC + (self.registers.sp as u16 - 1), value);
-    self.registers.sp -= 2;
+    self.memory.store16(STACK_LOC + (self.registers.sp - 1) as u16, value);
+    self.registers.sp = (Wrapping(self.registers.sp) - Wrapping(2_u8)).0;
   }
 
   fn peek_stack16(&mut self) -> u16 {
-    let lowb = self.memory.load(STACK_LOC + self.registers.sp as u16 + 1)
+    let lowb = self.memory.load(STACK_LOC + ((Wrapping(self.registers.sp) + Wrapping(1_u8)).0) as u16)
          as u16;
-    let highb = self.memory.load(STACK_LOC + self.registers.sp as u16 + 2)
+    let highb = self.memory.load(STACK_LOC + ((Wrapping(self.registers.sp) + Wrapping(2_u8)).0) as u16)
         as u16;
     lowb | (highb << 8)
   }
 
   fn pop_stack16(&mut self) -> u16 {
     let val = self.peek_stack16();
-    self.registers.sp += 2;
+    self.registers.sp = (Wrapping(self.registers.sp) + Wrapping(2_u8)).0;
     val
   }
 
