@@ -123,24 +123,24 @@ impl Cpu6502 {
   pub fn step(&mut self) -> Instruction {
     let op_code = self.read_op();
     let instr_len = LEN_TABLE[op_code as usize];
-    let instr: Instruction; 
     let mut cycles = CYCLE_TABLE[op_code as usize];
+    let instr: Instruction;
 
     match instr_len {
       0 => { panic!("Unexpected opcode encountered: {0}", op_code); },
-      1 => { 
+      1 => {
+        instr = Instruction::new1(op_code);
         cycles += self.do_op1(op_code);
-        instr = Instruction::new1(op_code)
       },
-      2 => { 
-             let operand = self.read_op();
-             cycles += self.do_op2(op_code, operand);
-             instr = Instruction::new2(op_code, operand);
+      2 => {
+        let operand = self.read_op();
+        instr = Instruction::new2(op_code, operand);
+        cycles += self.do_op2(op_code, operand);
       },
       3 => {
-             let operand = self.read_op16();
-             cycles += self.do_op3(op_code, operand);
-             instr = Instruction::new3(op_code, operand);
+        let operand = self.read_op16();
+        instr = Instruction::new3(op_code, operand);
+        cycles += self.do_op3(op_code, operand);
       },
       _ => { panic!("Shouldn't get here"); }
     }
