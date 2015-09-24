@@ -44,19 +44,3 @@ fn pop_stack16() {
   assert_eq!(0xff, cpu.registers.sp);
   assert_eq!(0xf00d, val);
 }
-
-#[test]
-#[should_panic(expected = "stack overflow")]
-fn push_stack_panic_on_stack_overflow() {
-  let mut cpu = Cpu6502::new();
-  cpu.registers.sp = 0x0;
-  cpu.push_stack(0x2);
-}
-
-#[test]
-#[should_panic(expected = "stack overflow")]
-fn push_stack8_panic_on_stack_overflow() {
-  let mut cpu = Cpu6502::new();
-  cpu.registers.sp = 0x1;
-  cpu.push_stack16(0x2022);
-}
