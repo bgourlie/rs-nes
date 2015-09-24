@@ -31,9 +31,6 @@ mod status_flag_spec_tests;
 #[cfg(test)]
 mod store_spec_tests;
 
-#[cfg(test)]
-mod decode_spec_tests;
-
 mod registers;
 mod debugger;
 
