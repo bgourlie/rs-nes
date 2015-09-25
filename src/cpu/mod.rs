@@ -117,14 +117,14 @@ impl Cpu6502 {
     self.registers.pc = self.memory.load16(NMI_VECTOR);
   }
 
-  pub fn step(&mut self) -> Instruction {
+  pub fn step(&mut self) -> Result<Instruction, &'static str> {
     let op_code = self.read_op();
     let instr_len = LEN_TABLE[op_code as usize];
     let mut cycles = CYCLE_TABLE[op_code as usize];
     let instr: Instruction;
 
     match instr_len {
-      0 => { panic!("Unexpected opcode encountered: {0}", op_code); },
+      0 => { return Err("Unexpected opcode encountered"); },
       1 => {
         instr = Instruction::new1(op_code);
         cycles += self.do_op1(op_code);
@@ -143,7 +143,7 @@ impl Cpu6502 {
     }
 
     self.cycles += cycles as u64;
-    instr
+    Ok(instr)
   }
 
   fn read_op(&mut self) -> u8 {

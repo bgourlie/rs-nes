@@ -20,6 +20,10 @@ impl Memory {
     }
   }
 
+  pub fn get_copy(&self) -> [u8; ADDRESSABLE_MEMORY] {
+    self.addr
+  }
+
   pub fn store(&mut self, addr: u16, data: u8) {
     let addr = addr as usize;
     self.addr[addr] = data;

@@ -22,18 +22,32 @@ fn main() {
 
   let mut cpu = Cpu6502::new();
   println!("Press enter to step");
-  let mut buffer = [0; 10];
   cpu.load(0, &vec, 0x400);
   let mut last_pc: u16 = 0x400;;
 
   loop {
-    let instr = cpu.step();
-    if last_pc == cpu.registers.pc {
-      println!("Detected Trap");
-      io::stdin().read(&mut buffer).unwrap();
-    }
-    last_pc = cpu.registers.pc;
-    println!("{} {} cycles: {}", instr.to_string(), cpu.registers.to_string(),
+    match cpu.step() {
+      Ok(instr) => {
+          if last_pc == cpu.registers.pc {
+            println!("Detected Trap");
+            memdump(&cpu.memory.get_copy());
+            return;
+          }
+          last_pc = cpu.registers.pc;
+          println!("{} {} cycles: {}", instr.to_string(), cpu.registers.to_string(),
         cpu.cycles);
+      },
+      Err(msg) => {
+        println!("{}", msg);
+        memdump(&cpu.memory.get_copy());
+        return;
+      }
+    }
   }
+}
+
+fn memdump(bytes: &[u8]) {
+  println!("writing memory dump");
+  let mut f = File::create("/Users/brian/Desktop/6502dump.bin").unwrap();
+  f.write_all(bytes).unwrap();
 }
