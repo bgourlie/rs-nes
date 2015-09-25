@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod spec_tests;
 
-const ADDRESSABLE_MEMORY: usize = 0xFFFF;
+const ADDRESSABLE_MEMORY: usize = 65536;
 
 pub struct Memory {
   addr:[u8; ADDRESSABLE_MEMORY]
