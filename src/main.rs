@@ -30,7 +30,7 @@ fn main() {
       Ok(instr) => {
           if last_pc == cpu.registers.pc {
             println!("Detected Trap");
-            memdump(&cpu.memory.get_copy());
+            memdump(cpu.memory.get_bytes());
             return;
           }
           last_pc = cpu.registers.pc;
@@ -39,7 +39,7 @@ fn main() {
       },
       Err(msg) => {
         println!("{}", msg);
-        memdump(&cpu.memory.get_copy());
+        memdump(&cpu.memory.get_bytes());
         return;
       }
     }
