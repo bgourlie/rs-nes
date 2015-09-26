@@ -15,7 +15,7 @@ impl Memory {
   }
 
   pub fn store_many(&mut self, addr: u16, data: &[u8]) {
-    for i in 0..data.len() - 1 {
+    for i in 0..data.len() {
       self.store(addr + i as u16, data[i]);
     }
   }
