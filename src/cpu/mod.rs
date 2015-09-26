@@ -260,6 +260,10 @@ impl Cpu6502 {
     (self.memory.load16(addr), addr, page_boundary_crossed)
   }
 
+  fn get_abs_ind_addr(operand: u8, index: u8) -> u16 {
+    (Wrapping(operand) + Wrapping(index)).0 as u16
+  }
+
   fn do_op2(&mut self, opcode: u8, operand: u8) -> u8 {
     let mut cycles = 0;
     match opcode {
@@ -279,13 +283,22 @@ impl Cpu6502 {
       0xa4 => { let (val, _) = self.get_zp(operand); self.ldy(val); }
       0xb4 => { let (val, _) = self.get_zpx(operand); self.ldy(val); }
       0x85 => { let addr = operand as u16; self.sta(addr); }
-      0x95 => { let addr = (operand + self.registers.irx) as u16; self.sta(addr); }
+      0x95 => {
+        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.irx);
+        self.sta(addr);
+      }
       0x81 => { let (val, _) = self.get_indx16(operand); self.sta(val); }
       0x91 => { let (val, _, _) = self.get_indy16(operand); self.sta(val); }
       0x86 => { let addr = operand as u16; self.stx(addr); }
-      0x96 => { let addr = (operand + self.registers.iry) as u16; self.stx(addr); }
+      0x96 => { 
+        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.iry);
+        self.stx(addr);
+      }
       0x84 => { let addr = operand as u16; self.sty(addr); }
-      0x94 => { let addr = (operand + self.registers.irx) as u16; self.sty(addr); }
+      0x94 => { 
+        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.irx);
+        self.sty(addr);
+      }
       0x69 => { let val = operand; self.adc(val); }
       0x65 => { let (val, _) = self.get_zp(operand); self.adc(val); }
       0x75 => { let (val, _) = self.get_zpx(operand); self.adc(val); }
