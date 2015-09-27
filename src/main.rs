@@ -34,7 +34,7 @@ fn main() {
             return;
           }
           last_pc = cpu.registers.pc;
-          println!("{} {} cycles: {}", instr.to_string(), cpu.registers.to_string(),
+          println!("{} {} cyc: {}", instr.to_string(), cpu.registers.to_string(),
         cpu.cycles);
       },
       Err(msg) => {

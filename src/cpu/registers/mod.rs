@@ -60,7 +60,7 @@ impl ToString for Registers {
     let unused = if self.stat & 0x20 > 0 { 1 } else { 0 };
     let v = if self.stat & 0x40 > 0 { 1 } else { 0 };
     let s = if self.stat & 0x80 > 0 { 1 } else { 0 };
-    format!("PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Status: {:0>2X} s={} v={} _={} b={} d={} i={} z={} c={}",
+    format!("PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Stat: {:0>2X} s{} v{} _{} b{} d{} i{} z{} c{}",
         self.pc, self.sp, self.acc, self.irx, self.iry, self.stat, s, v, unused, b, d, i, z, c)
   }
 }
