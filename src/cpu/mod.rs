@@ -81,7 +81,7 @@ const LEN_TABLE: [u8; 256] = [
 ];
 
 // TODO: consolidate logic with similar implementation in Register
-fn get_page_crossed(val1: u16, val2: u16) -> bool {
+fn page_crossed(val1: u16, val2: u16) -> bool {
   val1 & 0xFF00 != val2 & 0xFF00
 }
 
@@ -160,251 +160,376 @@ impl Cpu6502 {
     operand
   }
 
-  fn get_zp(&mut self, addr: u8) -> (u8, u16) {
-    let addr = addr as u16;
-    (self.memory.load(addr), addr)
+  fn abs_indexed_base(&self, base_addr: u16, index: u8) -> (u8, u16, bool) {
+    let target_addr = base_addr + index as u16;
+    let page_crossed = page_crossed(base_addr, target_addr);
+    (self.memory.load(target_addr), target_addr, page_crossed)
   }
 
-  fn get_zp16(&mut self, addr: u8) -> (u16, u16) {
-    let addr = addr as u16;
-    (self.memory.load16(addr), addr)
+  fn abs_indexed_base16(&self, base_addr: u16, index: u8) -> (u16, u16, bool) {
+    let target_addr = base_addr + index as u16;
+    let page_crossed = page_crossed(base_addr, target_addr);
+    (self.memory.load16(target_addr), target_addr, page_crossed)
   }
 
-  fn get_zpx(&mut self, addr: u8) -> (u8, u16) {
-    (self.memory.load_zp_indexed(addr, self.registers.irx), addr as u16)
-  }
-
-  fn get_zpx16(&mut self, addr: u8) -> (u16, u16) {
-    (self.memory.load16_zp_indexed(addr, self.registers.irx), addr as u16)
-  }
-
-  fn get_zpy(&mut self, addr: u8) -> (u8, u16) {
-    (self.memory.load_zp_indexed(addr, self.registers.iry), addr as u16)
-  }
-
-  fn get_zpy16(&mut self, addr: u8) -> (u16, u16) {
-    (self.memory.load16_zp_indexed(addr, self.registers.iry), addr as u16)
-  }
-
-  fn get_abs(&mut self, addr: u16) -> (u8, u16) {
-    (self.memory.load(addr), addr)
-  }
-
-  fn get_abs16(&mut self, addr: u16) -> (u16, u16) {
-    (self.memory.load16(addr), addr)
-  }
-
-  fn get_abs_indexed_base(&mut self, abs: u16, index: u8) -> (u8, u16, bool) {
-    let addr = abs + index as u16;
-
-    // TODO: do we check that there is a page crossed when adding
-    // the register to the absolute address?  That's what we're assuming now.
-    (self.memory.load(addr), addr, get_page_crossed(abs, addr))
-  }
-
-  fn get_abs_indexed_base16(&mut self, abs: u16, index: u8) -> (u16, u16, bool) {
-    let addr = abs + index as u16;
-
-    // TODO: do we check that there is a page crossed when adding
-    // the register to the absolute address?  That's what we're assuming now.
-    (self.memory.load16(addr), addr, get_page_crossed(abs, addr))
-  }
-
-  fn get_absx(&mut self, val: u16) -> (u8, u16, bool) {
+  fn get_absx(&self, val: u16) -> (u8, u16, bool) {
     let x = self.registers.irx;
-    self.get_abs_indexed_base(val, x)
+    self.abs_indexed_base(val, x)
   }
 
-  fn get_absx16(&mut self, val: u16) -> (u16, u16, bool) {
+  fn get_absx16(&self, val: u16) -> (u16, u16, bool) {
     let x = self.registers.irx;
-    self.get_abs_indexed_base16(val, x)
+    self.abs_indexed_base16(val, x)
   }
 
-  fn get_absy(&mut self, val: u16) -> (u8, u16, bool) {
+  fn get_absy(&self, val: u16) -> (u8, u16, bool) {
     let y = self.registers.iry;
-    self.get_abs_indexed_base(val, y)
+    self.abs_indexed_base(val, y)
   }
 
-  fn get_absy16(&mut self, val: u16) -> (u16, u16, bool) {
-    let y = self.registers.iry;
-    self.get_abs_indexed_base16(val, y)
+  fn get_indx(&self, base_addr: u8) -> u8 {
+    let target_addr = self.indexed_indirect_addr(base_addr);
+    self.memory.load(target_addr)
   }
 
-  fn get_indx(&mut self, val: u8) -> (u8, u16) {
-    let x = self.registers.irx;
-    let addr = self.memory.load16_zp_indexed(val, x);
-    (self.memory.load(addr), addr)
+  fn get_indy(&self, base_addr: u8) -> (u8, bool) {
+    let target_addr = self.indirect_indexed_addr(base_addr);
+    let page_crossed = page_crossed(base_addr as u16, target_addr);
+    (self.memory.load(target_addr), page_crossed)
   }
 
-  fn get_indx16(&mut self, val: u8) -> (u16, u16) {
-    let x = self.registers.irx;
-    let addr = self.memory.load16_zp_indexed(val, x);
-    (self.memory.load16(addr), addr)
+  fn indexed_indirect_addr(&self, base_addr: u8) -> u16 {
+    let ind_addr = (Wrapping(base_addr) + Wrapping(self.registers.irx)).0 as u16;
+    self.memory.load16(ind_addr)
   }
 
-  fn get_indy(&mut self, val: u8) -> (u8, u16, bool) {
-    let y = self.registers.iry;
-    let addr = self.memory.load16(val as u16) + y as u16;
-
-    // TODO: is this the correct way to determine if page is crossed?
-    let page_boundary_crossed = get_page_crossed(val as u16, addr);
-    (self.memory.load(addr), addr, page_boundary_crossed)
+  fn indirect_indexed_addr(&self, base_addr: u8) -> u16 {
+    self.memory.load16(base_addr as u16) + self.registers.iry as u16
   }
 
-  fn get_indy16(&mut self, val: u8) -> (u16, u16, bool) {
-    let y = self.registers.iry;
-    let addr = self.memory.load16(val as u16) + y as u16;
-
-    // TODO: is this the correct way to determine if page is crossed?
-    let page_boundary_crossed = get_page_crossed(val as u16, addr);
-    (self.memory.load16(addr), addr, page_boundary_crossed)
+  fn zpx_addr(&self, base_addr: u8) -> u16 {
+    (Wrapping(base_addr) + Wrapping(self.registers.irx)).0 as u16
   }
 
-  fn get_abs_ind_addr(operand: u8, index: u8) -> u16 {
-    (Wrapping(operand) + Wrapping(index)).0 as u16
+  fn zpy_addr(&self, base_addr: u8) -> u16 {
+    (Wrapping(base_addr) + Wrapping(self.registers.iry)).0 as u16
+  }
+
+  fn get_zpx(&self, base_addr: u8) -> u8 {
+    let target_addr = self.zpx_addr(base_addr);
+    self.memory.load(target_addr)
+  }
+
+  fn get_zpy(&self, base_addr: u8) -> u8 {
+    let target_addr = self.zpy_addr(base_addr);
+    self.memory.load(target_addr)
   }
 
   fn do_op2(&mut self, opcode: u8, operand: u8) -> u8 {
     let mut cycles = 0;
     match opcode {
-      0xa1 => { let (val, _) = self.get_indx(operand); self.lda(val); }
-      0xa5 => { let (val, _) = self.get_zp(operand); self.lda(val); }
-      0xa9 => { let val = operand; self.lda(val); }
+      0xa1 => {
+        let val = self.get_indx(operand);
+        self.lda(val);
+      }
+      0xa5 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.lda(val);
+      }
+      0xa9 => {
+        let val = operand;
+        self.lda(val);
+      }
       0xb1 => {
-        let (val, _, page_crossed) = self.get_indy(operand);
+        let (val, page_crossed) = self.get_indy(operand);
         self.lda(val);
         if page_crossed { cycles += 1; }
       }
-      0xb5 => { let (val, _) = self.get_zpx(operand); self.lda(val); }
-      0xa2 => { let val = operand; self.ldx(val); }
-      0xa6 => { let (val, _) = self.get_zp(operand); self.ldx(val); }
-      0xb6 => { let (val, _) = self.get_zpy(operand); self.ldx(val); }
-      0xa0 => { let val = operand; self.ldy(val); }
-      0xa4 => { let (val, _) = self.get_zp(operand); self.ldy(val); }
-      0xb4 => { let (val, _) = self.get_zpx(operand); self.ldy(val); }
-      0x85 => { let addr = operand as u16; self.sta(addr); }
-      0x95 => {
-        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.irx);
+      0xb5 => {
+        let val = self.get_zpx(operand);
+        self.lda(val);
+      }
+      0xa2 => {
+        let val = operand;
+        self.ldx(val);
+      }
+      0xa6 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.ldx(val);
+      }
+      0xb6 => {
+        let val = self.get_zpy(operand);
+        self.ldx(val);
+      }
+      0xa0 => {
+        let val = operand;
+        self.ldy(val);
+      }
+      0xa4 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.ldy(val);
+      }
+      0xb4 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.ldy(val);
+      }
+      0x85 => {
+        let addr = operand as u16;
         self.sta(addr);
       }
-      0x81 => { let (val, _) = self.get_indx16(operand); self.sta(val); }
-      0x91 => { let (val, _, _) = self.get_indy16(operand); self.sta(val); }
-      0x86 => { let addr = operand as u16; self.stx(addr); }
-      0x96 => { 
-        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.iry);
+      0x95 => {
+        let addr = self.zpx_addr(operand);;
+        self.sta(addr);
+      }
+      0x81 => {
+        let target_addr = self.indexed_indirect_addr(operand);
+        self.sta(target_addr);
+      }
+      0x91 => {
+        let target_addr = self.indirect_indexed_addr(operand);
+        self.sta(target_addr);
+      }
+      0x86 => {
+        let addr = operand as u16;
         self.stx(addr);
       }
-      0x84 => { let addr = operand as u16; self.sty(addr); }
-      0x94 => { 
-        let addr = Cpu6502::get_abs_ind_addr(operand, self.registers.irx);
+      0x96 => { 
+        let addr = self.zpy_addr(operand);
+        self.stx(addr);
+      }
+      0x84 => {
+        let addr = operand as u16;
         self.sty(addr);
       }
-      0x69 => { let val = operand; self.adc(val); }
-      0x65 => { let (val, _) = self.get_zp(operand); self.adc(val); }
-      0x75 => { let (val, _) = self.get_zpx(operand); self.adc(val); }
-      0x61 => { let (val, _) = self.get_indx(operand); self.adc(val); }
+      0x94 => { 
+        let addr = self.zpx_addr(operand);
+        self.sty(addr);
+      }
+      0x69 => {
+        let val = operand;
+        self.adc(val);
+      }
+      0x65 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.adc(val);
+      }
+      0x75 => {
+        let val = self.get_zpx(operand);
+        self.adc(val);
+      }
+      0x61 => {
+        let val = self.get_indx(operand);
+        self.adc(val);
+      }
       0x71 => {
-        let (val, _, page_crossed) = self.get_indy(operand); 
+        let (val, page_crossed) = self.get_indy(operand); 
         self.adc(val);
         if page_crossed { cycles += 1; }
       }
-      0xe9 => { let val = operand; self.sbc(val); }
-      0xe5 => { let (val, _) = self.get_zp(operand); self.sbc(val); }
-      0xf5 => { let (val, _) = self.get_zpx(operand); self.sbc(val); }
-      0xe1 => { let (val, _) = self.get_indx(operand); self.sbc(val); }
+      0xe9 => {
+        let val = operand;
+        self.sbc(val);
+      }
+      0xe5 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.sbc(val);
+      }
+      0xf5 => {
+        let val = self.get_zpx(operand);
+        self.sbc(val);
+      }
+      0xe1 => {
+        let val = self.get_indx(operand);
+        self.sbc(val);
+      }
       0xf1 => { 
-        let (val, _, page_crossed) = self.get_indy(operand); 
+        let (val, page_crossed) = self.get_indy(operand); 
         self.sbc(val); 
         if page_crossed { cycles += 1; }
       }
-      0xc9 => { let val = operand; self.cmp(val); }
-      0xc5 => { let (val, _) = self.get_zp(operand); self.cmp(val); }
-      0xd5 => { let (val, _) = self.get_zpx(operand); self.cmp(val); }
-      0xc1 => { let (val, _) = self.get_indx(operand); self.cmp(val); }
+      0xc9 => {
+        self.cmp(operand);
+      }
+      0xc5 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.cmp(val);
+      }
+      0xd5 => {
+        let val = self.get_zpx(operand);
+        self.cmp(val);
+      }
+      0xc1 => {
+        let val = self.get_indx(operand);
+        self.cmp(val);
+      }
       0xd1 => {
-        let (val, _, page_crossed) = self.get_indy(operand);
+        let (val, page_crossed) = self.get_indy(operand);
         self.cmp(val);
         if page_crossed { cycles += 1; }
       }
-      0xe0 => { let val = operand; self.cpx(val); }
-      0xe4 => { let (val, _) = self.get_zp(operand); self.cpx(val); }
-      0xc0 => { let val = operand; self.cpy(val); }
-      0xc4 => { let (val, _) = self.get_zp(operand); self.cpy(val); }
-      0x29 => { let val = operand; self.and(val); }
-      0x25 => { let (val, _) = self.get_zp(operand); self.and(val); }
-      0x35 => { let (val, _) = self.get_zpx(operand); self.and(val); }
-      0x21 => { let (val, _) = self.get_indx(operand); self.and(val); }
+      0xe0 => {
+        let val = operand;
+        self.cpx(val);
+      }
+      0xe4 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.cpx(val);
+      }
+      0xc0 => {
+        let val = operand;
+        self.cpy(val);
+      }
+      0xc4 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.cpy(val);
+      }
+      0x29 => {
+        let val = operand;
+        self.and(val);
+      }
+      0x25 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.and(val);
+      }
+      0x35 => {
+        let val = self.get_zpx(operand);
+        self.and(val);
+      }
+      0x21 => {
+        let val = self.get_indx(operand);
+        self.and(val);
+      }
       0x31 => {
-        let (val, _, page_crossed) = self.get_indy(operand);
+        let (val, page_crossed) = self.get_indy(operand);
         self.and(val);
         if page_crossed { cycles += 1; }
       }
-      0x09 => { let val = operand; self.ora(val); }
-      0x05 => { let (val, _) = self.get_zp(operand); self.ora(val); }
-      0x15 => { let (val, _) = self.get_zpx(operand); self.ora(val); }
-      0x01 => { let (val, _) = self.get_indx(operand); self.ora(val);}
+      0x09 => {
+        let val = operand;
+        self.ora(val);
+      }
+      0x05 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.ora(val);
+      }
+      0x15 => {
+        let val = self.get_zpx(operand);
+        self.ora(val);
+      }
+      0x01 => {
+        let val = self.get_indx(operand);
+        self.ora(val);
+      }
       0x11 => {
-        let (val, _, page_crossed) = self.get_indy(operand); 
+        let (val, page_crossed) = self.get_indy(operand); 
         self.ora(val);
         if page_crossed { cycles += 1; }
       }
-      0x49 => { let val = operand; self.eor(val); }
-      0x45 => { let (val, _) = self.get_zp(operand); self.eor(val); }
-      0x55 => { let (val, _) = self.get_zpx(operand); self.eor(val); }
-      0x41 => { let (val, _) = self.get_indx(operand); self.eor(val); }
+      0x49 => {
+        let val = operand;
+        self.eor(val);
+      }
+      0x45 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.eor(val);
+      }
+      0x55 => {
+        let val = self.get_zpx(operand);
+        self.eor(val);
+      }
+      0x41 => {
+        let val = self.get_indx(operand);
+        self.eor(val);
+      }
       0x51 => {
-        let (val, _, page_crossed) = self.get_indy(operand); 
+        let (val, page_crossed) = self.get_indy(operand); 
         self.eor(val);
         if page_crossed { cycles += 1; }
       }
-      0x24 => { let (val, _) = self.get_zp(operand); self.bit(val); }
+      0x24 => {
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
+        self.bit(val);
+      }
       // rol
       0x26 => { 
-        let (val, addr) = self.get_zp(operand); 
+        let addr = operand as u16;
+        let val = self.memory.load(addr); 
         let val = self.rol(val);
         self.memory.store(addr, val);
       }
       0x36 => { 
-        let (val, addr) = self.get_zpx(operand); 
+        let addr = self.indexed_indirect_addr(operand);
+        let val = self.memory.load(addr); 
         let val = self.rol(val);
         self.memory.store(addr, val);
       }
 
       // ror
       0x66 => {
-        let (val, addr) = self.get_zp(operand);
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
         let val = self.ror(val);
         self.memory.store(addr, val);
       }
       0x76 => {
-        let (val, addr) = self.get_zpx(operand);
+        let addr = self.indexed_indirect_addr(operand);
+        let val = self.memory.load(addr);
         let val = self.ror(val);
         self.memory.store(addr, val);
       }
       0x06 => {
-        let (val, addr) = self.get_zp(operand);
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
         let val = self.asl(val);
         self.memory.store(addr, val);
       }
       0x16 => {
-        let (val, addr) = self.get_zpx(operand);
+        let addr = self.indexed_indirect_addr(operand);
+        let val = self.memory.load(addr);
         let val = self.asl(val);
         self.memory.store(addr, val);
       }
       0x46 => {
-        let (val, addr) = self.get_zp(operand);
+        let addr = operand as u16;
+        let val = self.memory.load(addr);
         let val = self.lsr(val);
         self.memory.store(addr, val);
       }
       0x56 => {
-        let (val, addr) = self.get_zpx(operand);
+        let addr = self.indexed_indirect_addr(operand);
+        let val = self.memory.load(addr);
         let val = self.lsr(val);
         self.memory.store(addr, val);
       }
-      0xe6 => { let (addr, _) = self.get_zp16(operand); self.inc(addr); }
-      0xf6 => { let (addr, _) = self.get_zpx16(operand); self.inc(addr); }
-      0xc6 => { let (addr, _) = self.get_zp16(operand); self.dec(addr); }
-      0xd6 => { let (addr, _) = self.get_zpx16(operand); self.dec(addr); }
+      0xe6 => {
+        let addr = operand as u16;
+        self.inc(addr);
+      }
+      0xf6 => {
+        let addr = self.indexed_indirect_addr(operand);
+        self.inc(addr);
+      }
+      0xc6 => {
+        let addr = operand as u16;
+        self.dec(addr);
+      }
+      0xd6 => {
+        let addr = self.indexed_indirect_addr(operand);
+        self.dec(addr);
+      }
       0x10 => {
         let rel_addr = operand as i8;
         cycles += self.bpl(rel_addr);
@@ -446,7 +571,10 @@ impl Cpu6502 {
   fn do_op3(&mut self, opcode: u8, operand: u16) -> u8 {
     let mut cycles = 0;
     match opcode {
-      0xad => { let (val, _) = self.get_abs(operand); self.lda(val); }
+      0xad => { 
+        let val = self.memory.load(operand);
+        self.lda(val);
+      }
       0xb9 => {
         let (val, _, page_crossed) = self.get_absy(operand);
         self.lda(val);
@@ -457,13 +585,19 @@ impl Cpu6502 {
         self.lda(val);
         if page_crossed { cycles += 1; }
       }
-      0xae => { let (val, _) = self.get_abs(operand); self.ldx(val); }
+      0xae => {
+        let val = self.memory.load(operand);
+        self.ldx(val);
+      }
       0xbe => {
         let (val, _, page_crossed) = self.get_absy(operand);
         self.ldx(val);
         if page_crossed { cycles += 1; }
       }
-      0xac => { let (val, _) = self.get_abs(operand); self.ldy(val); }
+      0xac => { 
+        let val = self.memory.load(operand);
+        self.ldy(val);
+      }
       0xbc => { 
         let (val, _, page_crossed) = self.get_absx(operand);
         self.ldy(val);
@@ -474,7 +608,10 @@ impl Cpu6502 {
       0x99 => { let addr = operand + self.registers.iry as u16; self.sta(addr); }
       0x8e => { let addr = operand; self.stx(addr); }
       0x8c => { let addr = operand; self.sty(addr); }
-      0x6d => { let (val, _) = self.get_abs(operand); self.adc(val); }
+      0x6d => {
+        let val = self.memory.load(operand);
+        self.adc(val);
+      }
       0x7d => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
         self.adc(val);
@@ -485,7 +622,10 @@ impl Cpu6502 {
         self.adc(val);
         if page_crossed { cycles += 1 }
       }
-      0xed => { let (val, _) = self.get_abs(operand); self.sbc(val); }
+      0xed => {
+        let val = self.memory.load(operand);
+        self.sbc(val);
+      }
       0xfd => { 
         let (val, _, page_crossed) = self.get_absx(operand);
         self.sbc(val);
@@ -496,7 +636,10 @@ impl Cpu6502 {
         self.sbc(val);
         if page_crossed { cycles += 1; }
       }
-      0xcd => { let (val, _) = self.get_abs(operand); self.cmp(val); }
+      0xcd => {
+        let val = self.memory.load(operand);
+        self.cmp(val);
+      }
       0xdd => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
         self.cmp(val); 
@@ -507,9 +650,18 @@ impl Cpu6502 {
         self.cmp(val);
         if page_crossed { cycles += 1; }
       }
-      0x2d => { let (val, _) = self.get_abs(operand); self.and(val); }
-      0xec => { let (val, _) = self.get_abs(operand); self.cpx(val); }
-      0xcc => { let (val, _) = self.get_abs(operand); self.cpy(val); }
+      0x2d => {
+        let val = self.memory.load(operand);
+        self.and(val);
+      }
+      0xec => {
+        let val = self.memory.load(operand);
+        self.cpx(val);
+      }
+      0xcc => {
+        let val = self.memory.load(operand);
+        self.cpy(val);
+      }
       0x3d => { 
         let (val, _, page_crossed) = self.get_absx(operand);
         self.and(val);
@@ -520,7 +672,9 @@ impl Cpu6502 {
         self.and(val);
         if page_crossed { cycles += 1; }
       }
-      0x0d => { let (val, _) = self.get_abs(operand); self.ora(val); }
+      0x0d => { let val = self.memory.load(operand);
+        self.ora(val);
+      }
       0x1d => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
         self.ora(val);
@@ -531,7 +685,10 @@ impl Cpu6502 {
         self.ora(val);
         if page_crossed { cycles += 1; }
       }
-      0x4d => { let (val, _) = self.get_abs(operand); self.eor(val); }
+      0x4d => {
+        let val = self.memory.load(operand);
+        self.eor(val);
+      }
       0x5d => { 
         let (val, _, page_crossed) = self.get_absx(operand); 
         self.eor(val);
@@ -542,19 +699,25 @@ impl Cpu6502 {
         self.eor(val);
         if page_crossed { cycles += 1; }
       }
-      0x2c => { let (val, _) = self.get_abs(operand); self.bit(val); }
+      0x2c => {
+        let val = self.memory.load(operand);
+        self.bit(val);
+      }
       0x2e => {
-        let (val, addr) = self.get_abs(operand);
+        let addr = operand;
+        let val = self.memory.load(addr);
         let val = self.rol(val);
         self.memory.store(addr, val);
       }
       0x3e => {
-        let (val, addr, _) = self.get_absx(operand);
+        let addr = operand;
+        let (val, addr, _) = self.get_absx(addr);
         let val = self.rol(val);
         self.memory.store(addr, val);
       }
       0x6e => {
-        let (val, addr) = self.get_abs(operand);
+        let addr = operand;
+        let val = self.memory.load(addr);
         let val = self.ror(val);
         self.memory.store(addr, val);
       }
@@ -564,7 +727,8 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x0e => {
-        let (val, addr) = self.get_abs(operand);
+        let addr = operand;
+        let val = self.memory.load(operand);
         let val = self.asl(val);
         self.memory.store(addr, val);
       }
@@ -574,7 +738,8 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x4e => {
-        let (val, addr) = self.get_abs(operand);
+        let addr = operand;
+        let val = self.memory.load(addr);
         let val = self.lsr(val);
         self.memory.store(addr, val);
       }
@@ -583,10 +748,22 @@ impl Cpu6502 {
         let val = self.lsr(val);
         self.memory.store(addr, val);
       }
-      0xee => { let (addr, _) = self.get_abs16(operand); self.inc(addr); }
-      0xfe => { let (addr, _, _) = self.get_absx16(operand); self.inc(addr); }
-      0xce => { let (addr, _) = self.get_abs16(operand); self.dec(addr); }
-      0xde => { let (addr, _, _) = self.get_absx16(operand); self.dec(addr); }
+      0xee => { 
+        let addr = operand;
+        self.inc(addr);
+      }
+      0xfe => { 
+        let addr = operand + self.registers.irx as u16;
+        self.inc(addr);
+      }
+      0xce => {
+        let addr = operand;
+        self.dec(addr);
+      }
+      0xde => {
+        let addr = operand + self.registers.irx as u16;
+        self.dec(addr);
+      }
       0x4c => {
         let addr = operand;
         self.jmp(addr);
@@ -607,7 +784,7 @@ impl Cpu6502 {
         self.jmp(addr);
       }
       0x20 => { 
-        let (_, addr) = self.get_abs16(operand);
+        let addr = operand;
         self.jsr(addr);
       }
       _ => { panic!("Unexpected 3-byte instruction encountered"); }
