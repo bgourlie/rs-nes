@@ -273,7 +273,7 @@ impl Cpu6502 {
         self.ldy(val);
       }
       0xb4 => {
-        let addr = operand as u16;
+        let addr = self.zpx_addr(operand);
         let val = self.memory.load(addr);
         self.ldy(val);
       }
