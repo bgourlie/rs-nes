@@ -497,7 +497,7 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x16 => {
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         let val = self.memory.load(addr);
         let val = self.asl(val);
         self.memory.store(addr, val);
