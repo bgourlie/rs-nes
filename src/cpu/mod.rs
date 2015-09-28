@@ -471,7 +471,7 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x36 => { 
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         let val = self.memory.load(addr); 
         let val = self.rol(val);
         self.memory.store(addr, val);
@@ -485,7 +485,7 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x76 => {
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         let val = self.memory.load(addr);
         let val = self.ror(val);
         self.memory.store(addr, val);
@@ -509,7 +509,7 @@ impl Cpu6502 {
         self.memory.store(addr, val);
       }
       0x56 => {
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         let val = self.memory.load(addr);
         let val = self.lsr(val);
         self.memory.store(addr, val);
@@ -519,7 +519,7 @@ impl Cpu6502 {
         self.inc(addr);
       }
       0xf6 => {
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         self.inc(addr);
       }
       0xc6 => {
@@ -527,7 +527,7 @@ impl Cpu6502 {
         self.dec(addr);
       }
       0xd6 => {
-        let addr = self.indexed_indirect_addr(operand);
+        let addr = self.zpx_addr(operand);
         self.dec(addr);
       }
       0x10 => {
