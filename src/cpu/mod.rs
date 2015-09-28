@@ -1237,8 +1237,10 @@ impl Cpu6502 {
   fn bit(&mut self, rop: u8) {
     let lop = self.registers.acc;
     let res = lop & rop;
-    self.registers.set_sign_and_zero_flag(res);
-    self.registers.set_flag(FL_OVERFLOW, res & 0x40 != 0);
+    
+    self.registers.set_flag(FL_ZERO, res == 0);
+    self.registers.set_flag(FL_OVERFLOW, rop & 0x40 != 0);
+    self.registers.set_flag(FL_SIGN, rop & 0x80 != 0);
   }
 
   /// ## System Functions (todo: tests)
