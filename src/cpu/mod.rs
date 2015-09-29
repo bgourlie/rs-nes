@@ -166,20 +166,9 @@ impl Cpu6502 {
     (self.memory.load(target_addr), target_addr, page_crossed)
   }
 
-  fn abs_indexed_base16(&self, base_addr: u16, index: u8) -> (u16, u16, bool) {
-    let target_addr = base_addr + index as u16;
-    let page_crossed = page_crossed(base_addr, target_addr);
-    (self.memory.load16(target_addr), target_addr, page_crossed)
-  }
-
   fn get_absx(&self, val: u16) -> (u8, u16, bool) {
     let x = self.registers.irx;
     self.abs_indexed_base(val, x)
-  }
-
-  fn get_absx16(&self, val: u16) -> (u16, u16, bool) {
-    let x = self.registers.irx;
-    self.abs_indexed_base16(val, x)
   }
 
   fn get_absy(&self, val: u16) -> (u8, u16, bool) {
