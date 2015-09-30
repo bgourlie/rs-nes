@@ -9,6 +9,7 @@ mod rom_loader;
 
 use rom_loader::NesRom;
 use cpu::Cpu6502;
+const PC_START: u16 = 0x400;
 
 fn main() {
   let mut f = File::open("/Users/brian/Desktop/roms/6502_functional_test.bin")
@@ -21,21 +22,30 @@ fn main() {
   }
 
   let mut cpu = Cpu6502::new();
-  println!("Press enter to step");
-  cpu.load(0, &vec, 0x400);
-  let mut last_pc: u16 = 0x400;;
+  cpu.load(0, &vec, PC_START);
+  let mut last_pc: u16 = PC_START;
 
   loop {
     match cpu.step() {
       Ok(instr) => {
+          if cpu.registers.pc == 0x3399 {
+            println!("******* SUCCESS ********");
+            return;
+          }
+
           if last_pc == cpu.registers.pc {
+            println!("{} {} cyc: {}", instr.to_string(), cpu.registers.to_string(),
+                cpu.cycles);
             println!("Detected Trap");
             memdump(cpu.memory.get_bytes());
             return;
           }
+
           last_pc = cpu.registers.pc;
-          println!("{} {} cyc: {}", instr.to_string(), cpu.registers.to_string(),
-        cpu.cycles);
+
+          if cpu.cycles % 1000000 == 0 {
+            println!("{} cycles", cpu.cycles);
+          }
       },
       Err(msg) => {
         println!("{}", msg);
