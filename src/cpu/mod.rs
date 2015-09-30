@@ -949,12 +949,13 @@ impl Cpu6502 {
 
   /// ## Arithmetic
 
-  fn adc_sbc_base(&mut self, rop: u8, carry_or_borrow: isize) {
+  fn adc(&mut self, rop: u8) {
     // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     let lop = self.registers.acc;
+    let carry = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 };
 
     // add using the native word size
-    let res = carry_or_borrow + lop as isize + rop as isize;
+    let res = carry + lop as isize + rop as isize;
 
     // if the operation carries into the 8th bit, carry flag will be 1,
     // and zero othersize.
@@ -971,15 +972,9 @@ impl Cpu6502 {
     self.registers.set_acc(res);
   }
 
-  fn adc(&mut self, rop: u8) {
-    let carry = if self.registers.get_flag(FL_CARRY) { 1 } else { 0 };
-    self.adc_sbc_base(rop, carry);
-  }
-
   fn sbc(&mut self, rop: u8) {
     let rop = !rop;
-    let borrow = if self.registers.get_flag(FL_CARRY) { 0 } else { 1 };
-    self.adc_sbc_base(rop, borrow);
+    self.adc(rop);
   }
 
   fn cmp_base(&mut self, lop: u8, rop: u8) {
