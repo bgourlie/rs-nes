@@ -12,12 +12,12 @@ use cpu::Cpu6502;
 const PC_START: u16 = 0x400;
 
 fn main() {
-  let mut f = File::open("/Users/brian/Desktop/roms/6502_functional_test.bin")
+  let mut f = File::open("test_roms/6502_functional_test.bin")
       .unwrap();
 
   let mut vec = Vec::<u8>::new();
   let bytes_read = f.read_to_end(&mut vec).unwrap();
-  if bytes_read < 65536 {
+  if bytes_read != 65536 {
     panic!("expected 16kb of data");
   }
 
