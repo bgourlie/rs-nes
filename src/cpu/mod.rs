@@ -42,7 +42,7 @@ use std::num::Wrapping;
 use constants::*;
 use cpu::debugger::*;
 use cpu::registers::*;
-use memory::Memory;
+use memory::*;
 
 // Graciously taken from FCEU
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -122,24 +122,19 @@ fn page_crossed(val1: u16, val2: u16) -> bool {
     val1 & 0xFF00 != val2 & 0xFF00
 }
 
-pub struct Cpu6502 {
+pub struct Cpu6502<'a> {
     pub cycles: u64,
     pub registers: Registers,
-    pub memory: Memory,
+    pub memory: &'a mut Memory,
 }
 
-impl Cpu6502 {
-    pub fn new() -> Cpu6502 {
+impl<'a> Cpu6502<'a> {
+    pub fn new(memory: &'a mut Memory) -> Cpu6502<'a> {
         Cpu6502 {
             cycles: 0,
             registers: Registers::new(),
-            memory: Memory::new(),
+            memory: memory,
         }
-    }
-
-    pub fn load(&mut self, loc: u16, prg: &[u8], pc: u16) {
-        self.memory.store_many(loc, prg);
-        self.registers.pc = pc;
     }
 
     pub fn reset(&mut self) {

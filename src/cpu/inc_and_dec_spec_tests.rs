@@ -1,11 +1,12 @@
 use cpu::*;
+use memory::*;
 use constants::*;
 
 fn inc_base_1<F>(inc: F)
     where F: Fn(&mut Cpu6502, u8) -> u8
 {
-
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = inc(&mut cpu, 1);
 
@@ -17,8 +18,8 @@ fn inc_base_1<F>(inc: F)
 fn inc_base_2<F>(inc: F)
     where F: Fn(&mut Cpu6502, u8) -> u8
 {
-
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = inc(&mut cpu, 0xff);
 
@@ -36,7 +37,8 @@ fn inc_base_3<F>(inc: F)
     // sanity check
     assert_eq!(-2, ORIG_VAL as i8);
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = inc(&mut cpu, ORIG_VAL);
 
@@ -49,7 +51,8 @@ fn dec_base_1<F>(dec: F)
     where F: Fn(&mut Cpu6502, u8) -> u8
 {
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = dec(&mut cpu, 1);
 
@@ -62,7 +65,8 @@ fn dec_base_2<F>(dec: F)
     where F: Fn(&mut Cpu6502, u8) -> u8
 {
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = dec(&mut cpu, 0x2);
 
@@ -80,7 +84,8 @@ fn dec_base_3<F>(dec: F)
     // sanity check
     assert_eq!(-2, ORIG_VAL as i8);
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let val = dec(&mut cpu, ORIG_VAL);
 

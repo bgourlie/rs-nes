@@ -1,4 +1,5 @@
 use cpu::*;
+use memory::*;
 use constants::*;
 
 fn shift_left_base_1<F>(do_shift: F)
@@ -6,7 +7,8 @@ fn shift_left_base_1<F>(do_shift: F)
 {
 
     const VAL: u8 = 0b10000001;
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     cpu.registers.set_flag(FL_CARRY, true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
@@ -27,7 +29,8 @@ fn shift_left_base_2<F>(do_shift: F)
 {
 
     const VAL: u8 = 0b01000000;
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
@@ -43,7 +46,8 @@ fn shift_left_base_3<F>(do_shift: F)
 {
 
     const VAL: u8 = 0b00000000;
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
@@ -60,7 +64,8 @@ fn shift_right_base_1<F>(do_shift: F)
 
     const VAL: u8 = 0b10000001;
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     cpu.registers.set_flag(FL_CARRY, true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
@@ -83,7 +88,8 @@ fn shift_right_base_2<F>(do_shift: F)
 
     const VAL: u8 = 0b01000000;
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
@@ -100,7 +106,8 @@ fn shift_right_base_3<F>(do_shift: F)
 
     const VAL: u8 = 0b00000000;
 
-    let mut cpu = Cpu6502::new();
+    let mut mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(&mut mem);
 
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
