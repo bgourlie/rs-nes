@@ -32,6 +32,9 @@ mod status_flag_spec_tests;
 mod store_spec_tests;
 
 #[cfg(test)]
+mod interrupt_spec_tests;
+
+#[cfg(test)]
 mod functional_tests;
 
 mod registers;
