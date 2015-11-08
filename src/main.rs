@@ -54,9 +54,9 @@ fn main() {
                         println!("{} cycles", cpu.cycles);
                     }
                 }
-                Err(msg) => { 
+                Err(msg) => {
                     println!("{}", msg);
-                    break; 
+                    break;
                 }
             }
         }
