@@ -1,13 +1,10 @@
 use std::fs::File;
-use std::io::{self, Read, Write};
-use std::path::Path;
+use std::io::Read;
 
 mod constants;
 mod memory;
 mod cpu;
-mod rom_loader;
 
-use rom_loader::NesRom;
 use cpu::Cpu6502;
 use memory::*;
 

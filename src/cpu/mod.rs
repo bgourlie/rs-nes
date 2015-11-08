@@ -164,7 +164,7 @@ impl<'a> Cpu6502<'a> {
             }
             1 => {
                 instr = Instruction::new1(op_code);
-                cycles += self.do_op1(op_code);
+                self.do_op1(op_code);
             }
             2 => {
                 let operand = self.read_op();
@@ -887,8 +887,7 @@ impl<'a> Cpu6502<'a> {
         cycles
     }
 
-    fn do_op1(&mut self, opcode: u8) -> u8 {
-        let mut cycles = 0;
+    fn do_op1(&mut self, opcode: u8) {
         match opcode {
             0x0a => {
                 let val = self.registers.acc;
@@ -992,8 +991,6 @@ impl<'a> Cpu6502<'a> {
                 panic!("unexpected opcode encountered");
             }
         }
-
-        cycles
     }
 
     fn push_stack(&mut self, value: u8) {
@@ -1082,7 +1079,6 @@ impl<'a> Cpu6502<'a> {
 
     fn txs(&mut self) {
         self.registers.sp = self.registers.irx;
-        let sp = self.registers.sp;
     }
 
     fn pha(&mut self) {
