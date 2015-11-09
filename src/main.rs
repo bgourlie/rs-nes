@@ -4,6 +4,7 @@ use std::io::Read;
 mod constants;
 mod memory;
 mod cpu;
+mod ppu;
 
 use cpu::Cpu6502;
 use memory::*;
