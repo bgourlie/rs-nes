@@ -1,4 +1,4 @@
-use ppu::ppu_status::*;
+use ppu::registers::ppu_status::*;
 
 #[test]
 fn flag_getters_and_setters_smoke() {

@@ -132,7 +132,7 @@ pub struct Cpu6502<'a> {
 }
 
 impl<'a> Cpu6502<'a> {
-    pub fn new(memory: &'a mut Memory) -> Cpu6502<'a> {
+    pub fn new(memory: &'a mut Memory) -> Self {
         Cpu6502 {
             cycles: 0,
             registers: Registers::new(),
