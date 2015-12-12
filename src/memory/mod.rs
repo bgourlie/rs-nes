@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::Write;
 
+use ppu::*;
+
 #[cfg(test)]
 mod spec_tests;
 
@@ -19,12 +21,22 @@ pub trait Memory {
     fn dump(&self, file: &'static str);
 }
 
+pub struct NesMemory {
+    ppu: Ppu,
+}
+
+impl NesMemory {
+    pub fn new() -> Self {
+        NesMemory { ppu: Ppu::new() }
+    }
+}
+
 pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
 }
 
 impl SimpleMemory {
-    pub fn new() -> SimpleMemory {
+    pub fn new() -> Self {
         SimpleMemory { addr: [0; ADDRESSABLE_MEMORY] }
     }
 

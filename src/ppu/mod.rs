@@ -1,19 +1,14 @@
 mod registers;
 mod virtual_frame_buffer;
 
-use memory::*;
 use ppu::registers::*;
 
-struct Ppu<'a> {
+pub struct Ppu {
     registers: Registers,
-    memory: &'a mut Memory,
 }
 
-impl<'a> Ppu<'a> {
-    pub fn new(memory: &'a mut Memory) -> Self {
-        Ppu {
-            registers: Registers::new(),
-            memory: memory,
-        }
+impl Ppu {
+    pub fn new() -> Self {
+        Ppu { registers: Registers::new() }
     }
 }
