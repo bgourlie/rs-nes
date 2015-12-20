@@ -40,140 +40,181 @@ impl Memory for NesMemory {
         let addr = addr as usize;
         match addr {
             0x0...0x1fff => {
-                // 2048kb ram, mirrored 4 times
+                // 2kb ram, mirrored 4 times
                 self.ram[addr & 0x7ff] = data;
             }
             0x2000...0x3fff => {
                 // PPU registers, mirrored every 8 bytes
                 match addr & 0x7 {
                     0x0 => {
+                        // PPUCTRL
                         unimplemented!();
-                    } // PPUCTRL
+                    }
                     0x1 => {
+                        // PPUMASK
                         unimplemented!();
-                    } // PPUMASK
+                    }
                     0x2 => {
+                        // PPUSTATUS
                         unimplemented!();
-                    } // PPUSTATUS
+                    }
                     0x3 => {
+                        // OAMADDR
                         unimplemented!();
-                    } // OAMADDR
+                    }
                     0x4 => {
+                        // OAMDATA
                         unimplemented!();
-                    } // OAMDATA
+                    }
                     0x5 => {
+                        // PPUSCROLL
                         unimplemented!();
-                    } // PPUSCROLL
+                    }
                     0x6 => {
+                        // PPUADDR
                         unimplemented!();
-                    } // PPUADDR
+                    }
                     0x7 => {
+                        // PPUDATA
                         unimplemented!();
-                    } // PPUDATA
+                    }
                     _ => {
                         panic!("This should never happen");
                     }
                 }
             }
             0x4000 => {
+                // APU Rectangle 1 W
                 unimplemented!();
-            } // APU Rectangle 1 W
+            }
             0x4001 => {
+                // APU Rectangle 1 W
                 unimplemented!();
-            } // APU Rectangle 1 W
+            }
             0x4002 => {
+                // APU Rectangle 1 W
                 unimplemented!();
-            } // APU Rectangle 1 W
+            }
             0x4003 => {
+                // APU Rectangle 1 W
                 unimplemented!();
-            } // APU Rectangle 1 W
+            }
             0x4004 => {
+                // APU Rectangle 2 W
                 unimplemented!();
-            } // APU Rectangle 2 W
+            }
             0x4005 => {
+                // APU Rectangle 2 W
                 unimplemented!();
-            } // APU Rectangle 2 W
+            }
             0x4006 => {
+                // APU Rectangle 2 W
                 unimplemented!();
-            } // APU Rectangle 2 W
+            }
             0x4007 => {
+                // APU Rectangle 2 W
                 unimplemented!();
-            } // APU Rectangle 2 W
+            }
             0x4008 => {
+                // APU Triangle W
                 unimplemented!();
-            } // APU Triangle W
+            }
             0x4009 => {
+                // APU Triangle W
                 unimplemented!();
-            } // APU Triangle W
+            }
             0x400a => {
+                // APU Triangle W
                 unimplemented!();
-            } // APU Triangle W
+            }
             0x400b => {
+                // APU Triangle W
                 unimplemented!();
-            } // APU Triangle W
+            }
             0x400c => {
+                // APU Noise W
                 unimplemented!();
-            } // APU Noise W
+            }
             0x400d => {
+                // APU Noise W
                 unimplemented!();
-            } // APU Noise W
+            }
             0x400e => {
+                // APU Noise W
                 unimplemented!();
-            } // APU Noise W
+            }
             0x400f => {
+                // APU Noise W
                 unimplemented!();
-            } // APU Noise W
+            }
             0x4010 => {
+                // APU DMC W
                 unimplemented!();
-            } // APU DMC W
+            }
             0x4011 => {
+                // APU DMC W
                 unimplemented!();
-            } // APU DMC W
+            }
             0x4012 => {
+                // APU DMC W
                 unimplemented!();
-            } // APU DMC W
+            }
             0x4013 => {
+                // APU DMC W
                 unimplemented!();
-            } // APU DMC W
+            }
             0x4014 => {
+                // Sprite DMA W
                 unimplemented!();
-            } // Sprite DMA W
+            }
             0x4015 => {
+                // Sound Status RW
                 unimplemented!();
-            } // Sound Status RW
+            }
             0x4016 => {
+                // Input 1 RW
                 unimplemented!();
-            } // Input 1 RW
+            }
             0x4017 => {
+                // Input 2, Frame Counter RW
                 unimplemented!();
-            } // Input 2, Frame Counter RW
+            }
             0x4018 => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x4019 => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401a => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401b => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401c => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401d => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401e => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x401f => {
+                // ??
                 unimplemented!();
-            } // ??
+            }
             0x4020...0xffff => {
+                // mapped to cartridge
                 unimplemented!();
-            } // mapped to cartridge
+            }
             _ => {
                 panic!("Should never get here.");
             }
