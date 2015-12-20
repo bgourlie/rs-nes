@@ -37,51 +37,15 @@ impl NesMemory {
 
 impl Memory for NesMemory {
     fn store(&mut self, addr: u16, data: u8) {
-        let addr = addr as usize;
         match addr {
             0x0...0x1fff => {
                 // 2kb ram, mirrored 4 times
+                let addr = addr as usize;
                 self.ram[addr & 0x7ff] = data;
             }
             0x2000...0x3fff => {
                 // PPU registers, mirrored every 8 bytes
-                match addr & 0x7 {
-                    0x0 => {
-                        // PPUCTRL
-                        unimplemented!();
-                    }
-                    0x1 => {
-                        // PPUMASK
-                        unimplemented!();
-                    }
-                    0x2 => {
-                        // PPUSTATUS
-                        unimplemented!();
-                    }
-                    0x3 => {
-                        // OAMADDR
-                        unimplemented!();
-                    }
-                    0x4 => {
-                        // OAMDATA
-                        unimplemented!();
-                    }
-                    0x5 => {
-                        // PPUSCROLL
-                        unimplemented!();
-                    }
-                    0x6 => {
-                        // PPUADDR
-                        unimplemented!();
-                    }
-                    0x7 => {
-                        // PPUDATA
-                        unimplemented!();
-                    }
-                    _ => {
-                        panic!("This should never happen");
-                    }
-                }
+                self.ppu.write_reg(addr, data);
             }
             0x4000 => {
                 // APU Rectangle 1 W
