@@ -47,84 +47,8 @@ impl Memory for NesMemory {
                 // PPU registers, mirrored every 8 bytes
                 self.ppu.write_reg(addr, data);
             }
-            0x4000 => {
-                // APU Rectangle 1 W
-                unimplemented!();
-            }
-            0x4001 => {
-                // APU Rectangle 1 W
-                unimplemented!();
-            }
-            0x4002 => {
-                // APU Rectangle 1 W
-                unimplemented!();
-            }
-            0x4003 => {
-                // APU Rectangle 1 W
-                unimplemented!();
-            }
-            0x4004 => {
-                // APU Rectangle 2 W
-                unimplemented!();
-            }
-            0x4005 => {
-                // APU Rectangle 2 W
-                unimplemented!();
-            }
-            0x4006 => {
-                // APU Rectangle 2 W
-                unimplemented!();
-            }
-            0x4007 => {
-                // APU Rectangle 2 W
-                unimplemented!();
-            }
-            0x4008 => {
-                // APU Triangle W
-                unimplemented!();
-            }
-            0x4009 => {
-                // APU Triangle W
-                unimplemented!();
-            }
-            0x400a => {
-                // APU Triangle W
-                unimplemented!();
-            }
-            0x400b => {
-                // APU Triangle W
-                unimplemented!();
-            }
-            0x400c => {
-                // APU Noise W
-                unimplemented!();
-            }
-            0x400d => {
-                // APU Noise W
-                unimplemented!();
-            }
-            0x400e => {
-                // APU Noise W
-                unimplemented!();
-            }
-            0x400f => {
-                // APU Noise W
-                unimplemented!();
-            }
-            0x4010 => {
-                // APU DMC W
-                unimplemented!();
-            }
-            0x4011 => {
-                // APU DMC W
-                unimplemented!();
-            }
-            0x4012 => {
-                // APU DMC W
-                unimplemented!();
-            }
-            0x4013 => {
-                // APU DMC W
+            0x4000...0x4013 => {
+                // APU Registers
                 unimplemented!();
             }
             0x4014 => {
@@ -143,35 +67,7 @@ impl Memory for NesMemory {
                 // Input 2, Frame Counter RW
                 unimplemented!();
             }
-            0x4018 => {
-                // ??
-                unimplemented!();
-            }
-            0x4019 => {
-                // ??
-                unimplemented!();
-            }
-            0x401a => {
-                // ??
-                unimplemented!();
-            }
-            0x401b => {
-                // ??
-                unimplemented!();
-            }
-            0x401c => {
-                // ??
-                unimplemented!();
-            }
-            0x401d => {
-                // ??
-                unimplemented!();
-            }
-            0x401e => {
-                // ??
-                unimplemented!();
-            }
-            0x401f => {
+            0x4018...0x401f => {
                 // ??
                 unimplemented!();
             }

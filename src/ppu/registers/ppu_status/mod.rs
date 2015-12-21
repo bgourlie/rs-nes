@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 #[cfg(test)]
 mod spec_tests;
 
@@ -9,20 +11,22 @@ pub struct PpuStatus {
     reg: u8,
 }
 
+impl Deref for PpuStatus {
+    type Target = u8;
+
+    fn deref(&self) -> &u8 {
+        &self.reg
+    }
+}
+
+impl DerefMut for PpuStatus {
+    fn deref_mut(&mut self) -> &mut u8 {
+        &mut self.reg
+    }
+}
+
 impl PpuStatus {
     pub fn new() -> Self {
         PpuStatus { reg: 0 }
-    }
-
-    pub fn set_flag(&mut self, mask: u8, val: bool) {
-        if val {
-            self.reg |= mask;
-        } else {
-            self.reg &= !mask;
-        }
-    }
-
-    pub fn get_flag(&self, mask: u8) -> bool {
-        self.reg & mask != 0
     }
 }
