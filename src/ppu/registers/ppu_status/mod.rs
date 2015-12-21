@@ -3,9 +3,9 @@ use std::ops::{Deref, DerefMut};
 #[cfg(test)]
 mod spec_tests;
 
-pub const FLG_VBLANK: u8 = 0b10000000;
-pub const FLG_SPRITE_ZERO_HIT: u8 = 0b01000000;
-pub const FLG_SPRITE_OVERFLOW: u8 = 0b00100000;
+const FLG_VBLANK: u8 = 0b10000000;
+const FLG_SPRITE_ZERO_HIT: u8 = 0b01000000;
+const FLG_SPRITE_OVERFLOW: u8 = 0b00100000;
 
 pub struct PpuStatus {
     reg: u8,
