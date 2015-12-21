@@ -1414,8 +1414,7 @@ impl<'a> Cpu6502<'a> {
         self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
     }
 
-    fn nop(&mut self) {
-    }
+    fn nop(&mut self) {}
 
     fn rti(&mut self) {
         let stat = self.pop_stack();
