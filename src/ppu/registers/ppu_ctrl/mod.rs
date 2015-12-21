@@ -11,6 +11,7 @@ const FLG_SPRITE_TILE_SELECT: u8 = 0b00001000;
 const FLG_INCREMENT_MODE: u8 = 0b00000100;
 const NAMETABLE_SELECT: u8 = 0b00000011;
 
+#[derive(Copy, Clone)]
 pub struct PpuCtrl {
     reg: u8,
 }
@@ -34,7 +35,7 @@ impl PpuCtrl {
         PpuCtrl { reg: 0 }
     }
 
-    pub fn get_nametable_base_addr(&self) -> u16 {
+    pub fn nametable_base_addr(&self) -> u16 {
         match self.reg & 0x3 {
             0 => 0x2000,
             1 => 0x2400,

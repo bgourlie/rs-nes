@@ -7,6 +7,7 @@ const FLG_VBLANK: u8 = 0b10000000;
 const FLG_SPRITE_ZERO_HIT: u8 = 0b01000000;
 const FLG_SPRITE_OVERFLOW: u8 = 0b00100000;
 
+#[derive(Copy, Clone)]
 pub struct PpuStatus {
     reg: u8,
 }

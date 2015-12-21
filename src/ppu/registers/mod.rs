@@ -7,13 +7,13 @@ use ppu::registers::ppu_mask::*;
 use ppu::registers::ppu_status::*;
 
 pub struct Registers {
-    ppu_ctrl: PpuCtrl,
-    ppu_mask: PpuMask,
-    ppu_status: PpuStatus,
-    oam_addr: u8,
-    oam_data: u8,
-    ppu_scroll: u8,
-    ppu_data: u8,
+    pub ppu_ctrl: PpuCtrl,
+    pub ppu_mask: PpuMask,
+    pub ppu_status: PpuStatus,
+    pub oam_addr: u8,
+    pub oam_data: u8,
+    pub ppu_scroll: u8,
+    pub ppu_data: u8,
 }
 
 impl Registers {

@@ -20,15 +20,15 @@ impl Ppu {
         match addr & 0x7 {
             0x0 => {
                 // PPUCTRL
-                unimplemented!();
+                *self.registers.ppu_ctrl = val;
             }
             0x1 => {
                 // PPUMASK
-                unimplemented!();
+                *self.registers.ppu_mask = val;
             }
             0x2 => {
                 // PPUSTATUS
-                unimplemented!();
+                *self.registers.ppu_status = val;
             }
             0x3 => {
                 // OAMADDR
