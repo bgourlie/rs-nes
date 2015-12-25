@@ -30,4 +30,16 @@ impl PpuStatus {
     pub fn new() -> Self {
         PpuStatus { reg: 0 }
     }
+
+    pub fn in_vblank(self) -> bool {
+        *self & FLG_VBLANK != 0
+    }
+
+    pub fn sprite_zero_hit(self) -> bool {
+        *self & FLG_SPRITE_ZERO_HIT != 0
+    }
+
+    pub fn sprite_overflow(self) -> bool {
+        *self & FLG_SPRITE_OVERFLOW != 0
+    }
 }
