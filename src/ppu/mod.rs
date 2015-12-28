@@ -1,18 +1,20 @@
 mod registers;
 mod virtual_frame_buffer;
+mod vram;
 
 use ppu::registers::*;
+use ppu::vram::*;
 
 pub struct Ppu {
     registers: Registers,
-    ram: [u8; 2048],
+    ram: Vram,
 }
 
 impl Ppu {
     pub fn new() -> Self {
         Ppu {
             registers: Registers::new(),
-            ram: [0; 2048],
+            ram: Vram::new(),
         }
     }
 
