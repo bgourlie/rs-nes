@@ -10,9 +10,16 @@ const ADDRESSABLE_MEMORY: usize = 65536;
 
 pub trait Memory {
     fn store(&mut self, u16, u8);
-    fn store16(&mut self, u16, u16);
+    fn store16(&mut self, addr: u16, data: u16) {
+        let lowb = (data & 0xff) as u8;
+        let highb = ((data >> 8) & 0xff) as u8;
+        self.store(addr, lowb);
+        self.store(addr + 1, highb);
+    }
     fn load(&self, u16) -> u8;
-    fn load16(&self, u16) -> u16;
+    fn load16(&self, addr: u16) -> u16 {
+        self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
+    }
 
     // probably a premature optimization, but we implement inc and dec here so
     // that we can alter the values in place.
@@ -81,10 +88,6 @@ impl Memory for NesMemory {
         }
     }
 
-    fn store16(&mut self, addr: u16, data: u16) {
-        unimplemented!();
-    }
-
     fn load(&self, addr: u16) -> u8 {
         unimplemented!();
     }
@@ -128,21 +131,9 @@ impl Memory for SimpleMemory {
         self.addr[addr] = data;
     }
 
-    fn store16(&mut self, addr: u16, data: u16) {
-        let lowb = (data & 0xff) as u8;
-        let highb = ((data >> 8) & 0xff) as u8;
-        self.store(addr, lowb);
-        self.store(addr + 1, highb);
-    }
-
     fn load(&self, addr: u16) -> u8 {
         let addr = addr as usize;
         self.addr[addr]
-    }
-
-    fn load16(&self, addr: u16) -> u16 {
-        let addr = addr as usize;
-        self.addr[addr] as u16 | (self.addr[addr + 1] as u16) << 8
     }
 
     fn inc(&mut self, addr: u16) -> u8 {
