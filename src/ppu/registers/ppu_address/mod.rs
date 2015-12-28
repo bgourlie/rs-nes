@@ -1,4 +1,4 @@
-use std::ops::{Deref};
+use std::ops::Deref;
 
 #[cfg(test)]
 mod spec_tests;
@@ -6,7 +6,7 @@ mod spec_tests;
 #[derive(Copy, Clone)]
 pub struct PpuAddress {
     reg: u16,
-    write_hi_next: bool
+    write_hi_next: bool,
 }
 
 impl Deref for PpuAddress {
@@ -21,7 +21,7 @@ impl PpuAddress {
     pub fn new() -> Self {
         PpuAddress {
             reg: 0,
-            write_hi_next: true
+            write_hi_next: true,
         }
     }
 

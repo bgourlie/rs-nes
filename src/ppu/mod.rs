@@ -57,15 +57,9 @@ impl Ppu {
 
     pub fn read_reg(&mut self, addr: u16, val: u8) -> u8 {
         match addr & 0x7 {
-            0x0 => {
-                *self.registers.ppu_ctrl
-            }
-            0x1 => {
-                *self.registers.ppu_mask
-            }
-            0x2 => {
-                *self.registers.ppu_status
-            }
+            0x0 => *self.registers.ppu_ctrl,
+            0x1 => *self.registers.ppu_mask,
+            0x2 => *self.registers.ppu_status,
             0x3 => {
                 unimplemented!();
             }

@@ -6,7 +6,7 @@ pub struct Vram {
     nametable2: [u8; 1024],
     nametable3: [u8; 1024],
     palette: [u8; 32],
-    oam: [u8; 256]
+    oam: [u8; 256],
 }
 
 impl Vram {
@@ -19,7 +19,7 @@ impl Vram {
             nametable2: [0; 1024],
             nametable3: [0; 1024],
             palette: [0; 32],
-            oam: [0; 256]
+            oam: [0; 256],
         }
     }
 
