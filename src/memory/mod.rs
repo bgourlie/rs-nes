@@ -20,9 +20,6 @@ pub trait Memory {
     fn load16(&self, addr: u16) -> u16 {
         self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
     }
-
-    // probably a premature optimization, but we implement inc and dec here so
-    // that we can alter the values in place.
     fn inc(&mut self, u16) -> u8;
     fn dec(&mut self, u16) -> u8;
     fn dump(&self, file: &'static str);
@@ -89,10 +86,6 @@ impl Memory for NesMemory {
     }
 
     fn load(&self, addr: u16) -> u8 {
-        unimplemented!();
-    }
-
-    fn load16(&self, addr: u16) -> u16 {
         unimplemented!();
     }
 
