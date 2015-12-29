@@ -7,14 +7,33 @@ mod constants;
 mod memory;
 mod cpu;
 mod ppu;
+mod rom_loader;
 
 use cpu::Cpu6502;
 use memory::*;
+use rom_loader::NesRom;
 
 const PC_START: u16 = 0x400;
 const DUMP_FILE: &'static str = "/Users/brian/Desktop/6502dump.bin";
 
 fn main() {
+    let rom = NesRom::read("/Users/brian/Desktop/roms/Super Mario Bros. 3 (U) (PRG1) [!].nes")
+                  .unwrap();
+
+    println!("ROM Format: {:?}\nVideo Standard: {:?}\nMapper: {}\nMirroring: {:?}\nPRG-ROM \
+              banks: {}\nPRG-RAM banks: {}\nCHR-ROM banks: {}\nHas SRAM: {}\nHas trainer: {}\n",
+             rom.format,
+             rom.video_standard,
+             rom.mapper,
+             rom.mirroring,
+             rom.prg_rom_banks,
+             rom.prg_ram_banks,
+             rom.chr_rom_banks,
+             rom.has_sram,
+             rom.has_trainer);
+
+    return;
+
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
 
     let mut rom = Vec::<u8>::new();

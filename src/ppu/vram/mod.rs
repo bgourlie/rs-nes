@@ -1,3 +1,5 @@
+use memory::Memory;
+
 pub struct Vram {
     pattern0: [u8; 4096],
     pattern1: [u8; 4096],
@@ -22,12 +24,26 @@ impl Vram {
             oam: [0; 256],
         }
     }
+}
 
-    pub fn store(&mut self, addr: u16, data: u8) {
+impl Memory for Vram {
+    fn store(&mut self, addr: u16, data: u8) {
         unimplemented!();
     }
 
-    pub fn load(&self, addr: u16) -> u8 {
+    fn load(&self, addr: u16) -> u8 {
+        unimplemented!();
+    }
+
+    fn inc(&mut self, addr: u16) -> u8 {
+        unimplemented!();
+    }
+
+    fn dec(&mut self, addr: u16) -> u8 {
+        unimplemented!();
+    }
+
+    fn dump(&self, file_loc: &'static str) {
         unimplemented!();
     }
 }

@@ -34,6 +34,9 @@ pub struct NesRom {
     pub has_trainer: bool,
     pub is_pc10: bool,
     pub is_vs_unisystem: bool,
+    pub trainer: Vec<u8>,
+    pub chr: Vec<u8>,
+    pub prg: Vec<u8>,
 }
 
 impl NesRom {
@@ -118,6 +121,9 @@ impl NesRom {
             has_trainer: has_trainer,
             is_pc10: false,
             is_vs_unisystem: false,
+            trainer: Vec::new(), // TODO
+            prg: Vec::new(),
+            chr: Vec::new(),
         })
     }
 
@@ -153,6 +159,26 @@ impl NesRom {
             return Err("Invalid INes format - bytes 10-15 must be zeroed.");
         }
 
+        let mut trainer = Vec::new();
+        let mut chr = Vec::new();
+        let mut prg = Vec::new();
+        let prg_start: usize;
+        let prg_size: usize = prg_rom_banks as usize * 16384;
+        let chr_size: usize = chr_rom_banks as usize * 8192;
+
+        if has_trainer {
+            trainer.extend(bytes[16..528].iter().cloned());
+            prg_start = 529;
+
+        } else {
+            prg_start = 16;
+        }
+
+        let chr_start = prg_start + prg_size;
+
+        prg.extend(bytes[prg_start..(prg_start + prg_size)].iter().cloned());
+        chr.extend(bytes[chr_start..(chr_start + chr_size)].iter().cloned());
+
         Ok(NesRom {
             format: RomFormat::INes,
             video_standard: video_standard,
@@ -165,6 +191,9 @@ impl NesRom {
             has_trainer: has_trainer,
             is_pc10: is_pc10,
             is_vs_unisystem: is_vs_unisystem,
+            trainer: trainer,
+            prg: prg,
+            chr: chr,
         })
     }
 
