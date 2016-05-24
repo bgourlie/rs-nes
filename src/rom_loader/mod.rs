@@ -88,12 +88,7 @@ impl NesRom {
             }
         };
 
-        (prg_rom_banks,
-         chr_rom_banks,
-         mapper,
-         has_trainer,
-         has_sram,
-         mirroring)
+        (prg_rom_banks, chr_rom_banks, mapper, has_trainer, has_sram, mirroring)
     }
 
     fn load_ines_archaic(bytes: &[u8]) -> Result<NesRom, &'static str> {
@@ -102,12 +97,8 @@ impl NesRom {
             return Err("Invalid Legacy INes format - bytes 7-15 must be zeroed.");
         }
 
-        let (prg_rom_banks,
-             chr_rom_banks,
-             mapper_lo,
-             has_trainer,
-             has_sram,
-             mirroring) = NesRom::load_common(bytes);
+        let (prg_rom_banks, chr_rom_banks, mapper_lo, has_trainer, has_sram, mirroring) =
+            NesRom::load_common(bytes);
 
         Ok(NesRom {
             format: RomFormat::INesArchaic,
@@ -128,12 +119,8 @@ impl NesRom {
     }
 
     fn load_ines(bytes: &[u8]) -> Result<NesRom, &'static str> {
-        let (prg_rom_banks,
-             chr_rom_banks,
-             mapper_lo,
-             has_trainer,
-             has_sram,
-             mirroring) = NesRom::load_common(bytes);
+        let (prg_rom_banks, chr_rom_banks, mapper_lo, has_trainer, has_sram, mirroring) =
+            NesRom::load_common(bytes);
 
         let flags = bytes[7];
         let mapper = (flags & 0xf0) | mapper_lo;

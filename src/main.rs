@@ -18,7 +18,7 @@ const DUMP_FILE: &'static str = "/Users/brian/Desktop/6502dump.bin";
 
 fn main() {
     let rom = NesRom::read("/Users/brian/Desktop/roms/Super Mario Bros. 3 (U) (PRG1) [!].nes")
-                  .unwrap();
+        .unwrap();
 
     println!("ROM Format: {:?}\nVideo Standard: {:?}\nMapper: {}\nMirroring: {:?}\nPRG-ROM \
               banks: {}\nPRG-RAM banks: {}\nCHR-ROM banks: {}\nHas SRAM: {}\nHas trainer: {}\n",
