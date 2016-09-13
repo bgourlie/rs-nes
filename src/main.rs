@@ -44,9 +44,8 @@ fn main() {
 
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &rom);
-    let mut memory: Box<Memory> = Box::new(mem);
     {
-        let mut cpu = Cpu6502::new(&mut *memory);
+        let mut cpu = Cpu6502::new(mem);
         cpu.registers.pc = PC_START;
         let mut last_pc: u16 = PC_START;
 
@@ -82,5 +81,5 @@ fn main() {
     }
 
     // If we get here, we detected a trap.
-    memory.dump(DUMP_FILE);
+    //mem.dump(DUMP_FILE);
 }

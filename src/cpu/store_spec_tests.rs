@@ -3,8 +3,8 @@ use memory::*;
 
 #[test]
 fn sta_test() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     assert_eq!(0x0, cpu.memory.load(0x0));
     cpu.registers.acc = 0xff;
     cpu.sta(0x0);
@@ -13,8 +13,8 @@ fn sta_test() {
 
 #[test]
 fn stx_test() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     assert_eq!(0x0, cpu.memory.load(0x0));
     cpu.registers.irx = 0xff;
     cpu.stx(0x0);
@@ -23,8 +23,8 @@ fn stx_test() {
 
 #[test]
 fn sty_test() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     assert_eq!(0x0, cpu.memory.load(0x0));
     cpu.registers.iry = 0xff;
     cpu.sty(0x0);

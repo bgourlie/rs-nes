@@ -4,8 +4,8 @@ use constants::*;
 
 #[test]
 fn push_stack() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     cpu.registers.sp = 0xff;
     let sp = cpu.registers.sp;
     cpu.push_stack(0xde);
@@ -16,8 +16,8 @@ fn push_stack() {
 
 #[test]
 fn push_stack16() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     cpu.registers.sp = 0xff;
     let sp = cpu.registers.sp;
     cpu.push_stack16(0xdead);
@@ -28,8 +28,8 @@ fn push_stack16() {
 
 #[test]
 fn pop_stack() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     cpu.registers.sp = 0xfe;
     let sp = cpu.registers.sp;
     cpu.memory.store(STACK_LOC + sp as u16 + 1, 0xf0);
@@ -40,8 +40,8 @@ fn pop_stack() {
 
 #[test]
 fn pop_stack16() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
     cpu.registers.sp = 0xfd;
     let sp = cpu.registers.sp;
     cpu.memory.store16(STACK_LOC + sp as u16 + 1, 0xf00d);

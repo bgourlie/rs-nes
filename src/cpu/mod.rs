@@ -93,14 +93,14 @@ fn page_crossed(val1: u16, val2: u16) -> bool {
     val1 & 0xFF00 != val2 & 0xFF00
 }
 
-pub struct Cpu6502<'a> {
+pub struct Cpu6502<T: Memory> {
     pub cycles: u64,
     pub registers: Registers,
-    pub memory: &'a mut Memory,
+    pub memory: T,
 }
 
-impl<'a> Cpu6502<'a> {
-    pub fn new(memory: &'a mut Memory) -> Self {
+impl<T: Memory> Cpu6502<T> {
+    pub fn new(memory: T) -> Self {
         Cpu6502 {
             cycles: 0,
             registers: Registers::new(),

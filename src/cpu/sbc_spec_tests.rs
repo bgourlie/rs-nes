@@ -14,8 +14,8 @@ const PC_START: u16 = 0x400;
 #[test]
 #[ignore]
 fn sbc_flags_sign_and_zero_1() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x0;
@@ -41,8 +41,8 @@ fn sbc_flags_sign_and_zero_1() {
 #[test]
 #[ignore]
 fn sbc_flags_sign_and_zero_2() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x1;
@@ -68,8 +68,8 @@ fn sbc_flags_sign_and_zero_2() {
 #[test]
 #[ignore]
 fn sbc_flags_sign_and_zero_3() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x0;
@@ -110,8 +110,8 @@ fn sbc_flags_sign_and_zero_3() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_1() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x50;
@@ -137,8 +137,8 @@ fn sbc_flags_carry_and_overflow_1() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_2() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x50;
@@ -164,8 +164,8 @@ fn sbc_flags_carry_and_overflow_2() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_3() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x50;
@@ -191,8 +191,8 @@ fn sbc_flags_carry_and_overflow_3() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_4() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0x50;
@@ -218,8 +218,8 @@ fn sbc_flags_carry_and_overflow_4() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_5() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0xd0;
@@ -245,8 +245,8 @@ fn sbc_flags_carry_and_overflow_5() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_6() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0xd0;
@@ -272,8 +272,8 @@ fn sbc_flags_carry_and_overflow_6() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_7() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0xd0;
@@ -299,8 +299,8 @@ fn sbc_flags_carry_and_overflow_7() {
 #[test]
 #[ignore]
 fn sbc_flags_carry_and_overflow_8() {
-    let mut mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(&mut mem);
+    let mem = SimpleMemory::new();
+    let mut cpu = Cpu6502::new(mem);
 
     // operands
     const LOP: u8 = 0xd0;
