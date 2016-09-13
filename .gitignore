@@ -12,3 +12,6 @@
 
 # rustfmt
 *.bk
+
+# IDE
+.idea
