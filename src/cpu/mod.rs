@@ -39,6 +39,7 @@ mod functional_tests;
 
 mod registers;
 mod debugger;
+mod addressing_mode;
 
 use std::num::Wrapping;
 
