@@ -1171,11 +1171,7 @@ impl<T: Memory> Cpu6502<T> {
 
     fn shift_left(&mut self, val: u8, lsb: bool) -> u8 {
         let carry = (val & 0x80) != 0;
-        let res = if lsb {
-            (val << 1) | 0x1
-        } else {
-            val << 1
-        };
+        let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
         self.registers.set_flag(FL_CARRY, carry);
         self.registers.set_sign_and_zero_flag(res);
         res
@@ -1183,11 +1179,7 @@ impl<T: Memory> Cpu6502<T> {
 
     fn shift_right(&mut self, val: u8, msb: bool) -> u8 {
         let carry = (val & 0x1) != 0;
-        let res = if msb {
-            (val >> 1) | 0x80
-        } else {
-            val >> 1
-        };
+        let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };
         self.registers.set_flag(FL_CARRY, carry);
         self.registers.set_sign_and_zero_flag(res);
         res

@@ -126,11 +126,7 @@ impl NesRom {
         let mapper = (flags & 0xf0) | mapper_lo;
         let is_pc10 = (flags & 0x2) == 1;
         let is_vs_unisystem = (flags & 0x1) == 1;
-        let prg_ram_banks = if bytes[8] == 0 {
-            1
-        } else {
-            bytes[8]
-        };
+        let prg_ram_banks = if bytes[8] == 0 { 1 } else { bytes[8] };
         let video_standard = if bytes[9] & 0x01 == 0 {
             VideoStandard::Ntsc
         } else {
@@ -192,7 +188,7 @@ impl NesRom {
         if bytes[7] & 0x0c == 0x08 && bytes[9] as usize <= bytes_read {
             RomFormat::Nes20
         } else if bytes[7] & 0x0c == 0x00 && bytes[12] == 0 && bytes[13] == 0 && bytes[14] == 0 &&
-           bytes[15] == 0 {
+                  bytes[15] == 0 {
             RomFormat::INes
         } else {
             RomFormat::INesArchaic
