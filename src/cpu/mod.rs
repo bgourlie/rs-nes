@@ -39,13 +39,14 @@ mod functional_tests;
 
 mod registers;
 mod debugger;
-mod addressing_mode;
+mod addressing;
 
 use std::num::Wrapping;
 
+use self::debugger::*;
+use self::registers::*;
+use self::addressing::*;
 use constants::*;
-use cpu::debugger::*;
-use cpu::registers::*;
 use memory::*;
 
 // Graciously taken from FCEU
@@ -100,8 +101,8 @@ pub struct Cpu6502<T: Memory> {
     pub memory: T,
 }
 
-impl<T: Memory> Cpu6502<T> {
-    pub fn new(memory: T) -> Self {
+impl<Mem: Memory> Cpu6502<Mem> {
+    pub fn new(memory: Mem) -> Self {
         Cpu6502 {
             cycles: 0,
             registers: Registers::new(),
@@ -222,6 +223,10 @@ impl<T: Memory> Cpu6502<T> {
         self.memory.load(target_addr)
     }
 
+    fn get_zpy2(&self, base_addr: u8) -> MemoryAddress {
+        self.zpy_addr(base_addr)
+    }
+
     fn do_op2(&mut self, opcode: u8, operand: u8) -> u8 {
         let mut cycles = 0;
         match opcode {
@@ -259,8 +264,8 @@ impl<T: Memory> Cpu6502<T> {
                 self.ldx(val);
             }
             0xb6 => {
-                let val = self.get_zpy(operand);
-                self.ldx(val);
+                let val = self.get_zpy2(operand);
+                self.ldx2(val);
             }
             0xa0 => {
                 let val = operand;
@@ -1313,6 +1318,12 @@ impl<T: Memory> Cpu6502<T> {
     }
 
     fn ldx(&mut self, val: u8) {
+        self.registers.irx = val;
+        self.registers.set_sign_and_zero_flag(val);
+    }
+
+    fn ldx2<T: AddressReader<Mem>>(&mut self, val: T) {
+        let val = val.read(self);
         self.registers.irx = val;
         self.registers.set_sign_and_zero_flag(val);
     }
