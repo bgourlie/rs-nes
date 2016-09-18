@@ -19,23 +19,16 @@ fn functional_test() {
     cpu.registers.pc = PC_START;
 
     loop {
-        match cpu.step() {
-            Ok(_) => {
-                if cpu.registers.pc == 0x3399 {
-                    // Success!
-                    return;
-                }
-
-                if last_pc == cpu.registers.pc {
-                    assert!(false);
-                }
-
-                last_pc = cpu.registers.pc;
-
-            }
-            Err(_) => {
-                assert!(false);
-            }
+        cpu.step();
+        if cpu.registers.pc == 0x3399 {
+            // Success!
+            return;
         }
+
+        if last_pc == cpu.registers.pc {
+            assert!(false);
+        }
+
+        last_pc = cpu.registers.pc;
     }
 }
