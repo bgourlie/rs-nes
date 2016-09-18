@@ -1,3 +1,11 @@
+/// # Addressing Abstractions
+///
+/// Many NES instructions can be thought of as functions that operate on a value and store the
+/// result somewhere.  Where the value is read from and where the result is written to depends on
+/// the addressing mode of that particular opcode.
+///
+/// These abstractions allow us to implement instructions without worrying about addressing details.
+
 use cpu::Cpu6502;
 use memory::*;
 
