@@ -228,21 +228,21 @@ impl<Mem: Memory> Cpu6502<Mem> {
         let mut cycles = 0;
         match opcode {
             0xa1 => {
-                // LDA, Indirect,X
+                // LDA Indirect,X
                 let addr = self.indexed_indirect_addr(operand);
                 self.lda(addr);
             }
             0xa5 => {
-                // LDA, Zero Page
+                // LDA Zero Page
                 let addr = operand as u16;
                 self.lda(addr);
             }
             0xa9 => {
-                // LDA, Immediate
+                // LDA Immediate
                 self.lda(operand);
             }
             0xb1 => {
-                // LDA, Indirect,X
+                // LDA Indirect,X
                 let base_addr = operand;
                 let target_addr = self.indirect_indexed_addr(base_addr);
                 let page_crossed = page_crossed(base_addr as u16, target_addr);
@@ -252,23 +252,25 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 }
             }
             0xb5 => {
-                // LDA, Zero Page,X
+                // LDA Zero Page,X
                 let base_addr = operand;
                 let target_addr = self.zpx_addr(base_addr);
                 self.lda(target_addr);
             }
             0xa2 => {
+                // LDX Immediate
                 let val = operand;
                 self.ldx(val);
             }
             0xa6 => {
+                // LDX Zero Page
                 let addr = operand as u16;
-                let val = self.memory.load(addr);
-                self.ldx(val);
+                self.ldx(addr);
             }
             0xb6 => {
+                // LDX Zero Page,Y
                 let val = self.zpy_addr(operand);
-                self.ldx2(val);
+                self.ldx(val);
             }
             0xa0 => {
                 let val = operand;
@@ -593,12 +595,12 @@ impl<Mem: Memory> Cpu6502<Mem> {
         let mut cycles = 0;
         match opcode {
             0xad => {
-                // LDA, Absolute
+                // LDA Absolute
                 let target_addr = operand;
                 self.lda(target_addr);
             }
             0xb9 => {
-                // LDA, Absolute,Y
+                // LDA Absolute,Y
                 let y = self.registers.iry;
                 let (addr, _, page_crossed) = self.abs_indexed_addr(operand, y);
                 self.lda(addr);
@@ -607,7 +609,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 }
             }
             0xbd => {
-                // LDA, Absolute,X
+                // LDA Absolute,X
                 let x = self.registers.irx;
                 let (addr, _, page_crossed) = self.abs_indexed_addr(operand, x);
                 self.lda(addr);
@@ -615,13 +617,17 @@ impl<Mem: Memory> Cpu6502<Mem> {
                     cycles += 1;
                 }
             }
+
             0xae => {
+                // LDX Absolute
                 let val = self.memory.load(operand);
                 self.ldx(val);
             }
             0xbe => {
-                let (val, _, page_crossed) = self.get_absy(operand);
-                self.ldx(val);
+                // LDX Absolute,Y
+                let y = self.registers.iry;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, y);
+                self.ldx(addr);
                 if page_crossed {
                     cycles += 1;
                 }
@@ -1325,12 +1331,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
         self.registers.set_acc(val);
     }
 
-    fn ldx(&mut self, val: u8) {
-        self.registers.irx = val;
-        self.registers.set_sign_and_zero_flag(val);
-    }
-
-    fn ldx2<T: AddressReader<Mem>>(&mut self, val: T) {
+    fn ldx<T: AddressReader<Mem>>(&mut self, val: T) {
         let val = val.read(self);
         self.registers.irx = val;
         self.registers.set_sign_and_zero_flag(val);
