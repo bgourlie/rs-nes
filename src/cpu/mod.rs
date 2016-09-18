@@ -273,18 +273,19 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 self.ldx(val);
             }
             0xa0 => {
+                // LDY Immediate
                 let val = operand;
                 self.ldy(val);
             }
             0xa4 => {
+                // LDY Zero Page
                 let addr = operand as u16;
-                let val = self.memory.load(addr);
-                self.ldy(val);
+                self.ldy(addr);
             }
             0xb4 => {
+                // LDY Zero Page,X
                 let addr = self.zpx_addr(operand);
-                let val = self.memory.load(addr);
-                self.ldy(val);
+                self.ldy(addr);
             }
             0x85 => {
                 let addr = operand as u16;
@@ -633,12 +634,14 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 }
             }
             0xac => {
-                let val = self.memory.load(operand);
-                self.ldy(val);
+                // LDY Absolute
+                self.ldy(operand);
             }
             0xbc => {
-                let (val, _, page_crossed) = self.get_absx(operand);
-                self.ldy(val);
+                // LDY Absolute,X
+                let x = self.registers.irx;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, x);
+                self.ldy(addr);
                 if page_crossed {
                     cycles += 1;
                 }
@@ -1337,7 +1340,8 @@ impl<Mem: Memory> Cpu6502<Mem> {
         self.registers.set_sign_and_zero_flag(val);
     }
 
-    fn ldy(&mut self, val: u8) {
+    fn ldy<T: AddressReader<Mem>>(&mut self, val: T) {
+        let val = val.read(self);
         self.registers.iry = val;
         self.registers.set_sign_and_zero_flag(val);
     }
