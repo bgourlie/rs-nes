@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{self, Read, Write};
-use std::path::Path;
+use std::io::Read;
 
 use cpu::*;
 use memory::*;
@@ -21,7 +20,7 @@ fn functional_test() {
 
     loop {
         match cpu.step() {
-            Ok(instr) => {
+            Ok(_) => {
                 if cpu.registers.pc == 0x3399 {
                     // Success!
                     return;
@@ -34,7 +33,7 @@ fn functional_test() {
                 last_pc = cpu.registers.pc;
 
             }
-            Err(msg) => {
+            Err(_) => {
                 assert!(false);
             }
         }

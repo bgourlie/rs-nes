@@ -1,12 +1,6 @@
-use std::fs::File;
-use std::io::{self, Read, Write};
-use std::path::Path;
-
 use cpu::*;
 use memory::*;
 use constants::*;
-
-const PC_START: u16 = 0x400;
 
 /// ## Sign and zero flag tests
 ///

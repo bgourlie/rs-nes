@@ -175,6 +175,12 @@ impl<Mem: Memory> Cpu6502<Mem> {
         (self.memory.load(target_addr), target_addr, page_crossed)
     }
 
+    fn abs_indexed_addr(&self, base_addr: u16, index: u8) -> (u16, u16, bool) {
+        let target_addr = base_addr + index as u16;
+        let page_crossed = page_crossed(base_addr, target_addr);
+        (target_addr, target_addr, page_crossed)
+    }
+
     fn get_absx(&self, val: u16) -> (u8, u16, bool) {
         let x = self.registers.irx;
         self.abs_indexed_base(val, x)
@@ -218,41 +224,38 @@ impl<Mem: Memory> Cpu6502<Mem> {
         self.memory.load(target_addr)
     }
 
-    fn get_zpy(&self, base_addr: u8) -> u8 {
-        let target_addr = self.zpy_addr(base_addr);
-        self.memory.load(target_addr)
-    }
-
-    fn get_zpy2(&self, base_addr: u8) -> MemoryAddress {
-        self.zpy_addr(base_addr)
-    }
-
     fn do_op2(&mut self, opcode: u8, operand: u8) -> u8 {
         let mut cycles = 0;
         match opcode {
             0xa1 => {
-                let val = self.get_indx(operand);
-                self.lda(val);
+                // LDA, Indirect,X
+                let addr = self.indexed_indirect_addr(operand);
+                self.lda(addr);
             }
             0xa5 => {
+                // LDA, Zero Page
                 let addr = operand as u16;
-                let val = self.memory.load(addr);
-                self.lda(val);
+                self.lda(addr);
             }
             0xa9 => {
-                let val = operand;
-                self.lda(val);
+                // LDA, Immediate
+                self.lda(operand);
             }
             0xb1 => {
-                let (val, page_crossed) = self.get_indy(operand);
-                self.lda(val);
+                // LDA, Indirect,X
+                let base_addr = operand;
+                let target_addr = self.indirect_indexed_addr(base_addr);
+                let page_crossed = page_crossed(base_addr as u16, target_addr);
+                self.lda(target_addr);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xb5 => {
-                let val = self.get_zpx(operand);
-                self.lda(val);
+                // LDA, Zero Page,X
+                let base_addr = operand;
+                let target_addr = self.zpx_addr(base_addr);
+                self.lda(target_addr);
             }
             0xa2 => {
                 let val = operand;
@@ -264,7 +267,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 self.ldx(val);
             }
             0xb6 => {
-                let val = self.get_zpy2(operand);
+                let val = self.zpy_addr(operand);
                 self.ldx2(val);
             }
             0xa0 => {
@@ -590,19 +593,24 @@ impl<Mem: Memory> Cpu6502<Mem> {
         let mut cycles = 0;
         match opcode {
             0xad => {
-                let val = self.memory.load(operand);
-                self.lda(val);
+                // LDA, Absolute
+                let target_addr = operand;
+                self.lda(target_addr);
             }
             0xb9 => {
-                let (val, _, page_crossed) = self.get_absy(operand);
-                self.lda(val);
+                // LDA, Absolute,Y
+                let y = self.registers.iry;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, y);
+                self.lda(addr);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xbd => {
-                let (val, _, page_crossed) = self.get_absx(operand);
-                self.lda(val);
+                // LDA, Absolute,X
+                let x = self.registers.irx;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, x);
+                self.lda(addr);
                 if page_crossed {
                     cycles += 1;
                 }
@@ -837,14 +845,13 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0x6c => {
                 let addr = operand;
                 let lo_byte = self.memory.load(addr);
-                let hi_byte;
 
                 // recreate indirect jump bug in nmos 6502
-                if addr & 0x00ff == 0x00ff {
-                    hi_byte = self.memory.load(addr & 0xff00);
+                let hi_byte = if addr & 0x00ff == 0x00ff {
+                    self.memory.load(addr & 0xff00)
                 } else {
-                    hi_byte = self.memory.load(addr + 1);
-                }
+                    self.memory.load(addr + 1)
+                };
 
                 let addr = (hi_byte as u16) << 8 | lo_byte as u16;
                 self.jmp(addr);
@@ -1313,7 +1320,8 @@ impl<Mem: Memory> Cpu6502<Mem> {
 
     /// ## Load/Store Operations
 
-    fn lda(&mut self, val: u8) {
+    fn lda<T: AddressReader<Mem>>(&mut self, val: T) {
+        let val = val.read(self);
         self.registers.set_acc(val);
     }
 

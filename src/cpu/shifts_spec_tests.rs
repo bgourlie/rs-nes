@@ -32,7 +32,7 @@ fn shift_left_base_2<F>(do_shift: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    let (result, rotate) = do_shift(&mut cpu, VAL);
+    let (result, _) = do_shift(&mut cpu, VAL);
 
     assert_eq!(0b10000000, result);
 
@@ -49,7 +49,7 @@ fn shift_left_base_3<F>(do_shift: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    let (result, rotate) = do_shift(&mut cpu, VAL);
+    let (result, _) = do_shift(&mut cpu, VAL);
 
     assert_eq!(0b00000000, result);
 
@@ -91,7 +91,7 @@ fn shift_right_base_2<F>(do_shift: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    let (result, rotate) = do_shift(&mut cpu, VAL);
+    let (result, _) = do_shift(&mut cpu, VAL);
 
     assert_eq!(0b00100000, result);
 
@@ -109,7 +109,7 @@ fn shift_right_base_3<F>(do_shift: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    let (result, rotate) = do_shift(&mut cpu, VAL);
+    let (result, _) = do_shift(&mut cpu, VAL);
 
     assert_eq!(0b00000000, result);
 

@@ -33,12 +33,8 @@ fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    const PC_START: u16 = 0xaa88;
-    const REL_ADDR: i8 = 0xffff;
-
-    // decimal values sanity check
-    assert_eq!(43656, PC_START);
-    assert_eq!(-1, REL_ADDR);
+    const PC_START: u16 = 43656;
+    const REL_ADDR: i8 = -1;
 
     cpu.registers.pc = PC_START;
 
@@ -81,12 +77,8 @@ fn branch_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
 
-    const PC_START: u16 = 0xaa00;
-    const REL_ADDR: i8 = 0x80;
-
-    // decimal values sanity check
-    assert_eq!(43520, PC_START);
-    assert_eq!(-128, REL_ADDR);
+    const PC_START: u16 = 43520;
+    const REL_ADDR: i8 = -128;
 
     cpu.registers.pc = PC_START;
 

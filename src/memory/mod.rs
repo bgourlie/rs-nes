@@ -33,9 +33,15 @@ impl SimpleMemory {
     }
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
-        for i in 0..data.len() {
-            self.store(addr + i as u16, data[i]);
+        for (i, byte) in data.iter().enumerate() {
+            self.store(addr + i as u16, *byte);
         }
+    }
+}
+
+impl Default for SimpleMemory {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

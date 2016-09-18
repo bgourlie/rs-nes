@@ -9,6 +9,7 @@ pub trait AddressWriter<M: Memory>: AddressReader<M> {
     fn write(&self, cpu: &mut Cpu6502<M>, val: u8);
 }
 
+#[allow(dead_code)]
 pub struct Accumulator;
 
 impl<M: Memory> AddressReader<M> for Accumulator {
@@ -26,7 +27,7 @@ impl<M: Memory> AddressWriter<M> for Accumulator {
 pub type Immediate = u8;
 
 impl<M: Memory> AddressReader<M> for Immediate {
-    fn read(&self, cpu: &Cpu6502<M>) -> u8 {
+    fn read(&self, _: &Cpu6502<M>) -> u8 {
         *self
     }
 }
