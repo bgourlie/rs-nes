@@ -179,7 +179,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0x00 => {
                 // The BRK instruction is actually encoded as 2 bytes, one for the
                 // instruction, and an additional padding byte.  We increment the
-                // program counter to accommodate this, which *must* be done before
+                // program counter to accommodate this, which must be done *before*
                 // invoking the brk instruction since it pushes the program counter
                 // to the stack.
                 self.registers.pc += 1;
@@ -207,25 +207,23 @@ impl<Mem: Memory> Cpu6502<Mem> {
             // ## Two Byte Instructions
             0xa1 => {
                 // LDA Indirect,X
-                let operand = self.read_op();
-                let addr = self.indexed_indirect_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.indexed_indirect_addr(base_addr);
                 self.lda(addr);
             }
             0xa5 => {
                 // LDA Zero Page
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.lda(addr);
             }
             0xa9 => {
                 // LDA Immediate
-                let operand = self.read_op();
-                self.lda(operand);
+                let val = self.read_op();
+                self.lda(val);
             }
             0xb1 => {
                 // LDA Indirect,X
-                let operand = self.read_op();
-                let base_addr = operand;
+                let base_addr = self.read_op();
                 let target_addr = self.indirect_indexed_addr(base_addr);
                 let page_crossed = page_crossed(base_addr as u16, target_addr);
                 self.lda(target_addr);
@@ -235,106 +233,96 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xb5 => {
                 // LDA Zero Page,X
-                let operand = self.read_op();
-                let base_addr = operand;
+                let base_addr = self.read_op();
                 let target_addr = self.zpx_addr(base_addr);
                 self.lda(target_addr);
             }
             0xa2 => {
                 // LDX Immediate
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.ldx(val);
             }
             0xa6 => {
                 // LDX Zero Page
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.ldx(addr);
             }
             0xb6 => {
                 // LDX Zero Page,Y
-                let operand = self.read_op();
-                let val = self.zpy_addr(operand);
+                let base_addr = self.read_op();
+                let val = self.zpy_addr(base_addr);
                 self.ldx(val);
             }
             0xa0 => {
                 // LDY Immediate
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.ldy(val);
             }
             0xa4 => {
                 // LDY Zero Page
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.ldy(addr);
             }
             0xb4 => {
                 // LDY Zero Page,X
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 self.ldy(addr);
             }
             0x85 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.sta(addr);
             }
             0x95 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);;
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 self.sta(addr);
             }
             0x81 => {
-                let operand = self.read_op();
-                let target_addr = self.indexed_indirect_addr(operand);
-                self.sta(target_addr);
+                let base_addr = self.read_op();
+                let addr = self.indexed_indirect_addr(base_addr);
+                self.sta(addr);
             }
             0x91 => {
-                let operand = self.read_op();
-                let target_addr = self.indirect_indexed_addr(operand);
-                self.sta(target_addr);
+                let base_addr = self.read_op();
+                let addr = self.indirect_indexed_addr(base_addr);
+                self.sta(addr);
             }
             0x86 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.stx(addr);
             }
             0x96 => {
-                let operand = self.read_op();
-                let addr = self.zpy_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpy_addr(base_addr);
                 self.stx(addr);
             }
             0x84 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.sty(addr);
             }
             0x94 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 self.sty(addr);
             }
             0x69 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.adc(val);
             }
             0x65 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.adc(val);
             }
             0x75 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.adc(val);
             }
             0x61 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.adc(val);
             }
             0x71 => {
@@ -346,52 +334,49 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 }
             }
             0xe9 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.sbc(val);
             }
             0xe5 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.sbc(val);
             }
             0xf5 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.sbc(val);
             }
             0xe1 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.sbc(val);
             }
             0xf1 => {
-                let operand = self.read_op();
-                let (val, page_crossed) = self.get_indy(operand);
+                let base_addr = self.read_op();
+                let (val, page_crossed) = self.get_indy(base_addr);
                 self.sbc(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xc9 => {
-                let operand = self.read_op();
-                self.cmp(operand);
+                let val = self.read_op();
+                self.cmp(val);
             }
             0xc5 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.cmp(val);
             }
             0xd5 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.cmp(val);
             }
             0xc1 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.cmp(val);
             }
             0xd1 => {
@@ -403,131 +388,119 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 }
             }
             0xe0 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.cpx(val);
             }
             0xe4 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.cpx(val);
             }
             0xc0 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.cpy(val);
             }
             0xc4 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.cpy(val);
             }
             0x29 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.and(val);
             }
             0x25 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.and(val);
             }
             0x35 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.and(val);
             }
             0x21 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.and(val);
             }
             0x31 => {
-                let operand = self.read_op();
-                let (val, page_crossed) = self.get_indy(operand);
+                let base_addr = self.read_op();
+                let (val, page_crossed) = self.get_indy(base_addr);
                 self.and(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x09 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.ora(val);
             }
             0x05 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.ora(val);
             }
             0x15 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.ora(val);
             }
             0x01 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.ora(val);
             }
             0x11 => {
-                let operand = self.read_op();
-                let (val, page_crossed) = self.get_indy(operand);
+                let base_addr = self.read_op();
+                let (val, page_crossed) = self.get_indy(base_addr);
                 self.ora(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x49 => {
-                let operand = self.read_op();
-                let val = operand;
+                let val = self.read_op();
                 self.eor(val);
             }
             0x45 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.eor(val);
             }
             0x55 => {
-                let operand = self.read_op();
-                let val = self.get_zpx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_zpx(base_addr);
                 self.eor(val);
             }
             0x41 => {
-                let operand = self.read_op();
-                let val = self.get_indx(operand);
+                let base_addr = self.read_op();
+                let val = self.get_indx(base_addr);
                 self.eor(val);
             }
             0x51 => {
-                let operand = self.read_op();
-                let (val, page_crossed) = self.get_indy(operand);
+                let base_addr = self.read_op();
+                let (val, page_crossed) = self.get_indy(base_addr);
                 self.eor(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x24 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 self.bit(val);
             }
             // rol
             0x26 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 let val = self.rol(val);
                 self.memory.store(addr, val);
             }
             0x36 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 let val = self.memory.load(addr);
                 let val = self.rol(val);
                 self.memory.store(addr, val);
@@ -535,36 +508,33 @@ impl<Mem: Memory> Cpu6502<Mem> {
 
             // ror
             0x66 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 let val = self.ror(val);
                 self.memory.store(addr, val);
             }
             0x76 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 let val = self.memory.load(addr);
                 let val = self.ror(val);
                 self.memory.store(addr, val);
             }
             0x06 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 let val = self.asl(val);
                 self.memory.store(addr, val);
             }
             0x16 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 let val = self.memory.load(addr);
                 let val = self.asl(val);
                 self.memory.store(addr, val);
             }
             0x46 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 let val = self.memory.load(addr);
                 let val = self.lsr(val);
                 self.memory.store(addr, val);
@@ -577,77 +547,66 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 self.memory.store(addr, val);
             }
             0xe6 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.inc(addr);
             }
             0xf6 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 self.inc(addr);
             }
             0xc6 => {
-                let operand = self.read_op();
-                let addr = operand as u16;
+                let addr = self.read_op() as u16;
                 self.dec(addr);
             }
             0xd6 => {
-                let operand = self.read_op();
-                let addr = self.zpx_addr(operand);
+                let base_addr = self.read_op();
+                let addr = self.zpx_addr(base_addr);
                 self.dec(addr);
             }
             0x10 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bpl(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bpl(addr);
             }
             0x30 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bmi(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bmi(addr);
             }
             0x50 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bvc(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bvc(addr);
             }
             0x70 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bvs(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bvs(addr);
             }
             0x90 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bcc(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bcc(addr);
             }
             0xb0 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bcs(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bcs(addr);
             }
             0xd0 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.bne(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.bne(addr);
             }
             0xf0 => {
-                let operand = self.read_op();
-                let rel_addr = operand as i8;
-                cycles += self.beq(rel_addr);
+                let addr = self.read_op() as i8;
+                cycles += self.beq(addr);
             }
             // ## Three byte instructions
             0xad => {
                 // LDA Absolute
-                let operand = self.read_op16();
-                let target_addr = operand;
+                let target_addr = self.read_op16();
                 self.lda(target_addr);
             }
             0xb9 => {
                 // LDA Absolute,Y
-                let operand = self.read_op16();
+                let base_addr = self.read_op16();
                 let y = self.registers.iry;
-                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, y);
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, y);
                 self.lda(addr);
                 if page_crossed {
                     cycles += 1;
@@ -655,9 +614,9 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xbd => {
                 // LDA Absolute,X
-                let operand = self.read_op16();
+                let base_addr = self.read_op16();
                 let x = self.registers.irx;
-                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, x);
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, x);
                 self.lda(addr);
                 if page_crossed {
                     cycles += 1;
@@ -666,15 +625,15 @@ impl<Mem: Memory> Cpu6502<Mem> {
 
             0xae => {
                 // LDX Absolute
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.ldx(val);
             }
             0xbe => {
                 // LDX Absolute,Y
-                let operand = self.read_op16();
+                let base_addr = self.read_op16();
                 let y = self.registers.iry;
-                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, y);
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, y);
                 self.ldx(addr);
                 if page_crossed {
                     cycles += 1;
@@ -682,266 +641,250 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xac => {
                 // LDY Absolute
-                let operand = self.read_op16();
-                self.ldy(operand);
+                let addr = self.read_op16();
+                self.ldy(addr);
             }
             0xbc => {
                 // LDY Absolute,X
-                let operand = self.read_op16();
+                let base_addr = self.read_op16();
                 let x = self.registers.irx;
-                let (addr, _, page_crossed) = self.abs_indexed_addr(operand, x);
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, x);
                 self.ldy(addr);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x8d => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.sta(addr);
             }
             0x9d => {
-                let operand = self.read_op16();
-                let addr = operand + self.registers.irx as u16;
+                let addr = self.read_op16() + self.registers.irx as u16;
                 self.sta(addr);
             }
             0x99 => {
-                let operand = self.read_op16();
-                let addr = operand + self.registers.iry as u16;
+                let addr = self.read_op16() + self.registers.iry as u16;
                 self.sta(addr);
             }
             0x8e => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.stx(addr);
             }
             0x8c => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.sty(addr);
             }
             0x6d => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.adc(val);
             }
             0x7d => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.adc(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x79 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.adc(val);
                 if page_crossed {
                     cycles += 1
                 }
             }
             0xed => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.sbc(val);
             }
             0xfd => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.sbc(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xf9 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.sbc(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xcd => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.cmp(val);
             }
             0xdd => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.cmp(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0xd9 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.cmp(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x2d => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.and(val);
             }
             0xec => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.cpx(val);
             }
             0xcc => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.cpy(val);
             }
             0x3d => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.and(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x39 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.and(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x0d => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.ora(val);
             }
             0x1d => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.ora(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x19 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.ora(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x4d => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.eor(val);
             }
             0x5d => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absx(addr);
                 self.eor(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x59 => {
-                let operand = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(operand);
+                let addr = self.read_op16();
+                let (val, _, page_crossed) = self.get_absy(addr);
                 self.eor(val);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x2c => {
-                let operand = self.read_op16();
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 self.bit(val);
             }
             0x2e => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 let val = self.memory.load(addr);
                 let val = self.rol(val);
                 self.memory.store(addr, val);
             }
             0x3e => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 let (val, addr, _) = self.get_absx(addr);
                 let val = self.rol(val);
                 self.memory.store(addr, val);
             }
             0x6e => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 let val = self.memory.load(addr);
                 let val = self.ror(val);
                 self.memory.store(addr, val);
             }
             0x7e => {
-                let operand = self.read_op16();
-                let (val, addr, _) = self.get_absx(operand);
+                let base_addr = self.read_op16();
+                let (val, addr, _) = self.get_absx(base_addr);
                 let val = self.ror(val);
                 self.memory.store(addr, val);
             }
             0x0e => {
-                let operand = self.read_op16();
-                let addr = operand;
-                let val = self.memory.load(operand);
+                let addr = self.read_op16();
+                let val = self.memory.load(addr);
                 let val = self.asl(val);
                 self.memory.store(addr, val);
             }
             0x1e => {
-                let operand = self.read_op16();
-                let (val, addr, _) = self.get_absx(operand);
+                let base_addr = self.read_op16();
+                let (val, addr, _) = self.get_absx(base_addr);
                 let val = self.asl(val);
                 self.memory.store(addr, val);
             }
             0x4e => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 let val = self.memory.load(addr);
                 let val = self.lsr(val);
                 self.memory.store(addr, val);
             }
             0x5e => {
-                let operand = self.read_op16();
-                let (val, addr, _) = self.get_absx(operand);
+                let base_addr = self.read_op16();
+                let (val, addr, _) = self.get_absx(base_addr);
                 let val = self.lsr(val);
                 self.memory.store(addr, val);
             }
             0xee => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.inc(addr);
             }
             0xfe => {
-                let operand = self.read_op16();
-                let addr = operand + self.registers.irx as u16;
+                let addr = self.read_op16() + self.registers.irx as u16;
                 self.inc(addr);
             }
             0xce => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.dec(addr);
             }
             0xde => {
-                let operand = self.read_op16();
-                let addr = operand + self.registers.irx as u16;
+                let addr = self.read_op16() + self.registers.irx as u16;
                 self.dec(addr);
             }
             0x4c => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.jmp(addr);
             }
             0x6c => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 let lo_byte = self.memory.load(addr);
 
                 // recreate indirect jump bug in nmos 6502
@@ -955,8 +898,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
                 self.jmp(addr);
             }
             0x20 => {
-                let operand = self.read_op16();
-                let addr = operand;
+                let addr = self.read_op16();
                 self.jsr(addr);
             }
             _ => {
