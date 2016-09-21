@@ -465,23 +465,23 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x45 => {
                 let addr = self.read_op() as u16;
-                let val = self.memory.load(addr);
-                self.eor(val);
+                self.eor(addr);
             }
             0x55 => {
                 let base_addr = self.read_op();
-                let val = self.get_zpx(base_addr);
-                self.eor(val);
+                let addr = self.zpx_addr(base_addr);
+                self.eor(addr);
             }
             0x41 => {
                 let base_addr = self.read_op();
-                let val = self.get_indx(base_addr);
-                self.eor(val);
+                let addr = self.indexed_indirect_addr(base_addr);
+                self.eor(addr);
             }
             0x51 => {
                 let base_addr = self.read_op();
-                let (val, page_crossed) = self.get_indy(base_addr);
-                self.eor(val);
+                let addr = self.indirect_indexed_addr(base_addr);
+                let page_crossed = page_crossed(base_addr as u16, addr);
+                self.eor(addr);
                 if page_crossed {
                     cycles += 1;
                 }
@@ -793,21 +793,22 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x4d => {
                 let addr = self.read_op16();
-                let val = self.memory.load(addr);
-                self.eor(val);
+                self.eor(addr);
             }
             0x5d => {
-                let addr = self.read_op16();
-                let (val, _, page_crossed) = self.get_absx(addr);
-                self.eor(val);
+                let base_addr = self.read_op16();
+                let x = self.registers.irx;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, x);
+                self.eor(addr);
                 if page_crossed {
                     cycles += 1;
                 }
             }
             0x59 => {
-                let addr = self.read_op16();
-                let (val, _, page_crossed) = self.get_absy(addr);
-                self.eor(val);
+                let base_addr = self.read_op16();
+                let y = self.registers.iry;
+                let (addr, _, page_crossed) = self.abs_indexed_addr(base_addr, y);
+                self.eor(addr);
                 if page_crossed {
                     cycles += 1;
                 }
@@ -1367,7 +1368,8 @@ impl<Mem: Memory> Cpu6502<Mem> {
         self.registers.set_acc(res);
     }
 
-    fn eor(&mut self, rop: u8) {
+    fn eor<T: AddressReader<Mem>>(&mut self, val: T) {
+        let rop = val.read(self);
         let lop = self.registers.acc;
         let res = lop ^ rop;
         self.registers.set_acc(res);
