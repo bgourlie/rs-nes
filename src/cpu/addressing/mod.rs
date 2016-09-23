@@ -13,7 +13,7 @@ pub trait AddressReader<M: Memory> {
     fn read(&self, cpu: &Cpu6502<M>) -> u8;
 }
 
-pub trait AddressWriter<M: Memory> {
+pub trait AddressWriter<M: Memory> : AddressReader<M> {
     fn write(&self, cpu: &mut Cpu6502<M>, val: u8);
 }
 

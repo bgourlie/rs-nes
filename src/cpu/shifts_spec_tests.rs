@@ -1,4 +1,5 @@
 use cpu::*;
+use cpu::addressing::Accumulator;
 use memory::*;
 use constants::*;
 
@@ -118,62 +119,86 @@ fn shift_right_base_3<F>(do_shift: F)
     assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
 }
 
+fn asl(cpu: &mut Cpu6502<SimpleMemory>, val: u8) -> (u8, bool) {
+    cpu.registers.acc = val;
+    cpu.asl(Accumulator);
+    (cpu.registers.acc, false)
+}
+
+fn rol(cpu: &mut Cpu6502<SimpleMemory>, val: u8) -> (u8, bool) {
+    cpu.registers.acc = val;
+    cpu.rol(Accumulator);
+    (cpu.registers.acc, true)
+}
+
+fn lsr(cpu: &mut Cpu6502<SimpleMemory>, val: u8) -> (u8, bool) {
+    cpu.registers.acc = val;
+    cpu.lsr(Accumulator);
+    (cpu.registers.acc, false)
+}
+
+fn ror(cpu: &mut Cpu6502<SimpleMemory>, val: u8) -> (u8, bool) {
+    cpu.registers.acc = val;
+    cpu.ror(Accumulator);
+    (cpu.registers.acc, true)
+}
+
 #[test]
 fn asl_1() {
-    shift_left_base_1(|ref mut cpu, val| (cpu.asl(val), false));
+    shift_left_base_1(asl);
 }
 
 #[test]
 fn asl_2() {
-    shift_left_base_2(|ref mut cpu, val| (cpu.asl(val), false));
+    shift_left_base_2(asl);
 }
 
 #[test]
 fn asl_3() {
-    shift_left_base_3(|ref mut cpu, val| (cpu.asl(val), false));
+    shift_left_base_3(asl);
 }
 
 #[test]
 fn rol_1() {
-    shift_left_base_1(|ref mut cpu, val| (cpu.rol(val), true));
+    shift_left_base_1(rol);
 }
 
 #[test]
 fn rol_2() {
-    shift_left_base_2(|ref mut cpu, val| (cpu.rol(val), true));
+    shift_left_base_2(rol);
 }
 
 #[test]
 fn rol_3() {
-    shift_left_base_3(|ref mut cpu, val| (cpu.rol(val), true));
+    shift_left_base_3(rol);
 }
 
 #[test]
 fn lsr_1() {
-    shift_right_base_1(|ref mut cpu, val| (cpu.lsr(val), false));
+    shift_right_base_1(lsr);
 }
 
 #[test]
 fn lsr_2() {
-    shift_right_base_2(|ref mut cpu, val| (cpu.lsr(val), false));
+    shift_right_base_2(lsr);
 }
 
 #[test]
 fn lsr_3() {
-    shift_right_base_3(|ref mut cpu, val| (cpu.lsr(val), false));
+    shift_right_base_3(lsr);
 }
 
 #[test]
 fn ror_1() {
-    shift_right_base_1(|ref mut cpu, val| (cpu.ror(val), true));
+    shift_right_base_1(ror);
 }
 
 #[test]
 fn ror_2() {
-    shift_right_base_2(|ref mut cpu, val| (cpu.ror(val), true));
+    shift_right_base_2(ror);
 }
 
 #[test]
 fn ror_3() {
-    shift_right_base_3(|ref mut cpu, val| (cpu.ror(val), true));
+    shift_right_base_3(ror);
 }
