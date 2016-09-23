@@ -1056,7 +1056,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
         self.registers.set_acc(res);
     }
 
-    fn adc<T: AddressReader<Mem>>(&mut self, val: T){
+    fn adc<T: AddressReader<Mem>>(&mut self, val: T) {
         let rop = val.read(self);
         self.adc_base(rop);
     }
