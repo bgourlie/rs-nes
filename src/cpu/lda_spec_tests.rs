@@ -6,7 +6,7 @@ use constants::*;
 fn lda_value_set() {
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
-    cpu.lda(0xff);
+    cpu.lda(0xff_u8);
     assert_eq!(0xff, cpu.registers.acc);
 }
 
@@ -14,7 +14,7 @@ fn lda_value_set() {
 fn lda_flags_sign_and_zero_1() {
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
-    cpu.lda(0x0);
+    cpu.lda(0x0_u8);
     assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
     assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
 }
@@ -23,7 +23,7 @@ fn lda_flags_sign_and_zero_1() {
 fn lda_flags_sign_and_zero_2() {
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
-    cpu.lda(0x1);
+    cpu.lda(0x1_u8);
     assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
     assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
 }
@@ -32,7 +32,7 @@ fn lda_flags_sign_and_zero_2() {
 fn lda_flags_sign_and_zero_3() {
     let mem = SimpleMemory::new();
     let mut cpu = Cpu6502::new(mem);
-    cpu.lda(0x80);
+    cpu.lda(0x80_u8);
     assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
     assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
 }

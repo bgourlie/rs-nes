@@ -50,6 +50,12 @@ impl Registers {
     }
 }
 
+impl Default for Registers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ToString for Registers {
     fn to_string(&self) -> String {
         let c = if self.stat & 0x1 > 0 { 1 } else { 0 };

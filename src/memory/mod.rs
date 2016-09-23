@@ -18,8 +18,6 @@ pub trait Memory {
     fn load16(&self, addr: u16) -> u16 {
         self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
     }
-    fn inc(&mut self, u16) -> u8;
-    fn dec(&mut self, u16) -> u8;
     fn dump(&self, file: &'static str);
 }
 
@@ -33,9 +31,15 @@ impl SimpleMemory {
     }
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
-        for i in 0..data.len() {
-            self.store(addr + i as u16, data[i]);
+        for (i, byte) in data.iter().enumerate() {
+            self.store(addr + i as u16, *byte);
         }
+    }
+}
+
+impl Default for SimpleMemory {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -47,18 +51,6 @@ impl Memory for SimpleMemory {
 
     fn load(&self, addr: u16) -> u8 {
         let addr = addr as usize;
-        self.addr[addr]
-    }
-
-    fn inc(&mut self, addr: u16) -> u8 {
-        let addr = addr as usize;
-        self.addr[addr] = (self.addr[addr] as u16 + 1) as u8;
-        self.addr[addr]
-    }
-
-    fn dec(&mut self, addr: u16) -> u8 {
-        let addr = addr as usize;
-        self.addr[addr] = (self.addr[addr] as i16 - 1) as u8;
         self.addr[addr]
     }
 
