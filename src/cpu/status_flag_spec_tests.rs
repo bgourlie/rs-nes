@@ -7,7 +7,7 @@ use constants::*;
 #[test]
 fn clc() {
     let mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(mem);
+    let mut cpu = Cpu::new(mem);
     cpu.registers.set_flag(FL_CARRY, true);
     cpu.clc();
     assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
@@ -16,7 +16,7 @@ fn clc() {
 #[test]
 fn cli() {
     let mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(mem);
+    let mut cpu = Cpu::new(mem);
     cpu.registers.set_flag(FL_INTERRUPT_DISABLE, true);
     cpu.cli();
     assert_eq!(false, cpu.registers.get_flag(FL_INTERRUPT_DISABLE));
@@ -25,7 +25,7 @@ fn cli() {
 #[test]
 fn clv() {
     let mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(mem);
+    let mut cpu = Cpu::new(mem);
     cpu.registers.set_flag(FL_OVERFLOW, true);
     cpu.clv();
     assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
@@ -34,7 +34,7 @@ fn clv() {
 #[test]
 fn sec() {
     let mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(mem);
+    let mut cpu = Cpu::new(mem);
     cpu.registers.set_flag(FL_CARRY, false);
     cpu.sec();
     assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
@@ -43,7 +43,7 @@ fn sec() {
 #[test]
 fn sei() {
     let mem = SimpleMemory::new();
-    let mut cpu = Cpu6502::new(mem);
+    let mut cpu = Cpu::new(mem);
     cpu.registers.set_flag(FL_INTERRUPT_DISABLE, false);
     cpu.sei();
     assert_eq!(true, cpu.registers.get_flag(FL_INTERRUPT_DISABLE));
