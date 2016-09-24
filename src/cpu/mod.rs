@@ -581,7 +581,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0xb9 => {
                 // LDA Absolute,Y
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.lda(addr);
                 if page_crossed {
                     cycles += 1;
@@ -590,7 +590,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0xbd => {
                 // LDA Absolute,X
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.lda(addr);
                 if page_crossed {
                     cycles += 1;
@@ -606,7 +606,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0xbe => {
                 // LDX Absolute,Y
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.ldx(addr);
                 if page_crossed {
                     cycles += 1;
@@ -620,7 +620,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             0xbc => {
                 // LDY Absolute,X
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.ldy(addr);
                 if page_crossed {
                     cycles += 1;
@@ -652,7 +652,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x7d => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.adc(addr);
                 if page_crossed {
                     cycles += 1;
@@ -660,7 +660,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x79 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.adc(addr);
                 if page_crossed {
                     cycles += 1
@@ -672,7 +672,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xfd => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.sbc(addr);
                 if page_crossed {
                     cycles += 1;
@@ -680,7 +680,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xf9 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.sbc(addr);
                 if page_crossed {
                     cycles += 1;
@@ -692,7 +692,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xdd => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.cmp(addr);
                 if page_crossed {
                     cycles += 1;
@@ -700,7 +700,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0xd9 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.cmp(addr);
                 if page_crossed {
                     cycles += 1;
@@ -721,7 +721,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x3d => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.and(addr);
                 if page_crossed {
                     cycles += 1;
@@ -729,7 +729,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x39 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.and(addr);
                 if page_crossed {
                     cycles += 1;
@@ -741,7 +741,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x1d => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.ora(addr);
                 if page_crossed {
                     cycles += 1;
@@ -749,7 +749,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x19 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.ora(addr);
                 if page_crossed {
                     cycles += 1;
@@ -761,7 +761,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x5d => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absx_addr(base_addr);
+                let (addr, page_crossed) = self.absx_addr(base_addr);
                 self.eor(addr);
                 if page_crossed {
                     cycles += 1;
@@ -769,7 +769,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x59 => {
                 let base_addr = self.read_op16();
-                let (addr, _, page_crossed) = self.absy_addr(base_addr);
+                let (addr, page_crossed) = self.absy_addr(base_addr);
                 self.eor(addr);
                 if page_crossed {
                     cycles += 1;
@@ -786,7 +786,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x3e => {
                 let base_addr = self.read_op16();
-                let (addr, _, _) = self.absx_addr(base_addr);
+                let (addr, _) = self.absx_addr(base_addr);
                 self.rol(addr);
             }
             0x6e => {
@@ -795,7 +795,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x7e => {
                 let base_addr = self.read_op16();
-                let (addr, _, _) = self.absx_addr(base_addr);
+                let (addr, _) = self.absx_addr(base_addr);
                 self.ror(addr);
             }
             0x0e => {
@@ -804,7 +804,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x1e => {
                 let base_addr = self.read_op16();
-                let (addr, _, _) = self.absx_addr(base_addr);
+                let (addr, _) = self.absx_addr(base_addr);
                 self.asl(addr);
             }
             0x4e => {
@@ -813,7 +813,7 @@ impl<Mem: Memory> Cpu6502<Mem> {
             }
             0x5e => {
                 let base_addr = self.read_op16();
-                let (addr, _, _) = self.absx_addr(base_addr);
+                let (addr, _) = self.absx_addr(base_addr);
                 self.lsr(addr);
             }
             0xee => {
@@ -876,18 +876,18 @@ impl<Mem: Memory> Cpu6502<Mem> {
         operand
     }
 
-    fn abs_indexed_addr(&self, base_addr: u16, index: u8) -> (u16, u16, bool) {
+    fn abs_indexed_addr(&self, base_addr: u16, index: u8) -> (u16, bool) {
         let target_addr = base_addr + index as u16;
         let page_crossed = page_crossed(base_addr, target_addr);
-        (target_addr, target_addr, page_crossed)
+        (target_addr, page_crossed)
     }
 
-    fn absx_addr(&self, val: u16) -> (u16, u16, bool) {
+    fn absx_addr(&self, val: u16) -> (u16, bool) {
         let x = self.registers.irx;
         self.abs_indexed_addr(val, x)
     }
 
-    fn absy_addr(&self, val: u16) -> (u16, u16, bool) {
+    fn absy_addr(&self, val: u16) -> (u16, bool) {
         let y = self.registers.iry;
         self.abs_indexed_addr(val, y)
     }
