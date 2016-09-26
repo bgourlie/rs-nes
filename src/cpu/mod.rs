@@ -631,11 +631,13 @@ impl<Mem: Memory> Cpu<Mem> {
                 self.sta(addr);
             }
             0x9d => {
-                let addr = self.read_op16() + self.registers.irx as u16;
+                let base_addr = self.read_op16();
+                let (addr, _) = self.absx_addr(base_addr);
                 self.sta(addr);
             }
             0x99 => {
-                let addr = self.read_op16() + self.registers.iry as u16;
+                let base_addr = self.read_op16();
+                let (addr, _) = self.absy_addr(base_addr);
                 self.sta(addr);
             }
             0x8e => {
@@ -821,7 +823,8 @@ impl<Mem: Memory> Cpu<Mem> {
                 self.inc(addr);
             }
             0xfe => {
-                let addr = self.read_op16() + self.registers.irx as u16;
+                let base_addr = self.read_op16();
+                let (addr, _) = self.absx_addr(base_addr);
                 self.inc(addr);
             }
             0xce => {
@@ -829,7 +832,8 @@ impl<Mem: Memory> Cpu<Mem> {
                 self.dec(addr);
             }
             0xde => {
-                let addr = self.read_op16() + self.registers.irx as u16;
+                let base_addr = self.read_op16();
+                let (addr, _) = self.absx_addr(base_addr);
                 self.dec(addr);
             }
             0x4c => {
