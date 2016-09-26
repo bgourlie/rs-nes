@@ -480,8 +480,7 @@ impl<Mem: Memory> Cpu<Mem> {
             }
             0x24 => {
                 let addr = self.read_op() as u16;
-                let val = self.memory.load(addr);
-                self.bit(val);
+                self.bit(addr);
             }
             // rol
             0x26 => {
@@ -779,8 +778,7 @@ impl<Mem: Memory> Cpu<Mem> {
             }
             0x2c => {
                 let addr = self.read_op16();
-                let val = self.memory.load(addr);
-                self.bit(val);
+                self.bit(addr);
             }
             0x2e => {
                 let addr = self.read_op16();
@@ -1337,7 +1335,8 @@ impl<Mem: Memory> Cpu<Mem> {
         self.registers.set_acc(res);
     }
 
-    fn bit(&mut self, rop: u8) {
+    fn bit<T: AddressReader<Mem>>(&mut self, addr: T) {
+        let rop = addr.read(self);
         let lop = self.registers.acc;
         let res = lop & rop;
 
