@@ -838,17 +838,7 @@ impl<Mem: Memory> Cpu<Mem> {
             }
             0x6c => {
                 let addr = self.read_op16();
-                let lo_byte = self.memory.load(addr);
-
-                // recreate indirect jump bug in nmos 6502
-                let hi_byte = if addr & 0x00ff == 0x00ff {
-                    self.memory.load(addr & 0xff00)
-                } else {
-                    self.memory.load(addr + 1)
-                };
-
-                let addr = (hi_byte as u16) << 8 | lo_byte as u16;
-                self.jmp(addr);
+                self.indirect_jmp(addr);
             }
             0x20 => {
                 let addr = self.read_op16();
@@ -1173,6 +1163,21 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn jmp(&mut self, loc: u16) {
         self.registers.pc = loc;
+    }
+
+    fn indirect_jmp(&mut self, addr: u16) {
+        // Recreate hardware bug specific to indirect jmp
+        let lo_byte = self.memory.load(addr);
+
+        // recreate indirect jump bug in nmos 6502
+        let hi_byte = if addr & 0x00ff == 0x00ff {
+            self.memory.load(addr & 0xff00)
+        } else {
+            self.memory.load(addr + 1)
+        };
+
+        let addr = (hi_byte as u16) << 8 | lo_byte as u16;
+        self.jmp(addr);
     }
 
     fn jsr(&mut self, loc: u16) {
