@@ -56,14 +56,12 @@ impl<M: Memory> HttpDebugger<M> {
 
     fn start_websocket_thread(&mut self) -> Result<(), String> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
-        println!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let (debugger_tx, client_rx) = sync_channel::<DebuggerCommand>(0);
         self.ws_sender = Some(debugger_tx);
         let mut ws_server = try!(WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string()));
         info!("Waiting for debugger to attach");
-        println!("Waiting for debugger to attach");
         let connection = ws_server.accept();
-        println!("Debugger attached!");
+        info!("Debugger attached!");
         thread::spawn(move || {
             let request = connection.unwrap().read_request().unwrap();
             request.validate().unwrap();
@@ -86,7 +84,7 @@ impl<M: Memory> HttpDebugger<M> {
                 }
             }
 
-            println!("Websocket thread is terminating!")
+            info!("Websocket thread is terminating!")
         });
 
         Ok(())
@@ -94,7 +92,6 @@ impl<M: Memory> HttpDebugger<M> {
 
     fn start_http_server_thread(&self) -> Result<(), String> {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
-        println!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
         let snapshot = self.snapshot.clone();
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
@@ -141,7 +138,7 @@ impl<M: Memory> Debugger<M> for HttpDebugger<M> {
                     snapshot.cycles = cycles;
                     sender.send(DebuggerCommand::Break).unwrap();
                 }
-                println!("Breaking!  CPU thread paused.");
+                info!("Breaking!  CPU thread paused.");
                 thread::park();
             }
         }

@@ -1,3 +1,6 @@
+#[macro_use] extern crate log;
+extern crate env_logger;
+
 extern crate rs_nes;
 
 use std::fs::File;
@@ -13,6 +16,7 @@ const PC_START: u16 = 0x400;
 const EXPECTED_CYCLES: u64 = 80869309;
 
 fn main() {
+    env_logger::init().unwrap();
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
     let bytes_read = f.read_to_end(&mut rom).unwrap();
