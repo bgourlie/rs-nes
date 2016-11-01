@@ -1355,7 +1355,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.registers.set_acc(res);
     }
 
-    fn bit<T: AddressReader<Mem>>(&mut self, addr: T) {
+    fn bit<T: AddressReader<Mem, D>>(&mut self, addr: T) {
         let rop = addr.read(self);
         let lop = self.registers.acc;
         let res = lop & rop;
