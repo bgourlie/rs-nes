@@ -1,14 +1,12 @@
 use cpu::*;
-use memory::*;
 use constants::*;
 
 /// Generic branching tests
 
 fn branch_not_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, i8) -> u8
+    where F: Fn(&mut TestCpu, i8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     const PC_START: u16 = 0xaa88;
     const REL_ADDR: i8 = 0x5;
@@ -28,10 +26,9 @@ fn branch_not_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
 }
 
 fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, i8) -> u8
+    where F: Fn(&mut TestCpu, i8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     const PC_START: u16 = 43656;
     const REL_ADDR: i8 = -1;
@@ -48,10 +45,9 @@ fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
 }
 
 fn branch_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, i8) -> u8
+    where F: Fn(&mut TestCpu, i8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     const PC_START: u16 = 0xaa88;
     const REL_ADDR: i8 = 0x7f;
@@ -72,10 +68,9 @@ fn branch_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
 }
 
 fn branch_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, i8) -> u8
+    where F: Fn(&mut TestCpu, i8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     const PC_START: u16 = 43520;
     const REL_ADDR: i8 = -128;
@@ -92,10 +87,9 @@ fn branch_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
 }
 
 fn no_branch<F>(setup_and_branch: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, i8) -> u8
+    where F: Fn(&mut TestCpu, i8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
     cpu.registers.pc = 30;
 
     let cycles = setup_and_branch(&mut cpu, -20);

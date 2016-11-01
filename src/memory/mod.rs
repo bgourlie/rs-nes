@@ -1,12 +1,11 @@
-use std::fs::File;
 use std::io::Write;
 
 #[cfg(test)]
 mod spec_tests;
 
-const ADDRESSABLE_MEMORY: usize = 65536;
+pub const ADDRESSABLE_MEMORY: usize = 65536;
 
-pub trait Memory {
+pub trait Memory: 'static + Send + Clone + Default {
     fn store(&mut self, u16, u8);
     fn store16(&mut self, addr: u16, data: u16) {
         let lowb = (data & 0xff) as u8;
@@ -18,7 +17,7 @@ pub trait Memory {
     fn load16(&self, addr: u16) -> u16 {
         self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
     }
-    fn dump(&self, file: &'static str);
+    fn dump<T: Write>(&self, writer: &mut T);
 }
 
 pub struct SimpleMemory {
@@ -34,6 +33,12 @@ impl SimpleMemory {
         for (i, byte) in data.iter().enumerate() {
             self.store(addr + i as u16, *byte);
         }
+    }
+}
+
+impl Clone for SimpleMemory {
+    fn clone(&self) -> Self {
+        SimpleMemory { addr: self.addr }
     }
 }
 
@@ -54,8 +59,7 @@ impl Memory for SimpleMemory {
         self.addr[addr]
     }
 
-    fn dump(&self, file_loc: &'static str) {
-        let mut f = File::create(file_loc).unwrap();
-        f.write_all(&self.addr).unwrap();
+    fn dump<T: Write>(&self, writer: &mut T) {
+        writer.write_all(&self.addr).unwrap();
     }
 }

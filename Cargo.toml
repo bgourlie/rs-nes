@@ -2,3 +2,14 @@
 name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
+
+[dependencies]
+log = "*"
+env_logger = "*"
+websocket = "*"
+iron = "*"
+router = "*"
+byteorder = "*"
+serde = "*"
+serde_json = "*"
+rand = "*"

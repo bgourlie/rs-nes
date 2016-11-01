@@ -1,15 +1,13 @@
 use cpu::*;
 use cpu::addressing::Accumulator;
-use memory::*;
 use constants::*;
 
 fn shift_left_base_1<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b10000001;
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     cpu.registers.set_flag(FL_CARRY, true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
@@ -26,12 +24,11 @@ fn shift_left_base_1<F>(do_shift: F)
 }
 
 fn shift_left_base_2<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b01000000;
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let (result, _) = do_shift(&mut cpu, VAL);
 
@@ -43,12 +40,11 @@ fn shift_left_base_2<F>(do_shift: F)
 }
 
 fn shift_left_base_3<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b00000000;
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let (result, _) = do_shift(&mut cpu, VAL);
 
@@ -60,13 +56,12 @@ fn shift_left_base_3<F>(do_shift: F)
 }
 
 fn shift_right_base_1<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b10000001;
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     cpu.registers.set_flag(FL_CARRY, true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
@@ -84,13 +79,12 @@ fn shift_right_base_1<F>(do_shift: F)
 }
 
 fn shift_right_base_2<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b01000000;
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let (result, _) = do_shift(&mut cpu, VAL);
 
@@ -102,13 +96,12 @@ fn shift_right_base_2<F>(do_shift: F)
 }
 
 fn shift_right_base_3<F>(do_shift: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> (u8, bool)
+    where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
     const VAL: u8 = 0b00000000;
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let (result, _) = do_shift(&mut cpu, VAL);
 
@@ -119,25 +112,25 @@ fn shift_right_base_3<F>(do_shift: F)
     assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
 }
 
-fn asl(cpu: &mut Cpu<SimpleMemory>, val: u8) -> (u8, bool) {
+fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     cpu.registers.acc = val;
     cpu.asl(Accumulator);
     (cpu.registers.acc, false)
 }
 
-fn rol(cpu: &mut Cpu<SimpleMemory>, val: u8) -> (u8, bool) {
+fn rol(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     cpu.registers.acc = val;
     cpu.rol(Accumulator);
     (cpu.registers.acc, true)
 }
 
-fn lsr(cpu: &mut Cpu<SimpleMemory>, val: u8) -> (u8, bool) {
+fn lsr(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     cpu.registers.acc = val;
     cpu.lsr(Accumulator);
     (cpu.registers.acc, false)
 }
 
-fn ror(cpu: &mut Cpu<SimpleMemory>, val: u8) -> (u8, bool) {
+fn ror(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     cpu.registers.acc = val;
     cpu.ror(Accumulator);
     (cpu.registers.acc, true)

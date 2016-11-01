@@ -1,28 +1,29 @@
+extern crate rs_nes;
+
 use std::fs::File;
 use std::io::Read;
 
-use cpu::*;
-use cpu::debugger::NoOpDebugger;
-use memory::*;
+use rs_nes::cpu::*;
+use rs_nes::cpu::debugger::*;
+use rs_nes::memory::*;
 
 const PC_START: u16 = 0x400;
 
 // TODO: Verify that this is the number of cycles that the test ROM is expected to take
 const EXPECTED_CYCLES: u64 = 80869309;
 
-#[test]
-fn functional_test() {
+fn main() {
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
     let bytes_read = f.read_to_end(&mut rom).unwrap();
     assert!(bytes_read == 65536);
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &rom);
-    let debugger = NoOpDebugger::new();
+    let mut debugger = http_debugger::HttpDebugger::new();
+    debugger.start().unwrap();
     let mut cpu = Cpu::new(mem, debugger);
-    let mut last_pc = PC_START;
+    let mut last_pc: u16 = PC_START;
     cpu.registers.pc = PC_START;
-
     loop {
         cpu.step();
 
@@ -35,6 +36,7 @@ fn functional_test() {
             assert_eq!(EXPECTED_CYCLES, cpu.cycles);
 
             // Success!
+            println!("Functional test complete!");
             return;
         }
 

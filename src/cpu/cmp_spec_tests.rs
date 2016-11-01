@@ -1,13 +1,11 @@
 use cpu::*;
-use memory::*;
 use constants::*;
 
 fn cmp_base_equal_flag_check<F>(setup_and_compare: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8, u8)
+    where F: Fn(&mut TestCpu, u8, u8)
 {
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let lop = 0x1;
     let rop = 0x1;
@@ -20,10 +18,9 @@ fn cmp_base_equal_flag_check<F>(setup_and_compare: F)
 }
 
 fn cmp_base_less_than_flag_check<F>(setup_and_compare: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8, u8)
+    where F: Fn(&mut TestCpu, u8, u8)
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let lop = 0x1;
     let rop = 0x2;
@@ -36,10 +33,9 @@ fn cmp_base_less_than_flag_check<F>(setup_and_compare: F)
 }
 
 fn cmp_base_greater_than_flag_check<F>(setup_and_compare: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8, u8)
+    where F: Fn(&mut TestCpu, u8, u8)
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let lop = 0x3;
     let rop = 0x2;

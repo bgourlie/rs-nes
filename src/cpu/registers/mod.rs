@@ -1,5 +1,8 @@
+use std::fmt;
+
 use constants::*;
 
+#[derive(Clone)]
 pub struct Registers {
     pub pc: u16, // Program Counter
     pub sp: u8, // Stack Pointer
@@ -56,8 +59,8 @@ impl Default for Registers {
     }
 }
 
-impl ToString for Registers {
-    fn to_string(&self) -> String {
+impl fmt::Display for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let c = if self.stat & 0x1 > 0 { 1 } else { 0 };
         let z = if self.stat & 0x2 > 0 { 1 } else { 0 };
         let i = if self.stat & 0x4 > 0 { 1 } else { 0 };
@@ -66,21 +69,23 @@ impl ToString for Registers {
         let unused = if self.stat & 0x20 > 0 { 1 } else { 0 };
         let v = if self.stat & 0x40 > 0 { 1 } else { 0 };
         let s = if self.stat & 0x80 > 0 { 1 } else { 0 };
-        format!("PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Stat: {:0>2X} s{} v{} _{} \
-                 b{} d{} i{} z{} c{}",
-                self.pc,
-                self.sp,
-                self.acc,
-                self.irx,
-                self.iry,
-                self.stat,
-                s,
-                v,
-                unused,
-                b,
-                d,
-                i,
-                z,
-                c)
+
+        write!(f,
+               "PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Stat: {:0>2X} s{} v{} _{} b{} \
+                d{} i{} z{} c{}",
+               self.pc,
+               self.sp,
+               self.acc,
+               self.irx,
+               self.iry,
+               self.stat,
+               s,
+               v,
+               unused,
+               b,
+               d,
+               i,
+               z,
+               c)
     }
 }

@@ -3,10 +3,9 @@ use memory::*;
 use constants::*;
 
 fn inc_base_1<F>(inc: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let val = inc(&mut cpu, 1);
 
@@ -16,10 +15,9 @@ fn inc_base_1<F>(inc: F)
 }
 
 fn inc_base_2<F>(inc: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let val = inc(&mut cpu, 0xff);
 
@@ -29,7 +27,7 @@ fn inc_base_2<F>(inc: F)
 }
 
 fn inc_base_3<F>(inc: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
 
     const ORIG_VAL: u8 = 0xfe;
@@ -37,9 +35,7 @@ fn inc_base_3<F>(inc: F)
     // sanity check
     assert_eq!(-2, ORIG_VAL as i8);
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
-
+    let mut cpu = TestCpu::new_test();
     let val = inc(&mut cpu, ORIG_VAL);
 
     assert_eq!(-1, val as i8);
@@ -48,11 +44,10 @@ fn inc_base_3<F>(inc: F)
 }
 
 fn dec_base_1<F>(dec: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let val = dec(&mut cpu, 1);
 
@@ -62,11 +57,10 @@ fn dec_base_1<F>(dec: F)
 }
 
 fn dec_base_2<F>(dec: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let val = dec(&mut cpu, 0x2);
 
@@ -76,7 +70,7 @@ fn dec_base_2<F>(dec: F)
 }
 
 fn dec_base_3<F>(dec: F)
-    where F: Fn(&mut Cpu<SimpleMemory>, u8) -> u8
+    where F: Fn(&mut TestCpu, u8) -> u8
 {
 
     const ORIG_VAL: u8 = 0xfe;
@@ -84,8 +78,7 @@ fn dec_base_3<F>(dec: F)
     // sanity check
     assert_eq!(-2, ORIG_VAL as i8);
 
-    let mem = SimpleMemory::new();
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = TestCpu::new_test();
 
     let val = dec(&mut cpu, ORIG_VAL);
 
