@@ -38,7 +38,7 @@ mod interrupt_spec_tests;
 mod functional_tests;
 
 pub mod debugger;
-mod disassembler;
+pub mod disassembler;
 mod registers;
 mod addressing;
 
