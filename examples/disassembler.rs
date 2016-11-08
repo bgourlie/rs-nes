@@ -17,9 +17,9 @@ fn main() {
     let mut rom = Vec::<u8>::new();
     let bytes_read = f.read_to_end(&mut rom).unwrap();
     assert!(bytes_read == 65536);
-    let decoder = Decoder::new(&rom[PC_START..]);
+    let decoder = Decoder::new(&rom, PC_START);
 
     for instr in decoder.take(100) {
-        println!("{}", instr);
+        println!("{:?}", instr);
     }
 }

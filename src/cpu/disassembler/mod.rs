@@ -6,19 +6,35 @@ static ADDRESSING_MODE_MASK: u8 = 0b111;
 pub struct Decoder<'a> {
     bytes: &'a [u8],
     pc: usize,
+    start_offset: u16,
+}
+
+#[derive(Debug)]
+pub struct Instruction {
+    offset: u16,
+    mnenomic: String,
+    operand: String,
 }
 
 impl<'a> Decoder<'a> {
-    pub fn new(bytes: &'a [u8]) -> Self {
+    pub fn new(bytes: &'a [u8], start_offset: usize) -> Self {
+
         Decoder {
-            bytes: bytes,
+            bytes: &bytes[start_offset..],
             pc: 0,
+            start_offset: start_offset as u16,
         }
     }
 
-    pub fn read(&mut self) -> Option<String> {
-        self.read_instruction().and_then(|(opcode, instr)| {
-            self.read_addressing_mode(opcode).map(|am| format!("{} {}", instr, am))
+    pub fn read(&mut self) -> Option<Instruction> {
+        self.read_instruction().and_then(|(opcode, instr, offset)| {
+            self.read_addressing_mode(opcode).map(|am| {
+                Instruction {
+                    offset: self.start_offset + offset,
+                    mnenomic: instr,
+                    operand: am,
+                }
+            })
         })
     }
 
@@ -83,8 +99,9 @@ impl<'a> Decoder<'a> {
         self.read8().map(|val| format!("${:0>2X}", val))
     }
 
-    fn read_instruction(&mut self) -> Option<(u8, String)> {
+    fn read_instruction(&mut self) -> Option<(u8, String, u16)> {
         self.read8().and_then(|opcode| {
+            let offset = self.pc as u16;
             match opcode {
                     0x0 => {
                         self.pc += 1; // Break has an additional padding byte
@@ -133,7 +150,7 @@ impl<'a> Decoder<'a> {
                         }
                     }
                 }
-                .map(|instr| (opcode, instr))
+                .map(|instr| (opcode, instr, offset))
         })
     }
 
@@ -248,9 +265,9 @@ impl<'a> Decoder<'a> {
 }
 
 impl<'a> Iterator for Decoder<'a> {
-    type Item = String;
+    type Item = Instruction;
 
-    fn next(&mut self) -> Option<String> {
+    fn next(&mut self) -> Option<Instruction> {
         self.read()
     }
 }
