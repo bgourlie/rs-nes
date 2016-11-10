@@ -11,9 +11,8 @@ use serde::{Serialize, Serializer};
 use serde_json;
 
 use super::breakpoint_map::BreakpointMap;
-use super::cpu_snapshot::CpuSnapshot;
-use memory::Memory;
 
+#[derive(Serialize)]
 pub struct ToggleBreakpointResponse {
     addr: u16,
     is_set: bool,
@@ -25,34 +24,6 @@ impl ToggleBreakpointResponse {
             addr: addr,
             is_set: is_set,
         }
-    }
-}
-
-impl Serialize for ToggleBreakpointResponse {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_struct("ToggleBreakpointResponse", 2));
-        try!(serializer.serialize_struct_elt(&mut state, "address", self.addr));
-        try!(serializer.serialize_struct_elt(&mut state, "isSet", self.is_set));
-        serializer.serialize_struct_end(state)
-    }
-}
-
-pub struct GetSnapshotHandler<M: Memory> {
-    snapshot: Arc<Mutex<CpuSnapshot<M>>>,
-}
-
-impl<M: Memory> GetSnapshotHandler<M> {
-    pub fn new(snapshot: Arc<Mutex<CpuSnapshot<M>>>) -> Self {
-        GetSnapshotHandler { snapshot: snapshot }
-    }
-}
-
-impl<M: Memory> Handler for GetSnapshotHandler<M> {
-    fn handle(&self, _: &mut Request) -> IronResult<Response> {
-        let snapshot = &(*self.snapshot.lock().unwrap());
-        let json = serde_json::to_string(snapshot).unwrap();
-        let resp = response_with((status::Ok, json));
-        Ok(resp)
     }
 }
 

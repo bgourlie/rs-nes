@@ -1,5 +1,4 @@
 mod debugger_command;
-mod cpu_snapshot;
 mod http_handlers;
 mod breakpoint_map;
 
@@ -14,29 +13,26 @@ use router::Router;
 use websocket::{Server as WsServer, Message as WsMessage};
 
 use super::Debugger;
-use memory::Memory;
+use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::registers::Registers;
+use cpu::disassembler::{InstructionDecoder, Instruction};
 use self::debugger_command::DebuggerCommand;
-use self::cpu_snapshot::CpuSnapshot;
-use self::http_handlers::{ToggleBreakpointHandler, GetSnapshotHandler, ContinueHandler,
-                          StepHandler};
+use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
 use self::breakpoint_map::BreakpointMap;
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
 
-pub struct HttpDebugger<M: Memory> {
-    snapshot: Arc<Mutex<CpuSnapshot<M>>>,
+pub struct HttpDebugger {
     ws_sender: Option<SyncSender<DebuggerCommand>>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     is_stepping: Arc<AtomicBool>,
 }
 
-impl<M: Memory> HttpDebugger<M> {
+impl HttpDebugger {
     pub fn new() -> Self {
         HttpDebugger {
-            snapshot: Arc::new(Mutex::new(CpuSnapshot::<M>::new())),
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             ws_sender: None,
             cpu_thread_handle: thread::current(),
@@ -68,18 +64,11 @@ impl<M: Memory> HttpDebugger<M> {
             let response = request.accept();
             let mut sender = response.send().unwrap();
 
-            loop {
-                let debugger_msg = match client_rx.recv() {
-                    Ok(debugger_msg) => debugger_msg,
-                    Err(_) => {
-                        break;
-                    }
-                };
-
+            while let Ok(debugger_msg) = client_rx.recv() {
                 let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
                     .unwrap());
 
-                if let Err(_) = sender.send_message(&message) {
+                if sender.send_message(&message).is_err() {
                     break;
                 }
             }
@@ -92,16 +81,12 @@ impl<M: Memory> HttpDebugger<M> {
 
     fn start_http_server_thread(&self) -> Result<(), String> {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
-        let snapshot = self.snapshot.clone();
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
         let is_stepping = self.is_stepping.clone();
 
         thread::spawn(move || {
             let mut router = Router::new();
-            router.get("/snapshot",
-                       GetSnapshotHandler::new(snapshot.clone()),
-                       "snapshot");
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
             router.get("/continue",
                        ContinueHandler::new(cpu_thread.clone(), is_stepping),
@@ -126,17 +111,36 @@ impl<M: Memory> HttpDebugger<M> {
     }
 }
 
-impl<M: Memory> Debugger<M> for HttpDebugger<M> {
+impl Default for HttpDebugger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Serialize)]
+pub struct CpuSnapshot {
+    instructions: Vec<Instruction>,
+    registers: Registers,
+    cycles: u64,
+}
+
+impl<M: Memory> Debugger<M> for HttpDebugger {
     fn on_step(&mut self, mem: &M, registers: &Registers, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let is_stepping = self.is_stepping.load(Ordering::Relaxed);
             if is_stepping || self.should_break(registers.pc) {
                 {
-                    let mut snapshot = self.snapshot.lock().unwrap();
-                    snapshot.memory = mem.clone();
-                    snapshot.registers = registers.clone();
-                    snapshot.cycles = cycles;
-                    sender.send(DebuggerCommand::Break).unwrap();
+                    let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
+                    mem.dump(&mut buf);
+                    let decoder = InstructionDecoder::new(&buf, 0x400);
+                    let instructions = decoder.take(100).collect::<Vec<Instruction>>();
+                    let snapshot = CpuSnapshot {
+                        instructions: instructions,
+                        registers: registers.clone(),
+                        cycles: cycles,
+                    };
+
+                    sender.send(DebuggerCommand::Break(snapshot)).unwrap();
                 }
                 info!("Breaking!  CPU thread paused.");
                 thread::park();

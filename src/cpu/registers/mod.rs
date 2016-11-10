@@ -2,7 +2,7 @@ use std::fmt;
 
 use constants::*;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct Registers {
     pub pc: u16, // Program Counter
     pub sp: u8, // Stack Pointer

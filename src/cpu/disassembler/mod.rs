@@ -3,23 +3,23 @@ static INSTR_FAMILY_MASK: u8 = 0b11;
 static ADDRESSING_MODE_MASK: u8 = 0b111;
 
 
-pub struct Decoder<'a> {
+pub struct InstructionDecoder<'a> {
     bytes: &'a [u8],
     pc: usize,
     start_offset: u16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Instruction {
     offset: u16,
     mnenomic: String,
     operand: String,
 }
 
-impl<'a> Decoder<'a> {
+impl<'a> InstructionDecoder<'a> {
     pub fn new(bytes: &'a [u8], start_offset: usize) -> Self {
 
-        Decoder {
+        InstructionDecoder {
             bytes: &bytes[start_offset..],
             pc: 0,
             start_offset: start_offset as u16,
@@ -195,9 +195,7 @@ impl<'a> Decoder<'a> {
             0b1 => self.read_zp(),
             0b10 => Some("A".to_string()),
             0b11 => self.read_abs(),
-            0b100 => None,
             0b101 => self.read_zpx(),
-            0b110 => None,
             0b111 => self.read_absx(),
             _ => None,
         }
@@ -208,11 +206,8 @@ impl<'a> Decoder<'a> {
         match am {
             0b0 => self.read_immediate(),
             0b1 => self.read_zp(),
-            0b10 => None,
             0b11 => self.read_abs(),
-            0b100 => None,
             0b101 => self.read_zpx(),
-            0b110 => None,
             0b111 => self.read_absx(),
             _ => None,
         }
@@ -236,10 +231,8 @@ impl<'a> Decoder<'a> {
     fn decode_family00_instruction(opcode: u8) -> Option<String> {
         let instr = (opcode >> 5) & INSTR_MASK;
         match instr {
-            0b0 => None,
             0b1 => Some("BIT".to_string()),
-            0b10 => Some("JMP".to_string()),
-            0b11 => Some("JMP".to_string()),
+            0b10 | 0b11 => Some("JMP".to_string()),
             0b100 => Some("STY".to_string()),
             0b101 => Some("LDY".to_string()),
             0b110 => Some("CPY".to_string()),
@@ -264,7 +257,7 @@ impl<'a> Decoder<'a> {
     }
 }
 
-impl<'a> Iterator for Decoder<'a> {
+impl<'a> Iterator for InstructionDecoder<'a> {
     type Item = Instruction;
 
     fn next(&mut self) -> Option<Instruction> {
