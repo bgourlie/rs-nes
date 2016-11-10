@@ -12,7 +12,7 @@ pub struct InstructionDecoder<'a> {
 #[derive(Debug, Serialize)]
 pub struct Instruction {
     offset: u16,
-    mnenomic: String,
+    mnemonic: String,
     operand: String,
 }
 
@@ -31,7 +31,7 @@ impl<'a> InstructionDecoder<'a> {
             self.read_addressing_mode(opcode).map(|am| {
                 Instruction {
                     offset: self.start_offset + offset,
-                    mnenomic: instr,
+                    mnemonic: instr,
                     operand: am,
                 }
             })
