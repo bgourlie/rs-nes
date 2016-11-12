@@ -60,8 +60,8 @@ struct ContinueResponse {
 
 impl Serialize for ContinueResponse {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_struct("ContinueResponse", 1));
-        try!(serializer.serialize_struct_elt(&mut state, "continued", self.continued));
+        let mut state = serializer.serialize_struct("ContinueResponse", 1)?;
+        serializer.serialize_struct_elt(&mut state, "continued", self.continued)?;
         serializer.serialize_struct_end(state)
     }
 }
@@ -72,8 +72,8 @@ pub struct StepResponse {
 
 impl Serialize for StepResponse {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_struct("StepResponse", 1));
-        try!(serializer.serialize_struct_elt(&mut state, "stepped", self.stepped));
+        let mut state = serializer.serialize_struct("StepResponse", 1)?;
+        serializer.serialize_struct_elt(&mut state, "stepped", self.stepped)?;
         serializer.serialize_struct_end(state)
     }
 }

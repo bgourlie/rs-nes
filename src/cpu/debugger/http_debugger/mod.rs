@@ -45,8 +45,8 @@ impl HttpDebugger {
             panic!("Start already called.");
         }
 
-        try!(self.start_http_server_thread());
-        try!(self.start_websocket_thread());
+        self.start_http_server_thread()?;
+        self.start_websocket_thread()?;
         Ok(())
     }
 
@@ -54,7 +54,7 @@ impl HttpDebugger {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let (debugger_tx, client_rx) = sync_channel::<DebuggerCommand>(0);
         self.ws_sender = Some(debugger_tx);
-        let mut ws_server = try!(WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string()));
+        let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string())?;
         info!("Waiting for debugger to attach");
         let connection = ws_server.accept();
         info!("Debugger attached!");

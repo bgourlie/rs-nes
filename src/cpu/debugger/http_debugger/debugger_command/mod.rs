@@ -8,11 +8,11 @@ pub enum DebuggerCommand {
 
 impl Serialize for DebuggerCommand {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_struct("Command", 2));
+        let mut state = serializer.serialize_struct("Command", 2)?;
         match *self {
             DebuggerCommand::Break(ref snapshot) => {
-                try!(serializer.serialize_struct_elt(&mut state, "type", "break"));
-                try!(serializer.serialize_struct_elt(&mut state, "value", snapshot));
+                serializer.serialize_struct_elt(&mut state, "type", "break")?;
+                serializer.serialize_struct_elt(&mut state, "value", snapshot)?;
             }
         };
         serializer.serialize_struct_end(state)
