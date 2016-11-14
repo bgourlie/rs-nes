@@ -1,8 +1,7 @@
 language: rust
 sudo: false
 rust:
-  - stable
-  - beta
+  - nightly
 cache:
   apt: true
 addons: 
