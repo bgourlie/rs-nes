@@ -11,7 +11,7 @@ pub struct InstructionDecoder<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct Instruction {
-    offset: u16,
+    pub offset: u16,
     mnemonic: String,
     operand: String,
 }
@@ -101,7 +101,7 @@ impl<'a> InstructionDecoder<'a> {
 
     fn read_instruction(&mut self) -> Option<(u8, String, u16)> {
         self.read8().and_then(|opcode| {
-            let offset = self.pc as u16;
+            let offset = (self.pc as u16) - 1;
             match opcode {
                     0x0 => {
                         self.pc += 1; // Break has an additional padding byte

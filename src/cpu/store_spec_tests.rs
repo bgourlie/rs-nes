@@ -14,7 +14,7 @@ fn sta_test() {
 fn stx_test() {
     let mut cpu = TestCpu::new_test();
     assert_eq!(0x0, cpu.memory.load(0x0));
-    cpu.registers.irx = 0xff;
+    cpu.registers.x = 0xff;
     cpu.stx(0x0);
     assert_eq!(0xff, cpu.memory.load(0x0));
 }
@@ -23,7 +23,7 @@ fn stx_test() {
 fn sty_test() {
     let mut cpu = TestCpu::new_test();
     assert_eq!(0x0, cpu.memory.load(0x0));
-    cpu.registers.iry = 0xff;
+    cpu.registers.y = 0xff;
     cpu.sty(0x0);
     assert_eq!(0xff, cpu.memory.load(0x0));
 }

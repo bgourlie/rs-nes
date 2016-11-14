@@ -75,7 +75,7 @@ fn cmp_less_than_flag_check() {
 #[test]
 fn cpy_equal_base_flag_check() {
     cmp_base_equal_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.iry = lop;
+        cpu.registers.y = lop;
         cpu.cpy(rop);
     });
 }
@@ -83,7 +83,7 @@ fn cpy_equal_base_flag_check() {
 #[test]
 fn cpy_greater_than_flag_check() {
     cmp_base_greater_than_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.iry = lop;
+        cpu.registers.y = lop;
         cpu.cpy(rop);
     });
 }
@@ -91,7 +91,7 @@ fn cpy_greater_than_flag_check() {
 #[test]
 fn cpy_less_than_flag_check() {
     cmp_base_less_than_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.iry = lop;
+        cpu.registers.y = lop;
         cpu.cpy(rop);
     });
 }
@@ -99,7 +99,7 @@ fn cpy_less_than_flag_check() {
 #[test]
 fn cpx_equal_base_flag_check() {
     cmp_base_equal_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.irx = lop;
+        cpu.registers.x = lop;
         cpu.cpx(rop);
     });
 }
@@ -107,7 +107,7 @@ fn cpx_equal_base_flag_check() {
 #[test]
 fn cpx_greater_than_flag_check() {
     cmp_base_greater_than_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.irx = lop;
+        cpu.registers.x = lop;
         cpu.cpx(rop);
     });
 }
@@ -115,7 +115,7 @@ fn cpx_greater_than_flag_check() {
 #[test]
 fn cpx_less_than_flag_check() {
     cmp_base_less_than_flag_check(|ref mut cpu, lop, rop| {
-        cpu.registers.irx = lop;
+        cpu.registers.x = lop;
         cpu.cpx(rop);
     });
 }

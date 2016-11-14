@@ -113,7 +113,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     pub fn nmi(&mut self) {
-        let (pc, stat) = (self.registers.pc, self.registers.stat);
+        let (pc, stat) = (self.registers.pc, self.registers.status);
         self.push_stack16(pc);
         self.push_stack(stat);
         self.registers.pc = self.memory.load16(NMI_VECTOR);
@@ -896,12 +896,12 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn absx_addr(&self, val: u16) -> (u16, bool) {
-        let x = self.registers.irx;
+        let x = self.registers.x;
         self.abs_indexed_addr(val, x)
     }
 
     fn absy_addr(&self, val: u16) -> (u16, bool) {
-        let y = self.registers.iry;
+        let y = self.registers.y;
         self.abs_indexed_addr(val, y)
     }
 
@@ -912,20 +912,20 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn indexed_indirect_addr(&self, base_addr: u8) -> u16 {
-        let ind_addr = (Wrapping(base_addr) + Wrapping(self.registers.irx)).0 as u16;
+        let ind_addr = (Wrapping(base_addr) + Wrapping(self.registers.x)).0 as u16;
         self.memory.load16(ind_addr)
     }
 
     fn indirect_indexed_addr(&self, base_addr: u8) -> u16 {
-        self.memory.load16(base_addr as u16) + self.registers.iry as u16
+        self.memory.load16(base_addr as u16) + self.registers.y as u16
     }
 
     fn zpx_addr(&self, base_addr: u8) -> u16 {
-        (Wrapping(base_addr) + Wrapping(self.registers.irx)).0 as u16
+        (Wrapping(base_addr) + Wrapping(self.registers.x)).0 as u16
     }
 
     fn zpy_addr(&self, base_addr: u8) -> u16 {
-        (Wrapping(base_addr) + Wrapping(self.registers.iry)).0 as u16
+        (Wrapping(base_addr) + Wrapping(self.registers.y)).0 as u16
     }
 
     fn push_stack(&mut self, value: u8) {
@@ -981,25 +981,25 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     /// ## Register Transfers (TODO: tests)
 
     fn tax(&mut self) {
-        self.registers.irx = self.registers.acc;
-        let x = self.registers.irx;
+        self.registers.x = self.registers.acc;
+        let x = self.registers.x;
         self.registers.set_sign_and_zero_flag(x);
     }
 
     fn tay(&mut self) {
-        self.registers.iry = self.registers.acc;
-        let y = self.registers.iry;
+        self.registers.y = self.registers.acc;
+        let y = self.registers.y;
         self.registers.set_sign_and_zero_flag(y);
     }
 
     fn txa(&mut self) {
-        self.registers.acc = self.registers.irx;
+        self.registers.acc = self.registers.x;
         let acc = self.registers.acc;
         self.registers.set_sign_and_zero_flag(acc);
     }
 
     fn tya(&mut self) {
-        self.registers.acc = self.registers.iry;
+        self.registers.acc = self.registers.y;
         let acc = self.registers.acc;
         self.registers.set_sign_and_zero_flag(acc);
     }
@@ -1008,13 +1008,13 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     /// See http://wiki.nesdev.com/w/index.php/Status_flags regarding
     /// status flags and nuances with bytes 4 and 5
     fn tsx(&mut self) {
-        self.registers.irx = self.registers.sp;
-        let x = self.registers.irx;
+        self.registers.x = self.registers.sp;
+        let x = self.registers.x;
         self.registers.set_sign_and_zero_flag(x);
     }
 
     fn txs(&mut self) {
-        self.registers.sp = self.registers.irx;
+        self.registers.sp = self.registers.x;
     }
 
     fn pha(&mut self) {
@@ -1023,7 +1023,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn php(&mut self) {
-        let stat = self.registers.stat;
+        let stat = self.registers.status;
         // Break and unused bits are always set when pushing to stack
         self.push_stack(stat | FL_BRK | FL_UNUSED);
     }
@@ -1035,9 +1035,9 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn plp(&mut self) {
         let val = self.pop_stack();
-        let stat = self.registers.stat;
+        let stat = self.registers.status;
         // Break and unused bits are always ignored when pulling from stack
-        self.registers.stat = val | (stat & (FL_BRK | FL_UNUSED));
+        self.registers.status = val | (stat & (FL_BRK | FL_UNUSED));
     }
 
     /// ## Arithmetic
@@ -1094,13 +1094,13 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn cpx<T: AddressReader<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
-        let lop = self.registers.irx;
+        let lop = self.registers.x;
         self.cmp_base(lop, rop);
     }
 
     fn cpy<T: AddressReader<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
-        let lop = self.registers.iry;
+        let lop = self.registers.y;
         self.cmp_base(lop, rop);
     }
 
@@ -1114,14 +1114,14 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn inx(&mut self) {
-        self.registers.irx = (Wrapping(self.registers.irx) + Wrapping(1)).0;
-        let x = self.registers.irx;
+        self.registers.x = (Wrapping(self.registers.x) + Wrapping(1)).0;
+        let x = self.registers.x;
         self.registers.set_sign_and_zero_flag(x);
     }
 
     fn iny(&mut self) {
-        self.registers.iry = (Wrapping(self.registers.iry) + Wrapping(1)).0;
-        let y = self.registers.iry;
+        self.registers.y = (Wrapping(self.registers.y) + Wrapping(1)).0;
+        let y = self.registers.y;
         self.registers.set_sign_and_zero_flag(y);
     }
 
@@ -1133,14 +1133,14 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn dex(&mut self) {
-        self.registers.irx = (Wrapping(self.registers.irx) - Wrapping(1)).0;
-        let x = self.registers.irx;
+        self.registers.x = (Wrapping(self.registers.x) - Wrapping(1)).0;
+        let x = self.registers.x;
         self.registers.set_sign_and_zero_flag(x);
     }
 
     fn dey(&mut self) {
-        self.registers.iry = (Wrapping(self.registers.iry) - Wrapping(1)).0;
-        let y = self.registers.iry;
+        self.registers.y = (Wrapping(self.registers.y) - Wrapping(1)).0;
+        let y = self.registers.y;
         self.registers.set_sign_and_zero_flag(y);
     }
 
@@ -1308,13 +1308,13 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn ldx<T: AddressReader<Mem, D>>(&mut self, val: T) {
         let val = val.read(self);
-        self.registers.irx = val;
+        self.registers.x = val;
         self.registers.set_sign_and_zero_flag(val);
     }
 
     fn ldy<T: AddressReader<Mem, D>>(&mut self, val: T) {
         let val = val.read(self);
-        self.registers.iry = val;
+        self.registers.y = val;
         self.registers.set_sign_and_zero_flag(val);
     }
 
@@ -1324,12 +1324,12 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn stx<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
-        let x = self.registers.irx;
+        let x = self.registers.x;
         addr.write(self, x);
     }
 
     fn sty<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
-        let y = self.registers.iry;
+        let y = self.registers.y;
         addr.write(self, y);
     }
 
@@ -1370,7 +1370,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn brk(&mut self) {
         let pc = self.registers.pc;
-        let status = self.registers.stat;
+        let status = self.registers.status;
         self.push_stack16(pc);
         self.push_stack(status);
         let irq_handler = self.memory.load16(BRK_VECTOR);
@@ -1383,7 +1383,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     fn rti(&mut self) {
         let stat = self.pop_stack();
         let pc = self.pop_stack16();
-        self.registers.stat = stat;
+        self.registers.status = stat;
         self.registers.pc = pc;
     }
 }

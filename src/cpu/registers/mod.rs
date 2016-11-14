@@ -7,9 +7,9 @@ pub struct Registers {
     pub pc: u16, // Program Counter
     pub sp: u8, // Stack Pointer
     pub acc: u8, // Accumulator
-    pub irx: u8, // Index Register X
-    pub iry: u8, // Index Register Y
-    pub stat: u8, // Processor Status Flags
+    pub x: u8, // Index Register X
+    pub y: u8, // Index Register Y
+    pub status: u8, // Processor Status Flags
 }
 
 impl Registers {
@@ -20,21 +20,21 @@ impl Registers {
             // an initial value of 0xfd.
             sp: 0xfd,
             acc: 0,
-            irx: 0,
-            iry: 0,
-            stat: 0b00100100,
+            x: 0,
+            y: 0,
+            status: 0b00100100,
         }
     }
 
     pub fn get_flag(&self, mask: u8) -> bool {
-        self.stat & mask != 0
+        self.status & mask != 0
     }
 
     pub fn set_flag(&mut self, mask: u8, val: bool) {
         if val {
-            self.stat |= mask;
+            self.status |= mask;
         } else {
-            self.stat &= !mask;
+            self.status &= !mask;
         }
     }
 
@@ -61,14 +61,14 @@ impl Default for Registers {
 
 impl fmt::Display for Registers {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let c = if self.stat & 0x1 > 0 { 1 } else { 0 };
-        let z = if self.stat & 0x2 > 0 { 1 } else { 0 };
-        let i = if self.stat & 0x4 > 0 { 1 } else { 0 };
-        let d = if self.stat & 0x8 > 0 { 1 } else { 0 };
-        let b = if self.stat & 0x10 > 0 { 1 } else { 0 };
-        let unused = if self.stat & 0x20 > 0 { 1 } else { 0 };
-        let v = if self.stat & 0x40 > 0 { 1 } else { 0 };
-        let s = if self.stat & 0x80 > 0 { 1 } else { 0 };
+        let c = if self.status & 0x1 > 0 { 1 } else { 0 };
+        let z = if self.status & 0x2 > 0 { 1 } else { 0 };
+        let i = if self.status & 0x4 > 0 { 1 } else { 0 };
+        let d = if self.status & 0x8 > 0 { 1 } else { 0 };
+        let b = if self.status & 0x10 > 0 { 1 } else { 0 };
+        let unused = if self.status & 0x20 > 0 { 1 } else { 0 };
+        let v = if self.status & 0x40 > 0 { 1 } else { 0 };
+        let s = if self.status & 0x80 > 0 { 1 } else { 0 };
 
         write!(f,
                "PC:{:0>4X} SP:{:0>2X} A:{:0>2X} X:{:0>2X} Y:{:0>2X} Stat: {:0>2X} s{} v{} _{} b{} \
@@ -76,9 +76,9 @@ impl fmt::Display for Registers {
                self.pc,
                self.sp,
                self.acc,
-               self.irx,
-               self.iry,
-               self.stat,
+               self.x,
+               self.y,
+               self.status,
                s,
                v,
                unused,

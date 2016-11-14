@@ -11,7 +11,7 @@ impl Serialize for DebuggerCommand {
         let mut state = serializer.serialize_struct("Command", 2)?;
         match *self {
             DebuggerCommand::Break(ref snapshot) => {
-                serializer.serialize_struct_elt(&mut state, "type", "break")?;
+                serializer.serialize_struct_elt(&mut state, "command", "break")?;
                 serializer.serialize_struct_elt(&mut state, "value", snapshot)?;
             }
         };

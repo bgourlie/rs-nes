@@ -133,7 +133,9 @@ impl<M: Memory> Debugger<M> for HttpDebugger {
                     let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
                     mem.dump(&mut buf);
                     let decoder = InstructionDecoder::new(&buf, 0x400);
-                    let instructions = decoder.take(100).collect::<Vec<Instruction>>();
+                    let instructions = decoder.skip_while(|instr| instr.offset < registers.pc)
+                        .take(100)
+                        .collect::<Vec<Instruction>>();
                     let snapshot = CpuSnapshot {
                         instructions: instructions,
                         registers: registers.clone(),

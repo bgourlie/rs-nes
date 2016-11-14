@@ -144,107 +144,107 @@ fn dec_3() {
 #[test]
 fn inx_1() {
     inc_base_1(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.inx();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn inx_2() {
     inc_base_2(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.inx();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn inx_3() {
     inc_base_3(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.inx();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn dex_1() {
     dec_base_1(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.dex();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn dex_2() {
     dec_base_2(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.dex();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn dex_3() {
     dec_base_3(|ref mut cpu, val| {
-        cpu.registers.irx = val;
+        cpu.registers.x = val;
         cpu.dex();
-        cpu.registers.irx
+        cpu.registers.x
     });
 }
 
 #[test]
 fn iny_1() {
     inc_base_1(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.iny();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
 
 #[test]
 fn iny_2() {
     inc_base_2(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.iny();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
 
 #[test]
 fn iny_3() {
     inc_base_3(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.iny();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
 
 #[test]
 fn dey_1() {
     dec_base_1(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.dey();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
 
 #[test]
 fn dey_2() {
     dec_base_2(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.dey();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
 
 #[test]
 fn dey_3() {
     dec_base_3(|ref mut cpu, val| {
-        cpu.registers.iry = val;
+        cpu.registers.y = val;
         cpu.dey();
-        cpu.registers.iry
+        cpu.registers.y
     });
 }
