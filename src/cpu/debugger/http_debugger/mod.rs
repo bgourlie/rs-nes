@@ -16,7 +16,7 @@ use super::Debugger;
 use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::registers::Registers;
 use cpu::disassembler::{InstructionDecoder, Instruction};
-use self::debugger_command::DebuggerCommand;
+use self::debugger_command::{DebuggerCommand, BreakReason};
 use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
 use self::breakpoint_map::BreakpointMap;
 
@@ -142,7 +142,13 @@ impl<M: Memory> Debugger<M> for HttpDebugger {
                         cycles: cycles,
                     };
 
-                    sender.send(DebuggerCommand::Break(snapshot)).unwrap();
+                    let break_reason = if is_stepping {
+                        BreakReason::Step
+                    } else {
+                        BreakReason::Breakpoint
+                    };
+
+                    sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
                 }
                 info!("Breaking!  CPU thread paused.");
                 thread::park();

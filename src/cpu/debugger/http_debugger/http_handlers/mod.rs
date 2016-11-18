@@ -14,14 +14,14 @@ use super::breakpoint_map::BreakpointMap;
 
 #[derive(Serialize)]
 pub struct ToggleBreakpointResponse {
-    addr: u16,
+    offset: u16,
     is_set: bool,
 }
 
 impl ToggleBreakpointResponse {
-    pub fn new(addr: u16, is_set: bool) -> Self {
+    pub fn new(offset: u16, is_set: bool) -> Self {
         ToggleBreakpointResponse {
-            addr: addr,
+            offset: offset,
             is_set: is_set,
         }
     }
