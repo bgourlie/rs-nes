@@ -1,3 +1,6 @@
+use std::cmp;
+use std::iter::FromIterator;
+
 static INSTR_MASK: u8 = 0b111;
 static INSTR_FAMILY_MASK: u8 = 0b11;
 static ADDRESSING_MODE_MASK: u8 = 0b111;
@@ -9,7 +12,7 @@ pub struct InstructionDecoder<'a> {
     start_offset: u16,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Instruction {
     pub offset: u16,
     mnemonic: String,
@@ -24,6 +27,33 @@ impl<'a> InstructionDecoder<'a> {
             pc: 0,
             start_offset: start_offset as u16,
         }
+    }
+
+    pub fn window(bytes: &'a [u8],
+                  start_offset: usize,
+                  pivot_offset: usize,
+                  window: usize)
+                  -> Vec<Instruction> {
+        // This method is probably not very efficient
+        let decoder = InstructionDecoder {
+            bytes: &bytes[start_offset..],
+            pc: 0,
+            start_offset: start_offset as u16,
+        };
+
+        let output = decoder.collect::<Vec<Instruction>>();
+        let output2 = output.clone();
+        let instr_at_offset: (usize, &Instruction) = {
+            output.iter()
+                .enumerate()
+                .find(|instr: &(usize, &Instruction)| instr.1.offset as usize == pivot_offset)
+                .unwrap()
+        };
+
+        let (offset, _) = instr_at_offset;
+
+        let skip = cmp::max(0_isize, offset as isize - window as isize) as usize;
+        Vec::from_iter(output2.into_iter().skip(skip).take(window * 2))
     }
 
     pub fn read(&mut self) -> Option<Instruction> {
