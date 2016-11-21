@@ -28,15 +28,19 @@ pub struct HttpDebugger {
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     is_stepping: Arc<AtomicBool>,
+    prg_offset: u16,
+    last_pc: u16,
 }
 
 impl HttpDebugger {
-    pub fn new() -> Self {
+    pub fn new(prg_offset: u16) -> Self {
         HttpDebugger {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             ws_sender: None,
             cpu_thread_handle: thread::current(),
             is_stepping: Arc::new(AtomicBool::new(true)),
+            last_pc: 0,
+            prg_offset: prg_offset,
         }
     }
 
@@ -100,7 +104,7 @@ impl HttpDebugger {
         Ok(())
     }
 
-    fn should_break(&self, pc: u16) -> bool {
+    fn at_breakpoint(&self, pc: u16) -> bool {
         let breakpoints = &(*self.breakpoints.lock().unwrap());
         if breakpoints.is_set(pc) {
             self.is_stepping.compare_and_swap(false, true, Ordering::Relaxed);
@@ -113,7 +117,7 @@ impl HttpDebugger {
 
 impl Default for HttpDebugger {
     fn default() -> Self {
-        Self::new()
+        Self::new(0)
     }
 }
 
@@ -128,29 +132,36 @@ impl<M: Memory> Debugger<M> for HttpDebugger {
     fn on_step(&mut self, mem: &M, registers: &Registers, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let is_stepping = self.is_stepping.load(Ordering::Relaxed);
-            if is_stepping || self.should_break(registers.pc) {
+            if is_stepping || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
                 {
                     let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
                     mem.dump(&mut buf);
-                    let instructions =
-                        InstructionDecoder::window(&buf, 0x400, registers.pc as usize, 100);
+                    let instructions = InstructionDecoder::window(&buf,
+                                                                  self.prg_offset as usize,
+                                                                  registers.pc as usize,
+                                                                  128);
                     let snapshot = CpuSnapshot {
                         instructions: instructions,
                         registers: registers.clone(),
                         cycles: cycles,
                     };
 
-                    let break_reason = if is_stepping {
+                    let break_reason = if self.last_pc == registers.pc {
+                        info!("Trap detected!  CPU thread paused.");
+                        BreakReason::Trap
+                    } else if is_stepping {
+                        info!("Stepping.  CPU thread paused.");
                         BreakReason::Step
                     } else {
+                        info!("Breakpoint hit.  CPU thread paused.");
                         BreakReason::Breakpoint
                     };
 
                     sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
                 }
-                info!("Breaking!  CPU thread paused.");
                 thread::park();
             }
         }
+        self.last_pc = registers.pc;
     }
 }

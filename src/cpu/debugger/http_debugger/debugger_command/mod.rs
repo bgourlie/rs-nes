@@ -9,6 +9,7 @@ pub enum DebuggerCommand {
 pub enum BreakReason {
     Breakpoint,
     Step,
+    Trap,
 }
 
 impl ToString for BreakReason {
@@ -16,6 +17,7 @@ impl ToString for BreakReason {
         match *self {
             BreakReason::Breakpoint => "breakpoint".to_string(),
             BreakReason::Step => "step".to_string(),
+            BreakReason::Trap => "trap".to_string(),
         }
     }
 }

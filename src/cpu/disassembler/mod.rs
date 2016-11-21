@@ -153,7 +153,7 @@ impl<'a> InstructionDecoder<'a> {
                     0x78 => Some("SEI".to_string()),
                     0x98 => Some("TYA".to_string()),
                     0xb8 => Some("CLV".to_string()),
-                    0xd9 => Some("CLD".to_string()),
+                    0xd8 => Some("CLD".to_string()),
                     0xf8 => Some("SED".to_string()),
                     0x8a => Some("TXA".to_string()),
                     0x9a => Some("TXS".to_string()),
