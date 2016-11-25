@@ -21,6 +21,6 @@ fn main() {
     let decoder = InstructionDecoder::new(&rom, PC_START);
 
     for instr in decoder.take(100) {
-        println!("{:?}", instr);
+        println!("{}", instr.mnemonic.to_string());
     }
 }
