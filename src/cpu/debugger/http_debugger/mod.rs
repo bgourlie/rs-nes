@@ -1,6 +1,7 @@
 mod debugger_command;
 mod http_handlers;
 mod breakpoint_map;
+mod cpu_snapshot;
 
 use std::thread;
 use std::sync::mpsc::{sync_channel, SyncSender};
@@ -13,12 +14,12 @@ use router::Router;
 use websocket::{Server as WsServer, Message as WsMessage};
 
 use super::Debugger;
-use memory::{Memory, ADDRESSABLE_MEMORY};
+use memory::Memory;
 use cpu::registers::Registers;
-use cpu::disassembler::{InstructionDecoder, Instruction};
 use self::debugger_command::{DebuggerCommand, BreakReason};
 use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
 use self::breakpoint_map::BreakpointMap;
+use self::cpu_snapshot::CpuSnapshot;
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
@@ -121,30 +122,16 @@ impl Default for HttpDebugger {
     }
 }
 
-#[derive(Serialize)]
-pub struct CpuSnapshot {
-    instructions: Vec<Instruction>,
-    registers: Registers,
-    cycles: u64,
-}
-
-impl<M: Memory> Debugger<M> for HttpDebugger {
-    fn on_step(&mut self, mem: &M, registers: &Registers, cycles: u64) {
+impl<Mem: Memory> Debugger<Mem> for HttpDebugger {
+    fn on_step(&mut self, mem: &Mem, registers: &Registers, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let is_stepping = self.is_stepping.load(Ordering::Relaxed);
             if is_stepping || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
                 {
-                    let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
-                    mem.dump(&mut buf);
-                    let instructions = InstructionDecoder::window(&buf,
-                                                                  self.prg_offset as usize,
-                                                                  registers.pc as usize,
-                                                                  128);
-                    let snapshot = CpuSnapshot {
-                        instructions: instructions,
-                        registers: registers.clone(),
-                        cycles: cycles,
-                    };
+                    let snapshot = CpuSnapshot::new(mem.clone(),
+                                                    registers.clone(),
+                                                    cycles,
+                                                    self.prg_offset as usize);
 
                     let break_reason = if self.last_pc == registers.pc {
                         info!("Trap detected!  CPU thread paused.");
@@ -156,7 +143,7 @@ impl<M: Memory> Debugger<M> for HttpDebugger {
                         info!("Breakpoint hit.  CPU thread paused.");
                         BreakReason::Breakpoint
                     };
-                    info!("Breaking @ {:0>4X}", snapshot.registers.pc);
+                    info!("Breaking @ {:0>4X}", registers.pc);
                     sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
                 }
                 thread::park();
