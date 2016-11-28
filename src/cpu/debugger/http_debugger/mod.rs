@@ -134,16 +134,15 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger {
                                                     self.prg_offset as usize);
 
                     let break_reason = if self.last_pc == registers.pc {
-                        info!("Trap detected!  CPU thread paused.");
+                        info!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);
                         BreakReason::Trap
                     } else if is_stepping {
-                        info!("Stepping.  CPU thread paused.");
+                        info!("Stepping @ {:0>4X}.  CPU thread paused.", registers.pc);
                         BreakReason::Step
                     } else {
-                        info!("Breakpoint hit.  CPU thread paused.");
+                        info!("Breakpoint hit @ {:0>4X}.  CPU thread paused.", registers.pc);
                         BreakReason::Breakpoint
                     };
-                    info!("Breaking @ {:0>4X}", registers.pc);
                     sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
                 }
                 thread::park();
