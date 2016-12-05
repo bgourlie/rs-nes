@@ -1,3 +1,5 @@
+pub mod nes_memory;
+
 use std::io::Write;
 
 #[cfg(test)]
@@ -5,7 +7,7 @@ mod spec_tests;
 
 pub const ADDRESSABLE_MEMORY: usize = 65536;
 
-pub trait Memory: 'static + Send + Clone + Default {
+pub trait Memory: 'static + Send + Clone {
     fn store(&mut self, u16, u8);
     fn store16(&mut self, addr: u16, data: u16) {
         let lowb = (data & 0xff) as u8;

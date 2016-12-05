@@ -15,5 +15,6 @@ extern crate byteorder;
 extern crate rand;
 
 mod constants;
+pub mod rom;
 pub mod memory;
 pub mod cpu;

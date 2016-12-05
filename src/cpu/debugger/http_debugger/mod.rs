@@ -140,7 +140,8 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger {
                         info!("Stepping @ {:0>4X}.  CPU thread paused.", registers.pc);
                         BreakReason::Step
                     } else {
-                        info!("Breakpoint hit @ {:0>4X}.  CPU thread paused.", registers.pc);
+                        info!("Breakpoint hit @ {:0>4X}.  CPU thread paused.",
+                              registers.pc);
                         BreakReason::Breakpoint
                     };
                     sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
