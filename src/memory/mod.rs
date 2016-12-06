@@ -1,6 +1,7 @@
 pub mod nes_memory;
 
 use std::io::Write;
+use seahash;
 
 #[cfg(test)]
 mod spec_tests;
@@ -19,6 +20,8 @@ pub trait Memory: 'static + Send + Clone {
     fn load16(&self, addr: u16) -> u16 {
         self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
     }
+
+    fn hash(&self) -> u64;
     fn dump<T: Write>(&self, writer: &mut T);
 }
 
@@ -63,5 +66,9 @@ impl Memory for SimpleMemory {
 
     fn dump<T: Write>(&self, writer: &mut T) {
         writer.write_all(&self.addr).unwrap();
+    }
+
+    fn hash(&self) -> u64 {
+        seahash::hash(&self.addr)
     }
 }

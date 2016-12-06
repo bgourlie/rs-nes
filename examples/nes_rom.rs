@@ -16,7 +16,7 @@ fn main() {
     let rom = NesRom::read("test_roms/mario.nes").unwrap();
     let mem = NesMemory::new(rom);
 
-    let mut debugger = http_debugger::HttpDebugger::new(PC_START);
+    let mut debugger = http_debugger::HttpDebugger::new();
     debugger.start().unwrap();
     let mut cpu = Cpu::new(mem, debugger);
     cpu.registers.pc = PC_START;

@@ -1,4 +1,5 @@
 use std::io::Write;
+use seahash;
 use rom::NesRom;
 use super::Memory;
 
@@ -62,5 +63,10 @@ impl Memory for NesMemory {
             writer.write(&self.rom.prg).unwrap();
             writer.write(&self.rom.prg).unwrap();
         }
+    }
+
+    fn hash(&self) -> u64 {
+        // Hashing just the ram will suffice for now...
+        seahash::hash(&self.ram)
     }
 }

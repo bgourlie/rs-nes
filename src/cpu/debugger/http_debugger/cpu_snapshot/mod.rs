@@ -5,36 +5,56 @@ use serde::{Serialize, Serializer};
 
 use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::registers::Registers;
-use cpu::disassembler::{Instruction, InstructionDecoder};
+use cpu::disassembler::Instruction;
 
-pub struct CpuSnapshot {
+pub enum MemorySnapshot<Mem: Memory> {
+    NoChange(u64), // If no change, just send the hash.
+    Updated(u64, Mem), // Updated, send hash and memory
+}
+
+pub struct CpuSnapshot<Mem: Memory> {
     instructions: Vec<Instruction>,
     registers: Registers,
     cycles: u64,
-    memory: Vec<i32>,
+    memory: MemorySnapshot<Mem>,
 }
 
-impl CpuSnapshot {
-    pub fn new<Mem: Memory>(mem: Mem,
-                            registers: Registers,
-                            cycles: u64,
-                            prg_offset: usize)
-                            -> Self {
-        let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
-        mem.dump(&mut buf);
-        let instructions = InstructionDecoder::window(&buf, prg_offset, registers.pc as usize, 128);
-        let packed_bytes = pack_memory(&buf);
+impl<Mem: Memory> CpuSnapshot<Mem> {
+    pub fn new(mem_snapshot: MemorySnapshot<Mem>, registers: Registers, cycles: u64) -> Self {
 
         CpuSnapshot {
-            instructions: instructions,
+            instructions: Vec::new(),
             registers: registers,
             cycles: cycles,
-            memory: packed_bytes,
+            memory: mem_snapshot,
         }
     }
 }
 
-impl Serialize for CpuSnapshot {
+impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
+    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        match *self {
+            MemorySnapshot::NoChange(hash) => {
+                let mut state = serializer.serialize_struct("Memory", 2)?;
+                serializer.serialize_struct_elt(&mut state, "status", "NoChange")?;
+                serializer.serialize_struct_elt(&mut state, "hash", hash)?;
+                serializer.serialize_struct_end(state)
+            }
+            MemorySnapshot::Updated(hash, ref memory) => {
+                let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
+                memory.dump(&mut buf);
+                let packed_bytes = pack_memory(&buf);
+                let mut state = serializer.serialize_struct("Memory", 3)?;
+                serializer.serialize_struct_elt(&mut state, "status", "Updated")?;
+                serializer.serialize_struct_elt(&mut state, "hash", hash)?;
+                serializer.serialize_struct_elt(&mut state, "packed_bytes", packed_bytes)?;
+                serializer.serialize_struct_end(state)
+            }
+        }
+    }
+}
+
+impl<Mem: Memory> Serialize for CpuSnapshot<Mem> {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
         let mut state = serializer.serialize_struct("CpuSnapshot", 2)?;
         serializer.serialize_struct_elt(&mut state, "instructions", &self.instructions)?;

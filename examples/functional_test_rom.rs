@@ -20,7 +20,7 @@ fn main() {
     f.read_to_end(&mut rom).unwrap();
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &rom);
-    let mut debugger = http_debugger::HttpDebugger::new(PC_START);
+    let mut debugger = http_debugger::HttpDebugger::new();
     debugger.start().unwrap();
     let mut cpu = Cpu::new(mem, debugger);
     cpu.registers.pc = PC_START;
