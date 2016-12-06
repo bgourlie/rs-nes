@@ -1,9 +1,10 @@
 use super::CpuSnapshot;
+use memory::Memory;
 use serde::{Serialize, Serializer};
 
 // The web socket message sent from the debugger to the client
-pub enum DebuggerCommand {
-    Break(BreakReason, CpuSnapshot),
+pub enum DebuggerCommand<Mem: Memory> {
+    Break(BreakReason, CpuSnapshot<Mem>),
 }
 
 pub enum BreakReason {
@@ -22,7 +23,7 @@ impl ToString for BreakReason {
     }
 }
 
-impl Serialize for DebuggerCommand {
+impl<Mem: Memory> Serialize for DebuggerCommand<Mem> {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
         let mut state = serializer.serialize_struct("Command", 2)?;
         match *self {

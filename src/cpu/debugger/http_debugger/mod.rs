@@ -19,29 +19,29 @@ use cpu::registers::Registers;
 use self::debugger_command::{DebuggerCommand, BreakReason};
 use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
 use self::breakpoint_map::BreakpointMap;
-use self::cpu_snapshot::CpuSnapshot;
+use self::cpu_snapshot::{MemorySnapshot, CpuSnapshot};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
 
-pub struct HttpDebugger {
-    ws_sender: Option<SyncSender<DebuggerCommand>>,
+pub struct HttpDebugger<Mem: Memory> {
+    ws_sender: Option<SyncSender<DebuggerCommand<Mem>>>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     is_stepping: Arc<AtomicBool>,
-    prg_offset: u16,
     last_pc: u16,
+    last_mem_hash: u64,
 }
 
-impl HttpDebugger {
-    pub fn new(prg_offset: u16) -> Self {
+impl<Mem: Memory> HttpDebugger<Mem> {
+    pub fn new() -> Self {
         HttpDebugger {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             ws_sender: None,
             cpu_thread_handle: thread::current(),
             is_stepping: Arc::new(AtomicBool::new(true)),
             last_pc: 0,
-            prg_offset: prg_offset,
+            last_mem_hash: 0,
         }
     }
 
@@ -57,7 +57,7 @@ impl HttpDebugger {
 
     fn start_websocket_thread(&mut self) -> Result<(), String> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
-        let (debugger_tx, client_rx) = sync_channel::<DebuggerCommand>(0);
+        let (debugger_tx, client_rx) = sync_channel::<DebuggerCommand<Mem>>(0);
         self.ws_sender = Some(debugger_tx);
         let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string())?;
         info!("Waiting for debugger to attach");
@@ -116,22 +116,29 @@ impl HttpDebugger {
     }
 }
 
-impl Default for HttpDebugger {
+impl<Mem: Memory> Default for HttpDebugger<Mem> {
     fn default() -> Self {
-        Self::new(0)
+        Self::new()
     }
 }
 
-impl<Mem: Memory> Debugger<Mem> for HttpDebugger {
+impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
     fn on_step(&mut self, mem: &Mem, registers: &Registers, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let is_stepping = self.is_stepping.load(Ordering::Relaxed);
             if is_stepping || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
                 {
-                    let snapshot = CpuSnapshot::new(mem.clone(),
-                                                    registers.clone(),
-                                                    cycles,
-                                                    self.prg_offset as usize);
+                    let mem_snapshot = {
+                        let hash = mem.hash();
+                        if hash != self.last_mem_hash {
+                            self.last_mem_hash = hash;
+                            MemorySnapshot::Updated(hash, mem.clone())
+                        } else {
+                            MemorySnapshot::NoChange(hash)
+                        }
+                    };
+
+                    let snapshot = CpuSnapshot::new(mem_snapshot, registers.clone(), cycles);
 
                     let break_reason = if self.last_pc == registers.pc {
                         info!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);

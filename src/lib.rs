@@ -13,6 +13,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate byteorder;
 extern crate rand;
+extern crate seahash;
 
 mod constants;
 pub mod rom;
