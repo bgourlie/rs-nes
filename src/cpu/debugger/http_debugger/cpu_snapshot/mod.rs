@@ -5,7 +5,7 @@ use serde::{Serialize, Serializer};
 
 use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::registers::Registers;
-use cpu::disassembler::Instruction;
+use disassembler::Instruction;
 
 pub enum MemorySnapshot<Mem: Memory> {
     NoChange(u64), // If no change, just send the hash.
@@ -20,10 +20,14 @@ pub struct CpuSnapshot<Mem: Memory> {
 }
 
 impl<Mem: Memory> CpuSnapshot<Mem> {
-    pub fn new(mem_snapshot: MemorySnapshot<Mem>, registers: Registers, cycles: u64) -> Self {
+    pub fn new(instructions: Vec<Instruction>,
+               mem_snapshot: MemorySnapshot<Mem>,
+               registers: Registers,
+               cycles: u64)
+               -> Self {
 
         CpuSnapshot {
-            instructions: Vec::new(),
+            instructions: instructions,
             registers: registers,
             cycles: cycles,
             memory: mem_snapshot,
@@ -36,7 +40,7 @@ impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
         match *self {
             MemorySnapshot::NoChange(hash) => {
                 let mut state = serializer.serialize_struct("Memory", 2)?;
-                serializer.serialize_struct_elt(&mut state, "status", "NoChange")?;
+                serializer.serialize_struct_elt(&mut state, "state", "NoChange")?;
                 serializer.serialize_struct_elt(&mut state, "hash", hash)?;
                 serializer.serialize_struct_end(state)
             }
@@ -45,7 +49,7 @@ impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
                 memory.dump(&mut buf);
                 let packed_bytes = pack_memory(&buf);
                 let mut state = serializer.serialize_struct("Memory", 3)?;
-                serializer.serialize_struct_elt(&mut state, "status", "Updated")?;
+                serializer.serialize_struct_elt(&mut state, "state", "Updated")?;
                 serializer.serialize_struct_elt(&mut state, "hash", hash)?;
                 serializer.serialize_struct_elt(&mut state, "packed_bytes", packed_bytes)?;
                 serializer.serialize_struct_end(state)
