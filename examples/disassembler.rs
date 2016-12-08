@@ -7,7 +7,7 @@ extern crate rs_nes;
 use std::fs::File;
 use std::io::Read;
 
-use rs_nes::cpu::disassembler::InstructionDecoder;
+use rs_nes::disassembler::InstructionDecoder;
 
 const PC_START: usize = 0x400;
 

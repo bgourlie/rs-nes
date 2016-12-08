@@ -13,9 +13,10 @@ use iron::prelude::*;
 use router::Router;
 use websocket::{Server as WsServer, Message as WsMessage};
 
-use super::Debugger;
 use memory::Memory;
 use cpu::registers::Registers;
+use disassembler::Instruction;
+use super::Debugger;
 use self::debugger_command::{DebuggerCommand, BreakReason};
 use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
 use self::breakpoint_map::BreakpointMap;
@@ -23,7 +24,6 @@ use self::cpu_snapshot::{MemorySnapshot, CpuSnapshot};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
-
 pub struct HttpDebugger<Mem: Memory> {
     ws_sender: Option<SyncSender<DebuggerCommand<Mem>>>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
@@ -31,10 +31,15 @@ pub struct HttpDebugger<Mem: Memory> {
     is_stepping: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
+
+    // TODO: this won't accommodate self-modifying code or bank-switching
+    // In order to accommodate it, we would need to hash then invalidate and re-disassemble when
+    // memory locations where PRG resides changes.
+    instructions: Vec<Instruction>,
 }
 
 impl<Mem: Memory> HttpDebugger<Mem> {
-    pub fn new() -> Self {
+    pub fn new(instructions: Vec<Instruction>) -> Self {
         HttpDebugger {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             ws_sender: None,
@@ -42,6 +47,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             is_stepping: Arc::new(AtomicBool::new(true)),
             last_pc: 0,
             last_mem_hash: 0,
+            instructions: instructions,
         }
     }
 
@@ -118,7 +124,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
 
 impl<Mem: Memory> Default for HttpDebugger<Mem> {
     fn default() -> Self {
-        Self::new()
+        Self::new(Vec::new())
     }
 }
 
@@ -138,7 +144,12 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
                         }
                     };
 
-                    let snapshot = CpuSnapshot::new(mem_snapshot, registers.clone(), cycles);
+                    // TODO: Since this is essentially static (for now), move to HTTP endpoint
+                    // In other words, it shouldn't be part of the CPU snapshot
+                    let instructions = self.instructions.clone();
+
+                    let snapshot =
+                        CpuSnapshot::new(instructions, mem_snapshot, registers.clone(), cycles);
 
                     let break_reason = if self.last_pc == registers.pc {
                         info!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);
