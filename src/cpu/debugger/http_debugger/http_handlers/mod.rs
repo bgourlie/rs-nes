@@ -10,6 +10,7 @@ use router::{Router, Params};
 use serde::{Serialize, Serializer};
 use serde_json;
 
+use disassembler::Instruction;
 use super::breakpoint_map::BreakpointMap;
 
 #[derive(Serialize)]
@@ -51,6 +52,25 @@ impl Handler for ToggleBreakpointHandler {
             let resp = response_with((status::BadRequest));
             Ok(resp)
         }
+    }
+}
+
+pub struct InstructionHandler {
+    instructions: Arc<Vec<Instruction>>,
+}
+
+impl InstructionHandler {
+    pub fn new(instructions: Arc<Vec<Instruction>>) -> Self {
+        InstructionHandler { instructions: instructions }
+    }
+}
+
+impl Handler for InstructionHandler {
+    fn handle(&self, _: &mut Request) -> IronResult<Response> {
+        debug!("get instruction request received!");
+        let resp_body = serde_json::to_string(&self.instructions).unwrap();
+        let resp = response_with((status::Ok, resp_body));
+        Ok(resp)
     }
 }
 
