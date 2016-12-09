@@ -18,7 +18,8 @@ use cpu::registers::Registers;
 use disassembler::Instruction;
 use super::Debugger;
 use self::debugger_command::{DebuggerCommand, BreakReason};
-use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler};
+use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler,
+                          InstructionHandler};
 use self::breakpoint_map::BreakpointMap;
 use self::cpu_snapshot::{MemorySnapshot, CpuSnapshot};
 
@@ -35,7 +36,7 @@ pub struct HttpDebugger<Mem: Memory> {
     // TODO: this won't accommodate self-modifying code or bank-switching
     // In order to accommodate it, we would need to hash then invalidate and re-disassemble when
     // memory locations where PRG resides changes.
-    instructions: Vec<Instruction>,
+    instructions: Arc<Vec<Instruction>>,
 }
 
 impl<Mem: Memory> HttpDebugger<Mem> {
@@ -47,7 +48,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             is_stepping: Arc::new(AtomicBool::new(true)),
             last_pc: 0,
             last_mem_hash: 0,
-            instructions: instructions,
+            instructions: Arc::new(instructions),
         }
     }
 
@@ -95,10 +96,14 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
         let is_stepping = self.is_stepping.clone();
+        let instructions = self.instructions.clone();
 
         thread::spawn(move || {
             let mut router = Router::new();
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
+            router.get("/instructions",
+                       InstructionHandler::new(instructions.clone()),
+                       "instructions");
             router.get("/continue",
                        ContinueHandler::new(cpu_thread.clone(), is_stepping),
                        "continue");
@@ -144,12 +149,7 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
                         }
                     };
 
-                    // TODO: Since this is essentially static (for now), move to HTTP endpoint
-                    // In other words, it shouldn't be part of the CPU snapshot
-                    let instructions = self.instructions.clone();
-
-                    let snapshot =
-                        CpuSnapshot::new(instructions, mem_snapshot, registers.clone(), cycles);
+                    let snapshot = CpuSnapshot::new(mem_snapshot, registers.clone(), cycles);
 
                     let break_reason = if self.last_pc == registers.pc {
                         info!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);

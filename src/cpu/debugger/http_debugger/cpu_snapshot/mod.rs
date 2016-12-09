@@ -5,7 +5,6 @@ use serde::{Serialize, Serializer};
 
 use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::registers::Registers;
-use disassembler::Instruction;
 
 pub enum MemorySnapshot<Mem: Memory> {
     NoChange(u64), // If no change, just send the hash.
@@ -13,21 +12,15 @@ pub enum MemorySnapshot<Mem: Memory> {
 }
 
 pub struct CpuSnapshot<Mem: Memory> {
-    instructions: Vec<Instruction>,
     registers: Registers,
     cycles: u64,
     memory: MemorySnapshot<Mem>,
 }
 
 impl<Mem: Memory> CpuSnapshot<Mem> {
-    pub fn new(instructions: Vec<Instruction>,
-               mem_snapshot: MemorySnapshot<Mem>,
-               registers: Registers,
-               cycles: u64)
-               -> Self {
+    pub fn new(mem_snapshot: MemorySnapshot<Mem>, registers: Registers, cycles: u64) -> Self {
 
         CpuSnapshot {
-            instructions: instructions,
             registers: registers,
             cycles: cycles,
             memory: mem_snapshot,
@@ -61,7 +54,6 @@ impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
 impl<Mem: Memory> Serialize for CpuSnapshot<Mem> {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
         let mut state = serializer.serialize_struct("CpuSnapshot", 2)?;
-        serializer.serialize_struct_elt(&mut state, "instructions", &self.instructions)?;
         serializer.serialize_struct_elt(&mut state, "registers", &self.registers)?;
         serializer.serialize_struct_elt(&mut state, "cycles", self.cycles)?;
         serializer.serialize_struct_elt(&mut state, "memory", &self.memory)?;
