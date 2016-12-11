@@ -120,14 +120,14 @@ impl Handler for StepHandler {
 
 pub struct ContinueHandler {
     cpu_thread_handle: Thread,
-    is_stepping: Arc<AtomicBool>,
+    cpu_paused: Arc<AtomicBool>,
 }
 
 impl ContinueHandler {
     pub fn new(cpu_thread: Thread, is_stepping: Arc<AtomicBool>) -> Self {
         ContinueHandler {
             cpu_thread_handle: cpu_thread,
-            is_stepping: is_stepping,
+            cpu_paused: is_stepping,
         }
     }
 }
@@ -135,7 +135,7 @@ impl ContinueHandler {
 impl Handler for ContinueHandler {
     fn handle(&self, _: &mut Request) -> IronResult<Response> {
         debug!("Continue request received!");
-        self.is_stepping.compare_and_swap(true, false, Ordering::Relaxed);
+        self.cpu_paused.compare_and_swap(true, false, Ordering::Relaxed);
         self.cpu_thread_handle.unpark();
         let resp = ContinueResponse { continued: true };
         let json = serde_json::to_string(&resp).unwrap();
