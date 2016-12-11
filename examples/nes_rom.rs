@@ -20,7 +20,8 @@ fn main() {
 
     let mut buf = Vec::new();
     mem.dump(&mut buf);
-    let instructions = InstructionDecoder::new(&buf, PC_START as usize).collect::<Vec<Instruction>>();
+    let instructions = InstructionDecoder::new(&buf, PC_START as usize)
+        .collect::<Vec<Instruction>>();
     let mut debugger = http_debugger::HttpDebugger::new(instructions);
     debugger.start().unwrap();
     let mut cpu = Cpu::new(mem, debugger);

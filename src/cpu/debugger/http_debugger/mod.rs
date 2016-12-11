@@ -25,11 +25,12 @@ use self::cpu_snapshot::{MemorySnapshot, CpuSnapshot};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
+
 pub struct HttpDebugger<Mem: Memory> {
     ws_sender: Option<SyncSender<DebuggerCommand<Mem>>>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
-    is_stepping: Arc<AtomicBool>,
+    cpu_paused: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
 
@@ -45,7 +46,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             ws_sender: None,
             cpu_thread_handle: thread::current(),
-            is_stepping: Arc::new(AtomicBool::new(true)),
+            cpu_paused: Arc::new(AtomicBool::new(true)),
             last_pc: 0,
             last_mem_hash: 0,
             instructions: Arc::new(instructions),
@@ -95,7 +96,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
-        let is_stepping = self.is_stepping.clone();
+        let cpu_paused = self.cpu_paused.clone();
         let instructions = self.instructions.clone();
 
         thread::spawn(move || {
@@ -105,7 +106,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
                        InstructionHandler::new(instructions.clone()),
                        "instructions");
             router.get("/continue",
-                       ContinueHandler::new(cpu_thread.clone(), is_stepping),
+                       ContinueHandler::new(cpu_thread.clone(), cpu_paused),
                        "continue");
             router.get("/toggle_breakpoint/:addr",
                        ToggleBreakpointHandler::new(breakpoints.clone()),
@@ -119,7 +120,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
     fn at_breakpoint(&self, pc: u16) -> bool {
         let breakpoints = &(*self.breakpoints.lock().unwrap());
         if breakpoints.is_set(pc) {
-            self.is_stepping.compare_and_swap(false, true, Ordering::Relaxed);
+            self.cpu_paused.compare_and_swap(false, true, Ordering::Relaxed);
             true
         } else {
             false
@@ -136,13 +137,14 @@ impl<Mem: Memory> Default for HttpDebugger<Mem> {
 impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
     fn on_step(&mut self, mem: &Mem, registers: &Registers, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
-            let is_stepping = self.is_stepping.load(Ordering::Relaxed);
-            if is_stepping || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
+            let cpu_paused = self.cpu_paused.load(Ordering::Relaxed);
+            if cpu_paused || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
                 {
                     let mem_snapshot = {
                         let hash = mem.hash();
                         if hash != self.last_mem_hash {
                             self.last_mem_hash = hash;
+                            debug!("Memory changed. Sending full snapshot to client");
                             MemorySnapshot::Updated(hash, mem.clone())
                         } else {
                             MemorySnapshot::NoChange(hash)
@@ -150,19 +152,21 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
                     };
 
                     let snapshot = CpuSnapshot::new(mem_snapshot, registers.clone(), cycles);
-
-                    let break_reason = if self.last_pc == registers.pc {
-                        info!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);
-                        BreakReason::Trap
-                    } else if is_stepping {
-                        info!("Stepping @ {:0>4X}.  CPU thread paused.", registers.pc);
-                        BreakReason::Step
-                    } else {
-                        info!("Breakpoint hit @ {:0>4X}.  CPU thread paused.",
-                              registers.pc);
-                        BreakReason::Breakpoint
+                    // TODO: All this shit is getting confusing and is in need of simplication
+                    // Stepping deliberately takes the least precedence when deciding which
+                    // BreakReason to send if multiple break reasons exist
+                    if self.last_pc == registers.pc {
+                        debug!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);
+                        sender.send(DebuggerCommand::Break(BreakReason::Trap, snapshot)).unwrap();
+                    } else if self.at_breakpoint(registers.pc) {
+                        debug!("Breakpoint hit @ {:0>4X}.  CPU thread paused.",
+                               registers.pc);
+                        sender.send(DebuggerCommand::Break(BreakReason::Breakpoint, snapshot))
+                            .unwrap();
+                    } else if cpu_paused {
+                        debug!("Stepping @ {:0>4X}.  CPU thread paused.", registers.pc);
+                        sender.send(DebuggerCommand::Break(BreakReason::Step, snapshot)).unwrap();
                     };
-                    sender.send(DebuggerCommand::Break(break_reason, snapshot)).unwrap();
                 }
                 thread::park();
             }

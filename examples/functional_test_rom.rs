@@ -19,7 +19,8 @@ fn main() {
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
     f.read_to_end(&mut rom).unwrap();
-    let instructions = InstructionDecoder::new(&rom, PC_START as usize).collect::<Vec<Instruction>>();
+    let instructions = InstructionDecoder::new(&rom, PC_START as usize)
+        .collect::<Vec<Instruction>>();
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &rom);
     let mut debugger = http_debugger::HttpDebugger::new(instructions);
