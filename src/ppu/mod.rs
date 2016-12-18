@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod ppu_ctrl_spec_tests;
+
 use std::ops::Deref;
 
 pub struct Ppu {
@@ -6,15 +9,17 @@ pub struct Ppu {
 
 impl Ppu {
     fn set_ctrl_reg(&mut self, ppu_ctrl: u8) {
-        self.ctrl_reg = PpuCtrl { reg: ppu_ctrl }
+        self.ctrl_reg.reg = ppu_ctrl;
     }
 }
 
+#[derive(Debug, PartialEq)]
 enum SpriteSize {
     X8, // 8x8
     X16, // 8x16
 }
 
+#[derive(Debug, PartialEq)]
 enum PpuMode {
     Master,
     Slave,
@@ -26,6 +31,10 @@ struct PpuCtrl {
 }
 
 impl PpuCtrl {
+    pub fn new(reg: u8) -> Self {
+        PpuCtrl { reg: reg }
+    }
+
     /// Base nametable address (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
     fn base_name_table_addr(self) -> u16 {
         let mask = 0b00000011;
@@ -78,7 +87,7 @@ impl PpuCtrl {
 
     /// PPU master/slave select (0: read backdrop from EXT pins; 1: output color on EXT pins)
     ///
-    /// **Note:** I don't think this is necessary for emulation since the NES never set the PPU
+    /// *Note:* I don't think this is necessary for emulation since the NES never set the PPU
     /// slave bit. Apparently, it could actually harm the NES hardware if it were set.
     fn ppu_mode(self) -> PpuMode {
         let mask = 0b01000000;
