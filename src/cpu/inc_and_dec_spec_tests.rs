@@ -90,7 +90,7 @@ fn dec_base_3<F>(dec: F)
 fn inc_1() {
     inc_base_1(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.inc(0x0);
+        cpu.inc(0x0_u16);
         cpu.memory.load(0x0)
     });
 }
@@ -99,7 +99,7 @@ fn inc_1() {
 fn inc_2() {
     inc_base_2(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.inc(0x0);
+        cpu.inc(0x0_u16);
         cpu.memory.load(0x0)
     });
 }
@@ -108,7 +108,7 @@ fn inc_2() {
 fn inc_3() {
     inc_base_3(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.inc(0x0);
+        cpu.inc(0x0_u16);
         cpu.memory.load(0x0)
     });
 }
@@ -117,7 +117,7 @@ fn inc_3() {
 fn dec_1() {
     dec_base_1(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.dec(0x0);
+        cpu.dec(0x0_u16);
         cpu.memory.load(0x0)
     });
 }
@@ -126,7 +126,7 @@ fn dec_1() {
 fn dec_2() {
     dec_base_2(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.dec(0x0);
+        cpu.dec(0x0_u16);
         cpu.memory.load(0x0)
     });
 }
@@ -135,7 +135,7 @@ fn dec_2() {
 fn dec_3() {
     dec_base_3(|ref mut cpu, val| {
         cpu.memory.store(0x0, val);
-        cpu.dec(0x0);
+        cpu.dec(0x0_u16);
         cpu.memory.load(0x0)
     });
 }

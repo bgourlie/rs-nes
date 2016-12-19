@@ -40,6 +40,7 @@ mod functional_tests;
 pub mod debugger;
 mod registers;
 mod addressing;
+mod opcodes;
 
 use std::num::Wrapping;
 
@@ -1061,12 +1062,12 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.registers.set_acc(res);
     }
 
-    fn adc<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn adc<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         self.adc_base(rop);
     }
 
-    fn sbc<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn sbc<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let rop = !rop;
         self.adc_base(rop);
@@ -1078,19 +1079,19 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.registers.set_sign_and_zero_flag(res as u8);
     }
 
-    fn cmp<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn cmp<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let lop = self.registers.acc;
         self.cmp_base(lop, rop);
     }
 
-    fn cpx<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn cpx<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let lop = self.registers.x;
         self.cmp_base(lop, rop);
     }
 
-    fn cpy<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn cpy<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let lop = self.registers.y;
         self.cmp_base(lop, rop);
@@ -1098,7 +1099,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     /// ## Increments and Decrements
 
-    fn inc<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn inc<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let val = addr.read(self);
         let val = (Wrapping(val) + Wrapping(1)).0;
         addr.write(self, val);
@@ -1117,7 +1118,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.registers.set_sign_and_zero_flag(y);
     }
 
-    fn dec<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn dec<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let val = addr.read(self);
         let val = (Wrapping(val) - Wrapping(1)).0;
         addr.write(self, val);
@@ -1138,7 +1139,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     /// ## Shifts
 
-    fn shift_left<T: AddressWriter<Mem, D>>(&mut self, addr: T, lsb: bool) {
+    fn shift_left<T: AddressingMode<Mem, D>>(&mut self, addr: T, lsb: bool) {
         let val = addr.read(self);
         let carry = (val & 0x80) != 0;
         let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
@@ -1147,7 +1148,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         addr.write(self, res);
     }
 
-    fn shift_right<T: AddressWriter<Mem, D>>(&mut self, addr: T, msb: bool) {
+    fn shift_right<T: AddressingMode<Mem, D>>(&mut self, addr: T, msb: bool) {
         let val = addr.read(self);
         let carry = (val & 0x1) != 0;
         let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };
@@ -1156,20 +1157,20 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         addr.write(self, res);
     }
 
-    fn asl<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn asl<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         self.shift_left(addr, false)
     }
 
-    fn lsr<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn lsr<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         self.shift_right(addr, false)
     }
 
-    fn rol<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn rol<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let carry_set = self.registers.carry_flag();
         self.shift_left(addr, carry_set)
     }
 
-    fn ror<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn ror<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let carry_set = self.registers.carry_flag();
         self.shift_right(addr, carry_set)
     }
@@ -1293,62 +1294,62 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     /// ## Load/Store Operations
 
-    fn lda<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn lda<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let val = val.read(self);
         self.registers.set_acc(val);
     }
 
-    fn ldx<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn ldx<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let val = val.read(self);
         self.registers.x = val;
         self.registers.set_sign_and_zero_flag(val);
     }
 
-    fn ldy<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn ldy<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let val = val.read(self);
         self.registers.y = val;
         self.registers.set_sign_and_zero_flag(val);
     }
 
-    fn sta<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn sta<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let acc = self.registers.acc;
         addr.write(self, acc);
     }
 
-    fn stx<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn stx<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let x = self.registers.x;
         addr.write(self, x);
     }
 
-    fn sty<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
+    fn sty<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let y = self.registers.y;
         addr.write(self, y);
     }
 
     /// ## Logical (todo: tests)
 
-    fn and<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn and<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let lop = self.registers.acc;
         let res = lop & rop;
         self.registers.set_acc(res);
     }
 
-    fn eor<T: AddressReader<Mem, D>>(&mut self, val: T) {
+    fn eor<T: AddressingMode<Mem, D>>(&mut self, val: T) {
         let rop = val.read(self);
         let lop = self.registers.acc;
         let res = lop ^ rop;
         self.registers.set_acc(res);
     }
 
-    fn ora<T: AddressReader<Mem, D>>(&mut self, addr: T) {
+    fn ora<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let rop = addr.read(self);
         let lop = self.registers.acc;
         let res = lop | rop;
         self.registers.set_acc(res);
     }
 
-    fn bit<T: AddressReader<Mem, D>>(&mut self, addr: T) {
+    fn bit<T: AddressingMode<Mem, D>>(&mut self, addr: T) {
         let rop = addr.read(self);
         let lop = self.registers.acc;
         let res = lop & rop;
