@@ -13,7 +13,7 @@ use memory::*;
 
 pub trait AddressingMode<M: Memory, D: Debugger<M>> {
     fn read(&self, cpu: &Cpu<M, D>) -> u8;
-    fn write(&self, cpu: &mut Cpu<M, D>, val: u8) {
+    fn write(&self, _: &mut Cpu<M, D>, _: u8) {
         unimplemented!();
     }
 }
