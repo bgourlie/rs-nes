@@ -1,5 +1,4 @@
 use cpu::*;
-use constants::*;
 
 fn cmp_base_equal_flag_check<F>(setup_and_compare: F)
     where F: Fn(&mut TestCpu, u8, u8)
@@ -12,9 +11,9 @@ fn cmp_base_equal_flag_check<F>(setup_and_compare: F)
 
     setup_and_compare(&mut cpu, lop, rop);
 
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 fn cmp_base_less_than_flag_check<F>(setup_and_compare: F)
@@ -27,9 +26,9 @@ fn cmp_base_less_than_flag_check<F>(setup_and_compare: F)
 
     setup_and_compare(&mut cpu, lop, rop);
 
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(true, cpu.registers.sign_flag());
 }
 
 fn cmp_base_greater_than_flag_check<F>(setup_and_compare: F)
@@ -42,9 +41,9 @@ fn cmp_base_greater_than_flag_check<F>(setup_and_compare: F)
 
     setup_and_compare(&mut cpu, lop, rop);
 
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 

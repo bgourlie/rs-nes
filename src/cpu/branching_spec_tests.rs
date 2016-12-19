@@ -1,5 +1,4 @@
 use cpu::*;
-use constants::*;
 
 /// Generic branching tests
 
@@ -107,7 +106,7 @@ fn no_branch<F>(setup_and_branch: F)
 #[test]
 fn bcc_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, false);
+        cpu.registers.set_carry_flag(false);
         cpu.bcc(rel_addr)
     });
 }
@@ -115,7 +114,7 @@ fn bcc_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bcc_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, false);
+        cpu.registers.set_carry_flag(false);
         cpu.bcc(rel_addr)
     });
 }
@@ -123,7 +122,7 @@ fn bcc_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bcc_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, false);
+        cpu.registers.set_carry_flag(false);
         cpu.bcc(rel_addr)
     });
 }
@@ -131,7 +130,7 @@ fn bcc_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bcc_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, false);
+        cpu.registers.set_carry_flag(false);
         cpu.bcc(rel_addr)
     });
 }
@@ -139,7 +138,7 @@ fn bcc_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bcc_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, true);
+        cpu.registers.set_carry_flag(true);
         cpu.bcc(rel_addr)
     });
 }
@@ -150,7 +149,7 @@ fn bcc_test_no_branch() {
 #[test]
 fn bcs_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, true);
+        cpu.registers.set_carry_flag(true);
         cpu.bcs(rel_addr)
     });
 }
@@ -158,7 +157,7 @@ fn bcs_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bcs_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, true);
+        cpu.registers.set_carry_flag(true);
         cpu.bcs(rel_addr)
     });
 }
@@ -166,7 +165,7 @@ fn bcs_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bcs_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, true);
+        cpu.registers.set_carry_flag(true);
         cpu.bcs(rel_addr)
     });
 }
@@ -174,7 +173,7 @@ fn bcs_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bcs_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, true);
+        cpu.registers.set_carry_flag(true);
         cpu.bcs(rel_addr)
     });
 }
@@ -182,7 +181,7 @@ fn bcs_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bcs_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_CARRY, false);
+        cpu.registers.set_carry_flag(false);
         cpu.bcs(rel_addr)
     });
 }
@@ -193,7 +192,7 @@ fn bcs_test_no_branch() {
 #[test]
 fn beq_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, true);
+        cpu.registers.set_zero_flag(true);
         cpu.beq(rel_addr)
     });
 }
@@ -201,7 +200,7 @@ fn beq_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn beq_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, true);
+        cpu.registers.set_zero_flag(true);
         cpu.beq(rel_addr)
     });
 }
@@ -209,7 +208,7 @@ fn beq_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn beq_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, true);
+        cpu.registers.set_zero_flag(true);
         cpu.beq(rel_addr)
     });
 }
@@ -217,7 +216,7 @@ fn beq_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn beq_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, true);
+        cpu.registers.set_zero_flag(true);
         cpu.beq(rel_addr)
     });
 }
@@ -225,7 +224,7 @@ fn beq_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn beq_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, false);
+        cpu.registers.set_zero_flag(false);
         cpu.beq(rel_addr)
     });
 }
@@ -236,7 +235,7 @@ fn beq_test_no_branch() {
 #[test]
 fn bmi_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, true);
+        cpu.registers.set_sign_flag(true);
         cpu.bmi(rel_addr)
     });
 }
@@ -244,7 +243,7 @@ fn bmi_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bmi_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, true);
+        cpu.registers.set_sign_flag(true);
         cpu.bmi(rel_addr)
     });
 }
@@ -252,7 +251,7 @@ fn bmi_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bmi_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, true);
+        cpu.registers.set_sign_flag(true);
         cpu.bmi(rel_addr)
     });
 }
@@ -260,7 +259,7 @@ fn bmi_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bmi_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, true);
+        cpu.registers.set_sign_flag(true);
         cpu.bmi(rel_addr)
     });
 }
@@ -268,7 +267,7 @@ fn bmi_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bmi_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, false);
+        cpu.registers.set_sign_flag(false);
         cpu.bmi(rel_addr)
     });
 }
@@ -279,7 +278,7 @@ fn bmi_test_no_branch() {
 #[test]
 fn bne_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, false);
+        cpu.registers.set_zero_flag(false);
         cpu.bne(rel_addr)
     });
 }
@@ -287,7 +286,7 @@ fn bne_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bne_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, false);
+        cpu.registers.set_zero_flag(false);
         cpu.bne(rel_addr)
     });
 }
@@ -295,7 +294,7 @@ fn bne_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bne_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, false);
+        cpu.registers.set_zero_flag(false);
         cpu.bne(rel_addr)
     });
 }
@@ -303,7 +302,7 @@ fn bne_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bne_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, false);
+        cpu.registers.set_zero_flag(false);
         cpu.bne(rel_addr)
     });
 }
@@ -311,7 +310,7 @@ fn bne_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bne_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_ZERO, true);
+        cpu.registers.set_zero_flag(true);
         cpu.bne(rel_addr)
     });
 }
@@ -322,7 +321,7 @@ fn bne_test_no_branch() {
 #[test]
 fn bpl_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, false);
+        cpu.registers.set_sign_flag(false);
         cpu.bpl(rel_addr)
     });
 }
@@ -330,7 +329,7 @@ fn bpl_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bpl_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, false);
+        cpu.registers.set_sign_flag(false);
         cpu.bpl(rel_addr)
     });
 }
@@ -338,7 +337,7 @@ fn bpl_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bpl_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, false);
+        cpu.registers.set_sign_flag(false);
         cpu.bpl(rel_addr)
     });
 }
@@ -346,7 +345,7 @@ fn bpl_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bpl_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, false);
+        cpu.registers.set_sign_flag(false);
         cpu.bpl(rel_addr)
     });
 }
@@ -354,7 +353,7 @@ fn bpl_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bpl_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_SIGN, true);
+        cpu.registers.set_sign_flag(true);
         cpu.bpl(rel_addr)
     });
 }
@@ -365,7 +364,7 @@ fn bpl_test_no_branch() {
 #[test]
 fn bvc_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, false);
+        cpu.registers.set_overflow_flag(false);
         cpu.bvc(rel_addr)
     });
 }
@@ -373,7 +372,7 @@ fn bvc_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bvc_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, false);
+        cpu.registers.set_overflow_flag(false);
         cpu.bvc(rel_addr)
     });
 }
@@ -381,7 +380,7 @@ fn bvc_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bvc_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, false);
+        cpu.registers.set_overflow_flag(false);
         cpu.bvc(rel_addr)
     });
 }
@@ -389,7 +388,7 @@ fn bvc_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bvc_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, false);
+        cpu.registers.set_overflow_flag(false);
         cpu.bvc(rel_addr)
     });
 }
@@ -397,7 +396,7 @@ fn bvc_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bvc_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, true);
+        cpu.registers.set_overflow_flag(true);
         cpu.bvc(rel_addr)
     });
 }
@@ -408,7 +407,7 @@ fn bvc_test_no_branch() {
 #[test]
 fn bvs_test_branch_not_crossing_page_boundary_positive_rel_addr() {
     branch_not_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, true);
+        cpu.registers.set_overflow_flag(true);
         cpu.bvs(rel_addr)
     });
 }
@@ -416,7 +415,7 @@ fn bvs_test_branch_not_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bvs_test_branch_not_crossing_page_boundary_negative_rel_addr() {
     branch_not_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, true);
+        cpu.registers.set_overflow_flag(true);
         cpu.bvs(rel_addr)
     });
 }
@@ -424,7 +423,7 @@ fn bvs_test_branch_not_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bvs_test_branch_crossing_page_boundary_positive_rel_addr() {
     branch_crossing_page_boundary_positive_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, true);
+        cpu.registers.set_overflow_flag(true);
         cpu.bvs(rel_addr)
     });
 }
@@ -432,7 +431,7 @@ fn bvs_test_branch_crossing_page_boundary_positive_rel_addr() {
 #[test]
 fn bvs_test_branch_crossing_page_boundary_negative_rel_addr() {
     branch_crossing_page_boundary_negative_rel_addr(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, true);
+        cpu.registers.set_overflow_flag(true);
         cpu.bvs(rel_addr)
     });
 }
@@ -440,7 +439,7 @@ fn bvs_test_branch_crossing_page_boundary_negative_rel_addr() {
 #[test]
 fn bvs_test_no_branch() {
     no_branch(|ref mut cpu, rel_addr| {
-        cpu.registers.set_flag(FL_OVERFLOW, false);
+        cpu.registers.set_overflow_flag(false);
         cpu.bvs(rel_addr)
     });
 }
