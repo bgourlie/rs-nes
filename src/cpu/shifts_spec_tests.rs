@@ -1,6 +1,5 @@
 use cpu::*;
 use cpu::addressing::Accumulator;
-use constants::*;
 
 fn shift_left_base_1<F>(do_shift: F)
     where F: Fn(&mut TestCpu, u8) -> (u8, bool)
@@ -9,7 +8,7 @@ fn shift_left_base_1<F>(do_shift: F)
     const VAL: u8 = 0b10000001;
     let mut cpu = TestCpu::new_test();
 
-    cpu.registers.set_flag(FL_CARRY, true);
+    cpu.registers.set_carry_flag(true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
     if rotate {
@@ -18,9 +17,9 @@ fn shift_left_base_1<F>(do_shift: F)
         assert_eq!(0b00000010, result);
     }
 
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(false, cpu.registers.sign_flag());
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.zero_flag());
 }
 
 fn shift_left_base_2<F>(do_shift: F)
@@ -34,9 +33,9 @@ fn shift_left_base_2<F>(do_shift: F)
 
     assert_eq!(0b10000000, result);
 
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(true, cpu.registers.sign_flag());
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.zero_flag());
 }
 
 fn shift_left_base_3<F>(do_shift: F)
@@ -50,9 +49,9 @@ fn shift_left_base_3<F>(do_shift: F)
 
     assert_eq!(0b00000000, result);
 
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(false, cpu.registers.sign_flag());
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(true, cpu.registers.zero_flag());
 }
 
 fn shift_right_base_1<F>(do_shift: F)
@@ -63,19 +62,19 @@ fn shift_right_base_1<F>(do_shift: F)
 
     let mut cpu = TestCpu::new_test();
 
-    cpu.registers.set_flag(FL_CARRY, true);
+    cpu.registers.set_carry_flag(true);
     let (result, rotate) = do_shift(&mut cpu, VAL);
 
     if rotate {
         assert_eq!(0b11000000, result);
-        assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+        assert_eq!(true, cpu.registers.sign_flag());
     } else {
         assert_eq!(0b01000000, result);
-        assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+        assert_eq!(false, cpu.registers.sign_flag());
     }
 
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.zero_flag());
 }
 
 fn shift_right_base_2<F>(do_shift: F)
@@ -90,9 +89,9 @@ fn shift_right_base_2<F>(do_shift: F)
 
     assert_eq!(0b00100000, result);
 
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(false, cpu.registers.sign_flag());
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.zero_flag());
 }
 
 fn shift_right_base_3<F>(do_shift: F)
@@ -107,9 +106,9 @@ fn shift_right_base_3<F>(do_shift: F)
 
     assert_eq!(0b00000000, result);
 
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
+    assert_eq!(false, cpu.registers.sign_flag());
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(true, cpu.registers.zero_flag());
 }
 
 fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {

@@ -1022,9 +1022,8 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn php(&mut self) {
-        let stat = self.registers.status;
-        // Break and unused bits are always set when pushing to stack
-        self.push_stack(stat | FL_BRK | FL_UNUSED);
+        let stat = self.registers.status_for_stack();
+        self.push_stack(stat);
     }
 
     fn pla(&mut self) {
@@ -1034,9 +1033,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn plp(&mut self) {
         let val = self.pop_stack();
-        let stat = self.registers.status;
-        // Break and unused bits are always ignored when pulling from stack
-        self.registers.status = val | (stat & (FL_BRK | FL_UNUSED));
+        self.registers.set_status_from_stack(val);
     }
 
     /// ## Arithmetic
@@ -1044,11 +1041,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     fn adc_base(&mut self, rop: u8) {
         // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
         let lop = self.registers.acc;
-        let carry = if self.registers.get_flag(FL_CARRY) {
-            1
-        } else {
-            0
-        };
+        let carry = if self.registers.carry_flag() { 1 } else { 0 };
 
         // add using the native word size
         let res = carry + lop as isize + rop as isize;
@@ -1063,8 +1056,8 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         // the sign bit of the result differs from the two.
         let has_overflow = (lop ^ rop) & 0x80 == 0 && (lop ^ res) & 0x80 != 0;
 
-        self.registers.set_flag(FL_CARRY, has_carry);
-        self.registers.set_flag(FL_OVERFLOW, has_overflow);
+        self.registers.set_carry_flag(has_carry);
+        self.registers.set_overflow_flag(has_overflow);
         self.registers.set_acc(res);
     }
 
@@ -1081,7 +1074,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
 
     fn cmp_base(&mut self, lop: u8, rop: u8) {
         let res = lop as i32 - rop as i32;
-        self.registers.set_flag(FL_CARRY, res & 0x100 == 0);
+        self.registers.set_carry_flag(res & 0x100 == 0);
         self.registers.set_sign_and_zero_flag(res as u8);
     }
 
@@ -1149,7 +1142,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         let val = addr.read(self);
         let carry = (val & 0x80) != 0;
         let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
-        self.registers.set_flag(FL_CARRY, carry);
+        self.registers.set_carry_flag(carry);
         self.registers.set_sign_and_zero_flag(res);
         addr.write(self, res);
     }
@@ -1158,7 +1151,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         let val = addr.read(self);
         let carry = (val & 0x1) != 0;
         let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };
-        self.registers.set_flag(FL_CARRY, carry);
+        self.registers.set_carry_flag(carry);
         self.registers.set_sign_and_zero_flag(res);
         addr.write(self, res);
     }
@@ -1172,12 +1165,12 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn rol<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
-        let carry_set = self.registers.get_flag(FL_CARRY);
+        let carry_set = self.registers.carry_flag();
         self.shift_left(addr, carry_set)
     }
 
     fn ror<T: AddressWriter<Mem, D>>(&mut self, addr: T) {
-        let carry_set = self.registers.get_flag(FL_CARRY);
+        let carry_set = self.registers.carry_flag();
         self.shift_right(addr, carry_set)
     }
 
@@ -1229,73 +1222,73 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     fn bcc(&mut self, rel_addr: i8) -> u8 {
-        let carry_clear = !self.registers.get_flag(FL_CARRY);
+        let carry_clear = !self.registers.carry_flag();
         self.branch(carry_clear, rel_addr)
     }
 
     fn bcs(&mut self, rel_addr: i8) -> u8 {
-        let carry_set = self.registers.get_flag(FL_CARRY);
+        let carry_set = self.registers.carry_flag();
         self.branch(carry_set, rel_addr)
     }
 
     fn beq(&mut self, rel_addr: i8) -> u8 {
-        let zero_set = self.registers.get_flag(FL_ZERO);
+        let zero_set = self.registers.zero_flag();
         self.branch(zero_set, rel_addr)
     }
 
     fn bmi(&mut self, rel_addr: i8) -> u8 {
-        let sign_set = self.registers.get_flag(FL_SIGN);
+        let sign_set = self.registers.sign_flag();
         self.branch(sign_set, rel_addr)
     }
 
     fn bne(&mut self, rel_addr: i8) -> u8 {
-        let zero_clear = !self.registers.get_flag(FL_ZERO);
+        let zero_clear = !self.registers.zero_flag();
         self.branch(zero_clear, rel_addr)
     }
 
     fn bpl(&mut self, rel_addr: i8) -> u8 {
-        let sign_clear = !self.registers.get_flag(FL_SIGN);
+        let sign_clear = !self.registers.sign_flag();
         self.branch(sign_clear, rel_addr)
     }
 
     fn bvc(&mut self, rel_addr: i8) -> u8 {
-        let overflow_clear = !self.registers.get_flag(FL_OVERFLOW);
+        let overflow_clear = !self.registers.overflow_flag();
         self.branch(overflow_clear, rel_addr)
     }
 
     fn bvs(&mut self, rel_addr: i8) -> u8 {
-        let overflow_set = self.registers.get_flag(FL_OVERFLOW);
+        let overflow_set = self.registers.overflow_flag();
         self.branch(overflow_set, rel_addr)
     }
 
     /// Status Flag Changes
 
     fn clc(&mut self) {
-        self.registers.set_flag(FL_CARRY, false);
+        self.registers.set_carry_flag(false);
     }
 
     fn cld(&mut self) {
-        self.registers.set_flag(FL_DECIMAL, false);
+        self.registers.set_decimal_flag(false);
     }
 
     fn cli(&mut self) {
-        self.registers.set_flag(FL_INTERRUPT_DISABLE, false);
+        self.registers.set_interrupt_disable_flag(false);
     }
 
     fn clv(&mut self) {
-        self.registers.set_flag(FL_OVERFLOW, false);
+        self.registers.set_overflow_flag(false);
     }
 
     fn sec(&mut self) {
-        self.registers.set_flag(FL_CARRY, true);
+        self.registers.set_carry_flag(true);
     }
 
     fn sed(&mut self) {
-        self.registers.set_flag(FL_DECIMAL, true);
+        self.registers.set_decimal_flag(true);
     }
 
     fn sei(&mut self) {
-        self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
+        self.registers.set_interrupt_disable_flag(true);
     }
 
     /// ## Load/Store Operations
@@ -1360,9 +1353,9 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         let lop = self.registers.acc;
         let res = lop & rop;
 
-        self.registers.set_flag(FL_ZERO, res == 0);
-        self.registers.set_flag(FL_OVERFLOW, rop & 0x40 != 0);
-        self.registers.set_flag(FL_SIGN, rop & 0x80 != 0);
+        self.registers.set_zero_flag(res == 0);
+        self.registers.set_overflow_flag(rop & 0x40 != 0);
+        self.registers.set_sign_flag(rop & 0x80 != 0);
     }
 
     /// ## System Functions (todo: tests)
@@ -1374,7 +1367,7 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.push_stack(status);
         let irq_handler = self.memory.load16(BRK_VECTOR);
         self.registers.pc = irq_handler;
-        self.registers.set_flag(FL_INTERRUPT_DISABLE, true);
+        self.registers.set_interrupt_disable_flag(true);
     }
 
     fn nop(&mut self) {}

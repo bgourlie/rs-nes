@@ -1,5 +1,4 @@
 use cpu::*;
-use constants::*;
 
 #[test]
 fn lda_value_set() {
@@ -12,22 +11,22 @@ fn lda_value_set() {
 fn lda_flags_sign_and_zero_1() {
     let mut cpu = TestCpu::new_test();
     cpu.lda(0x0_u8);
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 #[test]
 fn lda_flags_sign_and_zero_2() {
     let mut cpu = TestCpu::new_test();
     cpu.lda(0x1_u8);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 #[test]
 fn lda_flags_sign_and_zero_3() {
     let mut cpu = TestCpu::new_test();
     cpu.lda(0x80_u8);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.sign_flag());
 }

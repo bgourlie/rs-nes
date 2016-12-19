@@ -1,5 +1,4 @@
 use cpu::*;
-use constants::*;
 
 /// ## Sign and zero flag tests
 ///
@@ -21,8 +20,8 @@ fn sbc_flags_sign_and_zero_1() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
     assert_eq!(0x0, cpu.registers.acc);
 
     // decimal values sannity check
@@ -48,8 +47,8 @@ fn sbc_flags_sign_and_zero_2() {
     cpu.lda(LOP);
     cpu.sbc(ROP);
     assert_eq!(0x0, cpu.registers.acc);
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 
     // decimal values sannity check
     assert_eq!(0, cpu.registers.acc);
@@ -73,8 +72,8 @@ fn sbc_flags_sign_and_zero_3() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.sign_flag());
     assert_eq!(0xff, cpu.registers.acc);
 
     // decimal values sannity check
@@ -114,8 +113,8 @@ fn sbc_flags_carry_and_overflow_1() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0x60, cpu.registers.acc);
 
     // decimal values sanity check
@@ -140,8 +139,8 @@ fn sbc_flags_carry_and_overflow_2() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(true, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(true, cpu.registers.overflow_flag());
     assert_eq!(0xa0, cpu.registers.acc);
 
     // decimal values sanity check
@@ -166,8 +165,8 @@ fn sbc_flags_carry_and_overflow_3() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0xe0, cpu.registers.acc);
 
     // decimal values sanity check
@@ -192,8 +191,8 @@ fn sbc_flags_carry_and_overflow_4() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0x20, cpu.registers.acc);
 
     // decimal values sanity check
@@ -218,8 +217,8 @@ fn sbc_flags_carry_and_overflow_5() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(false, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(false, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0xe0, cpu.registers.acc);
 
     // decimal values sanity check
@@ -244,8 +243,8 @@ fn sbc_flags_carry_and_overflow_6() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0x20, cpu.registers.acc);
 
     // decimal values sanity check
@@ -270,8 +269,8 @@ fn sbc_flags_carry_and_overflow_7() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(true, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(true, cpu.registers.overflow_flag());
     assert_eq!(0x60, cpu.registers.acc);
 
     // decimal values sanity check
@@ -296,8 +295,8 @@ fn sbc_flags_carry_and_overflow_8() {
 
     cpu.lda(LOP);
     cpu.sbc(ROP);
-    assert_eq!(true, cpu.registers.get_flag(FL_CARRY));
-    assert_eq!(false, cpu.registers.get_flag(FL_OVERFLOW));
+    assert_eq!(true, cpu.registers.carry_flag());
+    assert_eq!(false, cpu.registers.overflow_flag());
     assert_eq!(0xa0, cpu.registers.acc);
 
     // decimal values sanity check

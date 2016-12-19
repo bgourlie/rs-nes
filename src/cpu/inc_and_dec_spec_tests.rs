@@ -1,6 +1,5 @@
 use cpu::*;
 use memory::*;
-use constants::*;
 
 fn inc_base_1<F>(inc: F)
     where F: Fn(&mut TestCpu, u8) -> u8
@@ -10,8 +9,8 @@ fn inc_base_1<F>(inc: F)
     let val = inc(&mut cpu, 1);
 
     assert_eq!(2, val);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 fn inc_base_2<F>(inc: F)
@@ -22,8 +21,8 @@ fn inc_base_2<F>(inc: F)
     let val = inc(&mut cpu, 0xff);
 
     assert_eq!(0, val);
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 fn inc_base_3<F>(inc: F)
@@ -39,8 +38,8 @@ fn inc_base_3<F>(inc: F)
     let val = inc(&mut cpu, ORIG_VAL);
 
     assert_eq!(-1, val as i8);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.sign_flag());
 }
 
 fn dec_base_1<F>(dec: F)
@@ -52,8 +51,8 @@ fn dec_base_1<F>(dec: F)
     let val = dec(&mut cpu, 1);
 
     assert_eq!(0, val);
-    assert_eq!(true, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(true, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 fn dec_base_2<F>(dec: F)
@@ -65,8 +64,8 @@ fn dec_base_2<F>(dec: F)
     let val = dec(&mut cpu, 0x2);
 
     assert_eq!(1, val);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(false, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(false, cpu.registers.sign_flag());
 }
 
 fn dec_base_3<F>(dec: F)
@@ -83,8 +82,8 @@ fn dec_base_3<F>(dec: F)
     let val = dec(&mut cpu, ORIG_VAL);
 
     assert_eq!(-3, val as i8);
-    assert_eq!(false, cpu.registers.get_flag(FL_ZERO));
-    assert_eq!(true, cpu.registers.get_flag(FL_SIGN));
+    assert_eq!(false, cpu.registers.zero_flag());
+    assert_eq!(true, cpu.registers.sign_flag());
 }
 
 #[test]
