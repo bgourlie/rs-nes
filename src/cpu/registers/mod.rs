@@ -2,6 +2,15 @@ use std::fmt;
 
 use constants::*;
 
+pub const FL_CARRY: u8 = 0b00000001;
+pub const FL_ZERO: u8 = 0b00000010;
+pub const FL_INTERRUPT_DISABLE: u8 = 0b00000100;
+pub const FL_DECIMAL: u8 = 0b00001000;
+pub const FL_BRK: u8 = 0b00010000;
+pub const FL_UNUSED: u8 = 0b00100000;
+pub const FL_OVERFLOW: u8 = 0b01000000;
+pub const FL_SIGN: u8 = 0b10000000;
+
 #[derive(Clone, Serialize)]
 pub struct Registers {
     pub pc: u16, // Program Counter
@@ -24,6 +33,22 @@ impl Registers {
             y: 0,
             status: 0b00100100,
         }
+    }
+
+    pub fn carry_flag(&self) -> bool {
+        self.status & FL_CARRY != 0
+    }
+
+    pub fn zero_flag(&self) -> bool {
+        self.status & FL_ZERO != 0
+    }
+
+    pub fn interrupt_disable_flag(&self) -> bool {
+        self.status & FL_INTERRUPT_DISABLE != 0
+    }
+
+    pub fn decimal_flag(&self) -> bool {
+        self.status & FL_INTERRUPT_DISABLE != 0
     }
 
     pub fn get_flag(&self, mask: u8) -> bool {
