@@ -8,15 +8,12 @@ use cpu::addressing::AddressingMode;
 use memory::Memory;
 use super::OpCode;
 
-pub struct Adc<M, D, AM>
-    where M: Memory,
-          D: Debugger<M>,
-          AM: AddressingMode<M, D>
-{
+
+pub struct Adc<M, D, AM> {
     base_cycles: usize,
     addressing_mode: AM,
-    mem_phantom: PhantomData<M>,
-    debugger_phantom: PhantomData<D>
+    phantom_mem: PhantomData<M>,
+    phantom_debugger: PhantomData<D>,
 }
 
 impl<M, D, AM> Adc<M, D, AM>
@@ -28,8 +25,8 @@ impl<M, D, AM> Adc<M, D, AM>
         Adc {
             base_cycles: base_cycles,
             addressing_mode: addressing_mode,
-            mem_phantom: PhantomData,
-            debugger_phantom: PhantomData
+            phantom_mem: PhantomData,
+            phantom_debugger: PhantomData,
         }
     }
 }

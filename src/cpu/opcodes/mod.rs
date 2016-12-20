@@ -34,10 +34,9 @@ trait OpCode<M, D>
     fn execute(self, cpu: &mut Cpu<M, D>) -> usize;
 }
 
-fn decode_next<M, D, AM, OP>(cpu: &mut Cpu<M, D>) -> OP
+fn decode_next<M, D>(cpu: &mut Cpu<M, D>) -> usize
     where M: Memory,
-          D: Debugger<M>,
-          OP: OpCode<M, D>
+          D: Debugger<M>
 {
 
     let opcode = cpu.read_op();
@@ -291,28 +290,32 @@ fn decode_next<M, D, AM, OP>(cpu: &mut Cpu<M, D>) -> OP
         }
         0x69 => {
             let val = cpu.read_op();
-            let op: OP = Adc::new(base_cycles, val);
-            op
+            let op = Adc::new(base_cycles, val);
+            op.execute(cpu)
         }
         0x65 => {
             let addr = cpu.read_op() as u16;
-            Adc::new(base_cycles, addr)
+            let op = Adc::new(base_cycles, addr);
+            op.execute(cpu)
         }
         0x75 => {
             let base_addr = cpu.read_op();
             let addr = cpu.zpx_addr(base_addr);
-            Adc::new(base_cycles, addr)
+            let op = Adc::new(base_cycles, addr);
+            op.execute(cpu)
         }
         0x61 => {
             let base_addr = cpu.read_op();
             let addr = cpu.indexed_indirect_addr(base_addr);
-            Adc::new(base_cycles, addr)
+            let op = Adc::new(base_cycles, addr);
+            op.execute(cpu)
         }
         0x71 => {
             let base_addr = cpu.read_op();
             let addr = cpu.indirect_indexed_addr(base_addr);
-//            let page_crossed = page_crossed(base_addr as u16, addr);
-            Adc::new(base_cycles, addr)
+            //            let page_crossed = page_crossed(base_addr as u16, addr);
+            let op = Adc::new(base_cycles, addr);
+            op.execute(cpu)
             //            if page_crossed {
             //                base_cycles += 1;
             //            }
