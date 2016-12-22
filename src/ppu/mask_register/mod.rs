@@ -5,6 +5,7 @@ use std::ops::Deref;
 
 /// $2001, Write Only
 /// This register controls the rendering of sprites and backgrounds, as well as colour effects.
+#[derive(Copy, Clone)]
 pub struct MaskRegister {
     reg: u8,
 }
@@ -24,7 +25,7 @@ pub enum ColorMode {
 }
 
 impl MaskRegister {
-    fn new(reg: u8) -> Self {
+    pub fn new(reg: u8) -> Self {
         MaskRegister { reg: reg }
     }
 
@@ -41,45 +42,49 @@ impl MaskRegister {
         }
     }
 
-    fn background_render_leftmost_8_px(self) -> bool {
+    fn background_render_leftmost_8_px(&self) -> bool {
         let mask = 0b00000010;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn sprites_render_leftmost_8_px(self) -> bool {
+    fn sprites_render_leftmost_8_px(&self) -> bool {
         let mask = 0b00000100;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn show_background(self) -> bool {
+    fn show_background(&self) -> bool {
         let mask = 0b00001000;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn show_sprites(self) -> bool {
+    fn show_sprites(&self) -> bool {
         let mask = 0b00010000;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn emphasize_red(self) -> bool {
+    fn emphasize_red(&self) -> bool {
         let mask = 0b00100000;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn emphasize_green(self) -> bool {
+    fn emphasize_green(&self) -> bool {
         let mask = 0b01000000;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
     }
 
-    fn emphasize_blue(self) -> bool {
+    fn emphasize_blue(&self) -> bool {
         let mask = 0b10000000;
-        let reg = *self;
+        let reg = **self;
         reg & mask > 0
+    }
+
+    pub fn set(&mut self, val: u8) {
+        self.reg = val;
     }
 }

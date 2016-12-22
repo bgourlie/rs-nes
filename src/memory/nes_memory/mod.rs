@@ -1,11 +1,13 @@
 use std::io::Write;
 use seahash;
 use rom::NesRom;
+use ppu::Ppu;
 use super::Memory;
 
 pub struct NesMemory {
     ram: [u8; 0x800],
     rom: NesRom,
+    ppu: Ppu,
 }
 
 impl NesMemory {
@@ -13,6 +15,7 @@ impl NesMemory {
         NesMemory {
             ram: [0_u8; 0x800],
             rom: rom,
+            ppu: Ppu::new(),
         }
     }
 }
@@ -24,6 +27,7 @@ impl Clone for NesMemory {
         NesMemory {
             ram: new_ram,
             rom: self.rom.clone(),
+            ppu: self.ppu.clone(),
         }
     }
 }
@@ -31,10 +35,10 @@ impl Clone for NesMemory {
 // Currently NROM only
 impl Memory for NesMemory {
     fn store(&mut self, address: u16, value: u8) {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff] = value;
-        } else if address < 0x8000 {
-            panic!("I don't think this is a valid store address (unless prg ram?)");
+        match address {
+            0x0...0x1fff => self.ram[address as usize & 0x7ff] = value,
+            0x2000...0x3fff => self.ppu.memory_mapped_register_write(address, value),
+            _ => unimplemented!(),
         }
     }
 

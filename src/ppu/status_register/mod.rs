@@ -18,7 +18,8 @@ use std::ops::Deref;
 ///   which will wait for the pre-render scanline to begin.
 ///
 /// - If using sprite 0 hit to make a bottom scroll bar below a vertically scrolling or
-///   freely scrolling playfield, be careful to ensure that the tile in the playfield behind sprite 0 is opaque.
+///   freely scrolling playfield, be careful to ensure that the tile in the playfield behind sprite
+///   0 is opaque.
 ///
 /// - Sprite 0 hit is not detected at x=255, nor is it detected at x=0 through 7 if the background
 ///   or sprites are hidden in this area.
@@ -29,6 +30,7 @@ use std::ops::Deref;
 ///
 /// - Caution: Reading PPUSTATUS at the exact start of vertical blank will return 0 in bit 7 but
 ///   clear the latch anyway, causing the program to miss frames. See NMI for details.
+#[derive(Copy, Clone)]
 pub struct StatusRegister {
     reg: u8,
 }
@@ -42,7 +44,7 @@ impl Deref for StatusRegister {
 }
 
 impl StatusRegister {
-    fn new(reg: u8) -> Self {
+    pub fn new(reg: u8) -> Self {
         StatusRegister { reg: reg }
     }
 
