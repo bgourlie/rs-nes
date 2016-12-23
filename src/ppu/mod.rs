@@ -5,6 +5,7 @@ mod control_register;
 mod mask_register;
 mod status_register;
 
+use std::io::Write;
 use self::control_register::ControlRegister;
 use self::mask_register::MaskRegister;
 use self::status_register::StatusRegister;
@@ -52,5 +53,19 @@ impl Ppu {
             0x7 => self.vram_data = val,
             _ => panic!("impossible"),
         }
+    }
+
+    /// Dump register memory
+    pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
+        let regs = [*self.ctrl_reg,
+                    *self.mask_reg,
+                    *self.status_reg,
+                    self.oam_addr,
+                    self.oam_data,
+                    self.scroll,
+                    self.vram_addr,
+                    self.vram_data];
+
+        writer.write(&regs).unwrap()
     }
 }

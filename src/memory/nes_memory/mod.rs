@@ -55,11 +55,20 @@ impl Memory for NesMemory {
     }
 
     fn dump<T: Write>(&self, writer: &mut T) {
-        writer.write(&self.ram).unwrap();
+        // 0x0 to 0x1fff
+        for _ in 0..4 {
+            writer.write(&self.ram).unwrap();
+        }
 
-        // A bunch of stuff does actually live here that's not implemented yet
-        writer.write(&[0_u8; 0x7800]).unwrap();
+        // 0x2000 to 0x3fff
+        for _ in 0..1024 {
+            bytes_read += self.ppu.dump_registers(writer);
+        }
 
+        // 0x4000 to 0x401f (APU and IO regs placeholder)
+        writer.write(&[0_u8; 0x20]).unwrap();
+
+        // 0x4020 to 0xFFFF
         if self.rom.prg.len() > 0x4000 {
             writer.write(&self.rom.prg).unwrap();
         } else {
@@ -67,6 +76,9 @@ impl Memory for NesMemory {
             writer.write(&self.rom.prg).unwrap();
             writer.write(&self.rom.prg).unwrap();
         }
+
+        // A temporary hack to pad the end of the rom so that we will the entire address space
+        writer.write(&[0_u8; 16352]).unwrap();
     }
 
     fn hash(&self) -> u64 {
