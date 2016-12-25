@@ -43,14 +43,17 @@ impl Memory for NesMemory {
     }
 
     fn load(&self, address: u16) -> u8 {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff]
-        } else if address < 0x8000 {
-            0x0
-        } else if self.rom.prg.len() > 16384 {
-            self.rom.prg[address as usize & 0x7fff]
-        } else {
-            self.rom.prg[address as usize & 0x3fff]
+        match address {
+            0x0...0x1fff => self.ram[address as usize & 0x7ff],
+            0x2000...0x3fff => self.ppu.memory_mapped_register_read(address),
+            0x4000...0x7fff => 0,
+            _ => {
+                if self.rom.prg.len() > 16384 {
+                    self.rom.prg[address as usize & 0x7fff]
+                } else {
+                    self.rom.prg[address as usize & 0x3fff]
+                }
+            }
         }
     }
 

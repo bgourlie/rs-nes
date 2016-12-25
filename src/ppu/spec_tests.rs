@@ -1,4 +1,5 @@
 use super::Ppu;
+use super::StatusRegister;
 
 #[test]
 fn memory_mapped_register_write_test() {
@@ -77,4 +78,85 @@ fn memory_mapped_register_write_test() {
 
     ppu.memory_mapped_register_write(0x3fff, 0x15);
     assert_eq!(0x15, ppu.vram_data);
+}
+
+#[test]
+fn memory_mapped_register_read_test() {
+    let mut ppu = Ppu::new();
+
+    ppu.ctrl_reg.set(0xf0);
+    assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
+
+    ppu.mask_reg.set(0xf1);
+    assert_eq!(0xf1, ppu.memory_mapped_register_read(0x2001));
+
+    ppu.status_reg = StatusRegister::new(0xf2);
+    assert_eq!(0xf2, ppu.memory_mapped_register_read(0x2002));
+
+    ppu.oam_addr = 0xf3;
+    assert_eq!(0, ppu.memory_mapped_register_read(0x2003)); // write-only, should always read 0
+
+    ppu.oam_data = 0xf4;
+    assert_eq!(0xf4, ppu.memory_mapped_register_read(0x2004));
+
+    ppu.scroll = 0xf5;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x2005)); // write-only, should always read 0
+
+    ppu.vram_addr = 0xf6;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x2006)); // write-only, should always read 0
+
+    ppu.vram_data = 0xf7;
+    assert_eq!(0xf7, ppu.memory_mapped_register_read(0x2007));
+
+    // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
+
+    ppu.ctrl_reg.set(0xe0);
+    assert_eq!(0xe0, ppu.memory_mapped_register_read(0x2008));
+
+    ppu.mask_reg.set(0xe1);
+    assert_eq!(0xe1, ppu.memory_mapped_register_read(0x2009));
+
+    ppu.status_reg = StatusRegister::new(0xe2);
+    assert_eq!(0xe2, ppu.memory_mapped_register_read(0x200a));
+
+    ppu.oam_addr = 0xe3;
+    assert_eq!(0, ppu.memory_mapped_register_read(0x200b)); // write-only, should always read 0
+
+    ppu.oam_data = 0xe4;
+    assert_eq!(0xe4, ppu.memory_mapped_register_read(0x200c));
+
+    ppu.scroll = 0xe5;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x200d)); // write-only, should always read 0
+
+    ppu.vram_addr = 0xe6;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x200e)); // write-only, should always read 0
+
+    ppu.vram_data = 0xe7;
+    assert_eq!(0xe7, ppu.memory_mapped_register_read(0x200f));
+
+    // Test mirroring on the tail end of the valid address space
+
+    ppu.ctrl_reg.set(0xd0);
+    assert_eq!(0xd0, ppu.memory_mapped_register_read(0x3ff8));
+
+    ppu.mask_reg.set(0xd1);
+    assert_eq!(0xd1, ppu.memory_mapped_register_read(0x3ff9));
+
+    ppu.status_reg = StatusRegister::new(0xd2);
+    assert_eq!(0xd2, ppu.memory_mapped_register_read(0x3ffa));
+
+    ppu.oam_addr = 0xd3;
+    assert_eq!(0, ppu.memory_mapped_register_read(0x3ffb)); // write-only, should always read 0
+
+    ppu.oam_data = 0xd4;
+    assert_eq!(0xd4, ppu.memory_mapped_register_read(0x3ffc));
+
+    ppu.scroll = 0xd5;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffd)); // write-only, should always read 0
+
+    ppu.vram_addr = 0xd6;
+    assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffe)); // write-only, should always read 0
+
+    ppu.vram_data = 0xd7;
+    assert_eq!(0xd7, ppu.memory_mapped_register_read(0x3fff));
 }

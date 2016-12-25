@@ -55,6 +55,21 @@ impl Ppu {
         }
     }
 
+    /// Accepts a PPU memory mapped address and returns the value
+    pub fn memory_mapped_register_read(&self, addr: u16) -> u8 {
+        debug_assert!(addr >= 0x2000 && addr < 0x4000,
+                      "Invalid memory mapped ppu address");
+        match addr & 7 {
+            0x0 => *self.ctrl_reg,
+            0x1 => *self.mask_reg,
+            0x2 => *self.status_reg,
+            0x4 => self.oam_data,
+            0x7 => self.vram_data,
+            0x3 | 0x5 | 0x6 => 0, // Write-only
+            _ => panic!("impossible"),
+        }
+    }
+
     /// Dump register memory
     pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
         let regs = [*self.ctrl_reg,
