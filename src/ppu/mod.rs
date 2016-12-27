@@ -7,6 +7,7 @@ mod status_register;
 mod object_attribute_memory;
 
 use std::io::Write;
+use std::cell::RefCell;
 use self::object_attribute_memory::ObjectAttributeMemory;
 use self::control_register::ControlRegister;
 use self::mask_register::MaskRegister;
@@ -17,14 +18,12 @@ pub struct Ppu {
     ctrl_reg: ControlRegister,
     mask_reg: MaskRegister,
     status_reg: StatusRegister,
-    oam_addr: u8,
-    oam_data: u8,
     scroll: u8,
     vram_addr: u8,
     vram_data: u8,
     oam_dma: u8,
     cycles: usize,
-    oam: ObjectAttributeMemory,
+    oam: RefCell<ObjectAttributeMemory>,
 }
 
 impl Ppu {
@@ -33,14 +32,12 @@ impl Ppu {
             ctrl_reg: ControlRegister::new(0),
             mask_reg: MaskRegister::new(0),
             status_reg: StatusRegister::new(0),
-            oam_addr: 0,
-            oam_data: 0,
             scroll: 0,
             vram_addr: 0,
             vram_data: 0,
             oam_dma: 0,
             cycles: 0,
-            oam: ObjectAttributeMemory::new(),
+            oam: RefCell::new(ObjectAttributeMemory::new()),
         }
     }
 
@@ -52,8 +49,8 @@ impl Ppu {
             0x0 => self.ctrl_reg.set(val),
             0x1 => self.mask_reg.set(val),
             0x2 => (), // readonly
-            0x3 => self.oam_addr = val,
-            0x4 => self.oam_data = val,
+            0x3 => self.oam_set_address(val),
+            0x4 => self.oam_write_data(val),
             0x5 => self.scroll = val,
             0x6 => self.vram_addr = val,
             0x7 => self.vram_data = val,
@@ -69,22 +66,45 @@ impl Ppu {
             0x0 => *self.ctrl_reg,
             0x1 => *self.mask_reg,
             0x2 => *self.status_reg,
-            0x4 => self.oam_data,
+            0x4 => self.oam_read_data(),
             0x7 => self.vram_data,
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
         }
     }
 
+    fn oam_read_data(&self) -> u8 {
+        let mut oam = self.oam.borrow_mut();
+        oam.read_data_increment_addr()
+    }
+
+    fn oam_write_data(&self, data: u8) {
+        let mut oam = self.oam.borrow_mut();
+        oam.write_data(data);
+    }
+
+    fn oam_set_address(&self, address: u8) {
+        let mut oam = self.oam.borrow_mut();
+        oam.set_address(address);
+    }
+
+    #[cfg(test)]
+    fn oam_address(&self) -> u8 {
+        let oam = self.oam.borrow();
+        oam.address()
+    }
+
     /// Dump register memory
     pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
+        let oam = self.oam.borrow();
+
         let regs = [*self.ctrl_reg,
                     *self.mask_reg,
                     *self.status_reg,
-                    self.oam_addr,
-                    self.oam_data,
-                    self.scroll,
-                    self.vram_addr,
+                    0, // Write-only
+                    oam.read_data(),
+                    0, // Write-only
+                    0, // Write-only
                     self.vram_data];
 
         writer.write(&regs).unwrap()
