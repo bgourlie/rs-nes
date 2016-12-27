@@ -20,3 +20,4 @@ pub mod rom;
 pub mod memory;
 pub mod cpu;
 pub mod disassembler;
+pub mod ppu;

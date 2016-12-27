@@ -1,11 +1,13 @@
 use std::io::Write;
 use seahash;
 use rom::NesRom;
+use ppu::Ppu;
 use super::Memory;
 
 pub struct NesMemory {
     ram: [u8; 0x800],
     rom: NesRom,
+    ppu: Ppu,
 }
 
 impl NesMemory {
@@ -13,6 +15,7 @@ impl NesMemory {
         NesMemory {
             ram: [0_u8; 0x800],
             rom: rom,
+            ppu: Ppu::new(),
         }
     }
 }
@@ -24,6 +27,7 @@ impl Clone for NesMemory {
         NesMemory {
             ram: new_ram,
             rom: self.rom.clone(),
+            ppu: self.ppu.clone(),
         }
     }
 }
@@ -31,31 +35,46 @@ impl Clone for NesMemory {
 // Currently NROM only
 impl Memory for NesMemory {
     fn store(&mut self, address: u16, value: u8) {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff] = value;
-        } else if address < 0x8000 {
-            panic!("I don't think this is a valid store address (unless prg ram?)");
+        match address {
+            0x0...0x1fff => self.ram[address as usize & 0x7ff] = value,
+            0x2000...0x3fff => self.ppu.memory_mapped_register_write(address, value),
+            _ => unimplemented!(),
         }
     }
 
     fn load(&self, address: u16) -> u8 {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff]
-        } else if address < 0x8000 {
-            0x0
-        } else if self.rom.prg.len() > 16384 {
-            self.rom.prg[address as usize & 0x7fff]
-        } else {
-            self.rom.prg[address as usize & 0x3fff]
+        match address {
+            0x0...0x1fff => self.ram[address as usize & 0x7ff],
+            0x2000...0x3fff => self.ppu.memory_mapped_register_read(address),
+            0x4000...0x7fff => 0,
+            _ => {
+                if self.rom.prg.len() > 16384 {
+                    self.rom.prg[address as usize & 0x7fff]
+                } else {
+                    self.rom.prg[address as usize & 0x3fff]
+                }
+            }
         }
     }
 
     fn dump<T: Write>(&self, writer: &mut T) {
-        writer.write(&self.ram).unwrap();
+        // 0x0 to 0x1fff
+        for _ in 0..4 {
+            writer.write(&self.ram).unwrap();
+        }
 
-        // A bunch of stuff does actually live here that's not implemented yet
-        writer.write(&[0_u8; 0x7800]).unwrap();
+        // 0x2000 to 0x3fff
+        for _ in 0..1024 {
+            self.ppu.dump_registers(writer);
+        }
 
+        // 0x4000 to 0x401f (APU and IO regs placeholder)
+        writer.write(&[0_u8; 0x20]).unwrap();
+
+        // Not sure what goes here, but gotta pad it for now to have correct ROM size
+        writer.write(&[0_u8; 16352]).unwrap();
+
+        // 0x6000 to 0xFFFF
         if self.rom.prg.len() > 0x4000 {
             writer.write(&self.rom.prg).unwrap();
         } else {
@@ -63,6 +82,7 @@ impl Memory for NesMemory {
             writer.write(&self.rom.prg).unwrap();
             writer.write(&self.rom.prg).unwrap();
         }
+
     }
 
     fn hash(&self) -> u64 {
