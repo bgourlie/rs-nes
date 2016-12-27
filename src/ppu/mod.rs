@@ -4,6 +4,7 @@ mod spec_tests;
 mod control_register;
 mod mask_register;
 mod status_register;
+mod object_attribute_memory;
 
 use std::io::Write;
 use self::control_register::ControlRegister;
@@ -12,15 +13,16 @@ use self::status_register::StatusRegister;
 
 #[derive(Clone)]
 pub struct Ppu {
-    ctrl_reg: ControlRegister, // 0x2000
-    mask_reg: MaskRegister, // 0x2001
-    status_reg: StatusRegister, // 0x2002
-    oam_addr: u8, // 0x2003
-    oam_data: u8, // 0x2004
-    scroll: u8, // 0x2005
-    vram_addr: u8, // 0x2006
-    vram_data: u8, // 0x2007
-    oam_dma: u8, // 0x4014
+    ctrl_reg: ControlRegister,
+    mask_reg: MaskRegister,
+    status_reg: StatusRegister,
+    oam_addr: u8,
+    oam_data: u8,
+    scroll: u8,
+    vram_addr: u8,
+    vram_data: u8,
+    oam_dma: u8,
+    cycles: usize,
 }
 
 impl Ppu {
@@ -35,6 +37,7 @@ impl Ppu {
             vram_addr: 0,
             vram_data: 0,
             oam_dma: 0,
+            cycles: 0,
         }
     }
 
