@@ -7,6 +7,7 @@ mod status_register;
 mod object_attribute_memory;
 
 use std::io::Write;
+use self::object_attribute_memory::ObjectAttributeMemory;
 use self::control_register::ControlRegister;
 use self::mask_register::MaskRegister;
 use self::status_register::StatusRegister;
@@ -23,6 +24,7 @@ pub struct Ppu {
     vram_data: u8,
     oam_dma: u8,
     cycles: usize,
+    oam: ObjectAttributeMemory,
 }
 
 impl Ppu {
@@ -38,6 +40,7 @@ impl Ppu {
             vram_data: 0,
             oam_dma: 0,
             cycles: 0,
+            oam: ObjectAttributeMemory::new(),
         }
     }
 
