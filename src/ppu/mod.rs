@@ -21,7 +21,6 @@ pub struct Ppu {
     scroll: u8,
     vram_addr: u8,
     vram_data: u8,
-    oam_dma: u8,
     cycles: usize,
     oam: RefCell<ObjectAttributeMemory>,
 }
@@ -35,7 +34,6 @@ impl Ppu {
             scroll: 0,
             vram_addr: 0,
             vram_data: 0,
-            oam_dma: 0,
             cycles: 0,
             oam: RefCell::new(ObjectAttributeMemory::new()),
         }
