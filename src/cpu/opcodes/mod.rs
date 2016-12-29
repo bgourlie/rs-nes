@@ -2,16 +2,17 @@ mod adc;
 
 use cpu::Cpu;
 use memory::Memory;
+use cpu::addressing;
 use super::debugger::Debugger;
 
 pub trait Instruction<M, D>
     where M: Memory,
           D: Debugger<M>
 {
-    fn execute(self, cpu: &mut Cpu<M, D>);
+    fn execute<AM: addressing::AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>);
 }
 
-enum AddressingMode {
+pub enum AddressingMode {
     Implied,
     Accumulator,
     Immediate,
@@ -27,7 +28,7 @@ enum AddressingMode {
     Indirect,
 }
 
-enum OpCode {
+pub enum OpCode {
     Adc,
     And,
     Asl,
@@ -86,11 +87,8 @@ enum OpCode {
     Tya,
 }
 
-fn decode<M, D>(cpu: &mut Cpu<M, D>) -> (OpCode, AddressingMode)
-    where M: Memory,
-          D: Debugger<M>
-{
-    match cpu.read_op() {
+pub fn decode(byte: u8) -> (OpCode, AddressingMode) {
+    match byte {
         0xe8 => (OpCode::Inx, AddressingMode::Implied),
         0xca => (OpCode::Dex, AddressingMode::Implied),
         0xc8 => (OpCode::Iny, AddressingMode::Implied),

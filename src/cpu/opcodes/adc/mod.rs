@@ -5,35 +5,15 @@ use cpu::addressing::AddressingMode;
 use memory::Memory;
 use super::Instruction;
 
+pub struct Adc;
 
-pub struct Adc<M, D, AM> {
-    addressing_mode: AM,
-    phantom_mem: PhantomData<M>,
-    phantom_debugger: PhantomData<D>,
-}
-
-impl<M, D, AM> Adc<M, D, AM>
+impl<M, D> Instruction<M, D> for Adc
     where M: Memory,
-          D: Debugger<M>,
-          AM: AddressingMode<M, D>
+          D: Debugger<M>
 {
-    pub fn new(addressing_mode: AM) -> Self {
-        Adc {
-            addressing_mode: addressing_mode,
-            phantom_mem: PhantomData,
-            phantom_debugger: PhantomData,
-        }
-    }
-}
-
-impl<M, D, AM> Instruction<M, D> for Adc<M, D, AM>
-    where M: Memory,
-          D: Debugger<M>,
-          AM: AddressingMode<M, D>
-{
-    fn execute(self, cpu: &mut Cpu<M, D>) {
+    fn execute<AM: AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>) {
         let left = cpu.registers.acc;
-        let right = self.addressing_mode.read(cpu);
+        let right = am.read(cpu);
         adc_base(cpu, left, right);
     }
 }

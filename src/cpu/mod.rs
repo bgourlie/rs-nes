@@ -8,7 +8,7 @@ use std::num::Wrapping;
 
 use self::debugger::*;
 use self::registers::*;
-use self::opcodes::Instruction;
+use self::opcodes::{OpCode, AddressingMode};
 
 use constants::*;
 use memory::*;
@@ -30,15 +30,17 @@ pub struct Cpu<M: Memory, D: Debugger<M>> {
     pub registers: Registers,
     pub memory: M,
     pub debugger: D,
+    pub cpu_state: CpuState,
 }
 
-enum CpuState<M, D, I>
-    where M: Memory,
-          D: Debugger<M>,
-          I: Instruction<M, D>
-{
-    Decoding(M, D),
-    Executing(M, D, I),
+pub enum CpuState {
+    Decoding,
+    Executing(ExecutionContext),
+}
+
+pub enum ExecutionContext {
+    Executing(OpCode, AddressingMode),
+    Done,
 }
 
 impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
@@ -48,10 +50,21 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
             registers: Registers::new(),
             memory: memory,
             debugger: debugger,
+            cpu_state: CpuState::Decoding,
         }
     }
 
-    pub fn tick(&mut self) {}
+    pub fn tick(&mut self) {
+        match self.cpu_state {
+            CpuState::Decoding => {
+                let byte = self.read_op();
+                let (opcode, addressing_mode) = opcodes::decode(byte);
+                let context = ExecutionContext::Executing(opcode, addressing_mode);
+                self.cpu_state = CpuState::Executing(context)
+            }
+            CpuState::Executing(ref context) => {}
+        }
+    }
 
     pub fn reset(&mut self) {
         let pc_start = self.memory.load16(RESET_VECTOR);
