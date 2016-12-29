@@ -4,7 +4,7 @@ use cpu::Cpu;
 use memory::Memory;
 use super::debugger::Debugger;
 
-trait Instruction<M, D>
+pub trait Instruction<M, D>
     where M: Memory,
           D: Debugger<M>
 {
