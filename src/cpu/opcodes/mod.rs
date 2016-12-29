@@ -3,938 +3,245 @@ mod adc;
 use cpu::Cpu;
 use memory::Memory;
 use super::debugger::Debugger;
-use super::addressing::AddressingMode;
-use self::adc::Adc;
 
-// Graciously taken from FCEU
-#[cfg_attr(rustfmt, rustfmt_skip)]
-const CYCLE_TABLE: [u8; 256] = [
-    7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6, // 0x00
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0x10
-    6,6,2,8,3,3,5,5,4,2,2,2,4,4,6,6, // 0x20
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0x30
-    6,6,2,8,3,3,5,5,3,2,2,2,3,4,6,6, // 0x40
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0x50
-    6,6,2,8,3,3,5,5,4,2,2,2,5,4,6,6, // 0x60
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0x70
-    2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4, // 0x80
-    2,6,2,6,4,4,4,4,2,5,2,5,5,5,5,5, // 0x90
-    2,6,2,6,3,3,3,3,2,2,2,2,4,4,4,4, // 0xA0
-    2,5,2,5,4,4,4,4,2,4,2,4,4,4,4,4, // 0xB0
-    2,6,2,8,3,3,5,5,2,2,2,2,4,4,6,6, // 0xC0
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0xD0
-    2,6,3,8,3,3,5,5,2,2,2,2,4,4,6,6, // 0xE0
-    2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7, // 0xF0
-];
-
-trait OpCode<M, D>
+trait Instruction<M, D>
     where M: Memory,
           D: Debugger<M>
 {
-    fn execute(self, cpu: &mut Cpu<M, D>) -> usize;
+    fn execute(self, cpu: &mut Cpu<M, D>);
 }
 
-fn decode_next<M, D>(cpu: &mut Cpu<M, D>) -> usize
+enum AddressingMode {
+    Implied,
+    Accumulator,
+    Immediate,
+    ZeroPage,
+    Absolute,
+    Relative,
+    ZeroPageX,
+    ZeroPageY,
+    AbsoluteX,
+    AbsoluteY,
+    IndexedIndirect,
+    IndirectIndexed,
+    Indirect,
+}
+
+enum OpCode {
+    Adc,
+    And,
+    Asl,
+    Bcc,
+    Bcs,
+    Beq,
+    Bit,
+    Bmi,
+    Bne,
+    Bpl,
+    Brk,
+    Bvc,
+    Bvs,
+    Clc,
+    Cld,
+    Cli,
+    Clv,
+    Cmp,
+    Cpx,
+    Cpy,
+    Dec,
+    Dex,
+    Dey,
+    Eor,
+    Inc,
+    Inx,
+    Iny,
+    Jmp,
+    Jsr,
+    Lda,
+    Ldx,
+    Ldy,
+    Lsr,
+    Nop,
+    Ora,
+    Pha,
+    Php,
+    Pla,
+    Plp,
+    Rol,
+    Ror,
+    Rti,
+    Rts,
+    Sbc,
+    Sec,
+    Sed,
+    Sei,
+    Sta,
+    Stx,
+    Sty,
+    Tax,
+    Tay,
+    Tsx,
+    Txa,
+    Txs,
+    Tya,
+}
+
+fn decode<M, D>(cpu: &mut Cpu<M, D>) -> (OpCode, AddressingMode)
     where M: Memory,
           D: Debugger<M>
 {
-
-    let opcode = cpu.read_op();
-    let mut base_cycles = CYCLE_TABLE[opcode as usize] as usize;
-
-    match opcode {
-        // ## Single Byte Instructions
-        0x0a => {
-            //            self.asl(Accumulator);
-            unimplemented!()
-        }
-        0x2a => {
-            //            self.rol(Accumulator);
-            unimplemented!()
-        }
-        0x6a => {
-            //            self.ror(Accumulator);
-            unimplemented!()
-        }
-        0x4a => {
-            //            self.lsr(Accumulator);
-            unimplemented!()
-        }
-        0xe8 => {
-            //            self.inx();
-            unimplemented!()
-        }
-        0xca => {
-            //            self.dex();
-            unimplemented!()
-        }
-        0xc8 => {
-            //            self.iny();
-            unimplemented!()
-        }
-        0x88 => {
-            //            self.dey();
-            unimplemented!()
-        }
-        0xaa => {
-            //            self.tax();
-            unimplemented!()
-        }
-        0xa8 => {
-            //            self.tay();
-            unimplemented!()
-        }
-        0x8a => {
-            //            self.txa();
-            unimplemented!()
-        }
-        0x98 => {
-            //            self.tya();
-            unimplemented!()
-        }
-        0x9a => {
-            //            self.txs();
-            unimplemented!()
-        }
-        0xba => {
-            //            self.tsx();
-            unimplemented!()
-        }
-        0x18 => {
-            //            self.clc();
-            unimplemented!()
-        }
-        0x38 => {
-            //            self.sec();
-            unimplemented!()
-        }
-        0x58 => {
-            //            self.cli();
-            unimplemented!()
-        }
-        0x78 => {
-            //            self.sei();
-            unimplemented!()
-        }
-        0xb8 => {
-            //            self.clv();
-            unimplemented!()
-        }
-        0xd8 => {
-            //            self.cld();
-            unimplemented!()
-        }
-        0xf8 => {
-            //            self.sed();
-            unimplemented!()
-        }
-        0x60 => {
-            //            self.rts();
-            unimplemented!()
-        }
-        0x00 => {
-            // The BRK instruction is actually encoded as 2 bytes, one for the
-            // instruction, and an additional padding byte.  We increment the
-            // program counter to accommodate this, which must be done *before*
-            // invoking the brk instruction since it pushes the program counter
-            // to the stack.
-            cpu.registers.pc += 1;
-            //            self.brk();
-            unimplemented!()
-        }
-
-        0x40 => {
-            //            self.rti();
-            unimplemented!()
-        }
-        0x48 => {
-            //            self.pha();
-            unimplemented!()
-        }
-        0x68 => {
-            //            self.pla();
-            unimplemented!()
-        }
-        0x08 => {
-            //            self.php();
-            unimplemented!()
-        }
-        0x28 => {
-            //            self.plp();
-            unimplemented!()
-        }
-        0xea => {
-            //            self.nop();
-            unimplemented!()
-        }
-        // ## Two Byte Instructions
-        0xa1 => {
-            // LDA Indirect,X
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.lda(addr);
-            unimplemented!()
-        }
-        0xa5 => {
-            // LDA Zero Page
-            //            let addr = self.read_op() as u16;
-            //            self.lda(addr);
-            unimplemented!()
-        }
-        0xa9 => {
-            // LDA Immediate
-            //            let val = self.read_op();
-            //            self.lda(val);
-            unimplemented!()
-        }
-        0xb1 => {
-            // LDA Indirect,X
-            //            let base_addr = self.read_op();
-            //            let target_addr = self.indirect_indexed_addr(base_addr);
-            //            let page_crossed = page_crossed(base_addr as u16, target_addr);
-            //            self.lda(target_addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xb5 => {
-            // LDA Zero Page,X
-            //            let base_addr = self.read_op();
-            //            let target_addr = self.zpx_addr(base_addr);
-            //            self.lda(target_addr);
-            unimplemented!()
-        }
-        0xa2 => {
-            // LDX Immediate
-            //            let val = self.read_op();
-            //            self.ldx(val);
-            unimplemented!()
-        }
-        0xa6 => {
-            // LDX Zero Page
-            //            let addr = self.read_op() as u16;
-            //            self.ldx(addr);
-            unimplemented!()
-        }
-        0xb6 => {
-            // LDX Zero Page,Y
-            //            let base_addr = self.read_op();
-            //            let val = self.zpy_addr(base_addr);
-            //            self.ldx(val);
-            unimplemented!()
-        }
-        0xa0 => {
-            // LDY Immediate
-            //            let val = self.read_op();
-            //            self.ldy(val);
-            unimplemented!()
-        }
-        0xa4 => {
-            // LDY Zero Page
-            //            let addr = self.read_op() as u16;
-            //            self.ldy(addr);
-            unimplemented!()
-        }
-        0xb4 => {
-            // LDY Zero Page,X
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.ldy(addr);
-            unimplemented!()
-        }
-        0x85 => {
-            //            let addr = self.read_op() as u16;
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x95 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x81 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x91 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indirect_indexed_addr(base_addr);
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x86 => {
-            //            let addr = self.read_op() as u16;
-            //            self.stx(addr);
-            unimplemented!()
-        }
-        0x96 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpy_addr(base_addr);
-            //            self.stx(addr);
-            unimplemented!()
-        }
-        0x84 => {
-            //            let addr = self.read_op() as u16;
-            //            self.sty(addr);
-            unimplemented!()
-        }
-        0x94 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.sty(addr);
-            unimplemented!()
-        }
-        0x69 => {
-            let val = cpu.read_op();
-            let op = Adc::new(base_cycles, val);
-            op.execute(cpu)
-        }
-        0x65 => {
-            let addr = cpu.read_op() as u16;
-            let op = Adc::new(base_cycles, addr);
-            op.execute(cpu)
-        }
-        0x75 => {
-            let base_addr = cpu.read_op();
-            let addr = cpu.zpx_addr(base_addr);
-            let op = Adc::new(base_cycles, addr);
-            op.execute(cpu)
-        }
-        0x61 => {
-            let base_addr = cpu.read_op();
-            let addr = cpu.indexed_indirect_addr(base_addr);
-            let op = Adc::new(base_cycles, addr);
-            op.execute(cpu)
-        }
-        0x71 => {
-            let base_addr = cpu.read_op();
-            let addr = cpu.indirect_indexed_addr(base_addr);
-            //            let page_crossed = page_crossed(base_addr as u16, addr);
-            let op = Adc::new(base_cycles, addr);
-            op.execute(cpu)
-            //            if page_crossed {
-            //                base_cycles += 1;
-            //            }
-        }
-        0xe9 => {
-            //            let val = self.read_op();
-            //            self.sbc(val);
-            unimplemented!()
-        }
-        0xe5 => {
-            //            let addr = self.read_op() as u16;
-            //            self.sbc(addr);
-            unimplemented!()
-        }
-        0xf5 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.sbc(addr);
-            unimplemented!()
-        }
-        0xe1 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.sbc(addr);
-            unimplemented!()
-        }
-        0xf1 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indirect_indexed_addr(base_addr);
-            //            let page_crossed = page_crossed(base_addr as u16, addr);
-            //            self.sbc(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xc9 => {
-            //            let val = self.read_op();
-            //            self.cmp(val);
-            unimplemented!()
-        }
-        0xc5 => {
-            //            let addr = self.read_op() as u16;
-            //            self.cmp(addr);
-            unimplemented!()
-        }
-        0xd5 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.cmp(addr);
-            unimplemented!()
-        }
-        0xc1 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.cmp(addr);
-            unimplemented!()
-        }
-        0xd1 => {
-            //            let base_addr = self.read_op();
-            //            let (addr, page_crossed) = self.indy_addr(base_addr);
-            //            self.cmp(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xe0 => {
-            //            let val = self.read_op();
-            //            self.cpx(val);
-            unimplemented!()
-        }
-        0xe4 => {
-            //            let addr = self.read_op() as u16;
-            //            self.cpx(addr);
-            unimplemented!()
-        }
-        0xc0 => {
-            //            let val = self.read_op();
-            //            self.cpy(val);
-            unimplemented!()
-        }
-        0xc4 => {
-            //            let addr = self.read_op() as u16;
-            //            self.cpy(addr);
-            unimplemented!()
-        }
-        0x29 => {
-            //            let val = self.read_op();
-            //            self.and(val);
-            unimplemented!()
-        }
-        0x25 => {
-            //            let addr = self.read_op() as u16;
-            //            self.and(addr);
-            unimplemented!()
-        }
-        0x35 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.and(addr);
-            unimplemented!()
-        }
-        0x21 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.and(addr);
-            unimplemented!()
-        }
-        0x31 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indirect_indexed_addr(base_addr);
-            //            let page_crossed = page_crossed(base_addr as u16, addr);
-            //            self.and(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x09 => {
-            //            let val = self.read_op();
-            //            self.ora(val);
-            unimplemented!()
-        }
-        0x05 => {
-            //            let addr = self.read_op() as u16;
-            //            self.ora(addr);
-            unimplemented!()
-        }
-        0x15 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.ora(addr);
-            unimplemented!()
-        }
-        0x01 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.ora(addr);
-            unimplemented!()
-        }
-        0x11 => {
-            //            let base_addr = self.read_op();
-            //            let (addr, page_crossed) = self.indy_addr(base_addr);
-            //            self.ora(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x49 => {
-            //            let val = self.read_op();
-            //            self.eor(val);
-            unimplemented!()
-        }
-        0x45 => {
-            //            let addr = self.read_op() as u16;
-            //            self.eor(addr);
-            unimplemented!()
-        }
-        0x55 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.eor(addr);
-            unimplemented!()
-        }
-        0x41 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indexed_indirect_addr(base_addr);
-            //            self.eor(addr);
-            unimplemented!()
-        }
-        0x51 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.indirect_indexed_addr(base_addr);
-            //            let page_crossed = page_crossed(base_addr as u16, addr);
-            //            self.eor(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x24 => {
-            //            let addr = self.read_op() as u16;
-            //            self.bit(addr);
-            unimplemented!()
-        }
-        // rol
-        0x26 => {
-            //            let addr = self.read_op() as u16;
-            //            self.rol(addr);
-            unimplemented!()
-        }
-        0x36 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.rol(addr);
-            unimplemented!()
-        }
-
-        // ror
-        0x66 => {
-            //            let addr = self.read_op() as u16;
-            //            self.ror(addr);
-            unimplemented!()
-        }
-        0x76 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.ror(addr);
-            unimplemented!()
-        }
-        0x06 => {
-            //            let addr = self.read_op() as u16;
-            //            self.asl(addr);
-            unimplemented!()
-        }
-        0x16 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.asl(addr);
-            unimplemented!()
-        }
-        0x46 => {
-            //            let addr = self.read_op() as u16;
-            //            self.lsr(addr);
-            unimplemented!()
-        }
-        0x56 => {
-            //            let operand = self.read_op();
-            //            let addr = self.zpx_addr(operand);
-            //            self.lsr(addr);
-            unimplemented!()
-        }
-        0xe6 => {
-            //            let addr = self.read_op() as u16;
-            //            self.inc(addr);
-            unimplemented!()
-        }
-        0xf6 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.inc(addr);
-            unimplemented!()
-        }
-        0xc6 => {
-            //            let addr = self.read_op() as u16;
-            //            self.dec(addr);
-            unimplemented!()
-        }
-        0xd6 => {
-            //            let base_addr = self.read_op();
-            //            let addr = self.zpx_addr(base_addr);
-            //            self.dec(addr);
-            unimplemented!()
-        }
-        0x10 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bpl(addr);
-            unimplemented!()
-        }
-        0x30 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bmi(addr);
-            unimplemented!()
-        }
-        0x50 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bvc(addr);
-            unimplemented!()
-        }
-        0x70 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bvs(addr);
-            unimplemented!()
-        }
-        0x90 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bcc(addr);
-            unimplemented!()
-        }
-        0xb0 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bcs(addr);
-            unimplemented!()
-        }
-        0xd0 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.bne(addr);
-            unimplemented!()
-        }
-        0xf0 => {
-            //            let addr = self.read_op() as i8;
-            //            cycles += self.beq(addr);
-            unimplemented!()
-        }
-        // ## Three byte instructions
-        0xad => {
-            //            // LDA Absolute
-            //            let target_addr = self.read_op16();
-            //            self.lda(target_addr);
-            unimplemented!()
-        }
-        0xb9 => {
-            // LDA Absolute,Y
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.lda(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xbd => {
-            // LDA Absolute,X
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.lda(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-
-        0xae => {
-            // LDX Absolute
-            //            let addr = self.read_op16();
-            //            let val = self.memory.load(addr);
-            //            self.ldx(val);
-            unimplemented!()
-        }
-        0xbe => {
-            // LDX Absolute,Y
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.ldx(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xac => {
-            // LDY Absolute
-            //            let addr = self.read_op16();
-            //            self.ldy(addr);
-            unimplemented!()
-        }
-        0xbc => {
-            // LDY Absolute,X
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.ldy(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x8d => {
-            //            let addr = self.read_op16();
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x9d => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x99 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absy_addr(base_addr);
-            //            self.sta(addr);
-            unimplemented!()
-        }
-        0x8e => {
-            //            let addr = self.read_op16();
-            //            self.stx(addr);
-            unimplemented!()
-        }
-        0x8c => {
-            //            let addr = self.read_op16();
-            //            self.sty(addr);
-            unimplemented!()
-        }
-        0x6d => {
-            //            let addr = self.read_op16();
-            //            self.adc(addr);
-            unimplemented!()
-        }
-        0x7d => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.adc(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x79 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.adc(addr);
-            //            if page_crossed {
-            //                cycles += 1
-            //            }
-            unimplemented!()
-        }
-        0xed => {
-            //            let addr = self.read_op16();
-            //            self.sbc(addr);
-            unimplemented!()
-        }
-        0xfd => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.sbc(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xf9 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.sbc(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xcd => {
-            //            let addr = self.read_op16();
-            //            self.cmp(addr);
-            unimplemented!()
-        }
-        0xdd => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.cmp(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0xd9 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.cmp(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x2d => {
-            //            let addr = self.read_op16();
-            //            let val = self.memory.load(addr);
-            //            self.and(val);
-            unimplemented!()
-        }
-        0xec => {
-            //            let addr = self.read_op16();
-            //            self.cpx(addr);
-            unimplemented!()
-        }
-        0xcc => {
-            //            let addr = self.read_op16();
-            //            self.cpy(addr);
-            unimplemented!()
-        }
-        0x3d => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.and(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x39 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.and(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x0d => {
-            //            let addr = self.read_op16();
-            //            self.ora(addr);
-            unimplemented!()
-        }
-        0x1d => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.ora(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x19 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.ora(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x4d => {
-            //            let addr = self.read_op16();
-            //            self.eor(addr);
-            unimplemented!()
-        }
-        0x5d => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absx_addr(base_addr);
-            //            self.eor(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x59 => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, page_crossed) = self.absy_addr(base_addr);
-            //            self.eor(addr);
-            //            if page_crossed {
-            //                cycles += 1;
-            //            }
-            unimplemented!()
-        }
-        0x2c => {
-            //            let addr = self.read_op16();
-            //            self.bit(addr);
-            unimplemented!()
-        }
-        0x2e => {
-            //            let addr = self.read_op16();
-            //            self.rol(addr);
-            unimplemented!()
-        }
-        0x3e => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.rol(addr);
-            unimplemented!()
-        }
-        0x6e => {
-            //            let addr = self.read_op16();
-            //            self.ror(addr);
-            unimplemented!()
-        }
-        0x7e => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.ror(addr);
-            unimplemented!()
-        }
-        0x0e => {
-            //            let addr = self.read_op16();
-            //            self.asl(addr);
-            unimplemented!()
-        }
-        0x1e => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.asl(addr);
-            unimplemented!()
-        }
-        0x4e => {
-            //            let addr = self.read_op16();
-            //            self.lsr(addr);
-            unimplemented!()
-        }
-        0x5e => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.lsr(addr);
-            unimplemented!()
-        }
-        0xee => {
-            //            let addr = self.read_op16();
-            //            self.inc(addr);
-            unimplemented!()
-        }
-        0xfe => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.inc(addr);
-            unimplemented!()
-        }
-        0xce => {
-            //            let addr = self.read_op16();
-            //            self.dec(addr);
-            unimplemented!()
-        }
-        0xde => {
-            //            let base_addr = self.read_op16();
-            //            let (addr, _) = self.absx_addr(base_addr);
-            //            self.dec(addr);
-            unimplemented!()
-        }
-        0x4c => {
-            //            let addr = self.read_op16();
-            //            self.jmp(addr);
-            unimplemented!()
-        }
-        0x6c => {
-            //            let addr = self.read_op16();
-            //            self.indirect_jmp(addr);
-            unimplemented!()
-        }
-        0x20 => {
-            //            let addr = self.read_op16();
-            //            self.jsr(addr);
-            unimplemented!()
-        }
+    match cpu.read_op() {
+        0xe8 => (OpCode::Inx, AddressingMode::Implied),
+        0xca => (OpCode::Dex, AddressingMode::Implied),
+        0xc8 => (OpCode::Iny, AddressingMode::Implied),
+        0x88 => (OpCode::Dey, AddressingMode::Implied),
+        0xaa => (OpCode::Tax, AddressingMode::Implied),
+        0xa8 => (OpCode::Tay, AddressingMode::Implied),
+        0x8a => (OpCode::Txa, AddressingMode::Implied),
+        0x98 => (OpCode::Tya, AddressingMode::Implied),
+        0x9a => (OpCode::Txs, AddressingMode::Implied),
+        0xba => (OpCode::Tsx, AddressingMode::Implied),
+        0x18 => (OpCode::Clc, AddressingMode::Implied),
+        0x38 => (OpCode::Sec, AddressingMode::Implied),
+        0x58 => (OpCode::Cli, AddressingMode::Implied),
+        0x78 => (OpCode::Sei, AddressingMode::Implied),
+        0xb8 => (OpCode::Clv, AddressingMode::Implied),
+        0xd8 => (OpCode::Cld, AddressingMode::Implied),
+        0xf8 => (OpCode::Sed, AddressingMode::Implied),
+        0x60 => (OpCode::Rts, AddressingMode::Implied),
+        0x00 => (OpCode::Brk, AddressingMode::Implied),
+        0x40 => (OpCode::Rti, AddressingMode::Implied),
+        0x48 => (OpCode::Pha, AddressingMode::Implied),
+        0x68 => (OpCode::Pla, AddressingMode::Implied),
+        0x08 => (OpCode::Php, AddressingMode::Implied),
+        0x28 => (OpCode::Plp, AddressingMode::Implied),
+        0xea => (OpCode::Nop, AddressingMode::Implied),
+        0x10 => (OpCode::Bpl, AddressingMode::Relative),
+        0x30 => (OpCode::Bmi, AddressingMode::Relative),
+        0x50 => (OpCode::Bvc, AddressingMode::Relative),
+        0x70 => (OpCode::Bvs, AddressingMode::Relative),
+        0x90 => (OpCode::Bcc, AddressingMode::Relative),
+        0xb0 => (OpCode::Bcs, AddressingMode::Relative),
+        0xd0 => (OpCode::Bne, AddressingMode::Relative),
+        0xf0 => (OpCode::Beq, AddressingMode::Relative),
+        0xa1 => (OpCode::Lda, AddressingMode::IndexedIndirect),
+        0xa5 => (OpCode::Lda, AddressingMode::ZeroPage),
+        0xa9 => (OpCode::Lda, AddressingMode::Immediate),
+        0xb1 => (OpCode::Lda, AddressingMode::IndirectIndexed),
+        0xb5 => (OpCode::Lda, AddressingMode::ZeroPageX),
+        0xad => (OpCode::Lda, AddressingMode::Absolute),
+        0xb9 => (OpCode::Lda, AddressingMode::AbsoluteY),
+        0xbd => (OpCode::Lda, AddressingMode::AbsoluteX),
+        0xa2 => (OpCode::Ldx, AddressingMode::Immediate),
+        0xa6 => (OpCode::Ldx, AddressingMode::ZeroPage),
+        0xb6 => (OpCode::Ldx, AddressingMode::ZeroPageY),
+        0xae => (OpCode::Ldx, AddressingMode::Absolute),
+        0xbe => (OpCode::Ldx, AddressingMode::AbsoluteY),
+        0xa0 => (OpCode::Ldy, AddressingMode::Immediate),
+        0xa4 => (OpCode::Ldy, AddressingMode::ZeroPage),
+        0xb4 => (OpCode::Ldy, AddressingMode::ZeroPageX),
+        0xac => (OpCode::Ldy, AddressingMode::Absolute),
+        0xbc => (OpCode::Ldy, AddressingMode::AbsoluteX),
+        0x85 => (OpCode::Sta, AddressingMode::ZeroPage),
+        0x95 => (OpCode::Sta, AddressingMode::ZeroPageX),
+        0x81 => (OpCode::Sta, AddressingMode::IndexedIndirect),
+        0x91 => (OpCode::Sta, AddressingMode::IndirectIndexed),
+        0x8d => (OpCode::Sta, AddressingMode::Absolute),
+        0x9d => (OpCode::Sta, AddressingMode::AbsoluteX),
+        0x99 => (OpCode::Sta, AddressingMode::AbsoluteY),
+        0x86 => (OpCode::Stx, AddressingMode::ZeroPage),
+        0x96 => (OpCode::Stx, AddressingMode::ZeroPageY),
+        0x8e => (OpCode::Stx, AddressingMode::Absolute),
+        0x84 => (OpCode::Sty, AddressingMode::ZeroPage),
+        0x94 => (OpCode::Sty, AddressingMode::ZeroPageX),
+        0x8c => (OpCode::Sty, AddressingMode::Absolute),
+        0x69 => (OpCode::Adc, AddressingMode::Immediate),
+        0x65 => (OpCode::Adc, AddressingMode::ZeroPage),
+        0x75 => (OpCode::Adc, AddressingMode::ZeroPageX),
+        0x61 => (OpCode::Adc, AddressingMode::IndexedIndirect),
+        0x71 => (OpCode::Adc, AddressingMode::IndirectIndexed),
+        0x6d => (OpCode::Adc, AddressingMode::Absolute),
+        0x7d => (OpCode::Adc, AddressingMode::AbsoluteX),
+        0x79 => (OpCode::Adc, AddressingMode::AbsoluteY),
+        0xe9 => (OpCode::Sbc, AddressingMode::Immediate),
+        0xe5 => (OpCode::Sbc, AddressingMode::ZeroPage),
+        0xf5 => (OpCode::Sbc, AddressingMode::ZeroPageX),
+        0xe1 => (OpCode::Sbc, AddressingMode::IndexedIndirect),
+        0xf1 => (OpCode::Sbc, AddressingMode::IndirectIndexed),
+        0xed => (OpCode::Sbc, AddressingMode::Absolute),
+        0xfd => (OpCode::Sbc, AddressingMode::AbsoluteX),
+        0xf9 => (OpCode::Sbc, AddressingMode::AbsoluteY),
+        0xc9 => (OpCode::Cmp, AddressingMode::Immediate),
+        0xc5 => (OpCode::Cmp, AddressingMode::ZeroPage),
+        0xd5 => (OpCode::Cmp, AddressingMode::ZeroPageX),
+        0xc1 => (OpCode::Cmp, AddressingMode::IndexedIndirect),
+        0xd1 => (OpCode::Cmp, AddressingMode::IndirectIndexed),
+        0xcd => (OpCode::Cmp, AddressingMode::Absolute),
+        0xdd => (OpCode::Cmp, AddressingMode::AbsoluteX),
+        0xd9 => (OpCode::Cmp, AddressingMode::AbsoluteY),
+        0xe0 => (OpCode::Cpx, AddressingMode::Immediate),
+        0xe4 => (OpCode::Cpx, AddressingMode::ZeroPage),
+        0xec => (OpCode::Cpx, AddressingMode::Absolute),
+        0xc0 => (OpCode::Cpy, AddressingMode::Immediate),
+        0xc4 => (OpCode::Cpy, AddressingMode::ZeroPage),
+        0xcc => (OpCode::Cpy, AddressingMode::Absolute),
+        0x29 => (OpCode::And, AddressingMode::Immediate),
+        0x25 => (OpCode::And, AddressingMode::ZeroPage),
+        0x35 => (OpCode::And, AddressingMode::ZeroPageX),
+        0x21 => (OpCode::And, AddressingMode::IndexedIndirect),
+        0x31 => (OpCode::And, AddressingMode::IndirectIndexed),
+        0x2d => (OpCode::And, AddressingMode::Absolute),
+        0x3d => (OpCode::And, AddressingMode::AbsoluteX),
+        0x39 => (OpCode::And, AddressingMode::AbsoluteY),
+        0x09 => (OpCode::Ora, AddressingMode::Immediate),
+        0x05 => (OpCode::Ora, AddressingMode::ZeroPage),
+        0x15 => (OpCode::Ora, AddressingMode::ZeroPageX),
+        0x01 => (OpCode::Ora, AddressingMode::IndexedIndirect),
+        0x11 => (OpCode::Ora, AddressingMode::IndirectIndexed),
+        0x0d => (OpCode::Ora, AddressingMode::Absolute),
+        0x1d => (OpCode::Ora, AddressingMode::AbsoluteX),
+        0x19 => (OpCode::Ora, AddressingMode::AbsoluteY),
+        0x49 => (OpCode::Eor, AddressingMode::Immediate),
+        0x45 => (OpCode::Eor, AddressingMode::ZeroPage),
+        0x55 => (OpCode::Eor, AddressingMode::ZeroPageX),
+        0x41 => (OpCode::Eor, AddressingMode::IndexedIndirect),
+        0x51 => (OpCode::Eor, AddressingMode::IndirectIndexed),
+        0x4d => (OpCode::Eor, AddressingMode::Absolute),
+        0x5d => (OpCode::Eor, AddressingMode::AbsoluteX),
+        0x59 => (OpCode::Eor, AddressingMode::AbsoluteY),
+        0x24 => (OpCode::Bit, AddressingMode::ZeroPage),
+        0x2c => (OpCode::Bit, AddressingMode::Absolute),
+        0x2a => (OpCode::Rol, AddressingMode::Accumulator),
+        0x26 => (OpCode::Rol, AddressingMode::ZeroPage),
+        0x36 => (OpCode::Rol, AddressingMode::ZeroPageX),
+        0x2e => (OpCode::Rol, AddressingMode::Absolute),
+        0x3e => (OpCode::Rol, AddressingMode::AbsoluteX),
+        0x6a => (OpCode::Ror, AddressingMode::Accumulator),
+        0x66 => (OpCode::Ror, AddressingMode::ZeroPage),
+        0x76 => (OpCode::Ror, AddressingMode::ZeroPageX),
+        0x6e => (OpCode::Ror, AddressingMode::Absolute),
+        0x7e => (OpCode::Ror, AddressingMode::AbsoluteX),
+        0x0a => (OpCode::Asl, AddressingMode::Accumulator),
+        0x06 => (OpCode::Asl, AddressingMode::ZeroPage),
+        0x16 => (OpCode::Asl, AddressingMode::ZeroPageX),
+        0x0e => (OpCode::Asl, AddressingMode::Absolute),
+        0x1e => (OpCode::Asl, AddressingMode::AbsoluteX),
+        0x4a => (OpCode::Lsr, AddressingMode::Accumulator),
+        0x46 => (OpCode::Lsr, AddressingMode::ZeroPageX),
+        0x56 => (OpCode::Lsr, AddressingMode::ZeroPageX),
+        0x4e => (OpCode::Lsr, AddressingMode::Absolute),
+        0x5e => (OpCode::Lsr, AddressingMode::AbsoluteX),
+        0xe6 => (OpCode::Inc, AddressingMode::ZeroPage),
+        0xf6 => (OpCode::Inc, AddressingMode::ZeroPageX),
+        0xee => (OpCode::Inc, AddressingMode::Absolute),
+        0xfe => (OpCode::Inc, AddressingMode::AbsoluteX),
+        0xc6 => (OpCode::Dec, AddressingMode::ZeroPage),
+        0xd6 => (OpCode::Dec, AddressingMode::ZeroPageX),
+        0xce => (OpCode::Dec, AddressingMode::Absolute),
+        0xde => (OpCode::Dec, AddressingMode::AbsoluteX),
+        0x4c => (OpCode::Jmp, AddressingMode::Absolute),
+        0x6c => (OpCode::Jmp, AddressingMode::Indirect),
+        0x20 => (OpCode::Jsr, AddressingMode::Absolute),
         _ => {
             panic!("unexpected opcode encountered");
         }

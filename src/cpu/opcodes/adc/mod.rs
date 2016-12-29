@@ -6,11 +6,10 @@ use cpu::Cpu;
 use cpu::debugger::Debugger;
 use cpu::addressing::AddressingMode;
 use memory::Memory;
-use super::OpCode;
+use super::Instruction;
 
 
 pub struct Adc<M, D, AM> {
-    base_cycles: usize,
     addressing_mode: AM,
     phantom_mem: PhantomData<M>,
     phantom_debugger: PhantomData<D>,
@@ -21,9 +20,8 @@ impl<M, D, AM> Adc<M, D, AM>
           D: Debugger<M>,
           AM: AddressingMode<M, D>
 {
-    pub fn new(base_cycles: usize, addressing_mode: AM) -> Self {
+    pub fn new(addressing_mode: AM) -> Self {
         Adc {
-            base_cycles: base_cycles,
             addressing_mode: addressing_mode,
             phantom_mem: PhantomData,
             phantom_debugger: PhantomData,
@@ -31,16 +29,15 @@ impl<M, D, AM> Adc<M, D, AM>
     }
 }
 
-impl<M, D, AM> OpCode<M, D> for Adc<M, D, AM>
+impl<M, D, AM> Instruction<M, D> for Adc<M, D, AM>
     where M: Memory,
           D: Debugger<M>,
           AM: AddressingMode<M, D>
 {
-    fn execute(self, cpu: &mut Cpu<M, D>) -> usize {
+    fn execute(self, cpu: &mut Cpu<M, D>) {
         let left = cpu.registers.acc;
         let right = self.addressing_mode.read(cpu);
         adc_base(cpu, left, right);
-        self.base_cycles // TODO: This doesn't account for conditional cycles based on address mode
     }
 }
 

@@ -1,5 +1,5 @@
 use cpu::*;
-use cpu::opcodes::OpCode;
+use cpu::opcodes::Instruction;
 use super::Adc;
 
 /// ## Sign and zero flag tests
@@ -14,7 +14,7 @@ fn adc_flags_sign_and_zero_1() {
     const ROP: u8 = 0x0;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(true, cpu.registers.zero_flag());
     assert_eq!(false, cpu.registers.sign_flag());
@@ -30,7 +30,7 @@ fn adc_flags_sign_and_zero_2() {
     const ROP: u8 = 0x1;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.zero_flag());
     assert_eq!(false, cpu.registers.sign_flag());
@@ -46,7 +46,7 @@ fn adc_flags_sign_and_zero_3() {
     const ROP: u8 = 0xff;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.zero_flag());
     assert_eq!(true, cpu.registers.sign_flag());
@@ -70,7 +70,7 @@ fn adc_flags_carry_and_overflow_1() {
     const ROP: u8 = 0x10;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
@@ -86,7 +86,7 @@ fn adc_flags_carry_and_overflow_2() {
     const ROP: u8 = 0x50;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.carry_flag());
     assert_eq!(true, cpu.registers.overflow_flag());
@@ -102,7 +102,7 @@ fn adc_flags_carry_and_overflow_3() {
     const ROP: u8 = 0x90;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
@@ -118,7 +118,7 @@ fn adc_flags_carry_and_overflow_4() {
     const ROP: u8 = 0xd0;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(true, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
@@ -134,7 +134,7 @@ fn adc_flags_carry_and_overflow_5() {
     const ROP: u8 = 0x10;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(false, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
@@ -150,7 +150,7 @@ fn adc_flags_carry_and_overflow_6() {
     const ROP: u8 = 0x50;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(true, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
@@ -166,7 +166,7 @@ fn adc_flags_carry_and_overflow_7() {
     const ROP: u8 = 0x90;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(true, cpu.registers.carry_flag());
     assert_eq!(true, cpu.registers.overflow_flag());
@@ -182,7 +182,7 @@ fn adc_flags_carry_and_overflow_8() {
     const ROP: u8 = 0xd0;
 
     cpu.lda(LOP);
-    let adc = Adc::new(0, ROP);
+    let adc = Adc::new(ROP);
     adc.execute(&mut cpu);
     assert_eq!(true, cpu.registers.carry_flag());
     assert_eq!(false, cpu.registers.overflow_flag());
