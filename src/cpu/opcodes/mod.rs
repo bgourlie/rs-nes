@@ -12,6 +12,7 @@ pub trait Instruction<M, D>
     fn execute<AM: addressing::AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>);
 }
 
+#[derive(Copy, Clone)]
 pub enum AddressingMode {
     Implied,
     Accumulator,
@@ -28,6 +29,7 @@ pub enum AddressingMode {
     Indirect,
 }
 
+#[derive(Copy, Clone)]
 pub enum OpCode {
     Adc,
     And,
@@ -225,7 +227,7 @@ pub fn decode(byte: u8) -> (OpCode, AddressingMode) {
         0x0e => (OpCode::Asl, AddressingMode::Absolute),
         0x1e => (OpCode::Asl, AddressingMode::AbsoluteX),
         0x4a => (OpCode::Lsr, AddressingMode::Accumulator),
-        0x46 => (OpCode::Lsr, AddressingMode::ZeroPageX),
+        0x46 => (OpCode::Lsr, AddressingMode::ZeroPage),
         0x56 => (OpCode::Lsr, AddressingMode::ZeroPageX),
         0x4e => (OpCode::Lsr, AddressingMode::Absolute),
         0x5e => (OpCode::Lsr, AddressingMode::AbsoluteX),

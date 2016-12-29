@@ -55,15 +55,22 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
     }
 
     pub fn tick(&mut self) {
-        match self.cpu_state {
+        self.cpu_state = match self.cpu_state {
             CpuState::Decoding => {
                 let byte = self.read_op();
                 let (opcode, addressing_mode) = opcodes::decode(byte);
                 let context = ExecutionContext::Executing(opcode, addressing_mode);
-                self.cpu_state = CpuState::Executing(context)
+                CpuState::Executing(context)
             }
-            CpuState::Executing(ref context) => {}
-        }
+            CpuState::Executing(ref context) => {
+                match *context {
+                    ExecutionContext::Executing(ref opcode, ref addressing_mode) => {
+                        CpuState::Executing(ExecutionContext::Executing(*opcode, *addressing_mode))
+                    }
+                    ExecutionContext::Done => CpuState::Decoding,
+                }
+            }
+        };
     }
 
     pub fn reset(&mut self) {
@@ -77,7 +84,6 @@ impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
         self.push_stack(stat);
         self.registers.pc = self.memory.load16(NMI_VECTOR);
     }
-
 
     fn read_op(&mut self) -> u8 {
         let pc = self.registers.pc;

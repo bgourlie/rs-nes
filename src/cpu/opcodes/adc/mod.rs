@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use cpu::Cpu;
 use cpu::debugger::Debugger;
 use cpu::addressing::AddressingMode;
