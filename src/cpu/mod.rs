@@ -7,8 +7,10 @@ mod opcodes;
 use std::num::Wrapping;
 
 use self::registers::*;
+use self::opcodes::{OpCode, AddressingMode, Instruction};
 use self::execution_context::ExecutionContext;
-use self::opcodes::{OpCode, AddressingMode};
+use self::execution_context::zero_page::ZeroPage;
+use self::execution_context::immediate::Immediate;
 
 use constants::*;
 use memory::*;
@@ -39,14 +41,45 @@ impl<Mem: Memory> Cpu<Mem> {
         }
     }
 
-    //    pub fn step(&mut self) {
-    //        let opcode_byte = self.read_op();
-    //        let (opcode, addressing_mode) = self::opcodes::decode(opcode_byte);
-    //        match addressing_mode {
-    //            AddressingMode::ZeroPage => {
-    //            }
-    //        }
-    //    }
+    pub fn step<F: Fn(&Self)>(&mut self, on_cycle_callback: F) {
+        let opcode_byte = self.read_op();
+        let (opcode, addressing_mode) = self::opcodes::decode(opcode_byte);
+        match addressing_mode {
+            AddressingMode::ZeroPage => self.step_zeropage(opcode, on_cycle_callback),
+            AddressingMode::Immediate => self.step_immediate(opcode, on_cycle_callback),
+            AddressingMode::Absolute => unimplemented!(),
+            AddressingMode::AbsoluteX => unimplemented!(),
+            AddressingMode::AbsoluteY => unimplemented!(),
+            AddressingMode::Accumulator => unimplemented!(),
+            AddressingMode::Implied => unimplemented!(),
+            AddressingMode::IndexedIndirect => unimplemented!(),
+            AddressingMode::Indirect => unimplemented!(),
+            AddressingMode::IndirectIndexed => unimplemented!(),
+            AddressingMode::Relative => unimplemented!(),
+            AddressingMode::ZeroPageX => unimplemented!(),
+            AddressingMode::ZeroPageY => unimplemented!(),
+        };
+    }
+
+    fn step_zeropage<F: Fn(&Self)>(&mut self, opcode: OpCode, cycle_handler: F) {
+        match opcode {
+            OpCode::Adc => {
+                let adc = self::opcodes::adc::Adc;
+                adc.execute(self, ZeroPage, cycle_handler)
+            }
+            _ => panic!("Unexpected zeropage opcode"),
+        }
+    }
+
+    fn step_immediate<F: Fn(&Self)>(&mut self, opcode: OpCode, cycle_handler: F) {
+        match opcode {
+            OpCode::Adc => {
+                let adc = self::opcodes::adc::Adc;
+                adc.execute(self, Immediate, cycle_handler)
+            }
+            _ => panic!("unexpected immediate opcode"),
+        }
+    }
 
     pub fn reset(&mut self) {
         let pc_start = self.memory.load16(RESET_VECTOR);

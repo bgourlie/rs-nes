@@ -1,13 +1,13 @@
-mod adc;
+pub mod adc;
 
 use cpu::Cpu;
 use memory::Memory;
 use cpu::execution_context::ExecutionContext;
 
 pub trait Instruction<M: Memory> {
-    fn execute<AM: ExecutionContext<M>, F: Fn(&Cpu<M>)>(self,
-                                                        am: AM,
+    fn execute<EC: ExecutionContext<M>, F: Fn(&Cpu<M>)>(self,
                                                         cpu: &mut Cpu<M>,
+                                                        context: EC,
                                                         tick_handler: F);
 }
 

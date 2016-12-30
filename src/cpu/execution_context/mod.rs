@@ -1,4 +1,5 @@
 pub mod zero_page;
+pub mod immediate;
 
 use super::Cpu;
 use memory::*;
