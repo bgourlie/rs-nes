@@ -3,13 +3,9 @@ mod adc;
 use cpu::Cpu;
 use memory::Memory;
 use cpu::addressing;
-use super::debugger::Debugger;
 
-pub trait Instruction<M, D>
-    where M: Memory,
-          D: Debugger<M>
-{
-    fn execute<AM: addressing::AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>);
+pub trait Instruction<M: Memory> {
+    fn execute<AM: addressing::ExecutionContext<M>>(self, am: AM, cpu: &mut Cpu<M>);
 }
 
 #[derive(Copy, Clone)]

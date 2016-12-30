@@ -1,23 +1,21 @@
 use cpu::Cpu;
-use cpu::debugger::Debugger;
-use cpu::addressing::AddressingMode;
+use cpu::addressing::ExecutionContext;
 use memory::Memory;
 use super::Instruction;
 
 pub struct Adc;
 
-impl<M, D> Instruction<M, D> for Adc
-    where M: Memory,
-          D: Debugger<M>
+impl<M> Instruction<M> for Adc
+    where M: Memory
 {
-    fn execute<AM: AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>) {
+    fn execute<AM: ExecutionContext<M>>(self, am: AM, cpu: &mut Cpu<M>) {
         let left = cpu.registers.acc;
         let right = am.operand();
         adc_base(cpu, left, right);
     }
 }
 
-fn adc_base<M: Memory, D: Debugger<M>>(cpu: &mut Cpu<M, D>, left: u8, right: u8) {
+fn adc_base<M: Memory>(cpu: &mut Cpu<M>, left: u8, right: u8) {
     // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
     let carry = if cpu.registers.carry_flag() { 1 } else { 0 };
 

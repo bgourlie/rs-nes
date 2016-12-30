@@ -6,71 +6,37 @@ mod opcodes;
 
 use std::num::Wrapping;
 
-use self::debugger::*;
 use self::registers::*;
+use self::addressing::ExecutionContext;
 use self::opcodes::{OpCode, AddressingMode};
 
 use constants::*;
 use memory::*;
 
 #[cfg(test)]
-pub type TestCpu = Cpu<SimpleMemory, NoOpDebugger<SimpleMemory>>;
+pub type TestCpu = Cpu<SimpleMemory>;
 
 #[cfg(test)]
 impl TestCpu {
     pub fn new_test() -> Self {
         let memory = SimpleMemory::new();
-        let debugger = NoOpDebugger::new();
-        Cpu::new(memory, debugger)
+        Cpu::new(memory)
     }
 }
 
-pub struct Cpu<M: Memory, D: Debugger<M>> {
+pub struct Cpu<M: Memory> {
     pub cycles: u64,
     pub registers: Registers,
     pub memory: M,
-    pub debugger: D,
-    pub cpu_state: CpuState,
 }
 
-pub enum CpuState {
-    Decoding,
-    Executing(ExecutionContext),
-}
-
-pub enum ExecutionContext {
-    Executing(OpCode, AddressingMode),
-    Done,
-}
-
-impl<Mem: Memory, D: Debugger<Mem>> Cpu<Mem, D> {
-    pub fn new(memory: Mem, debugger: D) -> Self {
+impl<Mem: Memory> Cpu<Mem> {
+    pub fn new(memory: Mem) -> Self {
         Cpu {
             cycles: 0,
             registers: Registers::new(),
             memory: memory,
-            debugger: debugger,
-            cpu_state: CpuState::Decoding,
         }
-    }
-
-    pub fn tick(&mut self) {
-        self.cpu_state = match self.cpu_state {
-            CpuState::Decoding => {
-                let byte = self.read_op();
-                let (opcode, addressing_mode) = opcodes::decode(byte);
-                let context = ExecutionContext::Executing(opcode, addressing_mode);
-                CpuState::Executing(context)
-            }
-            CpuState::Executing(ref context) => {
-                match *context {
-                    ExecutionContext::Executing(ref opcode, ref addressing_mode) => {
-                        CpuState::Executing(ExecutionContext::Executing(*opcode, *addressing_mode))
-                    }
-                    ExecutionContext::Done => CpuState::Decoding,
-                }
-            }
-        };
     }
 
     pub fn reset(&mut self) {
