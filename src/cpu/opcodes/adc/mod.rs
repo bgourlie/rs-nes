@@ -1,5 +1,5 @@
 use cpu::Cpu;
-use cpu::addressing::ExecutionContext;
+use cpu::execution_context::ExecutionContext;
 use memory::Memory;
 use super::Instruction;
 

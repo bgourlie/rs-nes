@@ -1,13 +1,13 @@
 
 pub mod debugger;
 mod registers;
-mod addressing;
+mod execution_context;
 mod opcodes;
 
 use std::num::Wrapping;
 
 use self::registers::*;
-use self::addressing::ExecutionContext;
+use self::execution_context::ExecutionContext;
 use self::opcodes::{OpCode, AddressingMode};
 
 use constants::*;

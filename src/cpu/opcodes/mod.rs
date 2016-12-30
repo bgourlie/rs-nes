@@ -2,7 +2,7 @@ mod adc;
 
 use cpu::Cpu;
 use memory::Memory;
-use cpu::addressing::ExecutionContext;
+use cpu::execution_context::ExecutionContext;
 
 pub trait Instruction<M: Memory> {
     fn execute<AM: ExecutionContext<M>, F: Fn(&Cpu<M>)>(self,
