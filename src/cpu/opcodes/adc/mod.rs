@@ -10,7 +10,7 @@ impl<M> Instruction<M> for Adc
 {
     fn execute<EC: ExecutionContext<M>, Func: Fn(&Cpu<M>)>(self,
                                                            cpu: &mut Cpu<M>,
-                                                           context: EC,
+                                                           mut context: EC,
                                                            tick_handler: Func) {
         let left = cpu.registers.acc;
         let right = context.operand(cpu, tick_handler);

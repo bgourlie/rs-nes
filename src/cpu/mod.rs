@@ -8,7 +8,6 @@ use std::num::Wrapping;
 
 use self::registers::*;
 use self::opcodes::{OpCode, AddressingMode, Instruction};
-use self::execution_context::ExecutionContext;
 use self::execution_context::zero_page::ZeroPage;
 use self::execution_context::immediate::Immediate;
 
@@ -41,12 +40,13 @@ impl<Mem: Memory> Cpu<Mem> {
         }
     }
 
-    pub fn step<F: Fn(&Self)>(&mut self, on_cycle_callback: F) {
+    pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {
         let opcode_byte = self.read_op();
+        tick_handler(self);
         let (opcode, addressing_mode) = self::opcodes::decode(opcode_byte);
         match addressing_mode {
-            AddressingMode::ZeroPage => self.step_zeropage(opcode, on_cycle_callback),
-            AddressingMode::Immediate => self.step_immediate(opcode, on_cycle_callback),
+            AddressingMode::ZeroPage => self.step_zeropage(opcode, tick_handler),
+            AddressingMode::Immediate => self.step_immediate(opcode, tick_handler),
             AddressingMode::Absolute => unimplemented!(),
             AddressingMode::AbsoluteX => unimplemented!(),
             AddressingMode::AbsoluteY => unimplemented!(),
@@ -61,21 +61,21 @@ impl<Mem: Memory> Cpu<Mem> {
         };
     }
 
-    fn step_zeropage<F: Fn(&Self)>(&mut self, opcode: OpCode, cycle_handler: F) {
+    fn step_zeropage<F: Fn(&Self)>(&mut self, opcode: OpCode, tick_handler: F) {
         match opcode {
             OpCode::Adc => {
                 let adc = self::opcodes::adc::Adc;
-                adc.execute(self, ZeroPage, cycle_handler)
+                adc.execute(self, ZeroPage, tick_handler)
             }
             _ => panic!("Unexpected zeropage opcode"),
         }
     }
 
-    fn step_immediate<F: Fn(&Self)>(&mut self, opcode: OpCode, cycle_handler: F) {
+    fn step_immediate<F: Fn(&Self)>(&mut self, opcode: OpCode, tick_handler: F) {
         match opcode {
             OpCode::Adc => {
                 let adc = self::opcodes::adc::Adc;
-                adc.execute(self, Immediate, cycle_handler)
+                adc.execute(self, Immediate, tick_handler)
             }
             _ => panic!("unexpected immediate opcode"),
         }
