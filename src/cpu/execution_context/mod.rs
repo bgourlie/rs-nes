@@ -3,7 +3,6 @@ pub mod zero_page;
 use super::Cpu;
 use memory::*;
 
-
 pub trait ExecutionContext<M: Memory> {
     fn operand<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, tick_handler: F) -> u8;
     fn write(&self, _: &mut Cpu<M>, _: u8) {

@@ -2,12 +2,7 @@ use super::ExecutionContext;
 use cpu::Cpu;
 use memory::Memory;
 
-#[derive(Debug)]
-pub enum ZeroPage {
-    New,
-    OperandRead(u8),
-    MemoryRead(u8),
-}
+pub struct ZeroPage;
 
 impl<M: Memory> ExecutionContext<M> for ZeroPage {
     fn operand<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, tick_handler: F) -> u8 {
