@@ -5,7 +5,10 @@ use memory::Memory;
 use cpu::addressing::ExecutionContext;
 
 pub trait Instruction<M: Memory> {
-    fn execute<AM: ExecutionContext<M>, Func: Fn()>(self, am: AM, cpu: &mut Cpu<M>, func: Func);
+    fn execute<AM: ExecutionContext<M>, F: Fn(&Cpu<M>)>(self,
+                                                        am: AM,
+                                                        cpu: &mut Cpu<M>,
+                                                        tick_handler: F);
 }
 
 #[derive(Copy, Clone)]

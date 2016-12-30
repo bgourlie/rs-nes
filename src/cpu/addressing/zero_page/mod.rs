@@ -10,11 +10,11 @@ pub enum ZeroPage {
 }
 
 impl<M: Memory> ExecutionContext<M> for ZeroPage {
-    fn operand<Func: Fn()>(&self, cpu: &mut Cpu<M>, func: Func) -> u8 {
+    fn operand<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, tick_handler: F) -> u8 {
         let op = cpu.read_op();
-        func();
+        tick_handler(cpu);
         let val = cpu.memory.load(op as u16);
-        func();
+        tick_handler(cpu);
         val
     }
 }

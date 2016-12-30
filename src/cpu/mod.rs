@@ -39,6 +39,15 @@ impl<Mem: Memory> Cpu<Mem> {
         }
     }
 
+    //    pub fn step(&mut self) {
+    //        let opcode_byte = self.read_op();
+    //        let (opcode, addressing_mode) = self::opcodes::decode(opcode_byte);
+    //        match addressing_mode {
+    //            AddressingMode::ZeroPage => {
+    //            }
+    //        }
+    //    }
+
     pub fn reset(&mut self) {
         let pc_start = self.memory.load16(RESET_VECTOR);
         self.registers.pc = pc_start;
