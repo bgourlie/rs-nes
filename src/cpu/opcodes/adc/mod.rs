@@ -8,9 +8,9 @@ pub struct Adc;
 impl<M> Instruction<M> for Adc
     where M: Memory
 {
-    fn execute<AM: ExecutionContext<M>>(self, am: AM, cpu: &mut Cpu<M>) {
+    fn execute<AM: ExecutionContext<M>, Func: Fn()>(self, am: AM, cpu: &mut Cpu<M>, func: Func) {
         let left = cpu.registers.acc;
-        let right = am.operand();
+        let right = am.operand(cpu, func);
         adc_base(cpu, left, right);
     }
 }

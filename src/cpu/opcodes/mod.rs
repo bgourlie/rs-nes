@@ -2,10 +2,10 @@ mod adc;
 
 use cpu::Cpu;
 use memory::Memory;
-use cpu::addressing;
+use cpu::addressing::ExecutionContext;
 
 pub trait Instruction<M: Memory> {
-    fn execute<AM: addressing::ExecutionContext<M>>(self, am: AM, cpu: &mut Cpu<M>);
+    fn execute<AM: ExecutionContext<M>, Func: Fn()>(self, am: AM, cpu: &mut Cpu<M>, func: Func);
 }
 
 #[derive(Copy, Clone)]

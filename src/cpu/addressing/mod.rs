@@ -5,9 +5,7 @@ use memory::*;
 
 
 pub trait ExecutionContext<M: Memory> {
-    fn tick(self, cpu: &mut Cpu<M>) -> Self;
-    fn completed(&self) -> bool;
-    fn operand(&self) -> u8;
+    fn operand<Func: Fn()>(&self, cpu: &mut Cpu<M>, func: Func) -> u8;
     fn write(&self, _: &mut Cpu<M>, _: u8) {
         unimplemented!();
     }
