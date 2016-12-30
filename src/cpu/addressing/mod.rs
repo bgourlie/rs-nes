@@ -12,40 +12,64 @@ use memory::*;
 
 
 pub trait AddressingMode<M: Memory, D: Debugger<M>> {
-    fn read(&self, cpu: &Cpu<M, D>) -> u8;
+    fn tick(&self, cpu: &mut Cpu<M, D>) -> Self;
+    fn operand(&self) -> u8;
     fn write(&self, _: &mut Cpu<M, D>, _: u8) {
         unimplemented!();
     }
 }
 
-pub struct Accumulator;
-
-impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for Accumulator {
-    fn read(&self, cpu: &Cpu<M, D>) -> u8 {
-        cpu.registers.acc
-    }
-
-    fn write(&self, cpu: &mut Cpu<M, D>, val: u8) {
-        cpu.registers.acc = val
-    }
+pub struct Accumulator {
+    value: u8,
 }
 
-pub type Immediate = u8;
+// impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for Accumulator {
+//    fn operand(self) -> u8 {
+//        self.value
+//    }
+//
+//    fn write(&self, cpu: &mut Cpu<M, D>, val: u8) {
+//        cpu.registers.acc = val
+//    }
+//    fn tick(&mut self, cpu: &mut Cpu<M, D>) {
+//        unimplemented!()
+//    }
+// }
 
-impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for Immediate {
-    fn read(&self, _: &Cpu<M, D>) -> u8 {
-        *self
-    }
+// pub struct Immediate {
+//    value: u8
+// }
+//
+// impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for Immediate {
+//    fn operand(self) -> u8 {
+//        self.value
+//    }
+//    fn tick(&mut self, cpu: &mut Cpu<M, D>) {
+//        unimplemented!()
+//    }
+// }
+
+#[derive(Debug)]
+pub enum ZeroPage {
+    PreRead,
+    OperandFetched(u8),
 }
 
-pub type MemoryAddress = u16;
-
-impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for MemoryAddress {
-    fn read(&self, cpu: &Cpu<M, D>) -> u8 {
-        cpu.memory.load(*self)
+impl<M: Memory, D: Debugger<M>> AddressingMode<M, D> for ZeroPage {
+    fn tick(&self, cpu: &mut Cpu<M, D>) -> Self {
+        match *self {
+            ZeroPage::PreRead => {
+                let addr = cpu.read_op();
+                ZeroPage::OperandFetched(addr)
+            }
+            _ => panic!("tick called during unexpected state: {:?}", *self),
+        }
     }
 
-    fn write(&self, cpu: &mut Cpu<M, D>, val: u8) {
-        cpu.memory.store(*self, val)
+    fn operand(&self) -> u8 {
+        match *self {
+            ZeroPage::OperandFetched(operand) => operand,
+            _ => panic!("operand called during unexpected state: {:?}", self),
+        }
     }
 }

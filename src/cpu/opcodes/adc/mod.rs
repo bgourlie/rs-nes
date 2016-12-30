@@ -12,7 +12,7 @@ impl<M, D> Instruction<M, D> for Adc
 {
     fn execute<AM: AddressingMode<M, D>>(self, am: AM, cpu: &mut Cpu<M, D>) {
         let left = cpu.registers.acc;
-        let right = am.read(cpu);
+        let right = am.operand();
         adc_base(cpu, left, right);
     }
 }
