@@ -33,6 +33,7 @@ use super::Cpu;
 use memory::*;
 
 pub trait AddressingMode<M: Memory> {
+    fn execute<F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self;
     fn operand<F: Fn(&Cpu<M>)>(&mut self, cpu: &mut Cpu<M>, tick_handler: F) -> u8;
     fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
         unimplemented!()

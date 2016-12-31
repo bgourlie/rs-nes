@@ -9,6 +9,10 @@ pub struct Absolute {
 
 impl<M: Memory> AddressingMode<M> for Absolute {
     fn operand<F: Fn(&Cpu<M>)>(&mut self, cpu: &mut Cpu<M>, tick_handler: F) -> u8 {
+        self.addr
+    }
+
+    fn execute<F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let low_byte = cpu.read_op();
         tick_handler(cpu);
         let high_byte = cpu.read_op();
@@ -17,7 +21,10 @@ impl<M: Memory> AddressingMode<M> for Absolute {
         self.addr = addr;
         let val = cpu.memory.load(addr);
         tick_handler(cpu);
-        val
+
+        Absolute {
+            addr: val
+        }
     }
 
     //    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
