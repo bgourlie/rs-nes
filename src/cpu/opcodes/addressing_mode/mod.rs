@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test_addressing_mode;
+
 mod absolute;
 mod absolute_x;
 mod absolute_y;

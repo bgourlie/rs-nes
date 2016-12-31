@@ -65,6 +65,11 @@ pub trait OpCode {
     fn execute<M: Memory, EC: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
                                                                  context: EC,
                                                                  tick_handler: F);
+
+    #[cfg(test)]
+    fn execute_test<M: Memory, EC: AddressingMode<M>>(cpu: &mut Cpu<M>, context: EC) {
+        Self::execute(cpu, context, |_| {});
+    }
 }
 
 pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_handler: F) {
