@@ -1,15 +1,11 @@
 
 pub mod debugger;
 mod registers;
-mod execution_context;
 mod opcodes;
 
 use std::num::Wrapping;
 
 use self::registers::*;
-use self::opcodes::{OpCode, AddressingMode, Instruction};
-use self::execution_context::zero_page::ZeroPage;
-use self::execution_context::immediate::Immediate;
 
 use constants::*;
 use memory::*;
@@ -41,44 +37,9 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {
-        let opcode_byte = self.read_op();
+        let opcode = self.read_op();
         tick_handler(self);
-        let (opcode, addressing_mode) = self::opcodes::decode(opcode_byte);
-        match addressing_mode {
-            AddressingMode::ZeroPage => self.step_zeropage(opcode, tick_handler),
-            AddressingMode::Immediate => self.step_immediate(opcode, tick_handler),
-            AddressingMode::Absolute => unimplemented!(),
-            AddressingMode::AbsoluteX => unimplemented!(),
-            AddressingMode::AbsoluteY => unimplemented!(),
-            AddressingMode::Accumulator => unimplemented!(),
-            AddressingMode::Implied => unimplemented!(),
-            AddressingMode::IndexedIndirect => unimplemented!(),
-            AddressingMode::Indirect => unimplemented!(),
-            AddressingMode::IndirectIndexed => unimplemented!(),
-            AddressingMode::Relative => unimplemented!(),
-            AddressingMode::ZeroPageX => unimplemented!(),
-            AddressingMode::ZeroPageY => unimplemented!(),
-        };
-    }
-
-    fn step_zeropage<F: Fn(&Self)>(&mut self, opcode: OpCode, tick_handler: F) {
-        match opcode {
-            OpCode::Adc => {
-                let adc = self::opcodes::adc::Adc;
-                adc.execute(self, ZeroPage, tick_handler)
-            }
-            _ => panic!("Unexpected zeropage opcode"),
-        }
-    }
-
-    fn step_immediate<F: Fn(&Self)>(&mut self, opcode: OpCode, tick_handler: F) {
-        match opcode {
-            OpCode::Adc => {
-                let adc = self::opcodes::adc::Adc;
-                adc.execute(self, Immediate, tick_handler)
-            }
-            _ => panic!("unexpected immediate opcode"),
-        }
+        self::opcodes::execute(self, opcode, tick_handler)
     }
 
     pub fn reset(&mut self) {

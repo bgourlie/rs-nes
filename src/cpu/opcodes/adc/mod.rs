@@ -1,19 +1,18 @@
 use cpu::Cpu;
-use cpu::execution_context::ExecutionContext;
 use memory::Memory;
 use super::Instruction;
+use super::addressing_mode::AddressingMode;
 
 pub struct Adc;
 
-impl<M> Instruction<M> for Adc
-    where M: Memory
-{
-    fn execute<EC: ExecutionContext<M>, Func: Fn(&Cpu<M>)>(self,
-                                                           cpu: &mut Cpu<M>,
-                                                           mut context: EC,
-                                                           tick_handler: Func) {
+impl Instruction for Adc {
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, mut mode: AM, tick_handler: F)
+        where M: Memory,
+              AM: AddressingMode<M>,
+              F: Fn(&Cpu<M>)
+    {
         let left = cpu.registers.acc;
-        let right = context.operand(cpu, tick_handler);
+        let right = mode.operand(cpu, tick_handler);
         adc_base(cpu, left, right);
     }
 }
