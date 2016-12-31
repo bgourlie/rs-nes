@@ -1,4 +1,5 @@
 mod addressing_mode;
+mod branch_utils;
 mod shift_utils;
 mod adc;
 mod dex;
@@ -95,14 +96,38 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
         0x08 => self::php::Php::execute(cpu, Implied),
         0x28 => self::plp::Plp::execute(cpu, Implied),
         0xea => self::nop::Nop::execute(cpu, Implied),
-        0x10 => self::bpl::Bpl::execute(cpu, Relative),
-        0x30 => self::bmi::Bmi::execute(cpu, Relative),
-        0x50 => self::bvc::Bvc::execute(cpu, Relative),
-        0x70 => self::bvs::Bvs::execute(cpu, Relative),
-        0x90 => self::bcc::Bcc::execute(cpu, Relative),
-        0xb0 => self::bcs::Bcs::execute(cpu, Relative),
-        0xd0 => self::bne::Bne::execute(cpu, Relative),
-        0xf0 => self::beq::Beq::execute(cpu, Relative),
+        0x10 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bpl::Bpl::execute(cpu, am)
+        }
+        0x30 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bmi::Bmi::execute(cpu, am)
+        }
+        0x50 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bvc::Bvc::execute(cpu, am)
+        }
+        0x70 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bvs::Bvs::execute(cpu, am)
+        }
+        0x90 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bcc::Bcc::execute(cpu, am)
+        }
+        0xb0 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bcs::Bcs::execute(cpu, am)
+        }
+        0xd0 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::bne::Bne::execute(cpu, am)
+        }
+        0xf0 => {
+            let am = Relative::new(cpu, tick_handler);
+            self::beq::Beq::execute(cpu, am)
+        }
         0xa1 => self::lda::Lda::execute(cpu, IndexedIndirect),
         0xa5 => {
             let am = ZeroPage::new(cpu, tick_handler);

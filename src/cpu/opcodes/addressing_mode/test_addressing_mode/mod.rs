@@ -14,3 +14,9 @@ impl AddressingMode<SimpleMemory> for u8 {
         cpu.registers.acc = value;
     }
 }
+
+impl AddressingMode<SimpleMemory> for i8 {
+    fn operand(&self) -> u8 {
+        *self as u8
+    }
+}
