@@ -1,15 +1,17 @@
+use std::marker::PhantomData;
 use super::AddressingMode;
 use cpu::Cpu;
 use memory::Memory;
 
-#[derive(Default)]
-pub struct Absolute {
+pub struct Absolute<M: Memory, F: Fn(&Cpu<M>)> {
     addr: u16,
-    operand: u8,
+    value: u8,
+    tick_handler: F,
+    phantom: PhantomData<M>,
 }
 
-impl Absolute {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+impl<M: Memory, F: Fn(&Cpu<M>)> Absolute<M, F> {
+    pub fn new(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let low_byte = cpu.read_op();
         tick_handler(cpu);
         let high_byte = cpu.read_op();
@@ -20,19 +22,21 @@ impl Absolute {
 
         Absolute {
             addr: addr,
-            operand: operand,
+            value: operand,
+            tick_handler: tick_handler,
+            phantom: PhantomData,
         }
     }
 }
 
-impl<M: Memory> AddressingMode<M> for Absolute {
+impl<M: Memory, F: Fn(&Cpu<M>)> AddressingMode<M> for Absolute<M, F> {
     fn operand(&self) -> u8 {
-        self.operand
+        self.value
     }
 
-    //    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
-    //        tick_handler(cpu);
-    //        cpu.memory.store(self.addr, value);
-    //        tick_handler(cpu);
-    //    }
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+        (self.tick_handler)(cpu);
+        cpu.memory.store(self.addr, value);
+        (self.tick_handler)(cpu);
+    }
 }

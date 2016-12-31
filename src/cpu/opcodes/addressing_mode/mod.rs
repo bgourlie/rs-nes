@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod test_addressing_mode;
+pub mod test_addressing_mode;
 
 mod absolute;
 mod absolute_x;
@@ -37,7 +37,7 @@ pub trait AddressingMode<M: Memory> {
         unimplemented!()
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
+    fn write(&self, _: &mut Cpu<M>, _: u8) {
         unimplemented!()
     }
 }

@@ -3,15 +3,15 @@ mod spec_tests;
 
 use cpu::Cpu;
 use memory::Memory;
-use super::OpCode;
 use super::addressing_mode::AddressingMode;
+use super::OpCode;
 
 pub struct Adc;
 
 impl OpCode for Adc {
-    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, mode: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) {
         let left = cpu.registers.acc;
-        let right = mode.operand();
+        let right = am.operand();
         adc_base(cpu, left, right);
     }
 }
