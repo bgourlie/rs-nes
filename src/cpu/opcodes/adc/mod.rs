@@ -9,13 +9,9 @@ use super::addressing_mode::AddressingMode;
 pub struct Adc;
 
 impl OpCode for Adc {
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, mut mode: AM, tick_handler: F)
-        where M: Memory,
-              AM: AddressingMode<M>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, mode: AM) {
         let left = cpu.registers.acc;
-        let right = mode.operand(cpu, tick_handler);
+        let right = mode.operand();
         adc_base(cpu, left, right);
     }
 }

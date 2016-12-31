@@ -5,10 +5,11 @@ use memory::Memory;
 #[derive(Default)]
 pub struct AbsoluteX {
     addr: u16,
+    value: u8,
 }
 
-impl<M: Memory> AddressingMode<M> for AbsoluteX {
-    fn operand<F: Fn(&Cpu<M>)>(&mut self, cpu: &mut Cpu<M>, tick_handler: F) -> u8 {
+impl AbsoluteX {
+    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let low_byte = cpu.read_op();
         tick_handler(cpu);
         let high_byte = cpu.read_op();
@@ -23,10 +24,18 @@ impl<M: Memory> AddressingMode<M> for AbsoluteX {
 
         let val = cpu.memory.load(base_addr);
         tick_handler(cpu);
-        self.addr = target_addr;
-        val
-    }
 
+        AbsoluteX {
+            addr: target_addr,
+            value: val,
+        }
+    }
+}
+
+impl<M: Memory> AddressingMode<M> for AbsoluteX {
+    fn operand(&self) -> u8 {
+        self.value
+    }
     //    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
     //        tick_handler(cpu);
     //        cpu.memory.store(self.addr, value);

@@ -2,14 +2,15 @@ use super::AddressingMode;
 use cpu::Cpu;
 use memory::Memory;
 
-pub struct ZeroPage;
+pub struct ZeroPage {
+    addr: u16,
+    value: u8,
+}
 
-impl<M: Memory> AddressingMode<M> for ZeroPage {
-    fn operand<F: Fn(&Cpu<M>)>(&mut self, cpu: &mut Cpu<M>, tick_handler: F) -> u8 {
-        let op = cpu.read_op();
-        tick_handler(cpu);
-        let val = cpu.memory.load(op as u16);
-        tick_handler(cpu);
-        val
+impl ZeroPage {
+    pub fn new<F: Fn(&Cpu<M>), M: Memory>(_: &mut Cpu<M>, _: F) -> Self {
+        unimplemented!();
     }
 }
+
+impl<M: Memory> AddressingMode<M> for ZeroPage {}
