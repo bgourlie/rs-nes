@@ -1,11 +1,11 @@
 use cpu::Cpu;
 use memory::Memory;
-use super::Instruction;
+use super::OpCode;
 use super::addressing_mode::AddressingMode;
 
 pub struct Adc;
 
-impl Instruction for Adc {
+impl OpCode for Adc {
     fn execute<M, AM, F>(cpu: &mut Cpu<M>, mut mode: AM, tick_handler: F)
         where M: Memory,
               AM: AddressingMode<M>,

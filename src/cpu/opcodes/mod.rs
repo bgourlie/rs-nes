@@ -61,7 +61,7 @@ use memory::Memory;
 
 use self::addressing_mode::*;
 
-pub trait Instruction {
+pub trait OpCode {
     fn execute<M: Memory, EC: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
                                                                  context: EC,
                                                                  tick_handler: F);

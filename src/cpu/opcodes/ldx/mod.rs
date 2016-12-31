@@ -1,12 +1,12 @@
 use cpu::Cpu;
 use memory::Memory;
-use super::Instruction;
+use super::OpCode;
 use super::addressing_mode::AddressingMode;
 
 pub struct Ldx;
 
-impl Instruction for Ldx {
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, mut mode: AM, tick_handler: F)
+impl OpCode for Ldx {
+    fn execute<M, AM, F>(_: &mut Cpu<M>, _: AM, _: F)
         where M: Memory,
               AM: AddressingMode<M>,
               F: Fn(&Cpu<M>)
