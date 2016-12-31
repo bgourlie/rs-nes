@@ -14,7 +14,7 @@ use router::Router;
 use websocket::{Server as WsServer, Message as WsMessage};
 
 use memory::Memory;
-use cpu::registers::Registers;
+use cpu::Registers;
 use disassembler::Instruction;
 use super::Debugger;
 use self::debugger_command::{DebuggerCommand, BreakReason};

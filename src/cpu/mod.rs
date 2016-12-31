@@ -1,12 +1,8 @@
-
-pub mod debugger;
 mod registers;
 mod opcodes;
 
 use std::num::Wrapping;
-
-use self::registers::*;
-
+pub use self::registers::Registers;
 use constants::*;
 use memory::*;
 

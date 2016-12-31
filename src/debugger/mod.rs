@@ -1,7 +1,7 @@
 pub mod http_debugger;
 
 use std::marker::PhantomData;
-use super::registers::Registers;
+use cpu::Registers;
 use memory::Memory;
 
 pub trait Debugger<M: Memory> {
