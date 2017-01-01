@@ -58,7 +58,6 @@ mod dec;
 mod jmp;
 mod jsr;
 
-#[cfg(test)]
 use std::cell::Cell;
 
 use cpu::Cpu;
@@ -71,10 +70,9 @@ trait OpCode {
         unimplemented!()
     }
 
-    /// A test-only execute method that doesn't accept a tick_handler and returns the number of
+    /// An execute method that doesn't accept a tick_handler and returns the number of
     /// cycles executed.
-    #[cfg(test)]
-    fn execute_test<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) -> usize {
+    fn execute_cycles<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) -> usize {
         let cycles = Cell::new(0);
         Self::execute(cpu, am, &|_| cycles.set(cycles.get() + 1));
         cycles.get()
