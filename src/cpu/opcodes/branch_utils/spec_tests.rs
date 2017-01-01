@@ -1,6 +1,6 @@
 use cpu::*;
 
-pub fn branch_not_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
+pub fn branch_not_crossing_page_boundary_positive_offset<F>(setup_and_branch: F)
     where F: Fn(&mut TestCpu, i8) -> usize
 {
     let mut cpu = TestCpu::new_test();
@@ -10,7 +10,7 @@ pub fn branch_not_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: 
     assert_eq!(43661, cpu.registers.pc);
 }
 
-pub fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
+pub fn branch_not_crossing_page_boundary_negative_offset<F>(setup_and_branch: F)
     where F: Fn(&mut TestCpu, i8) -> usize
 {
     let mut cpu = TestCpu::new_test();
@@ -20,7 +20,7 @@ pub fn branch_not_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: 
     assert_eq!(43655, cpu.registers.pc);
 }
 
-pub fn branch_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
+pub fn branch_crossing_page_boundary_positive_offset<F>(setup_and_branch: F)
     where F: Fn(&mut TestCpu, i8) -> usize
 {
     let mut cpu = TestCpu::new_test();
@@ -30,7 +30,7 @@ pub fn branch_crossing_page_boundary_positive_rel_addr<F>(setup_and_branch: F)
     assert_eq!(43783, cpu.registers.pc);
 }
 
-pub fn branch_crossing_page_boundary_negative_rel_addr<F>(setup_and_branch: F)
+pub fn branch_crossing_page_boundary_negative_offset<F>(setup_and_branch: F)
     where F: Fn(&mut TestCpu, i8) -> usize
 {
     let mut cpu = TestCpu::new_test();
