@@ -16,6 +16,7 @@
 
 # IDE
 .idea
+*.iml
 npm-debug.log
 
 # Don't version private copy roms
