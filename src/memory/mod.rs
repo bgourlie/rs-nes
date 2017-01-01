@@ -10,17 +10,7 @@ pub const ADDRESSABLE_MEMORY: usize = 65536;
 
 pub trait Memory: 'static + Send + Clone {
     fn store(&mut self, u16, u8);
-    fn store16(&mut self, addr: u16, data: u16) {
-        let lowb = (data & 0xff) as u8;
-        let highb = ((data >> 8) & 0xff) as u8;
-        self.store(addr, lowb);
-        self.store(addr + 1, highb);
-    }
     fn load(&self, u16) -> u8;
-    fn load16(&self, addr: u16) -> u16 {
-        self.load(addr) as u16 | (self.load(addr + 1) as u16) << 8
-    }
-
     fn hash(&self) -> u64;
     fn dump<T: Write>(&self, writer: &mut T);
 }

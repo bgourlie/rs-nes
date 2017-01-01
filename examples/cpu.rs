@@ -32,5 +32,5 @@ fn tick_handler(cpu: &Cpu<SimpleMemory>) {
 }
 
 fn print_status(cpu: &Cpu<SimpleMemory>) {
-    println!("status: {}", cpu.cycles)
+    println!("status: {}", cpu.registers.pc)
 }

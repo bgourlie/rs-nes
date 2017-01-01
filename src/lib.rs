@@ -16,7 +16,6 @@ extern crate byteorder;
 extern crate rand;
 extern crate seahash;
 
-mod constants;
 pub mod rom;
 pub mod memory;
 pub mod cpu;

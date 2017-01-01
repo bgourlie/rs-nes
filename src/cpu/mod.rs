@@ -1,10 +1,15 @@
+mod byte_utils;
 mod registers;
 mod opcodes;
 
 use std::num::Wrapping;
-pub use self::registers::Registers;
-use constants::*;
 use memory::*;
+pub use self::registers::Registers;
+use self::byte_utils::{lo_hi, from_lo_hi};
+
+pub const STACK_LOC: u16 = 0x100;
+pub const NMI_VECTOR: u16 = 0xfffa;
+pub const RESET_VECTOR: u16 = 0xfffc;
 
 #[cfg(test)]
 pub type TestCpu = Cpu<SimpleMemory>;
@@ -18,7 +23,6 @@ impl TestCpu {
 }
 
 pub struct Cpu<M: Memory> {
-    pub cycles: u64,
     pub registers: Registers,
     pub memory: M,
 }
@@ -26,7 +30,6 @@ pub struct Cpu<M: Memory> {
 impl<Mem: Memory> Cpu<Mem> {
     pub fn new(memory: Mem) -> Self {
         Cpu {
-            cycles: 0,
             registers: Registers::new(),
             memory: memory,
         }
@@ -39,15 +42,20 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     pub fn reset(&mut self) {
-        let pc_start = self.memory.load16(RESET_VECTOR);
-        self.registers.pc = pc_start;
+        let pc_start_low = self.memory.load(RESET_VECTOR);
+        let pc_start_high = self.memory.load(RESET_VECTOR + 1);
+        self.registers.pc = from_lo_hi(pc_start_low, pc_start_high);
     }
 
     pub fn nmi(&mut self) {
-        let (pc, stat) = (self.registers.pc, self.registers.status);
-        self.push_stack16(pc);
+        let stat = self.registers.status;
+        let (pc_low_byte, pc_high_byte) = lo_hi(self.registers.pc);
+        self.push_stack(pc_low_byte);
+        self.push_stack(pc_high_byte);
         self.push_stack(stat);
-        self.registers.pc = self.memory.load16(NMI_VECTOR);
+        let pc_low_byte = self.memory.load(NMI_VECTOR);
+        let pc_high_byte = self.memory.load(NMI_VECTOR + 1);
+        self.registers.pc = from_lo_hi(pc_low_byte, pc_high_byte);
     }
 
     fn read_op(&mut self) -> u8 {
@@ -57,54 +65,15 @@ impl<Mem: Memory> Cpu<Mem> {
         operand
     }
 
-    fn read_op16(&mut self) -> u16 {
-        let pc = self.registers.pc;
-        let operand = self.memory.load16(pc);
-        self.registers.pc += 2;
-        operand
-    }
-
     fn push_stack(&mut self, value: u8) {
         self.memory.store(STACK_LOC + self.registers.sp as u16, value);
         self.registers.sp = (Wrapping(self.registers.sp) - Wrapping(1)).0;
     }
 
-    fn peek_stack(&mut self) -> u8 {
-        self.memory.load(STACK_LOC + ((Wrapping(self.registers.sp) + Wrapping(1)).0) as u16)
-    }
-
     fn pop_stack(&mut self) -> u8 {
-        let val = self.peek_stack();
+        let val = self.memory
+            .load(STACK_LOC + ((Wrapping(self.registers.sp) + Wrapping(1)).0) as u16);
         self.registers.sp = (Wrapping(self.registers.sp) + Wrapping(1)).0;
-        val
-    }
-
-    fn push_stack16(&mut self, value: u16) {
-        let stack_loc = Wrapping(STACK_LOC);
-        let sp = Wrapping(self.registers.sp);
-        let one = Wrapping(1);
-        let two = Wrapping(2);
-        self.memory.store16((stack_loc + Wrapping((sp - one).0 as u16)).0, value);
-        self.registers.sp = (sp - two).0;
-    }
-
-    fn peek_stack16(&mut self) -> u16 {
-        let lowb = self.memory
-            .load(STACK_LOC +
-                  ((Wrapping(self.registers.sp) +
-                    Wrapping(1_u8))
-                .0) as u16) as u16;
-        let highb = self.memory
-            .load(STACK_LOC +
-                  ((Wrapping(self.registers.sp) +
-                    Wrapping(2_u8))
-                .0) as u16) as u16;
-        lowb | (highb << 8)
-    }
-
-    fn pop_stack16(&mut self) -> u16 {
-        let val = self.peek_stack16();
-        self.registers.sp = (Wrapping(self.registers.sp) + Wrapping(2_u8)).0;
         val
     }
 }
