@@ -10,7 +10,7 @@ use super::OpCode;
 pub struct Asl;
 
 impl OpCode for Asl {
-    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
         shift_left(cpu, am, false)
     }
 }

@@ -9,7 +9,7 @@ use super::OpCode;
 pub struct Adc;
 
 impl OpCode for Adc {
-    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
         let left = cpu.registers.acc;
         let right = am.operand();
         adc_base(cpu, left, right);

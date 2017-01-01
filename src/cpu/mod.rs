@@ -35,7 +35,7 @@ impl<Mem: Memory> Cpu<Mem> {
     pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {
         let opcode = self.read_op();
         tick_handler(self);
-        self::opcodes::execute(self, opcode, tick_handler)
+        self::opcodes::execute(self, opcode, &tick_handler)
     }
 
     pub fn reset(&mut self) {

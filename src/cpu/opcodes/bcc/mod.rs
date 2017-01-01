@@ -10,8 +10,10 @@ use super::OpCode;
 pub struct Bcc;
 
 impl OpCode for Bcc {
-    fn execute<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
+                                                                 am: AM,
+                                                                 tick_handler: &F) {
         let carry_clear = !cpu.registers.carry_flag();
-        branch(cpu, am, carry_clear);
+        branch(cpu, am, tick_handler, carry_clear);
     }
 }

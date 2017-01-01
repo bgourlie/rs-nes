@@ -138,10 +138,6 @@ impl Registers {
         self.set_sign_and_zero_flag(res);
         self.acc = res;
     }
-
-    pub fn page_boundary_crossed(&self, old_pc: u16) -> bool {
-        old_pc & 0xFF00 != self.pc & 0xFF00
-    }
 }
 
 impl Default for Registers {

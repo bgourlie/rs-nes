@@ -6,10 +6,7 @@ use super::addressing_mode::AddressingMode;
 pub struct Lda;
 
 impl OpCode for Lda {
-    fn execute<M, AM>(cpu: &mut Cpu<M>, am: AM)
-        where M: Memory,
-              AM: AddressingMode<M>
-    {
+    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
         let val = am.operand();
         cpu.registers.set_acc(val);
     }
