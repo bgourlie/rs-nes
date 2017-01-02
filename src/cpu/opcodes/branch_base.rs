@@ -1,6 +1,3 @@
-#[cfg(test)]
-pub mod spec_tests;
-
 use cpu::Cpu;
 use memory::Memory;
 use super::addressing_mode::AddressingMode;

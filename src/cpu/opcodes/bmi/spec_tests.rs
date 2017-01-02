@@ -1,5 +1,5 @@
 use cpu::opcodes::OpCode;
-use cpu::opcodes::branch_utils::spec_tests::*;
+use cpu::opcodes::branch_tests_base::*;
 use super::Bmi;
 
 #[test]

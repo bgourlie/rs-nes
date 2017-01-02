@@ -1,7 +1,19 @@
+#[cfg(test)]
+pub mod branch_tests_base;
+
+#[cfg(test)]
+pub mod compare_tests_base;
+
+#[cfg(test)]
+pub mod inc_dec_tests_base;
+
+#[cfg(test)]
+pub mod shift_tests_base;
+
 mod addressing_mode;
-mod branch_utils;
-mod shift_utils;
-mod compare_utils;
+mod branch_base;
+mod shift_base;
+mod compare_base;
 mod adc;
 mod dex;
 mod inx;

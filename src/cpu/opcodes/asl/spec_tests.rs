@@ -1,6 +1,6 @@
 use cpu::TestCpu;
 use cpu::opcodes::OpCode;
-use cpu::opcodes::shift_utils::spec_tests::*;
+use cpu::opcodes::shift_tests_base::*;
 use super::Asl;
 
 fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
