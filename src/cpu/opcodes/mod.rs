@@ -1,6 +1,7 @@
 mod addressing_mode;
 mod branch_utils;
 mod shift_utils;
+mod compare_utils;
 mod adc;
 mod dex;
 mod inx;
