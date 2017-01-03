@@ -6,8 +6,14 @@ use super::addressing_mode::AddressingMode;
 pub struct Lda;
 
 impl OpCode for Lda {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
-        let val = am.operand();
+    type Input = u8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
+        let val = am.read();
         cpu.registers.set_acc(val);
     }
 }

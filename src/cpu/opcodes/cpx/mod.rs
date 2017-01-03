@@ -10,7 +10,13 @@ use super::OpCode;
 pub struct Cpx;
 
 impl OpCode for Cpx {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
+    type Input = u8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         let val = cpu.registers.x;
         compare(cpu, am, val);
     }

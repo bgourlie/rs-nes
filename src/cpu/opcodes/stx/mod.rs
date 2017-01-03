@@ -2,4 +2,6 @@ use super::OpCode;
 
 pub struct Stx;
 
-impl OpCode for Stx {}
+impl OpCode for Stx {
+    type Input = u8;
+}

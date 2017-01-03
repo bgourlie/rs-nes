@@ -3,4 +3,6 @@ use memory::Memory;
 
 pub struct IndexedIndirect;
 
-impl<M: Memory> AddressingMode<M> for IndexedIndirect {}
+impl<M: Memory> AddressingMode<M> for IndexedIndirect {
+    type Output = u8;
+}

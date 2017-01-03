@@ -9,9 +9,15 @@ use super::OpCode;
 pub struct Adc;
 
 impl OpCode for Adc {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
+    type Input = u8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         let left = cpu.registers.acc;
-        let right = am.operand();
+        let right = am.read();
         adc_base(cpu, left, right);
     }
 }

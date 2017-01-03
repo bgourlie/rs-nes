@@ -10,8 +10,14 @@ use super::OpCode;
 pub struct Dec;
 
 impl OpCode for Dec {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
-        let val = wrapping_dec(am.operand());
+    type Input = u8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
+        let val = wrapping_dec(am.read());
         am.write(cpu, val);
         cpu.registers.set_sign_and_zero_flag(val);
     }

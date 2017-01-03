@@ -10,9 +10,13 @@ use super::OpCode;
 pub struct Bcs;
 
 impl OpCode for Bcs {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
-                                                                 am: AM,
-                                                                 tick_handler: &F) {
+    type Input = i8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, tick_handler: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         let carry_set = cpu.registers.carry_flag();
         branch(cpu, am, tick_handler, carry_set);
     }

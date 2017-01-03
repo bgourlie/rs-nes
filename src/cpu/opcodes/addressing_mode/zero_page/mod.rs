@@ -13,4 +13,6 @@ impl ZeroPage {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for ZeroPage {}
+impl<M: Memory> AddressingMode<M> for ZeroPage {
+    type Output = u8;
+}

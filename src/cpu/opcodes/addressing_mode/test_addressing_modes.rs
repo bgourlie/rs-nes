@@ -5,7 +5,9 @@ use memory::SimpleMemory;
 use super::AddressingMode;
 
 impl AddressingMode<SimpleMemory> for u8 {
-    fn operand(&self) -> u8 {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
         *self
     }
 
@@ -15,8 +17,10 @@ impl AddressingMode<SimpleMemory> for u8 {
 }
 
 impl AddressingMode<SimpleMemory> for i8 {
-    fn operand(&self) -> u8 {
-        *self as u8
+    type Output = i8;
+
+    fn read(&self) -> Self::Output {
+        *self
     }
 }
 
@@ -35,7 +39,8 @@ impl WriterAddressingMode {
 }
 
 impl AddressingMode<SimpleMemory> for WriterAddressingMode {
-    fn operand(&self) -> u8 {
+    type Output = u8;
+    fn read(&self) -> Self::Output {
         self.value.get()
     }
 

@@ -30,7 +30,9 @@ impl<M: Memory, F: Fn(&Cpu<M>)> Absolute<M, F> {
 }
 
 impl<M: Memory, F: Fn(&Cpu<M>)> AddressingMode<M> for Absolute<M, F> {
-    fn operand(&self) -> u8 {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
         self.value
     }
 

@@ -12,9 +12,13 @@ const BRK_VECTOR: u16 = 0xfffe;
 pub struct Brk;
 
 impl OpCode for Brk {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
-                                                                 _: AM,
-                                                                 tick_handler: &F) {
+    type Input = ();
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         cpu.registers.pc += 1;
         tick_handler(cpu);
         let (pc_low_byte, pc_high_byte) = lo_hi(cpu.registers.pc);

@@ -14,4 +14,6 @@ impl Relative {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for Relative {}
+impl<M: Memory> AddressingMode<M> for Relative {
+    type Output = i8;
+}

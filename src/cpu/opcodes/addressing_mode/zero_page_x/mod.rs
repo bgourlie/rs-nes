@@ -3,4 +3,6 @@ use memory::Memory;
 
 pub struct ZeroPageX;
 
-impl<M: Memory> AddressingMode<M> for ZeroPageX {}
+impl<M: Memory> AddressingMode<M> for ZeroPageX {
+    type Output = u8;
+}

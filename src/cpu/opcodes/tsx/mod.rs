@@ -2,4 +2,6 @@ use super::OpCode;
 
 pub struct Tsx;
 
-impl OpCode for Tsx {}
+impl OpCode for Tsx {
+    type Input = ();
+}

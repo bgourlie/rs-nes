@@ -2,4 +2,6 @@ use super::OpCode;
 
 pub struct Rts;
 
-impl OpCode for Rts {}
+impl OpCode for Rts {
+    type Input = ();
+}

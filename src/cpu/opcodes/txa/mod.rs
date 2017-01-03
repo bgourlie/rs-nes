@@ -2,4 +2,6 @@ use super::OpCode;
 
 pub struct Txa;
 
-impl OpCode for Txa {}
+impl OpCode for Txa {
+    type Input = ();
+}

@@ -15,6 +15,9 @@ mod zero_page;
 mod zero_page_x;
 mod zero_page_y;
 
+use super::Cpu;
+use memory::*;
+
 pub use self::absolute::Absolute;
 pub use self::absolute_x::AbsoluteX;
 pub use self::absolute_y::AbsoluteY;
@@ -29,11 +32,10 @@ pub use self::zero_page::ZeroPage;
 pub use self::zero_page_x::ZeroPageX;
 pub use self::zero_page_y::ZeroPageY;
 
-use super::Cpu;
-use memory::*;
-
 pub trait AddressingMode<M: Memory> {
-    fn operand(&self) -> u8 {
+    type Output;
+
+    fn read(&self) -> Self::Output {
         unimplemented!()
     }
 

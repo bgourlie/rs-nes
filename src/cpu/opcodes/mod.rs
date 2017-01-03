@@ -79,13 +79,22 @@ use memory::Memory;
 use self::addressing_mode::*;
 
 trait OpCode {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(_: &mut Cpu<M>, _: AM, _: &F) {
+    type Input;
+
+    fn execute<M, AM, F>(_: &mut Cpu<M>, _: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         unimplemented!()
     }
 
     /// An execute method that doesn't accept a tick_handler and returns the number of
     /// cycles executed.
-    fn execute_cycles<M: Memory, AM: AddressingMode<M>>(cpu: &mut Cpu<M>, am: AM) -> usize {
+    fn execute_cycles<M, AM>(cpu: &mut Cpu<M>, am: AM) -> usize
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>
+    {
         let cycles = Cell::new(0);
         Self::execute(cpu, am, &|_| cycles.set(cycles.get() + 1));
         cycles.get()

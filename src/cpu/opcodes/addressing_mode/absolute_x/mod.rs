@@ -33,7 +33,9 @@ impl AbsoluteX {
 }
 
 impl<M: Memory> AddressingMode<M> for AbsoluteX {
-    fn operand(&self) -> u8 {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
         self.value
     }
     //    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {

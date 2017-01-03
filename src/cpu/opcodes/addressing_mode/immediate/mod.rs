@@ -15,7 +15,9 @@ impl Immediate {
 }
 
 impl<M: Memory> AddressingMode<M> for Immediate {
-    fn operand(&self) -> u8 {
+    type Output = u8;
+
+    fn read(&self) -> u8 {
         self.val
     }
 }

@@ -9,9 +9,15 @@ use super::OpCode;
 pub struct Bit;
 
 impl OpCode for Bit {
-    fn execute<M: Memory, AM: AddressingMode<M>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, am: AM, _: &F) {
+    type Input = u8;
+
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
+        where M: Memory,
+              AM: AddressingMode<M, Output = Self::Input>,
+              F: Fn(&Cpu<M>)
+    {
         let lhs = cpu.registers.acc;
-        let rhs = am.operand();
+        let rhs = am.read();
         let res = lhs & rhs;
 
         cpu.registers.set_zero_flag(res == 0);
