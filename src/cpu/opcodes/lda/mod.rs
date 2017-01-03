@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod spec_tests;
+
 use cpu::Cpu;
 use memory::Memory;
 use super::OpCode;
