@@ -10,7 +10,7 @@ pub mod inc_dec_tests_base;
 #[cfg(test)]
 pub mod shift_tests_base;
 
-mod addressing_mode;
+mod addressing;
 mod branch_base;
 mod shift_base;
 mod compare_base;
@@ -76,7 +76,7 @@ use std::cell::Cell;
 use cpu::Cpu;
 use memory::Memory;
 
-use self::addressing_mode::*;
+use self::addressing::*;
 
 trait OpCode {
     type Input;
@@ -440,7 +440,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
         }
         0x6c => self::jmp::Jmp::execute(cpu, Indirect, &tick_handler),
         0x20 => {
-            let am = Absolute::new(cpu, &tick_handler);
+            let am = AbsoluteAddress::new(cpu, &tick_handler);
             self::jsr::Jsr::execute(cpu, am, &tick_handler)
         }
         _ => {

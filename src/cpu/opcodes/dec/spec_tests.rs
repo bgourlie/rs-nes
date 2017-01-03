@@ -1,4 +1,4 @@
-use cpu::opcodes::addressing_mode::test_addressing_modes::WriterAddressingMode;
+use cpu::opcodes::addressing::testing::WriterAddressingMode;
 use cpu::opcodes::inc_dec_tests_base::*;
 use cpu::opcodes::OpCode;
 use super::Dec;

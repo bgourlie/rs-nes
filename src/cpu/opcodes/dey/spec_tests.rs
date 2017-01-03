@@ -1,4 +1,4 @@
-use cpu::opcodes::addressing_mode::Implied;
+use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::inc_dec_tests_base::*;
 use cpu::opcodes::OpCode;
 use super::Dey;

@@ -1,7 +1,7 @@
 use cpu::Cpu;
 use memory::Memory;
 use super::OpCode;
-use super::addressing_mode::AddressingMode;
+use super::addressing::AddressingMode;
 
 pub struct Lda;
 

@@ -1,6 +1,6 @@
 use cpu::*;
 use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing_mode::Implied;
+use cpu::opcodes::addressing::Implied;
 use super::Sei;
 
 #[test]

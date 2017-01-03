@@ -4,7 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use cpu::byte_utils::{lo_hi, from_lo_hi};
 use memory::Memory;
-use super::addressing_mode::AddressingMode;
+use super::addressing::AddressingMode;
 use super::OpCode;
 
 const BRK_VECTOR: u16 = 0xfffe;

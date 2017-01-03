@@ -3,7 +3,7 @@ mod spec_tests;
 
 use cpu::Cpu;
 use memory::Memory;
-use super::addressing_mode::AddressingMode;
+use super::addressing::AddressingMode;
 use super::OpCode;
 
 pub struct Clc;

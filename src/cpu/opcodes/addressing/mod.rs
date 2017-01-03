@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod test_addressing_modes;
+pub mod testing;
 
 mod absolute;
 mod absolute_address;

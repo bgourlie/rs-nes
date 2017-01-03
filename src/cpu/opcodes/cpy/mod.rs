@@ -4,7 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use memory::Memory;
 use super::compare_base::compare;
-use super::addressing_mode::AddressingMode;
+use super::addressing::AddressingMode;
 use super::OpCode;
 
 pub struct Cpy;

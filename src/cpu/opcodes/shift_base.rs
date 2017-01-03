@@ -1,6 +1,6 @@
 use cpu::Cpu;
 use memory::Memory;
-use super::addressing_mode::AddressingMode;
+use super::addressing::AddressingMode;
 
 pub fn shift_left<M: Memory, AM: AddressingMode<M, Output = u8>>(cpu: &mut Cpu<M>,
                                                                  am: AM,
