@@ -53,7 +53,7 @@ pub fn shift_left_base_3<F>(do_shift: F)
     assert_eq!(true, cpu.registers.zero_flag());
 }
 
-fn shift_right_base_1<F>(do_shift: F)
+pub fn shift_right_base_1<F>(do_shift: F)
     where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
@@ -76,7 +76,7 @@ fn shift_right_base_1<F>(do_shift: F)
     assert_eq!(false, cpu.registers.zero_flag());
 }
 
-fn shift_right_base_2<F>(do_shift: F)
+pub fn shift_right_base_2<F>(do_shift: F)
     where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
@@ -93,7 +93,7 @@ fn shift_right_base_2<F>(do_shift: F)
     assert_eq!(false, cpu.registers.zero_flag());
 }
 
-fn shift_right_base_3<F>(do_shift: F)
+pub fn shift_right_base_3<F>(do_shift: F)
     where F: Fn(&mut TestCpu, u8) -> (u8, bool)
 {
 
