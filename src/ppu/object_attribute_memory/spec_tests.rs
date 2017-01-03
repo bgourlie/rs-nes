@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn test_sprite_attributes_x_pos() {
+fn sprite_attributes_x_pos() {
     let oam = oam_fixture(&[0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 0]);
     let attrs = oam.sprite_attributes(0);
     assert_eq!(2, attrs.x);
@@ -14,7 +14,7 @@ fn test_sprite_attributes_x_pos() {
 }
 
 #[test]
-fn test_sprite_attributes_y_pos() {
+fn sprite_attributes_y_pos() {
     let oam = oam_fixture(&[2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
     let attrs = oam.sprite_attributes(0);
     assert_eq!(2, attrs.y);
@@ -27,7 +27,7 @@ fn test_sprite_attributes_y_pos() {
 }
 
 #[test]
-fn test_sprite_attributes_tile_index() {
+fn sprite_attributes_tile_index() {
     let oam = oam_fixture(&[0, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]);
     let attrs = oam.sprite_attributes(0);
     assert_eq!(2, attrs.tile_index);
@@ -40,7 +40,7 @@ fn test_sprite_attributes_tile_index() {
 }
 
 #[test]
-fn test_sprite_attributes_palette_index() {
+fn sprite_attributes_palette_index() {
     let oam = oam_fixture(&[0, 0, 0b00000011, 0, 0, 0, 0b00000010, 0, 0, 0, 0b00000001, 0, 0, 0,
                             0b00000000, 0]);
 
@@ -58,7 +58,7 @@ fn test_sprite_attributes_palette_index() {
 }
 
 #[test]
-fn test_sprite_attributes_priority() {
+fn sprite_attributes_priority() {
     let oam = oam_fixture(&[0, 0, 0b00100000, 0, 0, 0, 0b00000000, 0]);
 
     let attrs = oam.sprite_attributes(0);
@@ -69,7 +69,7 @@ fn test_sprite_attributes_priority() {
 }
 
 #[test]
-fn test_sprite_attributes_horizontal_flip() {
+fn sprite_attributes_horizontal_flip() {
     let oam = oam_fixture(&[0, 0, 0b01000000, 0, 0, 0, 0b00000000, 0]);
 
     let attrs = oam.sprite_attributes(0);
@@ -80,7 +80,7 @@ fn test_sprite_attributes_horizontal_flip() {
 }
 
 #[test]
-fn test_sprite_attributes_vertical_flip() {
+fn sprite_attributes_vertical_flip() {
     let oam = oam_fixture(&[0, 0, 0b10000000, 0, 0, 0, 0b00000000, 0]);
 
     let attrs = oam.sprite_attributes(0);
@@ -91,7 +91,7 @@ fn test_sprite_attributes_vertical_flip() {
 }
 
 #[test]
-fn test_oam_write_and_read() {
+fn oam_write_and_read() {
     let mut oam = oam_fixture(&[0xa, 0xb, 0xc, 0xd]);
     oam.set_address(0x1);
     assert_eq!(0xb, oam.read_data());
@@ -100,7 +100,7 @@ fn test_oam_write_and_read() {
 }
 
 #[test]
-fn test_oam_write_and_read_increment() {
+fn oam_write_and_read_increment() {
     let mut mem = [0_u8; 0x100];
 
     for i in 0..0x100 {

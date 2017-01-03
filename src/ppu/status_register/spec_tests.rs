@@ -1,7 +1,7 @@
 use super::StatusRegister;
 
 #[test]
-fn sprite_overflow_test() {
+fn sprite_overflow() {
     let reg = StatusRegister::new(0b00000000);
     assert_eq!(false, reg.sprite_overflow());
 
@@ -19,7 +19,7 @@ fn sprite_zero_hit() {
 }
 
 #[test]
-fn in_vblank_test() {
+fn in_vblank() {
     let reg = StatusRegister::new(0b00000000);
     assert_eq!(false, reg.in_vblank());
 

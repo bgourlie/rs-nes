@@ -3,7 +3,7 @@ use cpu::opcodes::OpCode;
 use super::Bit;
 
 #[test]
-fn test_zero_flag_behavior() {
+fn zero_flag_behavior() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.acc = 0;
     Bit::execute_cycles(&mut cpu, 0_u8);
@@ -21,7 +21,7 @@ fn test_zero_flag_behavior() {
 }
 
 #[test]
-fn test_sign_flag_behavior() {
+fn sign_flag_behavior() {
     let mut cpu = TestCpu::new_test();
     Bit::execute_cycles(&mut cpu, 0b01111111_u8);
     assert_eq!(false, cpu.registers.sign_flag());
@@ -32,7 +32,7 @@ fn test_sign_flag_behavior() {
 }
 
 #[test]
-fn test_overflow_flag_behavior() {
+fn overflow_flag_behavior() {
     let mut cpu = TestCpu::new_test();
     Bit::execute_cycles(&mut cpu, 0b10111111_u8);
     assert_eq!(false, cpu.registers.overflow_flag());

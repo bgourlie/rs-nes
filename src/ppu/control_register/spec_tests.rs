@@ -1,7 +1,7 @@
 use ppu::control_register::{ControlRegister, SpriteSize, PpuMode};
 
 #[test]
-fn base_nametable_addr_test() {
+fn base_nametable_addr() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(0x2000, ppu_ctrl.base_name_table_addr());
 
@@ -16,7 +16,7 @@ fn base_nametable_addr_test() {
 }
 
 #[test]
-fn vram_addr_increment_test() {
+fn vram_addr_increment() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(1, ppu_ctrl.vram_addr_increment());
 
@@ -25,7 +25,7 @@ fn vram_addr_increment_test() {
 }
 
 #[test]
-fn sprite_pattern_table_addr_test() {
+fn sprite_pattern_table_addr() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(0, ppu_ctrl.sprite_pattern_table_addr());
 
@@ -34,7 +34,7 @@ fn sprite_pattern_table_addr_test() {
 }
 
 #[test]
-fn background_pattern_table_addr_test() {
+fn background_pattern_table_addr() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(0, ppu_ctrl.background_pattern_table_addr());
 
@@ -43,7 +43,7 @@ fn background_pattern_table_addr_test() {
 }
 
 #[test]
-fn sprite_size_test() {
+fn sprite_size() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(SpriteSize::X8, ppu_ctrl.sprite_size());
 
@@ -52,7 +52,7 @@ fn sprite_size_test() {
 }
 
 #[test]
-fn ppu_mode_test() {
+fn ppu_mode() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(PpuMode::Master, ppu_ctrl.ppu_mode());
 
@@ -61,7 +61,7 @@ fn ppu_mode_test() {
 }
 
 #[test]
-fn nmi_on_vblank_start_test() {
+fn nmi_on_vblank_start() {
     let ppu_ctrl = ControlRegister::new(0b00000000);
     assert_eq!(false, ppu_ctrl.nmi_on_vblank_start());
 

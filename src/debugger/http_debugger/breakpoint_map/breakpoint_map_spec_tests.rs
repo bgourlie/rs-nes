@@ -4,7 +4,7 @@ use super::BreakpointMap;
 use memory::ADDRESSABLE_MEMORY;
 
 #[test]
-fn set_breakpoint_test() {
+fn set_breakpoint() {
     let mut rng = thread_rng();
     let mut addrs = [0_u16; ADDRESSABLE_MEMORY];
     let mut breakpoint_map = BreakpointMap::new();

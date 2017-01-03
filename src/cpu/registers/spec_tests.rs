@@ -1,7 +1,7 @@
 use cpu::registers::Registers;
 
 #[test]
-fn carry_flag_tests() {
+fn carry_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.carry_flag());
 
@@ -10,7 +10,7 @@ fn carry_flag_tests() {
 }
 
 #[test]
-fn zero_flag_tests() {
+fn zero_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.zero_flag());
 
@@ -19,7 +19,7 @@ fn zero_flag_tests() {
 }
 
 #[test]
-fn zero_interrupt_disable_tests() {
+fn zero_interrupt_disable() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.interrupt_disable_flag());
 
@@ -28,7 +28,7 @@ fn zero_interrupt_disable_tests() {
 }
 
 #[test]
-fn decimal_flag_tests() {
+fn decimal_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.decimal_flag());
 
@@ -37,7 +37,7 @@ fn decimal_flag_tests() {
 }
 
 #[test]
-fn break_flag_tests() {
+fn break_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.break_flag());
 
@@ -46,7 +46,7 @@ fn break_flag_tests() {
 }
 
 #[test]
-fn overflow_flag_tests() {
+fn overflow_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.overflow_flag());
 
@@ -55,7 +55,7 @@ fn overflow_flag_tests() {
 }
 
 #[test]
-fn sign_flag_tests() {
+fn sign_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.sign_flag());
 
@@ -64,7 +64,7 @@ fn sign_flag_tests() {
 }
 
 #[test]
-fn set_status_from_stack_tests() {
+fn set_status_from_stack() {
     // Break and unused bits are not overwritten when pulling from stack
     let mut regs = new_with_status(0b00110000);
     regs.set_status_from_stack(0b00000000);
@@ -72,7 +72,7 @@ fn set_status_from_stack_tests() {
 }
 
 #[test]
-fn status_for_stack_tests() {
+fn status_for_stack() {
     // Break and unused bits are always set when pushing to stack
     let regs = new_with_status(0b00000000);
     assert_eq!(0b00110000, regs.status_for_stack());

@@ -5,7 +5,7 @@ use super::StatusRegister;
 // This doesn't make them suitable for a spec test, is there any way to make this nicer?
 
 #[test]
-fn memory_mapped_register_write_test() {
+fn memory_mapped_register_write() {
     let mut ppu = Ppu::new();
 
     // Writes to 0x2000 write the control register
@@ -93,7 +93,7 @@ fn memory_mapped_register_write_test() {
 }
 
 #[test]
-fn memory_mapped_register_read_test() {
+fn memory_mapped_register_read() {
     let mut ppu = Ppu::new();
 
     ppu.ctrl_reg.set(0xf0);

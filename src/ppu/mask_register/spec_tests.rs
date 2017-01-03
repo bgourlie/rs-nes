@@ -1,7 +1,7 @@
 use ppu::mask_register::{MaskRegister, ColorMode};
 
 #[test]
-fn color_mode_test() {
+fn color_mode() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(ColorMode::Normal, reg.color_mode());
 
@@ -10,7 +10,7 @@ fn color_mode_test() {
 }
 
 #[test]
-fn background_render_leftmost_8_px_test() {
+fn background_render_leftmost_8_px() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.background_render_leftmost_8_px());
 
@@ -19,7 +19,7 @@ fn background_render_leftmost_8_px_test() {
 }
 
 #[test]
-fn sprites_render_leftmost_8_px_test() {
+fn sprites_render_leftmost_8_px() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.sprites_render_leftmost_8_px());
 
@@ -28,7 +28,7 @@ fn sprites_render_leftmost_8_px_test() {
 }
 
 #[test]
-fn show_background_test() {
+fn show_background() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.show_background());
 
@@ -37,7 +37,7 @@ fn show_background_test() {
 }
 
 #[test]
-fn show_sprites_test() {
+fn show_sprites() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.show_sprites());
 
@@ -46,7 +46,7 @@ fn show_sprites_test() {
 }
 
 #[test]
-fn emphasize_red_test() {
+fn emphasize_red() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.emphasize_red());
 
@@ -55,7 +55,7 @@ fn emphasize_red_test() {
 }
 
 #[test]
-fn emphasize_green_test() {
+fn emphasize_green() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.emphasize_green());
 
@@ -64,7 +64,7 @@ fn emphasize_green_test() {
 }
 
 #[test]
-fn emphasize_blue_test() {
+fn emphasize_blue() {
     let reg = MaskRegister::new(0b00000000);
     assert_eq!(false, reg.emphasize_blue());
 
