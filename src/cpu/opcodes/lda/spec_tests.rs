@@ -3,14 +3,14 @@ use cpu::opcodes::OpCode;
 use super::Lda;
 
 #[test]
-fn lda_value_set() {
+fn value_set() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0xff_u8);
     assert_eq!(0xff, cpu.registers.acc);
 }
 
 #[test]
-fn lda_flags_sign_and_zero_1() {
+fn flags_sign_and_zero_1() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0x0_u8);
     assert_eq!(true, cpu.registers.zero_flag());
@@ -18,7 +18,7 @@ fn lda_flags_sign_and_zero_1() {
 }
 
 #[test]
-fn lda_flags_sign_and_zero_2() {
+fn flags_sign_and_zero_2() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0x1_u8);
     assert_eq!(false, cpu.registers.zero_flag());
@@ -26,7 +26,7 @@ fn lda_flags_sign_and_zero_2() {
 }
 
 #[test]
-fn lda_flags_sign_and_zero_3() {
+fn flags_sign_and_zero_3() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0x80_u8);
     assert_eq!(false, cpu.registers.zero_flag());
