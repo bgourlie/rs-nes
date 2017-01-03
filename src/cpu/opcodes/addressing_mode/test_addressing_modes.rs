@@ -48,3 +48,10 @@ impl AddressingMode<SimpleMemory> for WriterAddressingMode {
         self.value.set(value)
     }
 }
+
+impl AddressingMode<SimpleMemory> for u16 {
+    type Output = Self;
+    fn read(&self) -> Self::Output {
+        *self
+    }
+}

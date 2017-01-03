@@ -2,6 +2,7 @@
 pub mod test_addressing_modes;
 
 mod absolute;
+mod absolute_address;
 mod absolute_x;
 mod absolute_y;
 mod accumulator;
@@ -19,6 +20,7 @@ use super::Cpu;
 use memory::*;
 
 pub use self::absolute::Absolute;
+pub use self::absolute_address::AbsoluteAddress;
 pub use self::absolute_x::AbsoluteX;
 pub use self::absolute_y::AbsoluteY;
 pub use self::accumulator::Accumulator;

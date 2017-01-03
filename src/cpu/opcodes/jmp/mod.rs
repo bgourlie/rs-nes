@@ -9,13 +9,13 @@ use super::OpCode;
 pub struct Jmp;
 
 impl OpCode for Jmp {
-    type Input = u8;
+    type Input = u16;
 
-    fn execute<M, AM, F>(_: &mut Cpu<M>, _: AM, _: &F)
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, _: &F)
         where M: Memory,
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
-        unimplemented!()
+        cpu.registers.pc = am.read();
     }
 }

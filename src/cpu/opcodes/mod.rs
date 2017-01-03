@@ -435,7 +435,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
         }
         0xde => self::dec::Dec::execute(cpu, AbsoluteX::default(), &tick_handler),
         0x4c => {
-            let am = Absolute::new(cpu, &tick_handler);
+            let am = AbsoluteAddress::new(cpu, &tick_handler);
             self::jmp::Jmp::execute(cpu, am, &tick_handler)
         }
         0x6c => self::jmp::Jmp::execute(cpu, Indirect, &tick_handler),
