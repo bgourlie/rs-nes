@@ -11,6 +11,7 @@ pub mod inc_dec_tests_base;
 pub mod shift_tests_base;
 
 mod addressing;
+mod arithmetic_base;
 mod branch_base;
 mod shift_base;
 mod compare_base;
