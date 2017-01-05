@@ -25,27 +25,32 @@ impl AddressingMode<SimpleMemory> for i8 {
 }
 
 pub struct WriterAddressingMode {
-    value: Rc<Cell<u8>>,
+    read_value: u8,
+    written: Rc<Cell<u8>>,
 }
 
 impl WriterAddressingMode {
-    pub fn new(value: u8) -> Self {
-        WriterAddressingMode { value: Rc::new(Cell::new(value)) }
+    pub fn with_read_value(value: u8) -> Self {
+        WriterAddressingMode { written: Rc::new(Cell::new(0)), read_value: value }
     }
 
-    pub fn value_ref(&self) -> Rc<Cell<u8>> {
-        self.value.clone()
+    pub fn new() -> Self {
+        WriterAddressingMode { written: Rc::new(Cell::new(0)), read_value: 0 }
+    }
+
+    pub fn write_ref(&self) -> Rc<Cell<u8>> {
+        self.written.clone()
     }
 }
 
 impl AddressingMode<SimpleMemory> for WriterAddressingMode {
     type Output = u8;
     fn read(&self) -> Self::Output {
-        self.value.get()
+        self.read_value
     }
 
     fn write(&self, _: &mut Cpu<SimpleMemory>, value: u8) {
-        self.value.set(value)
+        self.written.set(value)
     }
 }
 
