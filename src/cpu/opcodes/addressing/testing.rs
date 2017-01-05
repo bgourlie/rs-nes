@@ -31,11 +31,17 @@ pub struct WriterAddressingMode {
 
 impl WriterAddressingMode {
     pub fn with_read_value(value: u8) -> Self {
-        WriterAddressingMode { written: Rc::new(Cell::new(0)), read_value: value }
+        WriterAddressingMode {
+            written: Rc::new(Cell::new(0)),
+            read_value: value,
+        }
     }
 
     pub fn new() -> Self {
-        WriterAddressingMode { written: Rc::new(Cell::new(0)), read_value: 0 }
+        WriterAddressingMode {
+            written: Rc::new(Cell::new(0)),
+            read_value: 0,
+        }
     }
 
     pub fn write_ref(&self) -> Rc<Cell<u8>> {
