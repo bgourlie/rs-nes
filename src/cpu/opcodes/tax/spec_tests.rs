@@ -11,3 +11,5 @@ fn tax() {
     Tax::execute_cycles(&mut cpu, Implied);
     assert_eq!(0xff, cpu.registers.x);
 }
+
+// TODO: Tests to assert status flags
