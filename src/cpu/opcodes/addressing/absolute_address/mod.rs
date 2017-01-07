@@ -10,8 +10,8 @@ pub struct AbsoluteAddress {
 
 impl AbsoluteAddress {
     pub fn new<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let low_byte = cpu.read_op(&tick_handler);
-        let high_byte = cpu.read_op(&tick_handler);
+        let low_byte = cpu.read_pc(&tick_handler);
+        let high_byte = cpu.read_pc(&tick_handler);
         let addr = low_byte as u16 | (high_byte as u16) << 8;
         AbsoluteAddress { addr: addr }
     }

@@ -35,7 +35,7 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {
-        let opcode = self.read_op(&tick_handler);
+        let opcode = self.read_pc(&tick_handler);
         self::opcodes::execute(self, opcode, &tick_handler)
     }
 
@@ -71,7 +71,7 @@ impl<Mem: Memory> Cpu<Mem> {
         self.registers.pc = pc;
     }
 
-    fn read_op<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
+    fn read_pc<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
         let pc = self.registers.pc;
         let operand = self.read_memory(pc, &tick_handler);
         self.registers.pc += 1;
@@ -93,7 +93,7 @@ impl<Mem: Memory> Cpu<Mem> {
     fn pop_stack<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
         let sp = wrapping_inc(self.registers.sp);
         let val = self.read_memory(STACK_LOC + sp as u16, &tick_handler);
-        self.registers.sp = wrapping_inc(sp);
+        self.registers.sp = sp;
         val
     }
 
