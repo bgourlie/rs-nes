@@ -16,4 +16,8 @@ impl Relative {
 
 impl<M: Memory> AddressingMode<M> for Relative {
     type Output = i8;
+
+    fn read(&self) -> Self::Output {
+        self.offset
+    }
 }

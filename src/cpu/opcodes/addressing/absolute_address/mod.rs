@@ -2,6 +2,8 @@ use super::AddressingMode;
 use cpu::Cpu;
 use memory::Memory;
 
+/// An absolute addressing mode for instructions that operate on the actually memory address, and
+/// not the value at that address.
 pub struct AbsoluteAddress {
     addr: u16,
 }

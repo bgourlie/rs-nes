@@ -161,7 +161,10 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = Relative::new(cpu, &tick_handler);
             self::beq::Beq::execute(cpu, am, &tick_handler)
         }
-        0xa1 => self::lda::Lda::execute(cpu, IndexedIndirect, &tick_handler),
+        0xa1 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::lda::Lda::execute(cpu, am, &tick_handler)
+        }
         0xa5 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::lda::Lda::execute(cpu, am, &tick_handler)
@@ -170,14 +173,26 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = Immediate::new(cpu, &tick_handler);
             self::lda::Lda::execute(cpu, am, &tick_handler)
         }
-        0xb1 => self::lda::Lda::execute(cpu, IndirectIndexed, &tick_handler),
-        0xb5 => self::lda::Lda::execute(cpu, ZeroPageX, &tick_handler),
+        0xb1 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::lda::Lda::execute(cpu, am, &tick_handler)
+        }
+        0xb5 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::lda::Lda::execute(cpu, am, &tick_handler)
+        }
         0xad => {
             let am = Absolute::new(cpu, &tick_handler);
             self::lda::Lda::execute(cpu, am, &tick_handler)
         }
-        0xb9 => self::lda::Lda::execute(cpu, AbsoluteY::default(), &tick_handler),
-        0xbd => self::lda::Lda::execute(cpu, AbsoluteX::default(), &tick_handler),
+        0xb9 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::lda::Lda::execute(cpu, am, &tick_handler)
+        }
+        0xbd => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::lda::Lda::execute(cpu, am, &tick_handler)
+        }
         0xa2 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::ldx::Ldx::execute(cpu, am, &tick_handler)
@@ -186,12 +201,18 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::ldx::Ldx::execute(cpu, am, &tick_handler)
         }
-        0xb6 => self::ldx::Ldx::execute(cpu, ZeroPageY, &tick_handler),
+        0xb6 => {
+            let am = ZeroPageY::new(cpu, &tick_handler);
+            self::ldx::Ldx::execute(cpu, am, &tick_handler)
+        }
         0xae => {
             let am = Absolute::new(cpu, &tick_handler);
             self::ldx::Ldx::execute(cpu, am, &tick_handler)
         }
-        0xbe => self::ldx::Ldx::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0xbe => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::ldx::Ldx::execute(cpu, am, &tick_handler)
+        }
         0xa0 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::ldy::Ldy::execute(cpu, am, &tick_handler)
@@ -200,30 +221,54 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::ldy::Ldy::execute(cpu, am, &tick_handler)
         }
-        0xb4 => self::ldy::Ldy::execute(cpu, ZeroPageX, &tick_handler),
+        0xb4 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::ldy::Ldy::execute(cpu, am, &tick_handler)
+        }
         0xac => {
             let am = Absolute::new(cpu, &tick_handler);
             self::ldy::Ldy::execute(cpu, am, &tick_handler)
         }
-        0xbc => self::ldy::Ldy::execute(cpu, AbsoluteX::default(), &tick_handler),
+        0xbc => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::ldy::Ldy::execute(cpu, am, &tick_handler)
+        }
         0x85 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
-        0x95 => self::sta::Sta::execute(cpu, ZeroPageX, &tick_handler),
-        0x81 => self::sta::Sta::execute(cpu, IndexedIndirect, &tick_handler),
-        0x91 => self::sta::Sta::execute(cpu, IndirectIndexed, &tick_handler),
+        0x95 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::sta::Sta::execute(cpu, am, &tick_handler)
+        }
+        0x81 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::sta::Sta::execute(cpu, am, &tick_handler)
+        }
+        0x91 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::sta::Sta::execute(cpu, am, &tick_handler)
+        }
         0x8d => {
             let am = Absolute::new(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
-        0x9d => self::sta::Sta::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x99 => self::sta::Sta::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0x9d => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::sta::Sta::execute(cpu, am, &tick_handler)
+        }
+        0x99 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::sta::Sta::execute(cpu, am, &tick_handler)
+        }
         0x86 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::stx::Stx::execute(cpu, am, &tick_handler)
         }
-        0x96 => self::stx::Stx::execute(cpu, ZeroPageY, &tick_handler),
+        0x96 => {
+            let am = ZeroPageY::new(cpu, &tick_handler);
+            self::stx::Stx::execute(cpu, am, &tick_handler)
+        }
         0x8e => {
             let am = Absolute::new(cpu, &tick_handler);
             self::stx::Stx::execute(cpu, am, &tick_handler)
@@ -232,7 +277,10 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::sty::Sty::execute(cpu, am, &tick_handler)
         }
-        0x94 => self::sty::Sty::execute(cpu, ZeroPageX, &tick_handler),
+        0x94 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::sty::Sty::execute(cpu, am, &tick_handler)
+        }
         0x8c => {
             let am = Absolute::new(cpu, &tick_handler);
             self::sty::Sty::execute(cpu, am, &tick_handler)
@@ -245,15 +293,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::adc::Adc::execute(cpu, am, &tick_handler)
         }
-        0x75 => self::adc::Adc::execute(cpu, ZeroPageX, &tick_handler),
-        0x61 => self::adc::Adc::execute(cpu, IndexedIndirect, &tick_handler),
-        0x71 => self::adc::Adc::execute(cpu, IndirectIndexed, &tick_handler),
+        0x75 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::adc::Adc::execute(cpu, am, &tick_handler)
+        }
+        0x61 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::adc::Adc::execute(cpu, am, &tick_handler)
+        }
+        0x71 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::adc::Adc::execute(cpu, am, &tick_handler)
+        }
         0x6d => {
             let am = Absolute::new(cpu, &tick_handler);
             self::adc::Adc::execute(cpu, am, &tick_handler)
         }
-        0x7d => self::adc::Adc::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x79 => self::adc::Adc::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0x7d => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::adc::Adc::execute(cpu, am, &tick_handler)
+        }
+        0x79 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::adc::Adc::execute(cpu, am, &tick_handler)
+        }
         0xe9 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::sbc::Sbc::execute(cpu, am, &tick_handler)
@@ -262,15 +325,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::sbc::Sbc::execute(cpu, am, &tick_handler)
         }
-        0xf5 => self::sbc::Sbc::execute(cpu, ZeroPageX, &tick_handler),
-        0xe1 => self::sbc::Sbc::execute(cpu, IndexedIndirect, &tick_handler),
-        0xf1 => self::sbc::Sbc::execute(cpu, IndirectIndexed, &tick_handler),
+        0xf5 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::sbc::Sbc::execute(cpu, am, &tick_handler)
+        }
+        0xe1 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::sbc::Sbc::execute(cpu, am, &tick_handler)
+        }
+        0xf1 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::sbc::Sbc::execute(cpu, am, &tick_handler)
+        }
         0xed => {
             let am = Absolute::new(cpu, &tick_handler);
             self::sbc::Sbc::execute(cpu, am, &tick_handler)
         }
-        0xfd => self::sbc::Sbc::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0xf9 => self::sbc::Sbc::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0xfd => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::sbc::Sbc::execute(cpu, am, &tick_handler)
+        }
+        0xf9 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::sbc::Sbc::execute(cpu, am, &tick_handler)
+        }
         0xc9 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::cmp::Cmp::execute(cpu, am, &tick_handler)
@@ -279,15 +357,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::cmp::Cmp::execute(cpu, am, &tick_handler)
         }
-        0xd5 => self::cmp::Cmp::execute(cpu, ZeroPageX, &tick_handler),
-        0xc1 => self::cmp::Cmp::execute(cpu, IndexedIndirect, &tick_handler),
-        0xd1 => self::cmp::Cmp::execute(cpu, IndirectIndexed, &tick_handler),
+        0xd5 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::cmp::Cmp::execute(cpu, am, &tick_handler)
+        }
+        0xc1 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::cmp::Cmp::execute(cpu, am, &tick_handler)
+        }
+        0xd1 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::cmp::Cmp::execute(cpu, am, &tick_handler)
+        }
         0xcd => {
             let am = Absolute::new(cpu, &tick_handler);
             self::cmp::Cmp::execute(cpu, am, &tick_handler)
         }
-        0xdd => self::cmp::Cmp::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0xd9 => self::cmp::Cmp::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0xdd => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::cmp::Cmp::execute(cpu, am, &tick_handler)
+        }
+        0xd9 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::cmp::Cmp::execute(cpu, am, &tick_handler)
+        }
         0xe0 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::cpx::Cpx::execute(cpu, am, &tick_handler)
@@ -320,15 +413,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::and::And::execute(cpu, am, &tick_handler)
         }
-        0x35 => self::and::And::execute(cpu, ZeroPageX, &tick_handler),
-        0x21 => self::and::And::execute(cpu, IndexedIndirect, &tick_handler),
-        0x31 => self::and::And::execute(cpu, IndirectIndexed, &tick_handler),
+        0x35 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::and::And::execute(cpu, am, &tick_handler)
+        }
+        0x21 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::and::And::execute(cpu, am, &tick_handler)
+        }
+        0x31 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::and::And::execute(cpu, am, &tick_handler)
+        }
         0x2d => {
             let am = Absolute::new(cpu, &tick_handler);
             self::and::And::execute(cpu, am, &tick_handler)
         }
-        0x3d => self::and::And::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x39 => self::and::And::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0x3d => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::and::And::execute(cpu, am, &tick_handler)
+        }
+        0x39 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::and::And::execute(cpu, am, &tick_handler)
+        }
         0x09 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::ora::Ora::execute(cpu, am, &tick_handler)
@@ -337,15 +445,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::ora::Ora::execute(cpu, am, &tick_handler)
         }
-        0x15 => self::ora::Ora::execute(cpu, ZeroPageX, &tick_handler),
-        0x01 => self::ora::Ora::execute(cpu, IndexedIndirect, &tick_handler),
-        0x11 => self::ora::Ora::execute(cpu, IndirectIndexed, &tick_handler),
+        0x15 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::ora::Ora::execute(cpu, am, &tick_handler)
+        }
+        0x01 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::ora::Ora::execute(cpu, am, &tick_handler)
+        }
+        0x11 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::ora::Ora::execute(cpu, am, &tick_handler)
+        }
         0x0d => {
             let am = Absolute::new(cpu, &tick_handler);
             self::ora::Ora::execute(cpu, am, &tick_handler)
         }
-        0x1d => self::ora::Ora::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x19 => self::ora::Ora::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0x1d => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::ora::Ora::execute(cpu, am, &tick_handler)
+        }
+        0x19 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::ora::Ora::execute(cpu, am, &tick_handler)
+        }
         0x49 => {
             let am = Immediate::new(cpu, &tick_handler);
             self::eor::Eor::execute(cpu, am, &tick_handler)
@@ -354,15 +477,30 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = ZeroPage::new(cpu, &tick_handler);
             self::eor::Eor::execute(cpu, am, &tick_handler)
         }
-        0x55 => self::eor::Eor::execute(cpu, ZeroPageX, &tick_handler),
-        0x41 => self::eor::Eor::execute(cpu, IndexedIndirect, &tick_handler),
-        0x51 => self::eor::Eor::execute(cpu, IndirectIndexed, &tick_handler),
+        0x55 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::eor::Eor::execute(cpu, am, &tick_handler)
+        }
+        0x41 => {
+            let am = IndexedIndirect::new(cpu, &tick_handler);
+            self::eor::Eor::execute(cpu, am, &tick_handler)
+        }
+        0x51 => {
+            let am = IndirectIndexed::new(cpu, &tick_handler);
+            self::eor::Eor::execute(cpu, am, &tick_handler)
+        }
         0x4d => {
             let am = Absolute::new(cpu, &tick_handler);
             self::eor::Eor::execute(cpu, am, &tick_handler)
         }
-        0x5d => self::eor::Eor::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x59 => self::eor::Eor::execute(cpu, AbsoluteY::default(), &tick_handler),
+        0x5d => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::eor::Eor::execute(cpu, am, &tick_handler)
+        }
+        0x59 => {
+            let am = AbsoluteY::new(cpu, &tick_handler);
+            self::eor::Eor::execute(cpu, am, &tick_handler)
+        }
         0x24 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::bit::Bit::execute(cpu, am, &tick_handler)
@@ -371,70 +509,118 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             let am = Absolute::new(cpu, &tick_handler);
             self::bit::Bit::execute(cpu, am, &tick_handler)
         }
-        0x2a => self::rol::Rol::execute(cpu, Accumulator, &tick_handler),
+        0x2a => {
+            let am = Accumulator::new(cpu);
+            self::rol::Rol::execute(cpu, am, &tick_handler)
+        }
         0x26 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
-        0x36 => self::rol::Rol::execute(cpu, ZeroPageX, &tick_handler),
+        0x36 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::rol::Rol::execute(cpu, am, &tick_handler)
+        }
         0x2e => {
             let am = Absolute::new(cpu, &tick_handler);
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
-        0x3e => self::rol::Rol::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x6a => self::ror::Ror::execute(cpu, Accumulator, &tick_handler),
+        0x3e => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::rol::Rol::execute(cpu, am, &tick_handler)
+        }
+        0x6a => {
+            let am = Accumulator::new(cpu);
+            self::ror::Ror::execute(cpu, am, &tick_handler)
+        }
         0x66 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
-        0x76 => self::ror::Ror::execute(cpu, ZeroPageX, &tick_handler),
+        0x76 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::ror::Ror::execute(cpu, am, &tick_handler)
+        }
         0x6e => {
             let am = Absolute::new(cpu, &tick_handler);
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
-        0x7e => self::ror::Ror::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x0a => self::asl::Asl::execute(cpu, Accumulator, &tick_handler),
+        0x7e => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::ror::Ror::execute(cpu, am, &tick_handler)
+        }
+        0x0a => {
+            let am = Accumulator::new(cpu);
+            self::asl::Asl::execute(cpu, am, &tick_handler)
+        }
         0x06 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
-        0x16 => self::asl::Asl::execute(cpu, ZeroPageX, &tick_handler),
+        0x16 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::asl::Asl::execute(cpu, am, &tick_handler)
+        }
         0x0e => {
             let am = Absolute::new(cpu, &tick_handler);
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
-        0x1e => self::asl::Asl::execute(cpu, AbsoluteX::default(), &tick_handler),
-        0x4a => self::lsr::Lsr::execute(cpu, Accumulator, &tick_handler),
+        0x1e => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::asl::Asl::execute(cpu, am, &tick_handler)
+        }
+        0x4a => {
+            let am = Accumulator::new(cpu);
+            self::lsr::Lsr::execute(cpu, am, &tick_handler)
+        }
         0x46 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::lsr::Lsr::execute(cpu, am, &tick_handler)
         }
-        0x56 => self::lsr::Lsr::execute(cpu, ZeroPageX, &tick_handler),
+        0x56 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::lsr::Lsr::execute(cpu, am, &tick_handler)
+        }
         0x4e => {
             let am = Absolute::new(cpu, &tick_handler);
             self::lsr::Lsr::execute(cpu, am, &tick_handler)
         }
-        0x5e => self::lsr::Lsr::execute(cpu, AbsoluteX::default(), &tick_handler),
+        0x5e => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::lsr::Lsr::execute(cpu, am, &tick_handler)
+        }
         0xe6 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::inc::Inc::execute(cpu, am, &tick_handler)
         }
-        0xf6 => self::inc::Inc::execute(cpu, ZeroPageX, &tick_handler),
+        0xf6 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::inc::Inc::execute(cpu, am, &tick_handler)
+        }
         0xee => {
             let am = Absolute::new(cpu, &tick_handler);
             self::inc::Inc::execute(cpu, am, &tick_handler)
         }
-        0xfe => self::inc::Inc::execute(cpu, AbsoluteX::default(), &tick_handler),
+        0xfe => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::inc::Inc::execute(cpu, am, &tick_handler)
+        }
         0xc6 => {
             let am = ZeroPage::new(cpu, &tick_handler);
             self::dec::Dec::execute(cpu, am, &tick_handler)
         }
-        0xd6 => self::dec::Dec::execute(cpu, ZeroPageX, &tick_handler),
+        0xd6 => {
+            let am = ZeroPageX::new(cpu, &tick_handler);
+            self::dec::Dec::execute(cpu, am, &tick_handler)
+        }
         0xce => {
             let am = Absolute::new(cpu, &tick_handler);
             self::dec::Dec::execute(cpu, am, &tick_handler)
         }
-        0xde => self::dec::Dec::execute(cpu, AbsoluteX::default(), &tick_handler),
+        0xde => {
+            let am = AbsoluteX::new(cpu, &tick_handler);
+            self::dec::Dec::execute(cpu, am, &tick_handler)
+        }
         0x4c => {
             let am = AbsoluteAddress::new(cpu, &tick_handler);
             self::jmp::Jmp::execute(cpu, am, &tick_handler)
