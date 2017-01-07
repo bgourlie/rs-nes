@@ -6,7 +6,7 @@ authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 [dependencies]
 log = "*"
 env_logger = "*"
-websocket = { git = "https://github.com/vi/rust-websocket", branch = "optional_openssl", default-features = false }
+websocket = "*"
 iron = "*"
 router = "*"
 byteorder = "*"

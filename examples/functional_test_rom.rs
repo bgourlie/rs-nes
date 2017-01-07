@@ -6,6 +6,7 @@ extern crate rs_nes;
 
 use std::fs::File;
 use std::io::Read;
+use std::cell::Cell;
 
 use rs_nes::cpu::*;
 use rs_nes::cpu::debugger::*;
@@ -27,9 +28,10 @@ fn main() {
     debugger.start().unwrap();
     let mut cpu = Cpu::new(mem);
     cpu.registers.pc = PC_START;
+    let cycles = Cell::new(0_u64);
 
     loop {
-        debugger.on_step(&cpu);
-        cpu.step(|_|{});
+        debugger.on_step(&cpu, cycles.get());
+        cpu.step(|_| cycles.set(cycles.get() + 1));
     }
 }

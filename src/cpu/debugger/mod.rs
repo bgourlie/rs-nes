@@ -5,7 +5,7 @@ use cpu::Cpu;
 use memory::Memory;
 
 pub trait Debugger<M: Memory> {
-    fn on_step(&mut self, _: &Cpu<M>) {}
+    fn on_step(&mut self, _: &Cpu<M>, _: u64) {}
 }
 
 pub struct NoOpDebugger<M>(PhantomData<M>);

@@ -135,7 +135,7 @@ impl<Mem: Memory> Default for HttpDebugger<Mem> {
 }
 
 impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
-    fn on_step(&mut self, cpu: &Cpu<Mem>) {
+    fn on_step(&mut self, cpu: &Cpu<Mem>, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let cpu_paused = self.cpu_paused.load(Ordering::Relaxed);
             if cpu_paused || self.at_breakpoint(cpu.registers.pc) ||
@@ -152,8 +152,7 @@ impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
                         }
                     };
 
-                    // TODO: reimplement cycles
-                    let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), 0);
+                    let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cycles);
                     // TODO: All this shit is getting confusing and is in need of simplication
                     // Stepping deliberately takes the least precedence when deciding which
                     // BreakReason to send if multiple break reasons exist
