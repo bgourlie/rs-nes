@@ -5,7 +5,7 @@ use super::Jsr;
 #[test]
 fn test() {
     let mut cpu = TestCpu::new_test();
-    let tick_handler = |_: &Cpu<SimpleMemory>| {};
+    let tick_handler = |_: &TestCpu| {};
     cpu.registers.sp = 0xff;
     cpu.registers.pc = 0x102;
     Jsr::execute_cycles(&mut cpu, 0xbeef_u16);

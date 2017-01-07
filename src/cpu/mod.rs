@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod spec_tests;
+
 mod byte_utils;
 mod registers;
 mod opcodes;
