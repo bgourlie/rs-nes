@@ -7,7 +7,7 @@ use super::Adc;
 ///
 /// These tests check the presence of the sign and zero flag.
 #[test]
-fn adc_flags_sign_and_zero_1() {
+fn flags_sign_and_zero_1() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0_u8);
     Adc::execute_cycles(&mut cpu, 0_u8);
@@ -17,7 +17,7 @@ fn adc_flags_sign_and_zero_1() {
 }
 
 #[test]
-fn adc_flags_sign_and_zero_2() {
+fn flags_sign_and_zero_2() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0_u8);
     Adc::execute_cycles(&mut cpu, 1_u8);
@@ -27,7 +27,7 @@ fn adc_flags_sign_and_zero_2() {
 }
 
 #[test]
-fn adc_flags_sign_and_zero_3() {
+fn flags_sign_and_zero_3() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 0_u8);
     Adc::execute_cycles(&mut cpu, 255_u8);
@@ -45,7 +45,7 @@ fn adc_flags_sign_and_zero_3() {
 /// A truth table for these tests can be found here:
 /// http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 #[test]
-fn adc_flags_carry_and_overflow_1() {
+fn flags_carry_and_overflow_1() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 80_u8);
     Adc::execute_cycles(&mut cpu, 16_u8);
@@ -55,7 +55,7 @@ fn adc_flags_carry_and_overflow_1() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_2() {
+fn flags_carry_and_overflow_2() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 80_u8);
     Adc::execute_cycles(&mut cpu, 80_u8);
@@ -65,7 +65,7 @@ fn adc_flags_carry_and_overflow_2() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_3() {
+fn flags_carry_and_overflow_3() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 80_u8);
     Adc::execute_cycles(&mut cpu, 144_u8);
@@ -75,7 +75,7 @@ fn adc_flags_carry_and_overflow_3() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_4() {
+fn flags_carry_and_overflow_4() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 80_u8);
     Adc::execute_cycles(&mut cpu, 208_u8);
@@ -85,7 +85,7 @@ fn adc_flags_carry_and_overflow_4() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_5() {
+fn flags_carry_and_overflow_5() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 208_u8);
     Adc::execute_cycles(&mut cpu, 16_u8);
@@ -95,7 +95,7 @@ fn adc_flags_carry_and_overflow_5() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_6() {
+fn flags_carry_and_overflow_6() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 208_u8);
     Adc::execute_cycles(&mut cpu, 80_u8);
@@ -105,7 +105,7 @@ fn adc_flags_carry_and_overflow_6() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_7() {
+fn flags_carry_and_overflow_7() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 208_u8);
     Adc::execute_cycles(&mut cpu, 144_u8);
@@ -115,7 +115,7 @@ fn adc_flags_carry_and_overflow_7() {
 }
 
 #[test]
-fn adc_flags_carry_and_overflow_8() {
+fn flags_carry_and_overflow_8() {
     let mut cpu = TestCpu::new_test();
     Lda::execute_cycles(&mut cpu, 208_u8);
     Adc::execute_cycles(&mut cpu, 208_u8);

@@ -10,7 +10,7 @@ pub struct ZeroPage {
 impl ZeroPage {
     pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let addr = cpu.read_pc(&tick_handler) as u16;
-        let val = cpu.memory.load(addr);
+        let val = cpu.read_memory(addr, &tick_handler);
 
         ZeroPage {
             addr: addr,
@@ -25,7 +25,8 @@ impl<M: Memory> AddressingMode<M> for ZeroPage {
     fn read(&self) -> Self::Output {
         self.value
     }
+
     fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
-        unimplemented!()
+        cpu.write_memory(self.addr, value, &tick_handler)
     }
 }
