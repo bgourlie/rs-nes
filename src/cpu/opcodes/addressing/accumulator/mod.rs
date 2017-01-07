@@ -1,5 +1,6 @@
-use super::AddressingMode;
+use cpu::Cpu;
 use memory::Memory;
+use super::AddressingMode;
 
 pub struct Accumulator {
     value: u8,

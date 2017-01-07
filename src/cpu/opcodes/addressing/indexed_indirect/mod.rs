@@ -1,10 +1,13 @@
-use super::AddressingMode;
+use cpu::Cpu;
 use memory::Memory;
+use super::AddressingMode;
 
 pub struct IndexedIndirect;
 
 impl IndexedIndirect {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {}
+    pub fn new<F: Fn(&Cpu<M>), M: Memory>(_: &mut Cpu<M>, _: F) -> Self {
+        IndexedIndirect
+    }
 }
 
 impl<M: Memory> AddressingMode<M> for IndexedIndirect {
