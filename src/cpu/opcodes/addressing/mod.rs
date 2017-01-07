@@ -1,7 +1,6 @@
 #[cfg(test)]
 pub mod testing;
 
-mod absolute_base;
 mod absolute;
 mod absolute_address;
 mod absolute_x;

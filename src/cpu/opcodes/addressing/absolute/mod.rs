@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 use super::AddressingMode;
-use super::absolute_base::read_address;
 use cpu::Cpu;
 use memory::Memory;
 
@@ -13,12 +12,12 @@ pub struct Absolute<M: Memory, F: Fn(&Cpu<M>)> {
 
 impl<M: Memory, F: Fn(&Cpu<M>)> Absolute<M, F> {
     pub fn new(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = read_address(cpu, &tick_handler);
-        let operand = cpu.read_memory(addr, &tick_handler);
+        let addr = cpu.read_pc16(&tick_handler);
+        let value = cpu.read_memory(addr, &tick_handler);
 
         Absolute {
             addr: addr,
-            value: operand,
+            value: value,
             tick_handler: tick_handler,
             phantom: PhantomData,
         }

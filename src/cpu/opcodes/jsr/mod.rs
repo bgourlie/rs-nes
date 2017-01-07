@@ -2,7 +2,6 @@
 mod spec_tests;
 
 use cpu::Cpu;
-use cpu::byte_utils::lo_hi;
 use memory::Memory;
 use super::addressing::AddressingMode;
 use super::OpCode;
@@ -19,9 +18,7 @@ impl OpCode for Jsr {
     {
         let loc = am.read();
         let pc = cpu.registers.pc;
-        let (pc_low, pc_high) = lo_hi(pc - 1);
-        cpu.push_stack(pc_low, &tick_handler);
-        cpu.push_stack(pc_high, &tick_handler);
+        cpu.push_stack16(pc - 1, &tick_handler);
         cpu.registers.pc = loc;
         tick_handler(cpu);
     }

@@ -78,6 +78,12 @@ impl<Mem: Memory> Cpu<Mem> {
         operand
     }
 
+    fn read_pc16<F: Fn(&Self)>(&mut self, tick_handler: F) -> u16 {
+        let low_byte = self.read_pc(&tick_handler);
+        let high_byte = self.read_pc(&tick_handler);
+        low_byte as u16 | (high_byte as u16) << 8
+    }
+
     fn push_stack<F: Fn(&Self)>(&mut self, value: u8, tick_handler: F) {
         let sp = self.registers.sp as u16;
         self.write_memory(STACK_LOC + sp, value, &tick_handler);
@@ -86,8 +92,8 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn push_stack16<F: Fn(&Self)>(&mut self, value: u16, tick_handler: F) {
         let (low_byte, high_byte) = lo_hi(value);
-        self.push_stack(low_byte, &tick_handler);
         self.push_stack(high_byte, &tick_handler);
+        self.push_stack(low_byte, &tick_handler);
     }
 
     fn pop_stack<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
