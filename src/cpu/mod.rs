@@ -4,7 +4,7 @@ mod opcodes;
 
 use memory::*;
 pub use self::registers::Registers;
-use self::byte_utils::{lo_hi, from_lo_hi, wrapping_inc, wrapping_dec};
+use self::byte_utils::{lo_hi, from_lo_hi, wrapping_inc, wrapping_dec, wrapping_inc16};
 
 pub const STACK_LOC: u16 = 0x100;
 pub const NMI_VECTOR: u16 = 0xfffa;
@@ -45,6 +45,12 @@ impl<Mem: Memory> Cpu<Mem> {
         val
     }
 
+    fn read_memory16<F: Fn(&Self)>(&self, addr: u16, tick_handler: F) -> u16 {
+        let low_byte = self.read_memory(addr, &tick_handler);
+        let high_byte = self.read_memory(wrapping_inc16(addr), &tick_handler);
+        from_lo_hi(low_byte, high_byte)
+    }
+
     fn write_memory<F: Fn(&Self)>(&mut self, addr: u16, val: u8, tick_handler: F) {
         self.memory.store(addr, val);
         tick_handler(&self);
@@ -58,13 +64,11 @@ impl<Mem: Memory> Cpu<Mem> {
 
     pub fn nmi<F: Fn(&Self)>(&mut self, tick_handler: F) {
         let stat = self.registers.status;
-        let (pc_low, pc_high) = lo_hi(self.registers.pc);
-        self.push_stack(pc_low, &tick_handler);
-        self.push_stack(pc_high, &tick_handler);
+        let pc = self.registers.pc;
+        self.push_stack16(pc, &tick_handler);
         self.push_stack(stat, &tick_handler);
-        let pc_low = self.read_memory(NMI_VECTOR, &tick_handler);
-        let pc_high = self.read_memory(NMI_VECTOR + 1, &tick_handler);
-        self.registers.pc = from_lo_hi(pc_low, pc_high);
+        let pc = self.read_memory16(NMI_VECTOR, &tick_handler);
+        self.registers.pc = pc;
     }
 
     fn read_op<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
@@ -80,10 +84,22 @@ impl<Mem: Memory> Cpu<Mem> {
         self.registers.sp = wrapping_dec(self.registers.sp);
     }
 
+    fn push_stack16<F: Fn(&Self)>(&mut self, value: u16, tick_handler: F) {
+        let (low_byte, high_byte) = lo_hi(value);
+        self.push_stack(low_byte, &tick_handler);
+        self.push_stack(high_byte, &tick_handler);
+    }
+
     fn pop_stack<F: Fn(&Self)>(&mut self, tick_handler: F) -> u8 {
-        let val = self.read_memory(STACK_LOC + wrapping_inc(self.registers.sp) as u16,
-                                   &tick_handler);
-        self.registers.sp = wrapping_inc(self.registers.sp);
+        let sp = wrapping_inc(self.registers.sp);
+        let val = self.read_memory(STACK_LOC + sp as u16, &tick_handler);
+        self.registers.sp = wrapping_inc(sp);
         val
+    }
+
+    fn pop_stack16<F: Fn(&Self)>(&mut self, tick_handler: F) -> u16 {
+        let low_byte = self.pop_stack(&tick_handler);
+        let high_byte = self.pop_stack(&tick_handler);
+        from_lo_hi(low_byte, high_byte)
     }
 }

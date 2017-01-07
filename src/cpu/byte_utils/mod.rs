@@ -25,3 +25,19 @@ pub fn wrapping_dec(val: u8) -> u8 {
 pub fn wrapping_subtract(lhs: u8, rhs: u8) -> u8 {
     (Wrapping(lhs) - Wrapping(rhs)).0
 }
+
+pub fn wrapping_add16(lhs: u16, rhs: u16) -> u16 {
+    (Wrapping(lhs) + Wrapping(rhs)).0
+}
+
+pub fn wrapping_inc16(val: u16) -> u16 {
+    wrapping_add16(val, 1)
+}
+
+pub fn wrapping_dec16(val: u16) -> u16 {
+    wrapping_subtract16(val, 1)
+}
+
+pub fn wrapping_subtract16(lhs: u16, rhs: u16) -> u16 {
+    (Wrapping(lhs) - Wrapping(rhs)).0
+}

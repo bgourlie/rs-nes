@@ -2,7 +2,6 @@
 mod spec_tests;
 
 use cpu::Cpu;
-use cpu::byte_utils::{lo_hi, from_lo_hi};
 use memory::Memory;
 use super::addressing::AddressingMode;
 use super::OpCode;
@@ -20,15 +19,12 @@ impl OpCode for Brk {
               F: Fn(&Cpu<M>)
     {
         cpu.registers.pc += 1;
-        tick_handler(cpu);
-        let (pc_low_byte, pc_high_byte) = lo_hi(cpu.registers.pc);
+        let pc = cpu.registers.pc;
         let status = cpu.registers.status;
-        cpu.push_stack(pc_low_byte, &tick_handler);
-        cpu.push_stack(pc_high_byte, &tick_handler);
+        cpu.push_stack16(pc, &tick_handler);
         cpu.push_stack(status, &tick_handler);
-        let irq_handler_low = cpu.read_memory(BRK_VECTOR, &tick_handler);
-        let irq_handler_high = cpu.read_memory(BRK_VECTOR + 1, &tick_handler);
-        cpu.registers.pc = from_lo_hi(irq_handler_low, irq_handler_high);
+        let irq_handler = cpu.read_memory16(BRK_VECTOR, &tick_handler);
+        cpu.registers.pc = irq_handler;
         cpu.registers.set_interrupt_disable_flag(true);
     }
 }

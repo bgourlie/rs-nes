@@ -2,7 +2,7 @@
 mod spec_tests;
 
 use cpu::Cpu;
-use cpu::byte_utils::from_lo_hi;
+use cpu::byte_utils::wrapping_inc16;
 use memory::Memory;
 use super::addressing::AddressingMode;
 use super::OpCode;
@@ -17,9 +17,7 @@ impl OpCode for Rts {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
-        let pc_low = cpu.pop_stack(&tick_handler);
-        let pc_high = cpu.pop_stack(&tick_handler);
-        let pc = from_lo_hi(pc_low, pc_high);
-        cpu.registers.pc = pc + 1;
+        let pc = cpu.pop_stack16(&tick_handler);
+        cpu.registers.pc = wrapping_inc16(pc);
     }
 }
