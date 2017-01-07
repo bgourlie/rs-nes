@@ -19,4 +19,8 @@ impl<M: Memory> AddressingMode<M> for Immediate {
     fn read(&self) -> u8 {
         self.val
     }
+
+    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
+        unimplemented!()
+    }
 }

@@ -1,6 +1,6 @@
 use std::cell::Cell;
 use std::rc::Rc;
-use cpu::Cpu;
+use cpu::TestCpu;
 use memory::SimpleMemory;
 use super::AddressingMode;
 
@@ -11,7 +11,7 @@ impl AddressingMode<SimpleMemory> for u8 {
         *self
     }
 
-    fn write(&self, cpu: &mut Cpu<SimpleMemory>, value: u8) {
+    fn write<F: Fn(&TestCpu)>(&self, cpu: &mut TestCpu, value: u8, _: F) {
         cpu.registers.acc = value;
     }
 }
@@ -21,6 +21,10 @@ impl AddressingMode<SimpleMemory> for i8 {
 
     fn read(&self) -> Self::Output {
         *self
+    }
+
+    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, _: u8, _: F) {
+        unimplemented!()
     }
 }
 
@@ -55,7 +59,7 @@ impl AddressingMode<SimpleMemory> for WriterAddressingMode {
         self.read_value
     }
 
-    fn write(&self, _: &mut Cpu<SimpleMemory>, value: u8) {
+    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, value: u8, _: F) {
         self.written.set(value)
     }
 }
@@ -64,5 +68,9 @@ impl AddressingMode<SimpleMemory> for u16 {
     type Output = Self;
     fn read(&self) -> Self::Output {
         *self
+    }
+
+    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, _: u8, _: F) {
+        unimplemented!()
     }
 }

@@ -20,4 +20,7 @@ impl<M: Memory> AddressingMode<M> for AbsoluteAddress {
     fn read(&self) -> Self::Output {
         self.addr
     }
+    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
+        unimplemented!()
+    }
 }

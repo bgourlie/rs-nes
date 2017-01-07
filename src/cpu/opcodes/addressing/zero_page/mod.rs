@@ -25,4 +25,7 @@ impl<M: Memory> AddressingMode<M> for ZeroPage {
     fn read(&self) -> Self::Output {
         self.value
     }
+    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+        unimplemented!()
+    }
 }

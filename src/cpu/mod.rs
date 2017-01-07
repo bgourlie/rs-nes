@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod spec_tests;
 
+#[cfg(test)]
+mod functional_test;
+
 mod byte_utils;
 mod registers;
 mod opcodes;
