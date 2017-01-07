@@ -4,6 +4,7 @@ mod spec_tests;
 #[cfg(test)]
 mod functional_test;
 
+pub mod debugger;
 mod byte_utils;
 mod registers;
 mod opcodes;

@@ -20,4 +20,3 @@ pub mod memory;
 pub mod cpu;
 pub mod disassembler;
 pub mod ppu;
-pub mod debugger;
