@@ -18,8 +18,7 @@ impl AbsoluteY {
             tick_handler(cpu);
         }
 
-        let val = cpu.memory.load(base_addr);
-        tick_handler(cpu);
+        let val = cpu.read_memory(base_addr, &tick_handler);
 
         AbsoluteY {
             addr: target_addr,

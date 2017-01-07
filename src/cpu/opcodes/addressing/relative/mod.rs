@@ -8,8 +8,7 @@ pub struct Relative {
 
 impl Relative {
     pub fn new<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: &F) -> Self {
-        let offset = cpu.read_op() as i8;
-        tick_handler(cpu);
+        let offset = cpu.read_op(&tick_handler) as i8;
         Relative { offset: offset }
     }
 }

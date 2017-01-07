@@ -14,8 +14,7 @@ pub struct Absolute<M: Memory, F: Fn(&Cpu<M>)> {
 impl<M: Memory, F: Fn(&Cpu<M>)> Absolute<M, F> {
     pub fn new(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let addr = read_address(cpu, &tick_handler);
-        let operand = cpu.memory.load(addr);
-        tick_handler(cpu);
+        let operand = cpu.read_memory(addr, &tick_handler);
 
         Absolute {
             addr: addr,
@@ -34,8 +33,6 @@ impl<M: Memory, F: Fn(&Cpu<M>)> AddressingMode<M> for Absolute<M, F> {
     }
 
     fn write(&self, cpu: &mut Cpu<M>, value: u8) {
-        (self.tick_handler)(cpu);
-        cpu.memory.store(self.addr, value);
-        (self.tick_handler)(cpu);
+        cpu.write_memory(self.addr, value, &self.tick_handler);
     }
 }

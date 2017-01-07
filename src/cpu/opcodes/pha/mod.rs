@@ -17,7 +17,6 @@ impl OpCode for Pha {
               F: Fn(&Cpu<M>)
     {
         let acc = cpu.registers.acc;
-        cpu.push_stack(acc);
-        tick_handler(cpu);
+        cpu.push_stack(acc, &tick_handler);
     }
 }

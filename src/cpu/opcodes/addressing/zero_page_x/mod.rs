@@ -9,9 +9,9 @@ pub struct ZeroPageX {
 }
 
 impl ZeroPageX {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, _: F) -> Self {
-        let addr = wrapping_add(cpu.read_op(), cpu.registers.x) as u16;
-        let val = cpu.memory.load(addr);
+    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        let addr = wrapping_add(cpu.read_op(&tick_handler), cpu.registers.x) as u16;
+        let val = cpu.read_memory(addr, &tick_handler);
 
         ZeroPageX {
             addr: addr,

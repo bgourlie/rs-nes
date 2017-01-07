@@ -20,10 +20,8 @@ impl OpCode for Jsr {
         let loc = am.read();
         let pc = cpu.registers.pc;
         let (pc_low, pc_high) = lo_hi(pc - 1);
-        cpu.push_stack(pc_low);
-        tick_handler(cpu);
-        cpu.push_stack(pc_high);
-        tick_handler(cpu);
+        cpu.push_stack(pc_low, &tick_handler);
+        cpu.push_stack(pc_high, &tick_handler);
         cpu.registers.pc = loc;
         tick_handler(cpu);
     }

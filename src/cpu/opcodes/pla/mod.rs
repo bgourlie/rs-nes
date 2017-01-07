@@ -16,8 +16,7 @@ impl OpCode for Pla {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
-        let val = cpu.pop_stack();
-        tick_handler(cpu);
+        let val = cpu.pop_stack(&tick_handler);
         cpu.registers.set_acc(val);
     }
 }

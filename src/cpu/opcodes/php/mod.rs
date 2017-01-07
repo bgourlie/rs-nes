@@ -17,7 +17,6 @@ impl OpCode for Php {
               F: Fn(&Cpu<M>)
     {
         let stat = cpu.registers.status_for_stack();
-        cpu.push_stack(stat);
-        tick_handler(cpu);
+        cpu.push_stack(stat, &tick_handler);
     }
 }

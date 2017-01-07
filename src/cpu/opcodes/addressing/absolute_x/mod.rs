@@ -18,8 +18,7 @@ impl AbsoluteX {
             tick_handler(cpu);
         }
 
-        let val = cpu.memory.load(base_addr);
-        tick_handler(cpu);
+        let val = cpu.read_memory(base_addr, &tick_handler);
 
         AbsoluteX {
             addr: target_addr,

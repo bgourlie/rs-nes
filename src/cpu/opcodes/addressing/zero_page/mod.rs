@@ -8,8 +8,8 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, _: F) -> Self {
-        let addr = cpu.read_op() as u16;
+    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        let addr = cpu.read_op(&tick_handler) as u16;
         let val = cpu.memory.load(addr);
 
         ZeroPage {
