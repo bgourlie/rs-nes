@@ -8,7 +8,7 @@ pub struct Absolute {
 }
 
 impl Absolute {
-    pub fn new<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let addr = cpu.read_pc16(&tick_handler);
         let value = cpu.read_memory(addr, &tick_handler);
 

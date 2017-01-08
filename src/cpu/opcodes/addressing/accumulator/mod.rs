@@ -7,7 +7,7 @@ pub struct Accumulator {
 }
 
 impl Accumulator {
-    pub fn new<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
         Accumulator { value: cpu.registers.acc }
     }
 }

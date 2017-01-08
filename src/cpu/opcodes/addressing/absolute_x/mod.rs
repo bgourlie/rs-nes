@@ -8,7 +8,7 @@ pub struct AbsoluteX {
 }
 
 impl AbsoluteX {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let base_addr = cpu.read_pc16(&tick_handler);
         let target_addr = base_addr + cpu.registers.x as u16;
 

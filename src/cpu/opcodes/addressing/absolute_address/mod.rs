@@ -9,7 +9,7 @@ pub struct AbsoluteAddress {
 }
 
 impl AbsoluteAddress {
-    pub fn new<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         AbsoluteAddress { addr: cpu.read_pc16(&tick_handler) }
     }
 }

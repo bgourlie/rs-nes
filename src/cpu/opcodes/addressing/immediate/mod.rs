@@ -7,7 +7,7 @@ pub struct Immediate {
 }
 
 impl Immediate {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let val = cpu.read_pc(&tick_handler);
         Immediate { value: val }
     }

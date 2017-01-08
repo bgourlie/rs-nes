@@ -5,7 +5,7 @@ use super::AddressingMode;
 pub struct IndexedIndirect;
 
 impl IndexedIndirect {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(_: &mut Cpu<M>, _: F) -> Self {
+    pub fn init<F: Fn(&Cpu<M>), M: Memory>(_: &mut Cpu<M>, _: F) -> Self {
         IndexedIndirect
     }
 }

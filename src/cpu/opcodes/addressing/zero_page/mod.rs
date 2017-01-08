@@ -8,7 +8,7 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn new<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
         let addr = cpu.read_pc(&tick_handler) as u16;
         let val = cpu.read_memory(addr, &tick_handler);
 
