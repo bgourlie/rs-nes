@@ -24,7 +24,15 @@ pub type TestCpu = Cpu<SimpleMemory>;
 impl TestCpu {
     pub fn new_test() -> Self {
         let memory = SimpleMemory::new();
-        Cpu::new(memory)
+        let mut cpu = Cpu::new(memory);
+        cpu.registers.pc = 0xff;
+        cpu
+    }
+
+    pub fn with_memory(mem: &[u8]) -> Self {
+        let mut cpu = Self::new_test();
+        cpu.memory.store_many(0, mem);
+        cpu
     }
 }
 
