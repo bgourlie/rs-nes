@@ -97,14 +97,6 @@ impl Registers {
         self.status & FL_BREAK != 0
     }
 
-    pub fn set_break_flag(&mut self, val: bool) {
-        if val {
-            self.status |= FL_BREAK;
-        } else {
-            self.status &= !FL_BREAK;
-        }
-    }
-
     pub fn overflow_flag(&self) -> bool {
         self.status & FL_OVERFLOW != 0
     }

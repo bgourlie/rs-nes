@@ -1,13 +1,15 @@
-// use std::cell::Cell;
-// use cpu::*;
-// use cpu::opcodes::addressing::Immediate;
-// use super::Adc;
-//
-//
-// [test]
-// fn immediate() {
-//        let cycles = Cell::new(0);
-//        let mut cpu = TestCpu::with_memory(&[0x0]);
-//        cpu.step()
-//        assert_eq!(2, cycles);
-//
+use std::cell::Cell;
+use cpu::*;
+use cpu::opcodes::addressing::Immediate;
+use super::Adc;
+
+
+#[test]
+fn immediate() {
+    // todo
+    //    let cycles = Cell::new(0);
+    //    let tick_handler = |_: &TestCpu| cycles.set(cycles.get() + 1);
+    //
+    //    let mut cpu = TestCpu::new_test();
+    //    assert_eq!(2, cycles);
+}

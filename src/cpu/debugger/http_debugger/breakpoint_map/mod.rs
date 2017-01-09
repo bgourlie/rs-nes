@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod breakpoint_map_spec_tests;
+mod spec_tests;
 
 pub struct BreakpointMap {
     map: [u8; 8192],

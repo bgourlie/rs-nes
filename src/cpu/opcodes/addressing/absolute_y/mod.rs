@@ -17,7 +17,7 @@ impl AbsoluteY {
             tick_handler(cpu);
         }
 
-        let val = cpu.read_memory(base_addr, &tick_handler);
+        let val = cpu.read_memory(target_addr, &tick_handler);
 
         AbsoluteY {
             addr: target_addr,
@@ -33,7 +33,7 @@ impl<M: Memory> AddressingMode<M> for AbsoluteY {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
+    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+        cpu.write_memory(self.addr, value, &tick_handler);
     }
 }

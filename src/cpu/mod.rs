@@ -25,7 +25,7 @@ impl TestCpu {
     pub fn new_test() -> Self {
         let memory = SimpleMemory::new();
         let mut cpu = Cpu::new(memory);
-        cpu.registers.pc = 0xff;
+        cpu.registers.pc = 0x200;
         cpu
     }
 }
