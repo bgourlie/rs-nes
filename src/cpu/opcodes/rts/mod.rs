@@ -2,7 +2,6 @@
 mod spec_tests;
 
 use cpu::Cpu;
-use cpu::byte_utils::wrapping_inc16;
 use memory::Memory;
 use super::addressing::AddressingMode;
 use super::OpCode;
@@ -18,6 +17,6 @@ impl OpCode for Rts {
               F: Fn(&Cpu<M>)
     {
         let pc = cpu.pop_stack16(&tick_handler);
-        cpu.registers.pc = wrapping_inc16(pc);
+        cpu.registers.pc = pc + 1;
     }
 }

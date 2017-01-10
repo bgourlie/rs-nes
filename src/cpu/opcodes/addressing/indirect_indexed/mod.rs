@@ -9,7 +9,9 @@ pub struct IndirectIndexed {
 
 impl IndirectIndexed {
     pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc16(&tick_handler) + cpu.registers.y as u16;
+        let base_addr = cpu.read_pc(&tick_handler);
+        let y = cpu.registers.y;
+        let addr = cpu.read_memory16_zp(base_addr, &tick_handler) + y as u16;
         let val = cpu.read_memory(addr, &tick_handler);
         IndirectIndexed {
             addr: addr,

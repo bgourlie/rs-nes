@@ -11,7 +11,7 @@ mod opcodes;
 
 use memory::*;
 pub use self::registers::Registers;
-use self::byte_utils::{lo_hi, from_lo_hi, wrapping_inc, wrapping_dec, wrapping_inc16};
+use self::byte_utils::{lo_hi, from_lo_hi, wrapping_inc, wrapping_dec};
 
 pub const STACK_LOC: u16 = 0x100;
 pub const NMI_VECTOR: u16 = 0xfffa;
@@ -56,8 +56,14 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn read_memory16<F: Fn(&Self)>(&self, addr: u16, tick_handler: F) -> u16 {
         let low_byte = self.read_memory(addr, &tick_handler);
-        let high_byte = self.read_memory(wrapping_inc16(addr), &tick_handler);
+        let high_byte = self.read_memory(addr + 1, &tick_handler);
         from_lo_hi(low_byte, high_byte)
+    }
+
+    fn read_memory16_zp<F: Fn(&Self)>(&self, addr: u8, tick_handler: F) -> u16 {
+        let low_byte = self.read_memory(addr as u16, &tick_handler) as u16;
+        let high_byte = self.read_memory((addr + 1) as u16, &tick_handler) as u16;
+        low_byte | high_byte << 8
     }
 
     fn write_memory<F: Fn(&Self)>(&mut self, addr: u16, val: u8, tick_handler: F) {
