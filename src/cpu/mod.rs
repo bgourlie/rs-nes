@@ -61,9 +61,9 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     fn read_memory16_zp<F: Fn(&Self)>(&self, addr: u8, tick_handler: F) -> u16 {
-        let low_byte = self.read_memory(addr as u16, &tick_handler) as u16;
-        let high_byte = self.read_memory((addr + 1) as u16, &tick_handler) as u16;
-        low_byte | high_byte << 8
+        let low_byte = self.read_memory(addr as u16, &tick_handler);
+        let high_byte = self.read_memory(wrapping_inc(addr) as u16, &tick_handler);
+        from_lo_hi(low_byte, high_byte)
     }
 
     fn write_memory<F: Fn(&Self)>(&mut self, addr: u16, val: u8, tick_handler: F) {

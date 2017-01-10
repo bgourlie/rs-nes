@@ -25,4 +25,3 @@ pub fn wrapping_dec(val: u8) -> u8 {
 fn wrapping_subtract(lhs: u8, rhs: u8) -> u8 {
     (Wrapping(lhs) - Wrapping(rhs)).0
 }
-
