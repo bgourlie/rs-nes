@@ -1,5 +1,3 @@
-#![allow(dead_code)] // TODO: Remove after instruction refactor
-
 #[macro_use]
 extern crate serde_derive;
 

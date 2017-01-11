@@ -1,9 +1,6 @@
 #[cfg(test)]
 mod spec_tests;
 
-#[cfg(test)]
-mod timing_tests;
-
 use cpu::Cpu;
 use memory::Memory;
 use super::addressing::AddressingMode;
