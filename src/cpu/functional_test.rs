@@ -7,8 +7,7 @@ use memory::*;
 
 const PC_START: u16 = 0x400;
 
-// TODO: Verify that this is the number of cycles that the test ROM is expected to take
-const EXPECTED_CYCLES: u64 = 80869309;
+const MAX_CYCLES: u64 = 100000000;
 
 
 #[test]
@@ -28,13 +27,11 @@ fn functional_test() {
         cpu.step(|_: &Cpu<SimpleMemory>| cycles.set(cycles.get() + 1));
 
         // Prevent endless loop
-        if cycles.get() > EXPECTED_CYCLES {
+        if cycles.get() > MAX_CYCLES {
             assert!(false, "Took too many cycles to complete");
         }
 
         if cpu.registers.pc == 0x3399 {
-            assert_eq!(EXPECTED_CYCLES, cycles.get());
-
             // Success!
             return;
         }

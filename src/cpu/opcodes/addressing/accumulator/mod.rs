@@ -19,7 +19,7 @@ impl<M: Memory> AddressingMode<M> for Accumulator {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
+    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, _: F) {
+        cpu.registers.acc = value
     }
 }
