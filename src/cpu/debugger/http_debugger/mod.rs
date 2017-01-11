@@ -13,8 +13,8 @@ use iron::prelude::*;
 use router::Router;
 use websocket::{Server as WsServer, Message as WsMessage};
 
+use cpu::Cpu;
 use memory::Memory;
-use cpu::registers::Registers;
 use disassembler::Instruction;
 use super::Debugger;
 use self::debugger_command::{DebuggerCommand, BreakReason};
@@ -135,42 +135,44 @@ impl<Mem: Memory> Default for HttpDebugger<Mem> {
 }
 
 impl<Mem: Memory> Debugger<Mem> for HttpDebugger<Mem> {
-    fn on_step(&mut self, mem: &Mem, registers: &Registers, cycles: u64) {
+    fn on_step(&mut self, cpu: &Cpu<Mem>, cycles: u64) {
         if let Some(ref sender) = self.ws_sender {
             let cpu_paused = self.cpu_paused.load(Ordering::Relaxed);
-            if cpu_paused || self.at_breakpoint(registers.pc) || self.last_pc == registers.pc {
+            if cpu_paused || self.at_breakpoint(cpu.registers.pc) ||
+               self.last_pc == cpu.registers.pc {
                 {
                     let mem_snapshot = {
-                        let hash = mem.hash();
+                        let hash = cpu.memory.hash();
                         if hash != self.last_mem_hash {
                             self.last_mem_hash = hash;
                             debug!("Memory changed. Sending full snapshot to client");
-                            MemorySnapshot::Updated(hash, mem.clone())
+                            MemorySnapshot::Updated(hash, cpu.memory.clone())
                         } else {
                             MemorySnapshot::NoChange(hash)
                         }
                     };
 
-                    let snapshot = CpuSnapshot::new(mem_snapshot, registers.clone(), cycles);
+                    let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cycles);
                     // TODO: All this shit is getting confusing and is in need of simplication
                     // Stepping deliberately takes the least precedence when deciding which
                     // BreakReason to send if multiple break reasons exist
-                    if self.last_pc == registers.pc {
-                        debug!("Trap detected @ {:0>4X}. CPU thread paused.", registers.pc);
+                    if self.last_pc == cpu.registers.pc {
+                        debug!("Trap detected @ {:0>4X}. CPU thread paused.",
+                               cpu.registers.pc);
                         sender.send(DebuggerCommand::Break(BreakReason::Trap, snapshot)).unwrap();
-                    } else if self.at_breakpoint(registers.pc) {
+                    } else if self.at_breakpoint(cpu.registers.pc) {
                         debug!("Breakpoint hit @ {:0>4X}.  CPU thread paused.",
-                               registers.pc);
+                               cpu.registers.pc);
                         sender.send(DebuggerCommand::Break(BreakReason::Breakpoint, snapshot))
                             .unwrap();
                     } else if cpu_paused {
-                        debug!("Stepping @ {:0>4X}.  CPU thread paused.", registers.pc);
+                        debug!("Stepping @ {:0>4X}.  CPU thread paused.", cpu.registers.pc);
                         sender.send(DebuggerCommand::Break(BreakReason::Step, snapshot)).unwrap();
                     };
                 }
                 thread::park();
             }
         }
-        self.last_pc = registers.pc;
+        self.last_pc = cpu.registers.pc;
     }
 }

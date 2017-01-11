@@ -4,7 +4,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 use serde::{Serialize, Serializer};
 
 use memory::{Memory, ADDRESSABLE_MEMORY};
-use cpu::registers::Registers;
+use cpu::Registers;
 
 pub enum MemorySnapshot<Mem: Memory> {
     NoChange(u64), // If no change, just send the hash.

@@ -1,5 +1,3 @@
-#![feature(proc_macro)]
-
 #[macro_use]
 extern crate serde_derive;
 
@@ -15,7 +13,6 @@ extern crate byteorder;
 extern crate rand;
 extern crate seahash;
 
-mod constants;
 pub mod rom;
 pub mod memory;
 pub mod cpu;

@@ -97,14 +97,6 @@ impl Registers {
         self.status & FL_BREAK != 0
     }
 
-    pub fn set_break_flag(&mut self, val: bool) {
-        if val {
-            self.status |= FL_BREAK;
-        } else {
-            self.status &= !FL_BREAK;
-        }
-    }
-
     pub fn overflow_flag(&self) -> bool {
         self.status & FL_OVERFLOW != 0
     }
@@ -137,10 +129,6 @@ impl Registers {
     pub fn set_acc(&mut self, res: u8) {
         self.set_sign_and_zero_flag(res);
         self.acc = res;
-    }
-
-    pub fn page_boundary_crossed(&self, old_pc: u16) -> bool {
-        old_pc & 0xFF00 != self.pc & 0xFF00
     }
 }
 

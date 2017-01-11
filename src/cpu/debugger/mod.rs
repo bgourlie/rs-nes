@@ -1,11 +1,11 @@
 pub mod http_debugger;
 
 use std::marker::PhantomData;
-use super::registers::Registers;
+use cpu::Cpu;
 use memory::Memory;
 
 pub trait Debugger<M: Memory> {
-    fn on_step(&mut self, _: &M, _: &Registers, _: u64) {}
+    fn on_step(&mut self, _: &Cpu<M>, _: u64) {}
 }
 
 pub struct NoOpDebugger<M>(PhantomData<M>);
