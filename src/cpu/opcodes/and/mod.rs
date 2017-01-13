@@ -16,9 +16,9 @@ impl OpCode for And {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
-        let rop = am.read();
-        let lop = cpu.registers.acc;
-        let res = lop & rop;
+        let lhs = cpu.registers.acc;
+        let rhs = am.read();
+        let res = lhs & rhs;
         cpu.registers.set_acc(res);
     }
 }
