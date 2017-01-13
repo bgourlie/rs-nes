@@ -10,12 +10,12 @@ mod registers;
 mod opcodes;
 
 use cpu::byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
-pub use cpu::registers::Registers;
+use cpu::registers::Registers;
 use memory::*;
 
-pub const STACK_LOC: u16 = 0x100;
-pub const NMI_VECTOR: u16 = 0xfffa;
-pub const RESET_VECTOR: u16 = 0xfffc;
+const STACK_LOC: u16 = 0x100;
+const NMI_VECTOR: u16 = 0xfffa;
+const RESET_VECTOR: u16 = 0xfffc;
 
 #[cfg(test)]
 pub type TestCpu = Cpu<SimpleMemory>;
