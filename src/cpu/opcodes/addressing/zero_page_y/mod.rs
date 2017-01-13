@@ -1,6 +1,6 @@
-use super::AddressingMode;
 use cpu::Cpu;
 use cpu::byte_utils::wrapping_add;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
 
 pub struct ZeroPageY {

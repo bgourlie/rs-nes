@@ -9,9 +9,9 @@ mod byte_utils;
 mod registers;
 mod opcodes;
 
+use cpu::byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
+pub use cpu::registers::Registers;
 use memory::*;
-pub use self::registers::Registers;
-use self::byte_utils::{lo_hi, from_lo_hi, wrapping_inc, wrapping_dec};
 
 pub const STACK_LOC: u16 = 0x100;
 pub const NMI_VECTOR: u16 = 0xfffa;

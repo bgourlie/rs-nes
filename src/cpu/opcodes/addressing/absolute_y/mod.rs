@@ -1,5 +1,5 @@
-use super::AddressingMode;
 use cpu::Cpu;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
 
 pub struct AbsoluteY {

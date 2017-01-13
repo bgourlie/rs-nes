@@ -1,6 +1,6 @@
 use cpu::Cpu;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
-use super::AddressingMode;
 
 pub struct Relative {
     offset: i8,

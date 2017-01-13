@@ -1,4 +1,4 @@
-use ppu::control_register::{ControlRegister, SpriteSize, PpuMode};
+use ppu::control_register::{ControlRegister, PpuMode, SpriteSize};
 
 #[test]
 fn base_nametable_addr() {

@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::OpCode;
-use super::Rts;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::rts::Rts;
 
 #[test]
 fn test() {

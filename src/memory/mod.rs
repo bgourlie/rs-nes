@@ -1,7 +1,7 @@
 pub mod nes_memory;
 
-use std::io::Write;
 use seahash;
+use std::io::Write;
 
 #[cfg(test)]
 mod spec_tests;

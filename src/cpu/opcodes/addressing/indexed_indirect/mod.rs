@@ -1,7 +1,7 @@
 use cpu::Cpu;
 use cpu::byte_utils::wrapping_add;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
-use super::AddressingMode;
 
 pub struct IndexedIndirect {
     addr: u16,

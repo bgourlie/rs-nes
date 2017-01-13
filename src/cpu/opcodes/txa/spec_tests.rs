@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::OpCode;
-use super::Txa;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::txa::Txa;
 
 #[test]
 fn txa() {

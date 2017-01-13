@@ -1,7 +1,7 @@
-use cpu::opcodes::addressing::testing::WriterAddressingMode;
-use cpu::opcodes::inc_dec_tests_base::*;
 use cpu::opcodes::OpCode;
-use super::Inc;
+use cpu::opcodes::addressing::testing::WriterAddressingMode;
+use cpu::opcodes::inc::Inc;
+use cpu::opcodes::inc_dec_tests_base::*;
 
 #[test]
 fn test1() {

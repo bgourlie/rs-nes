@@ -6,12 +6,12 @@ mod mask_register;
 mod status_register;
 mod object_attribute_memory;
 
-use std::io::Write;
+use ppu::control_register::ControlRegister;
+use ppu::mask_register::MaskRegister;
+use ppu::object_attribute_memory::ObjectAttributeMemory;
+use ppu::status_register::StatusRegister;
 use std::cell::RefCell;
-use self::object_attribute_memory::ObjectAttributeMemory;
-use self::control_register::ControlRegister;
-use self::mask_register::MaskRegister;
-use self::status_register::StatusRegister;
+use std::io::Write;
 
 #[derive(Clone)]
 pub struct Ppu {

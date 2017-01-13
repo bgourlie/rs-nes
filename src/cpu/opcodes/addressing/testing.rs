@@ -1,8 +1,8 @@
+use cpu::TestCpu;
+use cpu::opcodes::addressing_mode::AddressingMode;
+use memory::SimpleMemory;
 use std::cell::Cell;
 use std::rc::Rc;
-use cpu::TestCpu;
-use memory::SimpleMemory;
-use super::AddressingMode;
 
 impl AddressingMode<SimpleMemory> for u8 {
     type Output = u8;

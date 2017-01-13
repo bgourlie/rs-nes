@@ -1,7 +1,6 @@
-use rand::{thread_rng, Rng};
-
-use super::BreakpointMap;
+use cpu::debugger::http_debugger::BreakpointMap;
 use memory::ADDRESSABLE_MEMORY;
+use rand::{Rng, thread_rng};
 
 #[test]
 fn set_breakpoint() {

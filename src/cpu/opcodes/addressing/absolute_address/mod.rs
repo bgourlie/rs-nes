@@ -1,5 +1,5 @@
-use super::AddressingMode;
 use cpu::Cpu;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
 
 /// An absolute addressing mode for instructions that operate on the actually memory address, and

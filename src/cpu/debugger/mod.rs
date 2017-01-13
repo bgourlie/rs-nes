@@ -1,8 +1,8 @@
 pub mod http_debugger;
 
-use std::marker::PhantomData;
 use cpu::Cpu;
 use memory::Memory;
+use std::marker::PhantomData;
 
 pub trait Debugger<M: Memory> {
     fn on_step(&mut self, _: &Cpu<M>, _: u64) {}

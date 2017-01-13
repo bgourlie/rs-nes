@@ -1,6 +1,6 @@
-use super::CpuSnapshot;
 use memory::Memory;
 use serde::{Serialize, Serializer};
+use super::CpuSnapshot;
 
 // The web socket message sent from the debugger to the client
 pub enum DebuggerCommand<Mem: Memory> {

@@ -1,16 +1,14 @@
-use std::thread::Thread;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use iron::prelude::*;
-use iron::{status, headers};
+use disassembler::Instruction;
+use iron::{headers, status};
 use iron::Handler;
 use iron::modifier::Modifier;
-use router::{Router, Params};
+use iron::prelude::*;
+use router::{Params, Router};
 use serde::{Serialize, Serializer};
 use serde_json;
-
-use disassembler::Instruction;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::Thread;
 use super::breakpoint_map::BreakpointMap;
 
 #[derive(Serialize)]

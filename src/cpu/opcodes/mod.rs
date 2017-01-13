@@ -72,12 +72,10 @@ mod dec;
 mod jmp;
 mod jsr;
 
-use std::cell::Cell;
-
 use cpu::Cpu;
+use cpu::opcodes::addressing::*;
 use memory::Memory;
-
-use self::addressing::*;
+use std::cell::Cell;
 
 trait OpCode {
     type Input;

@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::testing::WriterAddressingMode;
 use cpu::opcodes::OpCode;
-use super::Sty;
+use cpu::opcodes::addressing::testing::WriterAddressingMode;
+use cpu::opcodes::sty::Sty;
 
 #[test]
 fn stx() {

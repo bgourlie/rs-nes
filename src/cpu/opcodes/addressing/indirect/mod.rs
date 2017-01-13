@@ -1,7 +1,7 @@
 use cpu::Cpu;
 use cpu::byte_utils::from_lo_hi;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
-use super::AddressingMode;
 
 pub struct Indirect {
     addr: u16,

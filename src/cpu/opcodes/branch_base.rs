@@ -1,6 +1,6 @@
 use cpu::Cpu;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
-use super::addressing::AddressingMode;
 
 pub fn branch<M: Memory, AM: AddressingMode<M, Output = i8>, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>,
                                                                              am: AM,

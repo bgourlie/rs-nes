@@ -2,10 +2,10 @@
 mod spec_tests;
 
 use cpu::Cpu;
+use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::branch_base::branch;
 use memory::Memory;
-use super::addressing::AddressingMode;
-use super::branch_base::branch;
-use super::OpCode;
 
 pub struct Bne;
 

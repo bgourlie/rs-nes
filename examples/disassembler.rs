@@ -1,16 +1,13 @@
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-
 extern crate rs_nes;
 
+use rs_nes::disassembler::InstructionDecoder;
 use std::fs::File;
 use std::io::Read;
 
-use rs_nes::disassembler::InstructionDecoder;
-
 const PC_START: usize = 0x400;
-
 
 fn main() {
     env_logger::init().unwrap();

@@ -1,17 +1,15 @@
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-
 extern crate rs_nes;
-
-use std::fs::File;
-use std::io::Read;
-use std::cell::Cell;
 
 use rs_nes::cpu::*;
 use rs_nes::cpu::debugger::*;
-use rs_nes::memory::*;
 use rs_nes::disassembler::*;
+use rs_nes::memory::*;
+use std::cell::Cell;
+use std::fs::File;
+use std::io::Read;
 
 const PC_START: u16 = 0x400;
 

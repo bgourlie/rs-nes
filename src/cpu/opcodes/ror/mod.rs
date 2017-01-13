@@ -2,10 +2,10 @@
 mod spec_tests;
 
 use cpu::Cpu;
+use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::shift_base::shift_right;
 use memory::Memory;
-use super::addressing::AddressingMode;
-use super::shift_base::shift_right;
-use super::OpCode;
 
 pub struct Ror;
 

@@ -3,25 +3,22 @@ mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
 
-use std::thread;
-use std::sync::mpsc::{sync_channel, SyncSender};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-
-use serde_json;
-use iron::prelude::*;
-use router::Router;
-use websocket::{Server as WsServer, Message as WsMessage};
-
 use cpu::Cpu;
-use memory::Memory;
+use cpu::debugger::Debugger;
+use cpu::debugger::http_debugger::breakpoint_map::BreakpointMap;
+use cpu::debugger::http_debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
+use cpu::debugger::http_debugger::debugger_command::{BreakReason, DebuggerCommand};
+use cpu::debugger::http_debugger::http_handlers::*;
 use disassembler::Instruction;
-use super::Debugger;
-use self::debugger_command::{DebuggerCommand, BreakReason};
-use self::http_handlers::{ToggleBreakpointHandler, ContinueHandler, StepHandler,
-                          InstructionHandler};
-use self::breakpoint_map::BreakpointMap;
-use self::cpu_snapshot::{MemorySnapshot, CpuSnapshot};
+use iron::prelude::*;
+use memory::Memory;
+use router::Router;
+use serde_json;
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{SyncSender, sync_channel};
+use std::thread;
+use websocket::{Message as WsMessage, Server as WsServer};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";

@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::OpCode;
-use super::Tya;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::tya::Tya;
 
 #[test]
 fn tya() {

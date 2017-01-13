@@ -1,7 +1,7 @@
-use cpu::opcodes::addressing::Implied;
-use cpu::opcodes::inc_dec_tests_base::*;
 use cpu::opcodes::OpCode;
-use super::Dex;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::dex::Dex;
+use cpu::opcodes::inc_dec_tests_base::*;
 
 #[test]
 fn test1() {

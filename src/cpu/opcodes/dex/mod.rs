@@ -3,9 +3,9 @@ mod spec_tests;
 
 use cpu::Cpu;
 use cpu::byte_utils::wrapping_dec;
+use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
-use super::addressing::AddressingMode;
-use super::OpCode;
 
 pub struct Dex;
 

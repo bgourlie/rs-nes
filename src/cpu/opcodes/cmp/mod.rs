@@ -2,10 +2,10 @@
 mod spec_tests;
 
 use cpu::Cpu;
+use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::compare_base::compare;
 use memory::Memory;
-use super::compare_base::compare;
-use super::addressing::AddressingMode;
-use super::OpCode;
 
 pub struct Cmp;
 

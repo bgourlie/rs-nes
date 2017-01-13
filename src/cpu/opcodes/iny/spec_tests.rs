@@ -1,7 +1,7 @@
+use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::inc_dec_tests_base::*;
-use cpu::opcodes::OpCode;
-use super::Iny;
+use cpu::opcodes::iny::Iny;
 
 #[test]
 fn test1() {

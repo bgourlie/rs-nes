@@ -1,4 +1,4 @@
-use ppu::mask_register::{MaskRegister, ColorMode};
+use ppu::mask_register::{ColorMode, MaskRegister};
 
 #[test]
 fn color_mode() {

@@ -1,7 +1,7 @@
-use std::io::Write;
-use seahash;
-use rom::NesRom;
 use ppu::Ppu;
+use rom::NesRom;
+use seahash;
+use std::io::Write;
 use super::Memory;
 
 pub struct NesMemory {

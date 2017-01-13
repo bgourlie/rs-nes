@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::OpCode;
-use super::Tax;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::tax::Tax;
 
 #[test]
 fn tax() {

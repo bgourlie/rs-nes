@@ -1,6 +1,6 @@
 use cpu::*;
-use cpu::opcodes::addressing::testing::WriterAddressingMode;
 use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::testing::WriterAddressingMode;
 use super::Sta;
 
 #[test]

@@ -2,10 +2,10 @@
 mod spec_tests;
 
 use cpu::Cpu;
+use cpu::opcodes::OpCode;
+use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::arithmetic_base::adc_base;
 use memory::Memory;
-use super::addressing::AddressingMode;
-use super::arithmetic_base::adc_base;
-use super::OpCode;
 
 pub struct Adc;
 

@@ -1,14 +1,11 @@
+use cpu::*;
+use memory::*;
 use std::cell::Cell;
 use std::fs::File;
 use std::io::Read;
 
-use cpu::*;
-use memory::*;
-
 const PC_START: u16 = 0x400;
-
 const MAX_CYCLES: u64 = 100000000;
-
 
 #[test]
 fn functional_test() {

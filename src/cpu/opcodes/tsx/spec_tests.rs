@@ -1,7 +1,7 @@
 use cpu::*;
-use cpu::opcodes::addressing::Implied;
 use cpu::opcodes::OpCode;
-use super::Tsx;
+use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::tsx::Tsx;
 
 #[test]
 fn tsx() {

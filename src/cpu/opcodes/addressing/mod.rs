@@ -16,23 +16,22 @@ mod zero_page;
 mod zero_page_x;
 mod zero_page_y;
 
-use super::Cpu;
+use cpu::Cpu;
+pub use cpu::opcodes::addressing::absolute::Absolute;
+pub use cpu::opcodes::addressing::absolute_address::AbsoluteAddress;
+pub use cpu::opcodes::addressing::absolute_x::AbsoluteX;
+pub use cpu::opcodes::addressing::absolute_y::AbsoluteY;
+pub use cpu::opcodes::addressing::accumulator::Accumulator;
+pub use cpu::opcodes::addressing::immediate::Immediate;
+pub use cpu::opcodes::addressing::implied::Implied;
+pub use cpu::opcodes::addressing::indexed_indirect::IndexedIndirect;
+pub use cpu::opcodes::addressing::indirect::Indirect;
+pub use cpu::opcodes::addressing::indirect_indexed::IndirectIndexed;
+pub use cpu::opcodes::addressing::relative::Relative;
+pub use cpu::opcodes::addressing::zero_page::ZeroPage;
+pub use cpu::opcodes::addressing::zero_page_x::ZeroPageX;
+pub use cpu::opcodes::addressing::zero_page_y::ZeroPageY;
 use memory::*;
-
-pub use self::absolute::Absolute;
-pub use self::absolute_address::AbsoluteAddress;
-pub use self::absolute_x::AbsoluteX;
-pub use self::absolute_y::AbsoluteY;
-pub use self::accumulator::Accumulator;
-pub use self::immediate::Immediate;
-pub use self::implied::Implied;
-pub use self::indirect::Indirect;
-pub use self::indexed_indirect::IndexedIndirect;
-pub use self::indirect_indexed::IndirectIndexed;
-pub use self::relative::Relative;
-pub use self::zero_page::ZeroPage;
-pub use self::zero_page_x::ZeroPageX;
-pub use self::zero_page_y::ZeroPageY;
 
 pub trait AddressingMode<M: Memory> {
     type Output;

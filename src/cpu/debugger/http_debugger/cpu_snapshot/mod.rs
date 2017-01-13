@@ -1,10 +1,8 @@
-use std::io::Cursor;
-
 use byteorder::{LittleEndian, ReadBytesExt};
-use serde::{Serialize, Serializer};
-
-use memory::{Memory, ADDRESSABLE_MEMORY};
 use cpu::Registers;
+use memory::{ADDRESSABLE_MEMORY, Memory};
+use serde::{Serialize, Serializer};
+use std::io::Cursor;
 
 pub enum MemorySnapshot<Mem: Memory> {
     NoChange(u64), // If no change, just send the hash.
