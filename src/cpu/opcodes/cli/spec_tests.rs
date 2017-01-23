@@ -1,7 +1,8 @@
+
+use super::Cli;
 use cpu::*;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::Implied;
-use super::Cli;
 
 #[test]
 fn test() {

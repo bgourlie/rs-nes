@@ -4,6 +4,9 @@ mod spec_tests;
 #[cfg(test)]
 mod functional_test;
 
+#[cfg(test)]
+mod length_and_timing_tests;
+
 pub mod debugger;
 mod byte_utils;
 mod registers;

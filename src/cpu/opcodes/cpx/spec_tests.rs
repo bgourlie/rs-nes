@@ -1,6 +1,6 @@
+use super::Cpx;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::compare_tests_base::*;
-use super::Cpx;
 
 #[test]
 fn equal_flag_check() {

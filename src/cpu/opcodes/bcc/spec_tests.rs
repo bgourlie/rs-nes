@@ -1,6 +1,6 @@
+use super::Bcc;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::branch_tests_base::*;
-use super::Bcc;
 
 #[test]
 fn branch_not_crossing_page_boundary_positive_offset() {

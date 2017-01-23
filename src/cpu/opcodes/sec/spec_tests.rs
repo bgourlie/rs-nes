@@ -1,7 +1,7 @@
+use super::Sec;
 use cpu::*;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::Implied;
-use super::Sec;
 
 #[test]
 fn test() {

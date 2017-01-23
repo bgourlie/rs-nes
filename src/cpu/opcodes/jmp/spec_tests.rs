@@ -1,6 +1,6 @@
+use super::Jmp;
 use cpu::*;
 use cpu::opcodes::OpCode;
-use super::Jmp;
 
 #[test]
 fn test() {

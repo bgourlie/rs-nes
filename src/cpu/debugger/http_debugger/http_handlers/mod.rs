@@ -1,3 +1,5 @@
+
+use super::breakpoint_map::BreakpointMap;
 use disassembler::Instruction;
 use iron::{headers, status};
 use iron::Handler;
@@ -9,7 +11,6 @@ use serde_json;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::Thread;
-use super::breakpoint_map::BreakpointMap;
 
 #[derive(Serialize)]
 pub struct ToggleBreakpointResponse {

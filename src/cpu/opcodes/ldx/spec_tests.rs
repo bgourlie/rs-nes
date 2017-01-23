@@ -1,6 +1,6 @@
+use super::Ldx;
 use cpu::*;
 use cpu::opcodes::OpCode;
-use super::Ldx;
 
 #[test]
 fn value_set() {

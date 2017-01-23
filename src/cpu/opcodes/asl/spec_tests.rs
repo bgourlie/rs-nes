@@ -1,7 +1,7 @@
+use super::Asl;
 use cpu::TestCpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
-use super::Asl;
 
 fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     Asl::execute_cycles(cpu, val);

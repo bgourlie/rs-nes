@@ -508,7 +508,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::bit::Bit::execute(cpu, am, &tick_handler)
         }
         0x2a => {
-            let am = Accumulator::init(cpu);
+            let am = Accumulator::init(cpu, &tick_handler);
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
         0x26 => {
@@ -528,7 +528,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
         0x6a => {
-            let am = Accumulator::init(cpu);
+            let am = Accumulator::init(cpu, &tick_handler);
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
         0x66 => {
@@ -548,7 +548,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
         0x0a => {
-            let am = Accumulator::init(cpu);
+            let am = Accumulator::init(cpu, &tick_handler);
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
         0x06 => {
@@ -568,7 +568,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
         0x4a => {
-            let am = Accumulator::init(cpu);
+            let am = Accumulator::init(cpu, &tick_handler);
             self::lsr::Lsr::execute(cpu, am, &tick_handler)
         }
         0x46 => {

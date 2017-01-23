@@ -1,7 +1,7 @@
+use super::Rol;
 use cpu::TestCpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
-use super::Rol;
 
 fn rol(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     Rol::execute_cycles(cpu, val);

@@ -1,7 +1,7 @@
+use super::Lsr;
 use cpu::TestCpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
-use super::Lsr;
 
 fn lsr(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     Lsr::execute_cycles(cpu, val);

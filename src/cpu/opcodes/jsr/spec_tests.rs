@@ -1,6 +1,6 @@
+use super::Jsr;
 use cpu::*;
 use cpu::opcodes::OpCode;
-use super::Jsr;
 
 #[test]
 fn test() {

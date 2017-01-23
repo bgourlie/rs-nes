@@ -1,7 +1,7 @@
+use super::Sta;
 use cpu::*;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::testing::WriterAddressingMode;
-use super::Sta;
 
 #[test]
 fn sta() {

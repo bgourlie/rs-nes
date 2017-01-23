@@ -1,7 +1,7 @@
+use super::Ror;
 use cpu::TestCpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
-use super::Ror;
 
 fn ror(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     Ror::execute_cycles(cpu, val);

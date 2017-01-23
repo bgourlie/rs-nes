@@ -27,6 +27,8 @@ impl<M: Memory> AddressingMode<M> for ZeroPage {
     }
 
     fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+        // Dummy write cycle
+        tick_handler(cpu);
         cpu.write_memory(self.addr, value, &tick_handler)
     }
 }

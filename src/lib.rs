@@ -12,6 +12,7 @@ extern crate serde_json;
 extern crate byteorder;
 extern crate rand;
 extern crate seahash;
+extern crate asm6502;
 
 pub mod rom;
 pub mod memory;

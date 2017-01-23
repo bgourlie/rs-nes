@@ -1,6 +1,6 @@
+use super::And;
 use cpu::*;
 use cpu::opcodes::OpCode;
-use super::And;
 
 #[test]
 fn and() {

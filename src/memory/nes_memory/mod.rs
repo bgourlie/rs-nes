@@ -1,8 +1,9 @@
+
+use super::Memory;
 use ppu::Ppu;
 use rom::NesRom;
 use seahash;
 use std::io::Write;
-use super::Memory;
 
 pub struct NesMemory {
     ram: [u8; 0x800],

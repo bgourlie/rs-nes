@@ -7,7 +7,9 @@ pub struct Accumulator {
 }
 
 impl Accumulator {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        // dummy read cycle
+        tick_handler(cpu);
         Accumulator { value: cpu.registers.acc }
     }
 }

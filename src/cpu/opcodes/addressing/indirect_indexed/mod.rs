@@ -9,12 +9,19 @@ pub struct IndirectIndexed {
 
 impl IndirectIndexed {
     pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let base_addr = cpu.read_pc(&tick_handler);
+        let addr = cpu.read_pc(&tick_handler);
         let y = cpu.registers.y;
-        let addr = cpu.read_memory16_zp(base_addr, &tick_handler) + y as u16;
-        let val = cpu.read_memory(addr, &tick_handler);
+        let base_addr = cpu.read_memory16_zp(addr, &tick_handler);
+        let target_addr = base_addr + y as u16;
+
+        // Conditional cycle if memory page crossed
+        if base_addr & 0xff00 != target_addr & 0xff00 {
+            tick_handler(cpu);
+        }
+
+        let val = cpu.read_memory(target_addr, &tick_handler);
         IndirectIndexed {
-            addr: addr,
+            addr: target_addr,
             value: val,
         }
     }
