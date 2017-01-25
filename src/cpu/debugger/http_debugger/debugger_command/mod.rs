@@ -1,4 +1,3 @@
-
 use super::CpuSnapshot;
 use memory::Memory;
 use serde::{Serialize, Serializer};

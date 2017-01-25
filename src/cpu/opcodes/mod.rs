@@ -564,7 +564,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
         0x1e => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::asl::Asl::execute(cpu, am, &tick_handler)
         }
         0x4a => {

@@ -118,7 +118,6 @@ fn and() {
 }
 
 #[test]
-#[ignore]
 fn asl() {
     // Accumulator
     assert_length_and_cycles!("ASL A", 1, 2);

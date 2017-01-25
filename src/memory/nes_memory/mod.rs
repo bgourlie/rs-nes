@@ -1,4 +1,3 @@
-
 use super::Memory;
 use ppu::Ppu;
 use rom::NesRom;
