@@ -31,6 +31,7 @@ impl<M: Memory> AddressingMode<M> for ZeroPageX {
     fn read(&self) -> Self::Output {
         self.value
     }
+
     fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
         // Dummy write cycle
         tick_handler(cpu);

@@ -524,7 +524,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
         0x3e => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::rol::Rol::execute(cpu, am, &tick_handler)
         }
         0x6a => {
@@ -544,7 +544,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
         0x7e => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::ror::Ror::execute(cpu, am, &tick_handler)
         }
         0x0a => {
@@ -584,7 +584,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::lsr::Lsr::execute(cpu, am, &tick_handler)
         }
         0x5e => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::lsr::Lsr::execute(cpu, am, &tick_handler)
         }
         0xe6 => {
@@ -600,7 +600,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::inc::Inc::execute(cpu, am, &tick_handler)
         }
         0xfe => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::inc::Inc::execute(cpu, am, &tick_handler)
         }
         0xc6 => {
@@ -616,7 +616,7 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::dec::Dec::execute(cpu, am, &tick_handler)
         }
         0xde => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_rmw(cpu, &tick_handler);
             self::dec::Dec::execute(cpu, am, &tick_handler)
         }
         0x4c => {

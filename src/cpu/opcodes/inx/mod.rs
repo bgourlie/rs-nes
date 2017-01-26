@@ -12,7 +12,7 @@ pub struct Inx;
 impl OpCode for Inx {
     type Input = ();
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, _: &F)
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
         where M: Memory,
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
@@ -20,5 +20,6 @@ impl OpCode for Inx {
         let val = wrapping_inc(cpu.registers.x);
         cpu.registers.x = val;
         cpu.registers.set_sign_and_zero_flag(val);
+        tick_handler(cpu)
     }
 }

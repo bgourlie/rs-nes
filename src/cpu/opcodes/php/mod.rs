@@ -16,6 +16,9 @@ impl OpCode for Php {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
+        // Dummy read
+        tick_handler(cpu);
+
         let stat = cpu.registers.status_for_stack();
         cpu.push_stack(stat, &tick_handler);
     }

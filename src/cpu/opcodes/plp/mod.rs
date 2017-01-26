@@ -16,6 +16,12 @@ impl OpCode for Plp {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
+        // Dummy read
+        tick_handler(cpu);
+
+        // Stack pointer inc cycle
+        tick_handler(cpu);
+
         let val = cpu.pop_stack(&tick_handler);
         cpu.registers.set_status_from_stack(val);
     }

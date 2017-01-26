@@ -90,7 +90,7 @@ fn adc() {
     assert_length_and_cycles!("ADC $44", 2, 3);
 
     // Zero Page,X
-    assert_length_and_cycles!("ADC $44", 2, 3);
+    assert_length_and_cycles!("ADC $44,X", 2, 4);
 
     // Absolute
     assert_length_and_cycles!("ADC $4400", 3, 4);
@@ -126,7 +126,7 @@ fn and() {
     assert_length_and_cycles!("AND $44", 2, 3);
 
     // Zero Page,X
-    assert_length_and_cycles!("AND $44", 2, 3);
+    assert_length_and_cycles!("AND $44,X", 2, 4);
 
     // Absolute
     assert_length_and_cycles!("AND $4400", 3, 4);
@@ -318,4 +318,464 @@ fn bvs() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.set_overflow_flag(true);
     assert_length_and_cycles_relative!(cpu, "BVS 127", 2 + 127, 4);
+}
+
+#[test]
+fn clc() {
+    // Implied
+    assert_length_and_cycles!("CLC\n", 1, 2);
+}
+
+#[test]
+fn cld() {
+    // Implied
+    assert_length_and_cycles!("CLD\n", 1, 2);
+}
+
+#[test]
+fn cli() {
+    // Implied
+    assert_length_and_cycles!("CLI\n", 1, 2);
+}
+
+#[test]
+fn clv() {
+    // Implied
+    assert_length_and_cycles!("CLV\n", 1, 2);
+}
+
+#[test]
+fn cmp() {
+    // Immediate
+    assert_length_and_cycles!("CMP #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("CMP $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("CMP $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("CMP $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("CMP $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("CMP $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("CMP $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("CMP $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("CMP ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("CMP ($44),Y", 2, 5);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("CMP ($55),Y", 2, 6);
+}
+
+#[test]
+fn cpx() {
+    // Immediate
+    assert_length_and_cycles!("CPX #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("CPX $44", 2, 3);
+
+    // Absolute
+    assert_length_and_cycles!("CPX $4400", 3, 4);
+}
+
+#[test]
+fn cpy() {
+    // Immediate
+    assert_length_and_cycles!("CPY #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("CPY $44", 2, 3);
+
+    // Absolute
+    assert_length_and_cycles!("CPY $4400", 3, 4);
+}
+
+#[test]
+fn dec() {
+    // Zero Page
+    assert_length_and_cycles!("DEC $44", 2, 5);
+
+    // Zero Page,X
+    assert_length_and_cycles!("DEC $44,X", 2, 6);
+
+    // Absolute
+    assert_length_and_cycles!("DEC $4400", 3, 6);
+
+    // Absolute,X
+    assert_length_and_cycles!("DEC $4400,X", 3, 7);
+}
+
+#[test]
+fn dex() {
+    // Implied
+    assert_length_and_cycles!("DEX\n", 1, 2);
+}
+
+#[test]
+fn dey() {
+    // Implied
+    assert_length_and_cycles!("DEY\n", 1, 2);
+}
+
+#[test]
+fn eor() {
+    // Immediate
+    assert_length_and_cycles!("EOR #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("EOR $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("EOR $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("EOR $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("EOR $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("EOR $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("EOR $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("EOR $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("EOR ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("EOR ($44),Y", 2, 5);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("EOR ($55),Y", 2, 6);
+}
+
+#[test]
+fn inc() {
+    // Zero Page
+    assert_length_and_cycles!("INC $44", 2, 5);
+
+    // Zero Page,X
+    assert_length_and_cycles!("INC $44,X", 2, 6);
+
+    // Absolute
+    assert_length_and_cycles!("INC $4400", 3, 6);
+
+    // Absolute,X
+    assert_length_and_cycles!("INC $4400,X", 3, 7);
+}
+
+#[test]
+fn inx() {
+    // Implied
+    assert_length_and_cycles!("INX\n", 1, 2);
+}
+
+#[test]
+fn iny() {
+    // Implied
+    assert_length_and_cycles!("INY\n", 1, 2);
+}
+
+
+#[test]
+#[ignore]
+fn jmp() {
+    unimplemented!()
+}
+
+#[test]
+#[ignore]
+fn jsr() {
+    unimplemented!()
+}
+
+#[test]
+fn lda() {
+    // Immediate
+    assert_length_and_cycles!("LDA #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("LDA $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("LDA $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("LDA $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("LDA $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("LDA $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("LDA $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("LDA $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("LDA ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("LDA ($44),Y", 2, 5);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("LDA ($55),Y", 2, 6);
+}
+
+#[test]
+fn ldx() {
+    // Immediate
+    assert_length_and_cycles!("LDX #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("LDX $44", 2, 3);
+
+    // Zero Page,Y
+    assert_length_and_cycles!("LDX $44,Y", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("LDX $4400", 3, 4);
+
+    // Absolute,Y
+    assert_length_and_cycles!("LDX $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("LDX $44ff,Y", 3, 5);
+}
+
+#[test]
+fn ldy() {
+    // Immediate
+    assert_length_and_cycles!("LDY #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("LDY $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("LDY $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("LDY $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("LDY $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("LDY $44ff,X", 3, 5);
+}
+
+#[test]
+fn lsr() {
+    // Accumulator
+    assert_length_and_cycles!("LSR A", 1, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("LSR $44", 2, 5);
+
+    // Zero Page,X
+    assert_length_and_cycles!("LSR $44,X", 2, 6);
+
+    // Absolute
+    assert_length_and_cycles!("LSR $4400", 3, 6);
+
+    // Absolute,X
+    assert_length_and_cycles!("LSR $4400,X", 3, 7);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("LSR $44ff,X", 3, 7);
+}
+
+#[test]
+fn nop() {
+    // Implied
+    assert_length_and_cycles!("NOP\n", 1, 2);
+}
+
+#[test]
+fn ora() {
+    // Immediate
+    assert_length_and_cycles!("ORA #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("ORA $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("ORA $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("ORA $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("ORA $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("ORA $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("ORA $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("ORA $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("ORA ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("ORA ($44),Y", 2, 5);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("ORA ($55),Y", 2, 6);
+}
+
+#[test]
+fn pha() {
+    // Implied
+    assert_length_and_cycles!("PHA\n", 1, 3);
+}
+
+#[test]
+fn php() {
+    // Implied
+    assert_length_and_cycles!("PHP\n", 1, 3);
+}
+
+#[test]
+fn pla() {
+    // Implied
+    assert_length_and_cycles!("PLA\n", 1, 4);
+}
+
+#[test]
+fn plp() {
+    // Implied
+    assert_length_and_cycles!("PLP\n", 1, 4);
+}
+
+#[test]
+fn rol() {
+    // Accumulator
+    assert_length_and_cycles!("ROL A", 1, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("ROL $44", 2, 5);
+
+    // Zero Page,X
+    assert_length_and_cycles!("ROL $44,X", 2, 6);
+
+    // Absolute
+    assert_length_and_cycles!("ROL $4400", 3, 6);
+
+    // Absolute,X
+    assert_length_and_cycles!("ROL $4400,X", 3, 7);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("ROL $44ff,X", 3, 7);
+}
+
+#[test]
+fn ror() {
+    // Accumulator
+    assert_length_and_cycles!("ROR A", 1, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("ROR $44", 2, 5);
+
+    // Zero Page,X
+    assert_length_and_cycles!("ROR $44,X", 2, 6);
+
+    // Absolute
+    assert_length_and_cycles!("ROR $4400", 3, 6);
+
+    // Absolute,X
+    assert_length_and_cycles!("ROR $4400,X", 3, 7);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("ROR $44ff,X", 3, 7);
+}
+
+#[test]
+#[ignore]
+fn rti() {
+    unimplemented!()
+}
+
+#[test]
+#[ignore]
+fn rts() {
+    unimplemented!()
+}
+
+#[test]
+fn sbc() {
+    // Immediate
+    assert_length_and_cycles!("SBC #$44", 2, 2);
+
+    // Zero Page
+    assert_length_and_cycles!("SBC $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("SBC $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("SBC $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("SBC $4400,X", 3, 4);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("SBC $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("SBC $4400,Y", 3, 4);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("SBC $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("SBC ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("SBC ($44),Y", 2, 5);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("SBC ($55),Y", 2, 6);
+}
+
+#[test]
+fn sec() {
+    // Implied
+    assert_length_and_cycles!("SEC\n", 1, 2);
+}
+
+#[test]
+fn sed() {
+    // Implied
+    assert_length_and_cycles!("SED\n", 1, 2);
+}
+
+#[test]
+fn sei() {
+    // Implied
+    assert_length_and_cycles!("SEI\n", 1, 2);
 }

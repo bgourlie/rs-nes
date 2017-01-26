@@ -16,6 +16,9 @@ impl OpCode for Pha {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
+        // Dummy read
+        tick_handler(cpu);
+
         let acc = cpu.registers.acc;
         cpu.push_stack(acc, &tick_handler);
     }
