@@ -232,55 +232,55 @@ pub fn execute<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, opcode: u8, tick_han
             self::ldy::Ldy::execute(cpu, am, &tick_handler)
         }
         0x85 => {
-            let am = ZeroPage::init(cpu, &tick_handler);
+            let am = ZeroPage::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x95 => {
-            let am = ZeroPageX::init(cpu, &tick_handler);
+            let am = ZeroPageX::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x81 => {
-            let am = IndexedIndirect::init(cpu, &tick_handler);
+            let am = IndexedIndirect::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x91 => {
-            let am = IndirectIndexed::init(cpu, &tick_handler);
+            let am = IndirectIndexed::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x8d => {
-            let am = Absolute::init(cpu, &tick_handler);
+            let am = Absolute::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x9d => {
-            let am = AbsoluteX::init(cpu, &tick_handler);
+            let am = AbsoluteX::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x99 => {
-            let am = AbsoluteY::init(cpu, &tick_handler);
+            let am = AbsoluteY::init_store(cpu, &tick_handler);
             self::sta::Sta::execute(cpu, am, &tick_handler)
         }
         0x86 => {
-            let am = ZeroPage::init(cpu, &tick_handler);
+            let am = ZeroPage::init_store(cpu, &tick_handler);
             self::stx::Stx::execute(cpu, am, &tick_handler)
         }
         0x96 => {
-            let am = ZeroPageY::init(cpu, &tick_handler);
+            let am = ZeroPageY::init_store(cpu, &tick_handler);
             self::stx::Stx::execute(cpu, am, &tick_handler)
         }
         0x8e => {
-            let am = Absolute::init(cpu, &tick_handler);
+            let am = Absolute::init_store(cpu, &tick_handler);
             self::stx::Stx::execute(cpu, am, &tick_handler)
         }
         0x84 => {
-            let am = ZeroPage::init(cpu, &tick_handler);
+            let am = ZeroPage::init_store(cpu, &tick_handler);
             self::sty::Sty::execute(cpu, am, &tick_handler)
         }
         0x94 => {
-            let am = ZeroPageX::init(cpu, &tick_handler);
+            let am = ZeroPageX::init_store(cpu, &tick_handler);
             self::sty::Sty::execute(cpu, am, &tick_handler)
         }
         0x8c => {
-            let am = Absolute::init(cpu, &tick_handler);
+            let am = Absolute::init_store(cpu, &tick_handler);
             self::sty::Sty::execute(cpu, am, &tick_handler)
         }
         0x69 => {

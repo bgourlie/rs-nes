@@ -11,7 +11,7 @@ pub struct Tsx;
 impl OpCode for Tsx {
     type Input = ();
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, _: &F)
+    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
         where M: Memory,
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
@@ -19,5 +19,6 @@ impl OpCode for Tsx {
         cpu.registers.x = cpu.registers.sp;
         let x = cpu.registers.x;
         cpu.registers.set_sign_and_zero_flag(x);
+        tick_handler(cpu)
     }
 }

@@ -9,11 +9,22 @@ pub struct AbsoluteY {
 
 impl AbsoluteY {
     pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        Self::init_base(cpu, false, tick_handler)
+    }
+
+    pub fn init_store<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        Self::init_base(cpu, true, tick_handler)
+    }
+
+    fn init_base<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>,
+                                            is_store: bool,
+                                            tick_handler: F)
+                                            -> Self {
         let base_addr = cpu.read_pc16(&tick_handler);
         let target_addr = base_addr + cpu.registers.y as u16;
 
         // Conditional cycle if memory page crossed
-        if base_addr & 0xff00 != target_addr & 0xff00 {
+        if !is_store && base_addr & 0xff00 != target_addr & 0xff00 {
             tick_handler(cpu);
         }
 

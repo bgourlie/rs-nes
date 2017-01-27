@@ -779,3 +779,96 @@ fn sei() {
     // Implied
     assert_length_and_cycles!("SEI\n", 1, 2);
 }
+
+#[test]
+fn sta() {
+    // Zero Page
+    assert_length_and_cycles!("STA $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("STA $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("STA $4400", 3, 4);
+
+    // Absolute,X
+    assert_length_and_cycles!("STA $4400,X", 3, 5);
+
+    // Absolute,X with page cross
+    assert_length_and_cycles!("STA $44ff,X", 3, 5);
+
+    // Absolute,Y
+    assert_length_and_cycles!("STA $4400,Y", 3, 5);
+
+    // Absolute,Y with page cross
+    assert_length_and_cycles!("STA $44ff,Y", 3, 5);
+
+    // Indirect,X
+    assert_length_and_cycles!("STA ($44,X)", 2, 6);
+
+    // Indirect,Y
+    assert_length_and_cycles!("STA ($44),Y", 2, 6);
+
+    // Indirect,Y with page cross
+    assert_length_and_cycles!("STA ($55),Y", 2, 6);
+}
+
+#[test]
+fn stx() {
+    // Zero Page
+    assert_length_and_cycles!("STX $44", 2, 3);
+
+    // Zero Page,Y
+    assert_length_and_cycles!("STX $44,Y", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("STX $4400", 3, 4);
+}
+
+#[test]
+fn sty() {
+    // Zero Page
+    assert_length_and_cycles!("STY $44", 2, 3);
+
+    // Zero Page,X
+    assert_length_and_cycles!("STY $44,X", 2, 4);
+
+    // Absolute
+    assert_length_and_cycles!("STY $4400", 3, 4);
+}
+
+#[test]
+fn tax() {
+    // Implied
+    assert_length_and_cycles!("TAX\n", 1, 2);
+}
+
+#[test]
+fn tay() {
+    // Implied
+    assert_length_and_cycles!("TAY\n", 1, 2);
+}
+
+#[test]
+fn tsx() {
+    // Implied
+    assert_length_and_cycles!("TSX\n", 1, 2);
+}
+
+#[test]
+fn txa() {
+    // Implied
+    assert_length_and_cycles!("TXA\n", 1, 2);
+}
+
+#[test]
+fn txs() {
+    // Implied
+    assert_length_and_cycles!("TXS\n", 1, 2);
+}
+
+#[test]
+fn tya() {
+    // Implied
+    assert_length_and_cycles!("TYA\n", 1, 2);
+}

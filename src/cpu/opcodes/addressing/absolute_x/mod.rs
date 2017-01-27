@@ -5,11 +5,24 @@ use memory::Memory;
 pub struct AbsoluteX {
     addr: u16,
     value: u8,
+    is_store: bool,
+}
+
+
+#[derive(PartialEq, Eq)]
+enum Variant {
+    Standard,
+    ReadModifyWrite,
+    Store,
 }
 
 impl AbsoluteX {
     pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        Self::init_base(cpu, false, tick_handler)
+        Self::init_base(cpu, Variant::Standard, tick_handler)
+    }
+
+    pub fn init_store<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+        Self::init_base(cpu, Variant::Store, tick_handler)
     }
 
     /// Init using special rules for cycle counting specific to read-modify-write instructions
@@ -17,15 +30,19 @@ impl AbsoluteX {
     /// Read-modify-write instructions do not have a conditional page boundary cycle. For these
     /// instructions we always execute this cycle.
     pub fn init_rmw<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        Self::init_base(cpu, true, tick_handler)
+        Self::init_base(cpu, Variant::ReadModifyWrite, tick_handler)
     }
 
-    fn init_base<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, rmw: bool, tick_handler: F) -> Self {
+    fn init_base<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>,
+                                            variant: Variant,
+                                            tick_handler: F)
+                                            -> Self {
         let base_addr = cpu.read_pc16(&tick_handler);
         let target_addr = base_addr + cpu.registers.x as u16;
 
         // Conditional cycle if memory page crossed
-        if rmw || (base_addr & 0xff00 != target_addr & 0xff00) {
+        if variant != Variant::Store &&
+           (variant == Variant::ReadModifyWrite || (base_addr & 0xff00 != target_addr & 0xff00)) {
             tick_handler(cpu);
         }
 
@@ -34,6 +51,7 @@ impl AbsoluteX {
         AbsoluteX {
             addr: target_addr,
             value: val,
+            is_store: variant == Variant::Store,
         }
     }
 }
@@ -46,8 +64,10 @@ impl<M: Memory> AddressingMode<M> for AbsoluteX {
     }
 
     fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
-        // Dummy write cycle
-        tick_handler(cpu);
+        if !self.is_store {
+            // Dummy write cycle
+            tick_handler(cpu);
+        }
         cpu.write_memory(self.addr, value, &tick_handler);
     }
 }
