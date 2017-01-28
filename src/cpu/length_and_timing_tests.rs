@@ -47,6 +47,27 @@ macro_rules! assert_length_and_cycles {
     }}
 }
 
+macro_rules! assert_cycles {
+    ( $ cpu : expr , $ asm : expr , $ expected_cycles : expr ) => {{
+        let asm = $asm;
+        let mut cpu = $cpu;
+        let mut buf = Vec::<u8>::new();
+        match assemble(asm.as_bytes(), &mut buf) {
+            Err(msg) => panic!(format!("Failed to assemble '{}': {}", asm, msg)),
+            _ => {
+                cpu.memory.store_many(0x200, &buf[..]);
+                let expected_cycles = $expected_cycles;
+                let cycles = Cell::new(0);
+                cpu.step(|_: &TestCpu| cycles.set(cycles.get() + 1));
+                if expected_cycles != cycles.get() {
+                    panic!("Expected number of executed cycles to be {} but it was {}",
+                            expected_cycles, cycles.get())
+                }
+            }
+        }
+    }}
+}
+
 /// Similar to the above macro, but for relative instructions. Instead of passing the instruction
 /// length for relative instructions, we pass the expected PC since a branch taken will alter it.
 /// Also, the program counter is set to 0x27f so that can cross the page boundary given a max
@@ -496,15 +517,21 @@ fn iny() {
 
 
 #[test]
-#[ignore]
 fn jmp() {
-    unimplemented!()
+    // Absolute
+    assert_cycles!(TestCpu::new_test(), "JMP $3333", 3);
+
+    // Indirect
+    assert_cycles!(TestCpu::new_test(), "JMP ($3333)", 5);
 }
 
 #[test]
-#[ignore]
 fn jsr() {
-    unimplemented!()
+    let mut cpu = TestCpu::new_test();
+    cpu.push_stack16(0x1234, |_| {});
+
+    // Absolute
+    assert_cycles!(cpu, "JSR $3333", 6);
 }
 
 #[test]
@@ -715,15 +742,22 @@ fn ror() {
 }
 
 #[test]
-#[ignore]
 fn rti() {
-    unimplemented!()
+    let mut cpu = TestCpu::new_test();
+    cpu.push_stack16(0x1234, |_| {});
+    cpu.push_stack(0x12, |_| {});
+
+    // Absolute
+    assert_cycles!(cpu, "RTI\n", 6);
 }
 
 #[test]
-#[ignore]
 fn rts() {
-    unimplemented!()
+    let mut cpu = TestCpu::new_test();
+    cpu.push_stack16(0x1234, |_| {});
+
+    // Absolute
+    assert_cycles!(cpu, "RTS\n", 6);
 }
 
 #[test]

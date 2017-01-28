@@ -16,6 +16,12 @@ impl OpCode for Rti {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
+        // Dummy read cycle
+        tick_handler(cpu);
+
+        // Increment stack pointer cycle
+        tick_handler(cpu);
+
         let stat = cpu.pop_stack(&tick_handler);
         let pc = cpu.pop_stack16(&tick_handler);
         cpu.registers.status = stat;

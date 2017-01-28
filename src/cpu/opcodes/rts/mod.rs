@@ -16,7 +16,16 @@ impl OpCode for Rts {
               AM: AddressingMode<M, Output = Self::Input>,
               F: Fn(&Cpu<M>)
     {
+        // Dummy read cycle
+        tick_handler(cpu);
+
+        // Stack increment cycle
+        tick_handler(cpu);
+
         let pc = cpu.pop_stack16(&tick_handler);
         cpu.registers.pc = pc + 1;
+
+        // increment PC cycle
+        tick_handler(cpu);
     }
 }
