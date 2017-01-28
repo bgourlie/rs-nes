@@ -24,8 +24,7 @@ fn main() {
     mem.store_many(0, &rom);
     let mut debugger = http_debugger::HttpDebugger::new(instructions);
     debugger.start().unwrap();
-    let mut cpu = Cpu::new(mem);
-    cpu.registers.pc = PC_START;
+    let mut cpu = Cpu::new(mem, PC_START);
     let cycles = Cell::new(0_u64);
 
     loop {

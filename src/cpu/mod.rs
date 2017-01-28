@@ -27,23 +27,24 @@ pub type TestCpu = Cpu<SimpleMemory>;
 impl TestCpu {
     pub fn new_test() -> Self {
         let memory = SimpleMemory::new();
-        let mut cpu = Cpu::new(memory);
-        cpu.registers.pc = 0x200;
-        cpu
+        Cpu::new(memory, 0x200)
     }
 }
 
 pub struct Cpu<M: Memory> {
-    pub registers: Registers,
+    registers: Registers,
     memory: M,
 }
 
 impl<Mem: Memory> Cpu<Mem> {
-    pub fn new(memory: Mem) -> Self {
-        Cpu {
+    pub fn new(memory: Mem, pc: u16) -> Self {
+        let mut cpu = Cpu {
             registers: Registers::new(),
             memory: memory,
-        }
+        };
+
+        cpu.registers.pc = pc;
+        cpu
     }
 
     pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {

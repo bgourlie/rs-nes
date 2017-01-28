@@ -16,9 +16,8 @@ fn functional_test() {
     assert!(bytes_read == 65536);
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &rom);
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = Cpu::new(mem, PC_START);
     let mut last_pc = PC_START;
-    cpu.registers.pc = PC_START;
 
     loop {
         cpu.step(|_: &Cpu<SimpleMemory>| cycles.set(cycles.get() + 1));

@@ -4,7 +4,6 @@ static INSTR_MASK: u8 = 0b111;
 static INSTR_FAMILY_MASK: u8 = 0b11;
 static ADDRESSING_MODE_MASK: u8 = 0b111;
 
-
 pub struct InstructionDecoder<'a> {
     bytes: &'a [u8],
     pc: usize,
@@ -299,7 +298,6 @@ impl<'a> InstructionDecoder<'a> {
 
     fn read_absx(&mut self) -> Option<AddressingMode> {
         self.read16().map(AddressingMode::AbsoluteX)
-
     }
 
     fn read_relative(&mut self) -> Option<AddressingMode> {
