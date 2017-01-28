@@ -15,4 +15,4 @@ serde_json = "*"
 serde_derive = "*"
 rand = "*"
 seahash = "*"
-asm6502 = { git ="https://github.com/bgourlie/asm6502.git" }
+asm6502 = "0.1.0"
