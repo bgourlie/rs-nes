@@ -3,6 +3,10 @@ name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 
+[features]
+default = []
+expensive_tests = []
+
 [dependencies]
 log = "*"
 env_logger = "*"
