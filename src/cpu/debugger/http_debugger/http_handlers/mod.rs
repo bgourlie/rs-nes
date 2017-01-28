@@ -6,6 +6,7 @@ use iron::modifier::Modifier;
 use iron::prelude::*;
 use router::{Params, Router};
 use serde::{Serialize, Serializer};
+use serde::ser::SerializeStruct;
 use serde_json;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -77,10 +78,10 @@ struct ContinueResponse {
 }
 
 impl Serialize for ContinueResponse {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("ContinueResponse", 1)?;
-        serializer.serialize_struct_elt(&mut state, "continued", self.continued)?;
-        serializer.serialize_struct_end(state)
+        state.serialize_field("continued", &self.continued)?;
+        state.end()
     }
 }
 
@@ -89,10 +90,10 @@ pub struct StepResponse {
 }
 
 impl Serialize for StepResponse {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("StepResponse", 1)?;
-        serializer.serialize_struct_elt(&mut state, "stepped", self.stepped)?;
-        serializer.serialize_struct_end(state)
+        state.serialize_field("stepped", &self.stepped)?;
+        state.end()
     }
 }
 

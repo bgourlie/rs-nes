@@ -1,4 +1,5 @@
 use serde::{Serialize, Serializer};
+use serde::ser::SerializeStruct;
 
 static INSTR_MASK: u8 = 0b111;
 static INSTR_FAMILY_MASK: u8 = 0b11;
@@ -18,14 +19,14 @@ pub struct Instruction {
 }
 
 impl Serialize for Instruction {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         let mut state = serializer.serialize_struct("Instruction", 3)?;
-        serializer.serialize_struct_elt(&mut state, "offset", self.offset)?;
-        serializer.serialize_struct_elt(&mut state, "mnemonic", self.mnemonic)?;
-        serializer.serialize_struct_elt(&mut state, "addressing_mode", self.addressing_mode)?;
-        serializer.serialize_struct_end(state)
+        state.serialize_field("offset", &self.offset)?;
+        state.serialize_field("mnemonic", &self.mnemonic)?;
+        state.serialize_field("addressing_mode", &self.addressing_mode)?;
+        state.end()
     }
 }
 
@@ -45,55 +46,55 @@ pub enum AddressingMode {
 }
 
 impl Serialize for AddressingMode {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
         let mut state = serializer.serialize_struct("AddressingMode", 2)?;
         match *self {
             AddressingMode::IndexedIndirect(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "IndexedIndirect")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "IndexedIndirect")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::IndirectIndexed(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "IndirectIndexed")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "IndirectIndexed")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::ZeroPage(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "ZeroPage")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "ZeroPage")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::Immediate(val) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "Immediate")?;
-                serializer.serialize_struct_elt(&mut state, "operand", val)?;
+                state.serialize_field("mode", "Immediate")?;
+                state.serialize_field("operand", &val)?;
             }
             AddressingMode::Absolute(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "Absolute")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "Absolute")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::AbsoluteX(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "AbsoluteX")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "AbsoluteX")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::AbsoluteY(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "AbsoluteY")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "AbsoluteY")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::ZeroPageX(addr) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "ZeroPageX")?;
-                serializer.serialize_struct_elt(&mut state, "operand", addr)?;
+                state.serialize_field("mode", "ZeroPageX")?;
+                state.serialize_field("operand", &addr)?;
             }
             AddressingMode::Relative(offset) => {
-                serializer.serialize_struct_elt(&mut state, "mode", "Relative")?;
-                serializer.serialize_struct_elt(&mut state, "operand", offset)?;
+                state.serialize_field("mode", "Relative")?;
+                state.serialize_field("operand", &offset)?;
             }
             AddressingMode::Implied => {
-                serializer.serialize_struct_elt(&mut state, "mode", "Implied")?;
+                state.serialize_field("mode", "Implied")?;
             }
             AddressingMode::Accumulator => {
-                serializer.serialize_struct_elt(&mut state, "mode", "Accumulator")?;
+                state.serialize_field("mode", "Accumulator")?;
             }
         }
-        serializer.serialize_struct_end(state)
+        state.end()
     }
 }
 
