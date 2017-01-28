@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO: Remove, eventually...
+
 #[cfg(test)]
 mod spec_tests;
 
