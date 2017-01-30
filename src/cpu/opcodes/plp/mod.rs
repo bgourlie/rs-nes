@@ -11,18 +11,14 @@ pub struct Plp;
 impl OpCode for Plp {
     type Input = ();
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
-        where M: Memory,
-              AM: AddressingMode<M, Output = Self::Input>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
         // Dummy read
-        tick_handler(cpu);
+        cpu.tick();
 
         // Stack pointer inc cycle
-        tick_handler(cpu);
+        cpu.tick();
 
-        let val = cpu.pop_stack(&tick_handler);
+        let val = cpu.pop_stack();
         cpu.registers.set_status_from_stack(val);
     }
 }

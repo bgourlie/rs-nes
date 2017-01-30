@@ -7,8 +7,8 @@ pub struct Immediate {
 }
 
 impl Immediate {
-    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let val = cpu.read_pc(&tick_handler);
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let val = cpu.read_pc();
         Immediate { value: val }
     }
 }
@@ -18,9 +18,5 @@ impl<M: Memory> AddressingMode<M> for Immediate {
 
     fn read(&self) -> u8 {
         self.value
-    }
-
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
     }
 }

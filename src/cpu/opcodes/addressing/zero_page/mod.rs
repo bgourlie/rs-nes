@@ -9,9 +9,9 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc(&tick_handler) as u16;
-        let val = cpu.read_memory(addr, &tick_handler);
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc() as u16;
+        let val = cpu.read_memory(addr);
 
         ZeroPage {
             addr: addr,
@@ -20,8 +20,8 @@ impl ZeroPage {
         }
     }
 
-    pub fn init_store<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc(&tick_handler) as u16;
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc() as u16;
 
         // Read must consume a cycle for stores, so we call cpu.memory.load() directly
         let val = cpu.memory.load(addr);
@@ -41,11 +41,11 @@ impl<M: Memory> AddressingMode<M> for ZeroPage {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
-            tick_handler(cpu);
+            cpu.tick();
         }
-        cpu.write_memory(self.addr, value, &tick_handler)
+        cpu.write_memory(self.addr, value)
     }
 }

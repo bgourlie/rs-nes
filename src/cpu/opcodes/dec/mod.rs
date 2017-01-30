@@ -12,13 +12,9 @@ pub struct Dec;
 impl OpCode for Dec {
     type Input = u8;
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, tick_handler: &F)
-        where M: Memory,
-              AM: AddressingMode<M, Output = Self::Input>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
         let val = wrapping_dec(am.read());
-        am.write(cpu, val, &tick_handler);
+        am.write(cpu, val);
         cpu.registers.set_sign_and_zero_flag(val);
     }
 }

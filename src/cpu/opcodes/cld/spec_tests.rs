@@ -7,6 +7,6 @@ use cpu::opcodes::addressing::Implied;
 fn test() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.set_decimal_flag(true);
-    Cld::execute_cycles(&mut cpu, Implied);
+    Cld::execute(&mut cpu, Implied);
     assert_eq!(false, cpu.registers.decimal_flag());
 }

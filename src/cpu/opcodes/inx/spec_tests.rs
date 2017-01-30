@@ -7,7 +7,7 @@ use cpu::opcodes::inx::Inx;
 fn test1() {
     inc_base_1(|ref mut cpu, val| {
         cpu.registers.x = val;
-        Inx::execute_cycles(cpu, Implied);
+        Inx::execute(cpu, Implied);
         cpu.registers.x
     });
 }
@@ -16,7 +16,7 @@ fn test1() {
 fn test2() {
     inc_base_2(|ref mut cpu, val| {
         cpu.registers.x = val;
-        Inx::execute_cycles(cpu, Implied);
+        Inx::execute(cpu, Implied);
         cpu.registers.x
     });
 }
@@ -25,7 +25,7 @@ fn test2() {
 fn test3() {
     inc_base_3(|ref mut cpu, val| {
         cpu.registers.x = val;
-        Inx::execute_cycles(cpu, Implied);
+        Inx::execute(cpu, Implied);
         cpu.registers.x
     });
 }

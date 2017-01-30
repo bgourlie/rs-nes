@@ -11,7 +11,7 @@ impl AddressingMode<SimpleMemory> for u8 {
         *self
     }
 
-    fn write<F: Fn(&TestCpu)>(&self, cpu: &mut TestCpu, value: u8, _: F) {
+    fn write(&self, cpu: &mut TestCpu, value: u8) {
         cpu.registers.acc = value;
     }
 }
@@ -23,7 +23,7 @@ impl AddressingMode<SimpleMemory> for i8 {
         *self
     }
 
-    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, _: u8, _: F) {
+    fn write(&self, _: &mut TestCpu, _: u8) {
         unimplemented!()
     }
 }
@@ -59,7 +59,7 @@ impl AddressingMode<SimpleMemory> for WriterAddressingMode {
         self.read_value
     }
 
-    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, value: u8, _: F) {
+    fn write(&self, _: &mut TestCpu, value: u8) {
         self.written.set(value)
     }
 }
@@ -70,7 +70,7 @@ impl AddressingMode<SimpleMemory> for u16 {
         *self
     }
 
-    fn write<F: Fn(&TestCpu)>(&self, _: &mut TestCpu, _: u8, _: F) {
+    fn write(&self, _: &mut TestCpu, _: u8) {
         unimplemented!()
     }
 }

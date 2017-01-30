@@ -16,6 +16,6 @@ fn main() {
     let mut debugger = HttpDebugger::new(cpu);
     debugger.start().unwrap();
     loop {
-        debugger.step(|_| ());
+        debugger.step();
     }
 }

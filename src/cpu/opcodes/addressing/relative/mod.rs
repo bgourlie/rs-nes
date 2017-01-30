@@ -7,8 +7,8 @@ pub struct Relative {
 }
 
 impl Relative {
-    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: &F) -> Self {
-        let offset = cpu.read_pc(&tick_handler) as i8;
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let offset = cpu.read_pc() as i8;
         Relative { offset: offset }
     }
 }
@@ -18,9 +18,5 @@ impl<M: Memory> AddressingMode<M> for Relative {
 
     fn read(&self) -> Self::Output {
         self.offset
-    }
-
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
     }
 }

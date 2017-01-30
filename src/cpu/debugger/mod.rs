@@ -59,11 +59,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         Ok(())
     }
 
-    pub fn step_simple(&mut self) {
-        self.step(|_| ())
-    }
-
-    pub fn step<F: Fn(&Cpu<Mem>)>(&mut self, tick_handler: F) {
+    pub fn step(&mut self) {
         let cpu = &mut (*self.cpu.lock().unwrap());
         if let Some(break_reason) = self.break_reason(cpu) {
             {
@@ -79,7 +75,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             thread::park();
         }
         self.last_pc = cpu.registers.pc;
-        cpu.step(&tick_handler);
+        cpu.step();
     }
 
     fn break_reason(&self, cpu: &Cpu<Mem>) -> Option<BreakReason> {

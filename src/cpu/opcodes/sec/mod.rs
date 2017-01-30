@@ -11,12 +11,8 @@ pub struct Sec;
 impl OpCode for Sec {
     type Input = ();
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
-        where M: Memory,
-              AM: AddressingMode<M, Output = Self::Input>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
         cpu.registers.set_carry_flag(true);
-        tick_handler(cpu)
+        cpu.tick()
     }
 }

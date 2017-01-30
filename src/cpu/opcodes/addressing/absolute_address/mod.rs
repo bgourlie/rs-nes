@@ -9,8 +9,8 @@ pub struct AbsoluteAddress {
 }
 
 impl AbsoluteAddress {
-    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        AbsoluteAddress { addr: cpu.read_pc16(&tick_handler) }
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        AbsoluteAddress { addr: cpu.read_pc16() }
     }
 }
 
@@ -19,9 +19,5 @@ impl<M: Memory> AddressingMode<M> for AbsoluteAddress {
 
     fn read(&self) -> Self::Output {
         self.addr
-    }
-
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
     }
 }

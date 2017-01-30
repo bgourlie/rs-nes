@@ -1,6 +1,5 @@
 use asm6502::assemble;
 use cpu::TestCpu;
-use std::cell::Cell;
 
 // TODO: Consolidate duplicated logic in the assert macros
 
@@ -29,8 +28,7 @@ macro_rules! assert_length_and_cycles {
                 cpu.memory.store_many(0x200, &buf[..]);
                 let expected_cycles = $expected_cycles;
                 let expected_len = $expected_len;
-                let cycles = Cell::new(0);
-                cpu.step(|_: &TestCpu| cycles.set(cycles.get() + 1));
+                cpu.step();
                 let actual_len = cpu.registers.pc - 0x200;
 
                 if expected_len != actual_len {
@@ -38,9 +36,9 @@ macro_rules! assert_length_and_cycles {
                             expected_len, actual_len)
                 }
 
-                if expected_cycles != cycles.get() {
+                if expected_cycles != cpu.cycles {
                     panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cycles.get())
+                            expected_cycles, cpu.cycles)
                 }
             }
         }
@@ -57,11 +55,10 @@ macro_rules! assert_cycles {
             _ => {
                 cpu.memory.store_many(0x200, &buf[..]);
                 let expected_cycles = $expected_cycles;
-                let cycles = Cell::new(0);
-                cpu.step(|_: &TestCpu| cycles.set(cycles.get() + 1));
-                if expected_cycles != cycles.get() {
+                cpu.step();
+                if expected_cycles != cpu.cycles {
                     panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cycles.get())
+                            expected_cycles, cpu.cycles)
                 }
             }
         }
@@ -84,8 +81,7 @@ macro_rules! assert_length_and_cycles_relative {
                 cpu.memory.store_many(0x27f, &buf[..]);
                 let expected_cycles = $expected_cycles;
                 let expected_len = $expected_len;
-                let cycles = Cell::new(0);
-                cpu.step(|_: &TestCpu| cycles.set(cycles.get() + 1));
+                cpu.step();
                 let actual_len = cpu.registers.pc - 0x27f;
 
                 if expected_len != actual_len {
@@ -93,9 +89,9 @@ macro_rules! assert_length_and_cycles_relative {
                             expected_len, actual_len)
                 }
 
-                if expected_cycles != cycles.get() {
+                if expected_cycles != cpu.cycles {
                     panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cycles.get())
+                            expected_cycles, cpu.cycles)
                 }
             }
         }
@@ -528,10 +524,11 @@ fn jmp() {
 #[test]
 fn jsr() {
     let mut cpu = TestCpu::new_test();
-    cpu.push_stack16(0x1234, |_| {});
+    // This will execute two cycles, so assert JSR cycles + 2
+    cpu.push_stack16(0x1234);
 
     // Absolute
-    assert_cycles!(cpu, "JSR $3333", 6);
+    assert_cycles!(cpu, "JSR $3333", 6 + 2);
 }
 
 #[test]
@@ -744,20 +741,25 @@ fn ror() {
 #[test]
 fn rti() {
     let mut cpu = TestCpu::new_test();
-    cpu.push_stack16(0x1234, |_| {});
-    cpu.push_stack(0x12, |_| {});
+    // This will execute 2 cycles
+    cpu.push_stack16(0x1234);
+
+    // This will execute 1 cycle
+    cpu.push_stack(0x12);
 
     // Absolute
-    assert_cycles!(cpu, "RTI\n", 6);
+    assert_cycles!(cpu, "RTI\n", 6 + 3);
 }
 
 #[test]
 fn rts() {
     let mut cpu = TestCpu::new_test();
-    cpu.push_stack16(0x1234, |_| {});
+
+    // This will execute two cycles, so assert RTS cycles + 2
+    cpu.push_stack16(0x1234);
 
     // Absolute
-    assert_cycles!(cpu, "RTS\n", 6);
+    assert_cycles!(cpu, "RTS\n", 6 + 2);
 }
 
 #[test]

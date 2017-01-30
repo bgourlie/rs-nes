@@ -7,9 +7,9 @@ pub struct Accumulator {
 }
 
 impl Accumulator {
-    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
         // dummy read cycle
-        tick_handler(cpu);
+        cpu.tick();
         Accumulator { value: cpu.registers.acc }
     }
 }
@@ -21,7 +21,7 @@ impl<M: Memory> AddressingMode<M> for Accumulator {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, _: F) {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
         cpu.registers.acc = value
     }
 }

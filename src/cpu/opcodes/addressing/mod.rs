@@ -36,5 +36,7 @@ use memory::*;
 pub trait AddressingMode<M: Memory> {
     type Output;
     fn read(&self) -> Self::Output;
-    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F);
+    fn write(&self, _: &mut Cpu<M>, _: u8) {
+        unimplemented!();
+    }
 }

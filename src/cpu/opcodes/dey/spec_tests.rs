@@ -7,7 +7,7 @@ use cpu::opcodes::inc_dec_tests_base::*;
 fn test1() {
     dec_base_1(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Dey::execute_cycles(cpu, Implied);
+        Dey::execute(cpu, Implied);
         cpu.registers.y
     });
 }
@@ -16,7 +16,7 @@ fn test1() {
 fn test2() {
     dec_base_2(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Dey::execute_cycles(cpu, Implied);
+        Dey::execute(cpu, Implied);
         cpu.registers.y
     });
 }
@@ -25,7 +25,7 @@ fn test2() {
 fn test3() {
     dec_base_3(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Dey::execute_cycles(cpu, Implied);
+        Dey::execute(cpu, Implied);
         cpu.registers.y
     });
 }

@@ -12,12 +12,8 @@ pub struct Beq;
 impl OpCode for Beq {
     type Input = i8;
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, am: AM, tick_handler: &F)
-        where M: Memory,
-              AM: AddressingMode<M, Output = Self::Input>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
         let zero_set = cpu.registers.zero_flag();
-        branch(cpu, am, tick_handler, zero_set);
+        branch(cpu, am, zero_set);
     }
 }

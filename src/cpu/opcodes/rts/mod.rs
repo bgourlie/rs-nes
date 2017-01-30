@@ -11,21 +11,17 @@ pub struct Rts;
 impl OpCode for Rts {
     type Input = ();
 
-    fn execute<M, AM, F>(cpu: &mut Cpu<M>, _: AM, tick_handler: &F)
-        where M: Memory,
-              AM: AddressingMode<M, Output = Self::Input>,
-              F: Fn(&Cpu<M>)
-    {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
         // Dummy read cycle
-        tick_handler(cpu);
+        cpu.tick();
 
         // Stack increment cycle
-        tick_handler(cpu);
+        cpu.tick();
 
-        let pc = cpu.pop_stack16(&tick_handler);
+        let pc = cpu.pop_stack16();
         cpu.registers.pc = pc + 1;
 
         // increment PC cycle
-        tick_handler(cpu);
+        cpu.tick();
     }
 }

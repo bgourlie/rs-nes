@@ -22,6 +22,6 @@ fn main() {
     debugger.start().unwrap();
 
     loop {
-        debugger.step_simple();
+        debugger.step();
     }
 }

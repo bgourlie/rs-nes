@@ -10,14 +10,14 @@ pub struct ZeroPageX {
 }
 
 impl ZeroPageX {
-    pub fn init<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let base_addr = cpu.read_pc(&tick_handler);
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let base_addr = cpu.read_pc();
         let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
 
         // Dummy read cycle
-        tick_handler(cpu);
+        cpu.tick();
 
-        let val = cpu.read_memory(target_addr, &tick_handler);
+        let val = cpu.read_memory(target_addr);
 
         ZeroPageX {
             addr: target_addr,
@@ -26,11 +26,11 @@ impl ZeroPageX {
         }
     }
 
-    pub fn init_store<F: Fn(&Cpu<M>), M: Memory>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let base_addr = cpu.read_pc(&tick_handler);
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let base_addr = cpu.read_pc();
         let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
 
-        let val = cpu.read_memory(target_addr, &tick_handler);
+        let val = cpu.read_memory(target_addr);
 
         ZeroPageX {
             addr: target_addr,
@@ -47,11 +47,11 @@ impl<M: Memory> AddressingMode<M> for ZeroPageX {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
-            tick_handler(cpu);
+            cpu.tick();
         }
-        cpu.write_memory(self.addr, value, &tick_handler);
+        cpu.write_memory(self.addr, value);
     }
 }

@@ -8,17 +8,17 @@ pub struct Indirect {
 }
 
 impl Indirect {
-    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc16(&tick_handler);
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc16();
 
         // Recreate hardware bug specific to indirect jmp
-        let lo_byte = cpu.read_memory(addr, &tick_handler);
+        let lo_byte = cpu.read_memory(addr);
 
         // recreate indirect jump bug in nmos 6502
         let hi_byte = if addr & 0x00ff == 0x00ff {
-            cpu.read_memory(addr & 0xff00, &tick_handler)
+            cpu.read_memory(addr & 0xff00)
         } else {
-            cpu.read_memory(addr + 1, &tick_handler)
+            cpu.read_memory(addr + 1)
         };
 
         let target_addr = from_lo_hi(lo_byte, hi_byte);
@@ -32,9 +32,5 @@ impl<M: Memory> AddressingMode<M> for Indirect {
 
     fn read(&self) -> Self::Output {
         self.addr
-    }
-
-    fn write<F: Fn(&Cpu<M>)>(&self, _: &mut Cpu<M>, _: u8, _: F) {
-        unimplemented!()
     }
 }

@@ -7,6 +7,6 @@ use cpu::opcodes::addressing::Implied;
 fn test() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.set_overflow_flag(true);
-    Clv::execute_cycles(&mut cpu, Implied);
+    Clv::execute(&mut cpu, Implied);
     assert_eq!(false, cpu.registers.overflow_flag());
 }

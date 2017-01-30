@@ -4,7 +4,7 @@ use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
 
 fn ror(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
-    Ror::execute_cycles(cpu, val);
+    Ror::execute(cpu, val);
     (cpu.registers.acc, true)
 }
 

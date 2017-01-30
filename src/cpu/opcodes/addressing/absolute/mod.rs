@@ -9,9 +9,9 @@ pub struct Absolute {
 }
 
 impl Absolute {
-    pub fn init<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc16(&tick_handler);
-        let value = cpu.read_memory(addr, &tick_handler);
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc16();
+        let value = cpu.read_memory(addr);
 
         Absolute {
             addr: addr,
@@ -20,8 +20,8 @@ impl Absolute {
         }
     }
 
-    pub fn init_store<M: Memory, F: Fn(&Cpu<M>)>(cpu: &mut Cpu<M>, tick_handler: F) -> Self {
-        let addr = cpu.read_pc16(&tick_handler);
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc16();
 
         // Read must consume a cycle for stores, so we call cpu.memory.load() directly
         let value = cpu.memory.load(addr);
@@ -41,11 +41,11 @@ impl<M: Memory> AddressingMode<M> for Absolute {
         self.value
     }
 
-    fn write<F: Fn(&Cpu<M>)>(&self, cpu: &mut Cpu<M>, value: u8, tick_handler: F) {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
-            tick_handler(cpu);
+            cpu.tick();
         }
-        cpu.write_memory(self.addr, value, &tick_handler);
+        cpu.write_memory(self.addr, value);
     }
 }
