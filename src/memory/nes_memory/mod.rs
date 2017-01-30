@@ -34,6 +34,13 @@ impl Clone for NesMemory {
 
 // Currently NROM only
 impl Memory for NesMemory {
+    fn tick(&mut self) {
+        // For every CPU cycle, the PPU steps 3 times
+        self.ppu.step();
+        self.ppu.step();
+        self.ppu.step();
+    }
+
     fn store(&mut self, address: u16, value: u8) {
         match address {
             0x0...0x1fff => self.ram[address as usize & 0x7ff] = value,

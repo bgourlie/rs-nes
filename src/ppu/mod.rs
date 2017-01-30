@@ -16,30 +16,47 @@ use ppu::status_register::StatusRegister;
 use std::cell::RefCell;
 use std::io::Write;
 
+const SCANLINES: u64 = 262;
+const CYCLES_PER_SCANLINE: u64 = 341;
+const CYCLES_PER_FRAME: u64 = SCANLINES * CYCLES_PER_SCANLINE;
+const VBLANK_SCANLINE: u64 = 241;
+const LAST_SCANLINE: u64 = 261;
+const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
+const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
+
 #[derive(Clone)]
 pub struct Ppu {
+    cycles: u64,
     ctrl_reg: ControlRegister,
     mask_reg: MaskRegister,
     status_reg: StatusRegister,
     scroll: u8,
     vram_addr: u8,
     vram_data: u8,
-    cycles: usize,
     oam: RefCell<ObjectAttributeMemory>,
 }
 
 impl Ppu {
     pub fn new() -> Self {
         Ppu {
+            cycles: 0,
             ctrl_reg: ControlRegister::new(0),
             mask_reg: MaskRegister::new(0),
             status_reg: StatusRegister::new(0),
             scroll: 0,
             vram_addr: 0,
             vram_data: 0,
-            cycles: 0,
             oam: RefCell::new(ObjectAttributeMemory::new()),
         }
+    }
+
+    pub fn step(&mut self) {
+        match self.cycles % CYCLES_PER_FRAME {
+            VBLANK_SET_CYCLE => println!("VBLANK SET!"),
+            VBLANK_CLEAR_CYCLE => println!("VBLANK CLEAR!"),
+            _ => (), // Do other stuff
+        }
+        self.cycles += 1;
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register

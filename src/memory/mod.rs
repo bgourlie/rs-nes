@@ -9,6 +9,7 @@ mod spec_tests;
 pub const ADDRESSABLE_MEMORY: usize = 65536;
 
 pub trait Memory: Clone {
+    fn tick(&mut self) {}
     fn store(&mut self, u16, u8);
     fn load(&self, u16) -> u8;
     fn hash(&self) -> u64;

@@ -106,6 +106,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             MemorySnapshot::NoChange(hash)
         }
     }
+
     fn start_websocket_thread(&mut self) -> Result<(), String> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string())?;

@@ -92,9 +92,9 @@ impl<Mem: Memory> Cpu<Mem> {
         self.registers.pc = pc;
     }
 
-
     fn tick(&mut self) {
         self.cycles += 1;
+        self.memory.tick()
     }
 
     fn read_pc(&mut self) -> u8 {
