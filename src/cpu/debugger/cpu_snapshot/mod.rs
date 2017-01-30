@@ -1,33 +1,31 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use cpu::Registers;
-use memory::{ADDRESSABLE_MEMORY, Memory};
+use memory::ADDRESSABLE_MEMORY;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 use std::io::Cursor;
 
-pub enum MemorySnapshot<Mem: Memory> {
+pub enum MemorySnapshot {
     NoChange(u64), // If no change, just send the hash.
-    Updated(u64, Mem), // Updated, send hash and memory
+    Updated(u64, Vec<u8>), // Updated, send hash and memory
 }
 
-pub struct CpuSnapshot<Mem: Memory> {
+pub struct CpuSnapshot {
     registers: Registers,
-    cycles: u64,
-    memory: MemorySnapshot<Mem>,
+    memory: MemorySnapshot,
 }
 
-impl<Mem: Memory> CpuSnapshot<Mem> {
-    pub fn new(mem_snapshot: MemorySnapshot<Mem>, registers: Registers, cycles: u64) -> Self {
+impl CpuSnapshot {
+    pub fn new(mem_snapshot: MemorySnapshot, registers: Registers) -> Self {
 
         CpuSnapshot {
             registers: registers,
-            cycles: cycles,
             memory: mem_snapshot,
         }
     }
 }
 
-impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
+impl Serialize for MemorySnapshot {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match *self {
             MemorySnapshot::NoChange(hash) => {
@@ -37,9 +35,7 @@ impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
                 state.end()
             }
             MemorySnapshot::Updated(hash, ref memory) => {
-                let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
-                memory.dump(&mut buf);
-                let packed_bytes = pack_memory(&buf);
+                let packed_bytes = pack_memory(&memory);
                 let mut state = serializer.serialize_struct("Memory", 3)?;
                 state.serialize_field("state", "Updated")?;
                 state.serialize_field("hash", &hash)?;
@@ -50,11 +46,10 @@ impl<Mem: Memory> Serialize for MemorySnapshot<Mem> {
     }
 }
 
-impl<Mem: Memory> Serialize for CpuSnapshot<Mem> {
+impl Serialize for CpuSnapshot {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("CpuSnapshot", 2)?;
         state.serialize_field("registers", &self.registers)?;
-        state.serialize_field("cycles", &self.cycles)?;
         state.serialize_field("memory", &self.memory)?;
         state.end()
     }

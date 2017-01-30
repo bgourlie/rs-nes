@@ -1,4 +1,5 @@
-#![allow(dead_code)] // TODO: Remove once PPU is integrated
+// TODO: Remove once PPU is integrated
+#![allow(dead_code)]
 
 #[cfg(test)]
 mod spec_tests;

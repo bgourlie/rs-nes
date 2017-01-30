@@ -47,6 +47,10 @@ impl<Mem: Memory> Cpu<Mem> {
         cpu
     }
 
+    pub fn step_simple(&mut self) {
+        self.step(|_| ())
+    }
+
     pub fn step<F: Fn(&Self)>(&mut self, tick_handler: F) {
         let opcode = self.read_pc(&tick_handler);
         self::opcodes::execute(self, opcode, &tick_handler)
@@ -72,7 +76,7 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn write_memory<F: Fn(&Self)>(&mut self, addr: u16, val: u8, tick_handler: F) {
         self.memory.store(addr, val);
-        tick_handler(&self);
+        tick_handler(self);
     }
 
     pub fn reset<F: Fn(&Self)>(&mut self, tick_handler: F) {

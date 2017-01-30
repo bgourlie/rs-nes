@@ -96,7 +96,7 @@ impl ControlRegister {
     fn nmi_on_vblank_start(&self) -> bool {
         let mask = 0b10000000;
         let reg = **self;
-        if reg & mask == 0 { false } else { true }
+        !(reg & mask == 0)
     }
 
     pub fn set(&mut self, val: u8) {

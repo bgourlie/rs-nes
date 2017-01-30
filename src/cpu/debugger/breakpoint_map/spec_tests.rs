@@ -1,4 +1,4 @@
-use cpu::debugger::http_debugger::BreakpointMap;
+use cpu::debugger::BreakpointMap;
 use memory::ADDRESSABLE_MEMORY;
 use rand::{Rng, thread_rng};
 
