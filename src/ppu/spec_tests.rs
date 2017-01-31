@@ -10,11 +10,11 @@ fn memory_mapped_register_write() {
 
     // Writes to 0x2000 write the control register
     ppu.memory_mapped_register_write(0x2000, 0x1);
-    assert_eq!(0x1, *ppu.ctrl_reg);
+    assert_eq!(0x1, *ppu.control);
 
     // Writes to 0x2001 write the mask register
     ppu.memory_mapped_register_write(0x2001, 0x2);
-    assert_eq!(0x2, *ppu.mask_reg);
+    assert_eq!(0x2, *ppu.mask);
 
     // Writes to 0x2003 write the oam addr register
     ppu.memory_mapped_register_write(0x2003, 0x3);
@@ -42,10 +42,10 @@ fn memory_mapped_register_write() {
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
     ppu.memory_mapped_register_write(0x2008, 0x8);
-    assert_eq!(0x8, *ppu.ctrl_reg);
+    assert_eq!(0x8, *ppu.control);
 
     ppu.memory_mapped_register_write(0x2009, 0x9);
-    assert_eq!(0x9, *ppu.mask_reg);
+    assert_eq!(0x9, *ppu.mask);
 
     ppu.memory_mapped_register_write(0x200b, 0xa);
     assert_eq!(0xa, ppu.oam_address());
@@ -68,10 +68,10 @@ fn memory_mapped_register_write() {
     // Test mirroring on the tail end of the valid address space
 
     ppu.memory_mapped_register_write(0x3ff8, 0xf);
-    assert_eq!(0xf, *ppu.ctrl_reg);
+    assert_eq!(0xf, *ppu.control);
 
     ppu.memory_mapped_register_write(0x3ff9, 0x10);
-    assert_eq!(0x10, *ppu.mask_reg);
+    assert_eq!(0x10, *ppu.mask);
 
     ppu.memory_mapped_register_write(0x3ffb, 0x11);
     assert_eq!(0x11, ppu.oam_address());
@@ -96,13 +96,13 @@ fn memory_mapped_register_write() {
 fn memory_mapped_register_read() {
     let mut ppu = Ppu::new();
 
-    ppu.ctrl_reg.set(0xf0);
+    ppu.control.set(0xf0);
     assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
 
-    ppu.mask_reg.set(0xf1);
+    ppu.mask.set(0xf1);
     assert_eq!(0xf1, ppu.memory_mapped_register_read(0x2001));
 
-    ppu.status_reg = StatusRegister::new(0xf2);
+    ppu.status = StatusRegister::new(0xf2);
     assert_eq!(0xf2, ppu.memory_mapped_register_read(0x2002));
 
     ppu.oam_write_data(0xf3);
@@ -125,13 +125,13 @@ fn memory_mapped_register_read() {
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
-    ppu.ctrl_reg.set(0xe0);
+    ppu.control.set(0xe0);
     assert_eq!(0xe0, ppu.memory_mapped_register_read(0x2008));
 
-    ppu.mask_reg.set(0xe1);
+    ppu.mask.set(0xe1);
     assert_eq!(0xe1, ppu.memory_mapped_register_read(0x2009));
 
-    ppu.status_reg = StatusRegister::new(0xe2);
+    ppu.status = StatusRegister::new(0xe2);
     assert_eq!(0xe2, ppu.memory_mapped_register_read(0x200a));
 
     ppu.oam_set_address(0xe3);
@@ -154,13 +154,13 @@ fn memory_mapped_register_read() {
 
     // Test mirroring on the tail end of the valid address space
 
-    ppu.ctrl_reg.set(0xd0);
+    ppu.control.set(0xd0);
     assert_eq!(0xd0, ppu.memory_mapped_register_read(0x3ff8));
 
-    ppu.mask_reg.set(0xd1);
+    ppu.mask.set(0xd1);
     assert_eq!(0xd1, ppu.memory_mapped_register_read(0x3ff9));
 
-    ppu.status_reg = StatusRegister::new(0xd2);
+    ppu.status = StatusRegister::new(0xd2);
     assert_eq!(0xd2, ppu.memory_mapped_register_read(0x3ffa));
 
     ppu.oam_set_address(0xd3);
@@ -180,4 +180,35 @@ fn memory_mapped_register_read() {
 
     ppu.vram_data = 0xd7;
     assert_eq!(0xd7, ppu.memory_mapped_register_read(0x3fff));
+}
+
+#[test]
+fn vblank_set_and_clear_cycles() {
+    // VBLANK is clear until cycle 1 of the 241st scanline (which is the second cycle, as there is a
+    // cycle 0). Therefore:
+    // - Cycle 0 of scanline 241 = vblank clear
+    // - Cycle 1 of scanline 241 = VBLANK set during this cycle, but still considered pre-vblank
+    // - Cycle 2 of scanline 241 = post-vblank
+    const VBLANK_OFF: u64 = super::CYCLES_PER_SCANLINE * super::VBLANK_SCANLINE + 1;
+    const VBLANK_ON: u64 = VBLANK_OFF + 1;
+
+    // VBLANK is set until cycle 1 of the 261st scanline, similar to above. Therefore:
+    // - Cycle 0 of scanline 261 = in-vblank
+    // - Cycle 1 of scanline 241 = VBLANK cleared during this cycle, but still considered in-vblank
+    // - Cycle 2 of scanline 241 = vblank clear
+    const CLEAR_VBLANK_CYCLE: u64 = super::CYCLES_PER_SCANLINE * super::LAST_SCANLINE + 1;
+    const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
+
+    let mut ppu = Ppu::new();
+
+    // Render 100 frames and assert expected VBLANK behavior
+    while ppu.cycles < super::CYCLES_PER_FRAME * 100 {
+        match ppu.cycles % super::CYCLES_PER_FRAME {
+            0...VBLANK_OFF => assert_eq!(false, ppu.status.in_vblank()),
+            VBLANK_ON...CLEAR_VBLANK_CYCLE => assert_eq!(true, ppu.status.in_vblank()),
+            VBLANK_OFF_AGAIN...super::CYCLES_PER_FRAME => assert_eq!(false, ppu.status.in_vblank()),
+            _ => panic!("We should never get here"),
+        }
+        ppu.step();
+    }
 }

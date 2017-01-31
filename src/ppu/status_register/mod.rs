@@ -3,33 +3,8 @@ mod spec_tests;
 
 use std::ops::Deref;
 
-/// $2002, Read Only
-/// This register reflects the state of various functions inside the PPU.
-///
-/// ** Notes: **
-///
-/// - Reading the status register will clear D7 mentioned above and also the address latch used by
-///   PPUSCROLL and PPUADDR. It does not clear the sprite 0 hit or overflow bit.
-///
-/// - Once the sprite 0 hit flag is set, it will not be cleared until the end of the next vertical
-///   blank. If attempting to use this flag for raster timing, it is important to ensure that the
-///   sprite 0 hit check happens outside of vertical blank, otherwise the CPU will "leak" through
-///   and the check will fail. The easiest way to do this is to place an earlier check for D6 = 0,
-///   which will wait for the pre-render scanline to begin.
-///
-/// - If using sprite 0 hit to make a bottom scroll bar below a vertically scrolling or
-///   freely scrolling playfield, be careful to ensure that the tile in the playfield behind sprite
-///   0 is opaque.
-///
-/// - Sprite 0 hit is not detected at x=255, nor is it detected at x=0 through 7 if the background
-///   or sprites are hidden in this area.
-///
-/// - See: PPU rendering for more information on the timing of setting and clearing the flags.
-///
-/// - Some Vs. System PPUs return a constant value in D4-D0 that the game checks.
-///
-/// - Caution: Reading PPUSTATUS at the exact start of vertical blank will return 0 in bit 7 but
-///   clear the latch anyway, causing the program to miss frames. See NMI for details.
+const VBLANK: u8 = 0b10000000;
+
 #[derive(Copy, Clone)]
 pub struct StatusRegister {
     reg: u8,
@@ -52,10 +27,17 @@ impl StatusRegister {
     /// Set at dot 1 of line 241 (the line *after* the post-render
     /// line); cleared after reading $2002 and at dot 1 of the
     /// pre-render line.
-    fn in_vblank(self) -> bool {
-        let mask = 0b10000000;
+    pub fn in_vblank(self) -> bool {
         let reg = *self;
-        reg & mask > 0
+        reg & VBLANK > 0
+    }
+
+    pub fn set_in_vblank(&mut self) {
+        self.reg |= VBLANK
+    }
+
+    pub fn clear_in_vblank(&mut self) {
+        self.reg &= !VBLANK
     }
 
     /// Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps

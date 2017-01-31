@@ -27,9 +27,9 @@ const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 #[derive(Clone)]
 pub struct Ppu {
     cycles: u64,
-    ctrl_reg: ControlRegister,
-    mask_reg: MaskRegister,
-    status_reg: StatusRegister,
+    control: ControlRegister,
+    mask: MaskRegister,
+    status: StatusRegister,
     scroll: u8,
     vram_addr: u8,
     vram_data: u8,
@@ -40,9 +40,9 @@ impl Ppu {
     pub fn new() -> Self {
         Ppu {
             cycles: 0,
-            ctrl_reg: ControlRegister::new(0),
-            mask_reg: MaskRegister::new(0),
-            status_reg: StatusRegister::new(0),
+            control: ControlRegister::new(0),
+            mask: MaskRegister::new(0),
+            status: StatusRegister::new(0),
             scroll: 0,
             vram_addr: 0,
             vram_data: 0,
@@ -52,8 +52,8 @@ impl Ppu {
 
     pub fn step(&mut self) {
         match self.cycles % CYCLES_PER_FRAME {
-            VBLANK_SET_CYCLE => println!("VBLANK SET!"),
-            VBLANK_CLEAR_CYCLE => println!("VBLANK CLEAR!"),
+            VBLANK_SET_CYCLE => self.status.set_in_vblank(),
+            VBLANK_CLEAR_CYCLE => self.status.clear_in_vblank(),
             _ => (), // Do other stuff
         }
         self.cycles += 1;
@@ -64,8 +64,8 @@ impl Ppu {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
-            0x0 => self.ctrl_reg.set(val),
-            0x1 => self.mask_reg.set(val),
+            0x0 => self.control.set(val),
+            0x1 => self.mask.set(val),
             0x2 => (), // readonly
             0x3 => self.oam_set_address(val),
             0x4 => self.oam_write_data(val),
@@ -81,9 +81,9 @@ impl Ppu {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
-            0x0 => *self.ctrl_reg,
-            0x1 => *self.mask_reg,
-            0x2 => *self.status_reg,
+            0x0 => *self.control,
+            0x1 => *self.mask,
+            0x2 => *self.status,
             0x4 => self.oam_read_data(),
             0x7 => self.vram_data,
             0x3 | 0x5 | 0x6 => 0, // Write-only
@@ -116,9 +116,9 @@ impl Ppu {
     pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
         let oam = self.oam.borrow();
 
-        let regs = [*self.ctrl_reg,
-                    *self.mask_reg,
-                    *self.status_reg,
+        let regs = [*self.control,
+                    *self.mask,
+                    *self.status,
                     0, // Write-only
                     oam.read_data(),
                     0, // Write-only
