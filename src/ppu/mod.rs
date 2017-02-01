@@ -83,7 +83,13 @@ impl Ppu {
         match addr & 7 {
             0x0 => *self.control,
             0x1 => *self.mask,
-            0x2 => *self.status,
+            0x2 => {
+                let status = self.status.value();
+                self.status.clear_in_vblank(); // 0x2002 read clears vblank
+
+                // TODO: Clear PPUSCROLL/PPUADDR address latch
+                status
+            }
             0x4 => self.oam_read_data(),
             0x7 => self.vram_data,
             0x3 | 0x5 | 0x6 => 0, // Write-only
@@ -118,7 +124,7 @@ impl Ppu {
 
         let regs = [*self.control,
                     *self.mask,
-                    *self.status,
+                    self.status.value(),
                     0, // Write-only
                     oam.read_data(),
                     0, // Write-only

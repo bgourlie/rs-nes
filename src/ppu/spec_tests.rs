@@ -212,3 +212,12 @@ fn vblank_set_and_clear_cycles() {
         ppu.step();
     }
 }
+
+#[test]
+fn vblank_clear_after_status_read() {
+    let ppu = Ppu::new();
+    ppu.status.set_in_vblank();
+    let status = ppu.memory_mapped_register_read(0x2002);
+    assert_eq!(true, status & 0b10000000 > 0);
+    assert_eq!(true, ppu.status.value() & 0b10000000 == 0);
+}
