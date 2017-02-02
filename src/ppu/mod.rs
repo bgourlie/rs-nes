@@ -36,6 +36,12 @@ pub struct Ppu {
     oam: RefCell<ObjectAttributeMemory>,
 }
 
+#[derive(Eq, PartialEq)]
+pub enum StepAction {
+    None,
+    VBlankNmi,
+}
+
 impl Ppu {
     pub fn new() -> Self {
         Ppu {
@@ -50,13 +56,24 @@ impl Ppu {
         }
     }
 
-    pub fn step(&mut self) {
-        match self.cycles % CYCLES_PER_FRAME {
-            VBLANK_SET_CYCLE => self.status.set_in_vblank(),
-            VBLANK_CLEAR_CYCLE => self.status.clear_in_vblank(),
-            _ => (), // Do other stuff
-        }
+    pub fn step(&mut self) -> StepAction {
+        let result = match self.cycles % CYCLES_PER_FRAME {
+            VBLANK_SET_CYCLE => {
+                self.status.set_in_vblank();
+                if self.control.nmi_on_vblank_start() {
+                    StepAction::VBlankNmi
+                } else {
+                    StepAction::None
+                }
+            }
+            VBLANK_CLEAR_CYCLE => {
+                self.status.clear_in_vblank();
+                StepAction::None
+            }
+            _ => StepAction::None,
+        };
         self.cycles += 1;
+        result
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register

@@ -1,5 +1,5 @@
-use super::Memory;
-use ppu::Ppu;
+use super::{Memory, TickAction};
+use ppu::{Ppu, StepAction};
 use rom::NesRom;
 use seahash;
 use std::io::Write;
@@ -34,18 +34,22 @@ impl Clone for NesMemory {
 
 // Currently NROM only
 impl Memory for NesMemory {
-    fn tick(&mut self) {
+    fn tick(&mut self) -> TickAction {
+        let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
-        self.ppu.step();
-        self.ppu.step();
-        self.ppu.step();
+        for _ in 0..3 {
+            if self.ppu.step() == StepAction::VBlankNmi {
+                tick_action = TickAction::Nmi;
+            };
+        }
+        tick_action
     }
 
     fn store(&mut self, address: u16, value: u8) {
         match address {
             0x0...0x1fff => self.ram[address as usize & 0x7ff] = value,
             0x2000...0x3fff => self.ppu.memory_mapped_register_write(address, value),
-            _ => unimplemented!(),
+            _ => panic!("Unimplemented: write to 0x{:0>4X}", address),
         }
     }
 

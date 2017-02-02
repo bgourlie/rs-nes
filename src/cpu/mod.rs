@@ -94,7 +94,9 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn tick(&mut self) {
         self.cycles += 1;
-        self.memory.tick()
+        if self.memory.tick() == TickAction::Nmi {
+            self.nmi()
+        }
     }
 
     fn read_pc(&mut self) -> u8 {
