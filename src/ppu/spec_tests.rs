@@ -28,8 +28,9 @@ fn memory_mapped_register_write() {
     assert_eq!(0x4, ppu.oam_read_data());
 
     // Writes to 0x2005 write the scroll register
+    // First write to this register will write the x_pos
     ppu.memory_mapped_register_write(0x2005, 0x5);
-    assert_eq!(0x5, ppu.scroll);
+    assert_eq!(0x5, ppu.scroll.x_pos);
 
     // Writes to 0x2006 write the vram addr register
     ppu.memory_mapped_register_write(0x2006, 0x6);
@@ -56,8 +57,9 @@ fn memory_mapped_register_write() {
     ppu.oam_set_address(0x0);
     assert_eq!(0xb, ppu.oam_read_data());
 
+    // The second write against the scroll reg will write the y_pos
     ppu.memory_mapped_register_write(0x200d, 0xc);
-    assert_eq!(0xc, ppu.scroll);
+    assert_eq!(0xc, ppu.scroll.y_pos);
 
     ppu.memory_mapped_register_write(0x200e, 0xd);
     assert_eq!(0xd, ppu.vram_addr);
@@ -82,8 +84,9 @@ fn memory_mapped_register_write() {
     ppu.oam_set_address(0x0);
     assert_eq!(0x12, ppu.oam_read_data());
 
+    // Third write to this register will write the x_pos
     ppu.memory_mapped_register_write(0x3ffd, 0x13);
-    assert_eq!(0x13, ppu.scroll);
+    assert_eq!(0x13, ppu.scroll.x_pos);
 
     ppu.memory_mapped_register_write(0x3ffe, 0x14);
     assert_eq!(0x14, ppu.vram_addr);
@@ -114,7 +117,7 @@ fn memory_mapped_register_read() {
     ppu.oam_set_address(0x0);
     assert_eq!(0xf4, ppu.memory_mapped_register_read(0x2004));
 
-    ppu.scroll = 0xf5;
+    ppu.scroll.write(0xf5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x2005)); // write-only, should always read 0
 
     ppu.vram_addr = 0xf6;
@@ -143,7 +146,7 @@ fn memory_mapped_register_read() {
     ppu.oam_set_address(0x0);
     assert_eq!(0xe4, ppu.memory_mapped_register_read(0x200c));
 
-    ppu.scroll = 0xe5;
+    ppu.scroll.write(0xe5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x200d)); // write-only, should always read 0
 
     ppu.vram_addr = 0xe6;
@@ -172,7 +175,7 @@ fn memory_mapped_register_read() {
     ppu.oam_set_address(0x0);
     assert_eq!(0xd4, ppu.memory_mapped_register_read(0x3ffc));
 
-    ppu.scroll = 0xd5;
+    ppu.scroll.write(0xd5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffd)); // write-only, should always read 0
 
     ppu.vram_addr = 0xd6;
