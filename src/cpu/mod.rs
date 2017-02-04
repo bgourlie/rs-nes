@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod spec_tests;
 
-#[cfg(all(test, feature = "expensive_tests"))] // Test takes long to run
+#[cfg(test)]
 mod functional_test;
 
-#[cfg(all(test, feature = "expensive_tests"))] // Test takes forever to compile
+#[cfg(test)]
 mod length_and_timing_tests;
 
 #[cfg(feature = "debugger")]
