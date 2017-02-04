@@ -1,15 +1,17 @@
+#![allow(unused_imports, dead_code)]
+
 extern crate log;
 extern crate env_logger;
 extern crate rs_nes;
 
 use rs_nes::cpu::*;
-use rs_nes::cpu::debugger::HttpDebugger;
 use rs_nes::memory::*;
 use std::fs::File;
 use std::io::Read;
 
 const PC_START: u16 = 0x400;
 
+#[cfg(feature = "debugger")]
 fn main() {
     env_logger::init().unwrap();
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
@@ -18,10 +20,15 @@ fn main() {
     let mut mem = SimpleMemory::new();
     mem.store_many(0, &buf);
     let cpu = Cpu::new(mem, PC_START);
-    let mut debugger = HttpDebugger::new(cpu);
+    let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
     debugger.start().unwrap();
 
     loop {
         debugger.step();
     }
+}
+
+#[cfg(not(feature = "debugger"))]
+fn main() {
+    panic!("You must run this example with the debugger feature enabled.")
 }

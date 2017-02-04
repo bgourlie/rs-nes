@@ -2,7 +2,7 @@
 name = "rs_nes"
 version = "0.0.1"
 dependencies = [
- "asm6502 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "asm6502 0.1.0 (git+https://github.com/bgourlie/asm6502?branch=add-disassembler)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "chan 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -28,7 +28,7 @@ dependencies = [
 [[package]]
 name = "asm6502"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/bgourlie/asm6502?branch=add-disassembler#0f45989c644ba6da61d600104ecaa90bec8392c7"
 dependencies = [
  "nom 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -651,7 +651,7 @@ dependencies = [
 
 [metadata]
 "checksum aho-corasick 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4f660b942762979b56c9f07b4b36bb559776fbad102f05d6771e1b629e8fd5bf"
-"checksum asm6502 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "06706642e6060de32fda6b68836a476fe2b860998742c1023337ffe6a3f7c153"
+"checksum asm6502 0.1.0 (git+https://github.com/bgourlie/asm6502?branch=add-disassembler)" = "<none>"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 "checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"

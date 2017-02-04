@@ -7,7 +7,9 @@ mod functional_test;
 #[cfg(all(test, feature = "expensive_tests"))] // Test takes forever to compile
 mod length_and_timing_tests;
 
+#[cfg(feature = "debugger")]
 pub mod debugger;
+
 mod byte_utils;
 mod registers;
 mod opcodes;
