@@ -15,7 +15,6 @@ use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::ObjectAttributeMemory;
 use ppu::scroll_register::ScrollRegister;
 use ppu::status_register::StatusRegister;
-use std::cell::RefCell;
 use std::io::Write;
 
 const SCANLINES: u64 = 262;
@@ -35,7 +34,7 @@ pub struct Ppu {
     scroll: ScrollRegister,
     vram_addr: u8,
     vram_data: u8,
-    oam: RefCell<ObjectAttributeMemory>,
+    oam: ObjectAttributeMemory,
 }
 
 #[derive(Eq, PartialEq)]
@@ -54,7 +53,7 @@ impl Ppu {
             scroll: ScrollRegister::new(),
             vram_addr: 0,
             vram_data: 0,
-            oam: RefCell::new(ObjectAttributeMemory::new()),
+            oam: ObjectAttributeMemory::new(),
         }
     }
 
@@ -86,8 +85,8 @@ impl Ppu {
             0x0 => self.control.set(val),
             0x1 => self.mask.set(val),
             0x2 => (), // readonly
-            0x3 => self.oam_set_address(val),
-            0x4 => self.oam_write_data(val),
+            0x3 => self.oam.set_address(val),
+            0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
             0x6 => self.vram_addr = val,
             0x7 => self.vram_data = val,
@@ -111,43 +110,21 @@ impl Ppu {
                 // TODO: Clear PPUADDR address latch
                 status
             }
-            0x4 => self.oam_read_data(),
+            0x4 => self.oam.read_data_increment_addr(),
             0x7 => self.vram_data,
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
         }
     }
 
-    fn oam_read_data(&self) -> u8 {
-        let mut oam = self.oam.borrow_mut();
-        oam.read_data_increment_addr()
-    }
-
-    fn oam_write_data(&self, data: u8) {
-        let mut oam = self.oam.borrow_mut();
-        oam.write_data(data);
-    }
-
-    fn oam_set_address(&self, address: u8) {
-        let mut oam = self.oam.borrow_mut();
-        oam.set_address(address);
-    }
-
-    #[cfg(test)]
-    fn oam_address(&self) -> u8 {
-        let oam = self.oam.borrow();
-        oam.address()
-    }
-
     /// Dump register memory
     pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
-        let oam = self.oam.borrow();
 
         let regs = [*self.control,
                     *self.mask,
                     self.status.value(),
                     0, // Write-only
-                    oam.read_data(),
+                    self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
                     self.vram_data];

@@ -96,7 +96,7 @@ fn oam_write_and_read() {
     oam.set_address(0x1);
     assert_eq!(0xb, oam.read_data());
     assert_eq!(0xb, oam.read_data());
-    assert_eq!(0x1, oam.address)
+    assert_eq!(0x1, oam.address.get())
 }
 
 #[test]
@@ -110,11 +110,11 @@ fn oam_write_and_read_increment() {
     let mut oam = oam_fixture(&mem);
     oam.set_address(0xfe);
     assert_eq!(0xfe, oam.read_data_increment_addr());
-    assert_eq!(0xff, oam.address);
+    assert_eq!(0xff, oam.address.get());
     assert_eq!(0xff, oam.read_data_increment_addr());
-    assert_eq!(0x0, oam.address);
+    assert_eq!(0x0, oam.address.get());
     assert_eq!(0x0, oam.read_data_increment_addr());
-    assert_eq!(0x1, oam.address)
+    assert_eq!(0x1, oam.address.get())
 }
 
 fn oam_fixture(initial_values: &[u8]) -> ObjectAttributeMemory {
@@ -125,6 +125,6 @@ fn oam_fixture(initial_values: &[u8]) -> ObjectAttributeMemory {
 
     ObjectAttributeMemory {
         memory: mem,
-        address: 0,
+        address: Cell::new(0),
     }
 }

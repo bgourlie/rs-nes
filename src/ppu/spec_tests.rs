@@ -18,14 +18,14 @@ fn memory_mapped_register_write() {
 
     // Writes to 0x2003 write the oam addr register
     ppu.memory_mapped_register_write(0x2003, 0x3);
-    assert_eq!(0x3, ppu.oam_address());
+    assert_eq!(0x3, ppu.oam.get_address());
 
     // Writes to 0x2004 write the oam data register
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_write(0x2004, 0x4);
-    ppu.oam_set_address(0x0);
-    assert_eq!(0x4, ppu.oam_read_data());
+    ppu.oam.set_address(0x0);
+    assert_eq!(0x4, ppu.oam.read_data());
 
     // Writes to 0x2005 write the scroll register
     // First write to this register will write the x_pos
@@ -49,13 +49,13 @@ fn memory_mapped_register_write() {
     assert_eq!(0x9, *ppu.mask);
 
     ppu.memory_mapped_register_write(0x200b, 0xa);
-    assert_eq!(0xa, ppu.oam_address());
+    assert_eq!(0xa, ppu.oam.get_address());
 
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_write(0x200c, 0xb);
-    ppu.oam_set_address(0x0);
-    assert_eq!(0xb, ppu.oam_read_data());
+    ppu.oam.set_address(0x0);
+    assert_eq!(0xb, ppu.oam.read_data());
 
     // The second write against the scroll reg will write the y_pos
     ppu.memory_mapped_register_write(0x200d, 0xc);
@@ -76,13 +76,13 @@ fn memory_mapped_register_write() {
     assert_eq!(0x10, *ppu.mask);
 
     ppu.memory_mapped_register_write(0x3ffb, 0x11);
-    assert_eq!(0x11, ppu.oam_address());
+    assert_eq!(0x11, ppu.oam.get_address());
 
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_write(0x3ffc, 0x12);
-    ppu.oam_set_address(0x0);
-    assert_eq!(0x12, ppu.oam_read_data());
+    ppu.oam.set_address(0x0);
+    assert_eq!(0x12, ppu.oam.read_data());
 
     // Third write to this register will write the x_pos
     ppu.memory_mapped_register_write(0x3ffd, 0x13);
@@ -108,13 +108,13 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xf2);
     assert_eq!(0xf2, ppu.memory_mapped_register_read(0x2002));
 
-    ppu.oam_write_data(0xf3);
+    ppu.oam.write_data(0xf3);
     assert_eq!(0, ppu.memory_mapped_register_read(0x2003)); // write-only, should always read 0
 
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
-    ppu.oam_write_data(0xf4);
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
+    ppu.oam.write_data(0xf4);
+    ppu.oam.set_address(0x0);
     assert_eq!(0xf4, ppu.memory_mapped_register_read(0x2004));
 
     ppu.scroll.write(0xf5);
@@ -137,13 +137,13 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xe2);
     assert_eq!(0xe2, ppu.memory_mapped_register_read(0x200a));
 
-    ppu.oam_set_address(0xe3);
+    ppu.oam.set_address(0xe3);
     assert_eq!(0, ppu.memory_mapped_register_read(0x200b)); // write-only, should always read 0
 
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
-    ppu.oam_write_data(0xe4);
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
+    ppu.oam.write_data(0xe4);
+    ppu.oam.set_address(0x0);
     assert_eq!(0xe4, ppu.memory_mapped_register_read(0x200c));
 
     ppu.scroll.write(0xe5);
@@ -166,13 +166,13 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xd2);
     assert_eq!(0xd2, ppu.memory_mapped_register_read(0x3ffa));
 
-    ppu.oam_set_address(0xd3);
+    ppu.oam.set_address(0xd3);
     assert_eq!(0, ppu.memory_mapped_register_read(0x3ffb)); // write-only, should always read 0
 
     // We need to reset the oam address before writing and reading since it increments
-    ppu.oam_set_address(0x0);
-    ppu.oam_write_data(0xd4);
-    ppu.oam_set_address(0x0);
+    ppu.oam.set_address(0x0);
+    ppu.oam.write_data(0xd4);
+    ppu.oam.set_address(0x0);
     assert_eq!(0xd4, ppu.memory_mapped_register_read(0x3ffc));
 
     ppu.scroll.write(0xd5);
