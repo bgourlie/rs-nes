@@ -1,5 +1,6 @@
 use super::breakpoint_map::BreakpointMap;
-use disassembler::Instruction;
+use asm6502::Instruction;
+use cpu::registers::Registers;
 use iron::{headers, status};
 use iron::Handler;
 use iron::modifier::Modifier;
@@ -11,6 +12,19 @@ use serde_json;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::Thread;
+
+impl Serialize for Registers {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("Registers", 6)?;
+        state.serialize_field("acc", &self.acc)?;
+        state.serialize_field("pc", &self.pc)?;
+        state.serialize_field("sp", &self.sp)?;
+        state.serialize_field("status", &self.status)?;
+        state.serialize_field("x", &self.x)?;
+        state.serialize_field("y", &self.y)?;
+        state.end()
+    }
+}
 
 #[derive(Serialize)]
 pub struct ToggleBreakpointResponse {
@@ -73,29 +87,17 @@ impl Handler for InstructionHandler {
     }
 }
 
+#[derive(Serialize)]
 struct ContinueResponse {
     continued: bool,
 }
 
-impl Serialize for ContinueResponse {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("ContinueResponse", 1)?;
-        state.serialize_field("continued", &self.continued)?;
-        state.end()
-    }
-}
 
+#[derive(Serialize)]
 pub struct StepResponse {
     stepped: bool,
 }
 
-impl Serialize for StepResponse {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("StepResponse", 1)?;
-        state.serialize_field("stepped", &self.stepped)?;
-        state.end()
-    }
-}
 
 pub struct StepHandler {
     cpu_thread_handle: Thread,
