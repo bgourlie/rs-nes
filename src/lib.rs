@@ -36,9 +36,6 @@ extern crate seahash;
 #[cfg(any(test, feature = "debugger"))]
 extern crate asm6502;
 
-#[cfg(test)]
-extern crate rand;
-
 pub mod rom;
 pub mod memory;
 pub mod cpu;

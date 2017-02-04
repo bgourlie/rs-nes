@@ -25,7 +25,5 @@ seahash = {version = "*", optional = true}
 chan = {version = "^0.1.18", optional = true}
 asm6502 = { version = "^0.1.0", git = "https://github.com/bgourlie/asm6502", branch = "add-disassembler", optional = true}
 
-
 [dev-dependencies]
 asm6502 = { version = "^0.1.0", git = "https://github.com/bgourlie/asm6502", branch = "add-disassembler"}
-rand = { version = "*"}
