@@ -224,3 +224,21 @@ fn vblank_clear_after_status_read() {
     assert_eq!(true, status & 0b10000000 > 0);
     assert_eq!(true, ppu.status.value() & 0b10000000 == 0);
 }
+
+#[test]
+fn oam_read_non_blanking_increments_addr() {
+    let mut ppu = Ppu::new();
+    ppu.status.clear_in_vblank();
+    ppu.oam.set_address(0x0);
+    ppu.memory_mapped_register_read(0x2004);
+    assert_eq!(0x1, ppu.oam.get_address());
+}
+
+#[test]
+fn oam_read_blanking_doesnt_increments_addr() {
+    let mut ppu = Ppu::new();
+    ppu.status.set_in_vblank();
+    ppu.oam.set_address(0x0);
+    ppu.memory_mapped_register_read(0x2004);
+    assert_eq!(0x0, ppu.oam.get_address());
+}

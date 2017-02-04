@@ -110,7 +110,14 @@ impl Ppu {
                 // TODO: Clear PPUADDR address latch
                 status
             }
-            0x4 => self.oam.read_data_increment_addr(),
+            0x4 => {
+                if self.status.in_vblank() {
+                    // TODO: Read without increment during forced blanking
+                    self.oam.read_data()
+                } else {
+                    self.oam.read_data_increment_addr()
+                }
+            }
             0x7 => self.vram_data,
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
