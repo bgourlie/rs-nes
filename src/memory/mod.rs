@@ -15,8 +15,10 @@ pub trait Memory: Clone {
     }
     fn store(&mut self, u16, u8);
     fn load(&self, u16) -> u8;
-    fn hash(&self) -> u64;
     fn dump<T: Write>(&self, writer: &mut T);
+    fn hash(&self) -> u64 {
+        0
+    }
 }
 
 #[derive(PartialEq, Eq)]

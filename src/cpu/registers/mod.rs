@@ -15,7 +15,7 @@ const FL_UNUSED: u8 = 0b00100000;
 const FL_OVERFLOW: u8 = 0b01000000;
 const FL_SIGN: u8 = 0b10000000;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone)]
 pub struct Registers {
     pub pc: u16, // Program Counter
     pub sp: u8, // Stack Pointer

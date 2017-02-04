@@ -3,13 +3,13 @@ mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
 
+use asm6502::{Instruction, InstructionDecoder};
 use chan::{self, Receiver, Sender};
 use cpu::Cpu;
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
-use disassembler::{Instruction, InstructionDecoder};
 use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;

@@ -1,6 +1,8 @@
 use super::{Memory, TickAction};
 use ppu::{Ppu, StepAction};
 use rom::NesRom;
+
+#[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
 
@@ -96,6 +98,7 @@ impl Memory for NesMemory {
 
     }
 
+    #[cfg(feature = "debugger")]
     fn hash(&self) -> u64 {
         // Hashing just the ram will suffice for now...
         seahash::hash(&self.ram)

@@ -1,4 +1,6 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
+
+#[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
 
@@ -45,6 +47,7 @@ impl Memory for SimpleMemory {
         writer.write_all(&self.addr).unwrap();
     }
 
+    #[cfg(feature = "debugger")]
     fn hash(&self) -> u64 {
         seahash::hash(&self.addr)
     }
