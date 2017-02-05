@@ -9,12 +9,14 @@ mod mask_register;
 mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
+mod vram;
 
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::ObjectAttributeMemory;
 use ppu::scroll_register::ScrollRegister;
 use ppu::status_register::StatusRegister;
+use ppu::vram::Vram;
 use std::io::Write;
 
 const SCANLINES: u64 = 262;
@@ -32,8 +34,7 @@ pub struct Ppu {
     mask: MaskRegister,
     status: StatusRegister,
     scroll: ScrollRegister,
-    vram_addr: u8,
-    vram_data: u8,
+    vram: Vram,
     oam: ObjectAttributeMemory,
 }
 
@@ -51,8 +52,7 @@ impl Ppu {
             mask: MaskRegister::new(0),
             status: StatusRegister::new(0),
             scroll: ScrollRegister::new(),
-            vram_addr: 0,
-            vram_data: 0,
+            vram: Vram::new(),
             oam: ObjectAttributeMemory::new(),
         }
     }
@@ -88,8 +88,8 @@ impl Ppu {
             0x3 => self.oam.set_address(val),
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
-            0x6 => self.vram_addr = val,
-            0x7 => self.vram_data = val,
+            0x6 => self.vram.write_address(val),
+            0x7 => self.vram.write_data(val),
             _ => panic!("impossible"),
         }
     }
@@ -103,22 +103,19 @@ impl Ppu {
             0x1 => *self.mask,
             0x2 => {
                 let status = self.status.value();
-                // 0x2002 read clears vblank and the address latch used by scroll/vram_addr
                 self.status.clear_in_vblank();
                 self.scroll.clear_latch();
-
-                // TODO: Clear PPUADDR address latch
+                self.vram.clear_latch();
                 status
             }
             0x4 => {
-                if self.status.in_vblank() {
-                    // TODO: Read without increment during forced blanking
-                    self.oam.read_data()
+                if self.status.in_vblank() || self.mask.rendering_disabled() {
+                    self.oam.read_data() // No OAM addr increment during vblank or forced blank
                 } else {
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram_data,
+            0x7 => self.vram.read_data_increment_addr(),
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
         }
@@ -134,7 +131,7 @@ impl Ppu {
                     self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
-                    self.vram_data];
+                    self.vram.read_data()];
 
         writer.write(&regs).unwrap()
     }

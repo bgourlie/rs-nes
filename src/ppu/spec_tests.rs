@@ -28,17 +28,27 @@ fn memory_mapped_register_write() {
     assert_eq!(0x4, ppu.oam.read_data());
 
     // Writes to 0x2005 write the scroll register
-    // First write to this register will write the x_pos
+    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x2005, 0x5);
     assert_eq!(0x5, ppu.scroll.x_pos);
+    ppu.memory_mapped_register_write(0x2005, 0x6);
+    assert_eq!(0x6, ppu.scroll.y_pos);
 
     // Writes to 0x2006 write the vram addr register
-    ppu.memory_mapped_register_write(0x2006, 0x6);
-    assert_eq!(0x6, ppu.vram_addr);
+    ppu.vram.clear_latch();
+    ppu.memory_mapped_register_write(0x2006, 0x20);
+    ppu.memory_mapped_register_write(0x2006, 0x03);
+    assert_eq!(0x2003, ppu.vram.address());
 
     // Writes to 0x2007 write the vram data register
+    // HERE
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
     ppu.memory_mapped_register_write(0x2007, 0x7);
-    assert_eq!(0x7, ppu.vram_data);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    assert_eq!(0x7, ppu.vram.read_data());
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
@@ -57,15 +67,24 @@ fn memory_mapped_register_write() {
     ppu.oam.set_address(0x0);
     assert_eq!(0xb, ppu.oam.read_data());
 
-    // The second write against the scroll reg will write the y_pos
+    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x200d, 0xc);
-    assert_eq!(0xc, ppu.scroll.y_pos);
+    assert_eq!(0xc, ppu.scroll.x_pos);
+    ppu.memory_mapped_register_write(0x200d, 0xd);
+    assert_eq!(0xd, ppu.scroll.y_pos);
 
-    ppu.memory_mapped_register_write(0x200e, 0xd);
-    assert_eq!(0xd, ppu.vram_addr);
+    ppu.vram.clear_latch();
+    ppu.memory_mapped_register_write(0x200e, 0x20);
+    ppu.memory_mapped_register_write(0x200e, 0x01);
+    assert_eq!(0x2001, ppu.vram.address());
 
-    ppu.memory_mapped_register_write(0x200f, 0xe);
-    assert_eq!(0xe, ppu.vram_data);
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    ppu.memory_mapped_register_write(0x200f, 0x14);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    assert_eq!(0x14, ppu.vram.read_data());
 
     // Test mirroring on the tail end of the valid address space
 
@@ -84,15 +103,24 @@ fn memory_mapped_register_write() {
     ppu.oam.set_address(0x0);
     assert_eq!(0x12, ppu.oam.read_data());
 
-    // Third write to this register will write the x_pos
+    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x3ffd, 0x13);
     assert_eq!(0x13, ppu.scroll.x_pos);
+    ppu.memory_mapped_register_write(0x3ffd, 0x14);
+    assert_eq!(0x14, ppu.scroll.y_pos);
 
-    ppu.memory_mapped_register_write(0x3ffe, 0x14);
-    assert_eq!(0x14, ppu.vram_addr);
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    assert_eq!(0x2001, ppu.vram.address());
 
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
     ppu.memory_mapped_register_write(0x3fff, 0x15);
-    assert_eq!(0x15, ppu.vram_data);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    assert_eq!(0x15, ppu.vram.read_data());
 }
 
 #[test]
@@ -120,10 +148,15 @@ fn memory_mapped_register_read() {
     ppu.scroll.write(0xf5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x2005)); // write-only, should always read 0
 
-    ppu.vram_addr = 0xf6;
+    ppu.vram.write_address(0xf6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x2006)); // write-only, should always read 0
 
-    ppu.vram_data = 0xf7;
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x07);
+    ppu.vram.write_data(0xf7);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x07);
     assert_eq!(0xf7, ppu.memory_mapped_register_read(0x2007));
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
@@ -149,10 +182,15 @@ fn memory_mapped_register_read() {
     ppu.scroll.write(0xe5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x200d)); // write-only, should always read 0
 
-    ppu.vram_addr = 0xe6;
+    ppu.vram.write_address(0xe6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x200e)); // write-only, should always read 0
 
-    ppu.vram_data = 0xe7;
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x0f);
+    ppu.vram.write_data(0xe7);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x0f);
     assert_eq!(0xe7, ppu.memory_mapped_register_read(0x200f));
 
     // Test mirroring on the tail end of the valid address space
@@ -178,10 +216,15 @@ fn memory_mapped_register_read() {
     ppu.scroll.write(0xd5);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffd)); // write-only, should always read 0
 
-    ppu.vram_addr = 0xd6;
+    ppu.vram.write_address(0xd6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffe)); // write-only, should always read 0
 
-    ppu.vram_data = 0xd7;
+    ppu.vram.clear_latch();
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
+    ppu.vram.write_data(0xd7);
+    ppu.vram.write_address(0x20);
+    ppu.vram.write_address(0x01);
     assert_eq!(0xd7, ppu.memory_mapped_register_read(0x3fff));
 }
 
@@ -229,15 +272,27 @@ fn vblank_clear_after_status_read() {
 fn oam_read_non_blanking_increments_addr() {
     let mut ppu = Ppu::new();
     ppu.status.clear_in_vblank();
+    ppu.mask.set(1);
     ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(0x1, ppu.oam.get_address());
 }
 
 #[test]
-fn oam_read_blanking_doesnt_increments_addr() {
+fn oam_read_v_blanking_doesnt_increments_addr() {
     let mut ppu = Ppu::new();
     ppu.status.set_in_vblank();
+    ppu.mask.set(1);
+    ppu.oam.set_address(0x0);
+    ppu.memory_mapped_register_read(0x2004);
+    assert_eq!(0x0, ppu.oam.get_address());
+}
+
+#[test]
+fn oam_read_forced_blanking_doesnt_increments_addr() {
+    let mut ppu = Ppu::new();
+    ppu.status.clear_in_vblank();
+    ppu.mask.set(0);
     ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(0x0, ppu.oam.get_address());
