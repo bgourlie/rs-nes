@@ -154,7 +154,7 @@ fn memory_mapped_register_read() {
     ppu.vram.clear_latch();
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x07);
-    ppu.vram.write_data(0xf7);
+    ppu.vram.write_data_increment_address(0xf7);
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x07);
     assert_eq!(0xf7, ppu.memory_mapped_register_read(0x2007));
@@ -188,7 +188,7 @@ fn memory_mapped_register_read() {
     ppu.vram.clear_latch();
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x0f);
-    ppu.vram.write_data(0xe7);
+    ppu.vram.write_data_increment_address(0xe7);
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x0f);
     assert_eq!(0xe7, ppu.memory_mapped_register_read(0x200f));
@@ -222,7 +222,7 @@ fn memory_mapped_register_read() {
     ppu.vram.clear_latch();
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x01);
-    ppu.vram.write_data(0xd7);
+    ppu.vram.write_data_increment_address(0xd7);
     ppu.vram.write_address(0x20);
     ppu.vram.write_address(0x01);
     assert_eq!(0xd7, ppu.memory_mapped_register_read(0x3fff));

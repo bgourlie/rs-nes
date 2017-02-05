@@ -89,7 +89,7 @@ impl Ppu {
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
             0x6 => self.vram.write_address(val),
-            0x7 => self.vram.write_data(val),
+            0x7 => self.vram.write_data_increment_address(val),
             _ => panic!("impossible"),
         }
     }
@@ -115,7 +115,7 @@ impl Ppu {
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram.read_data_increment_addr(),
+            0x7 => self.vram.read_data_increment_address(),
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
         }

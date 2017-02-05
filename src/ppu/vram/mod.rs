@@ -1,6 +1,9 @@
 use std::cell::Cell;
 
-#[derive(Copy, Clone)]
+#[cfg(test)]
+mod spec_tests;
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum LatchState {
     WriteHighByte,
     WriteLowByte,
@@ -56,7 +59,7 @@ impl Vram {
         }
     }
 
-    pub fn read_data_increment_addr(&self) -> u8 {
+    pub fn read_data_increment_address(&self) -> u8 {
         let val = self.read_data();
         self.address.set(self.address.get() + 1);
         val
@@ -76,7 +79,7 @@ impl Vram {
         val
     }
 
-    pub fn write_data(&mut self, val: u8) {
+    pub fn write_data_increment_address(&mut self, val: u8) {
         let addr = self.address.get();
 
         if addr < 0x2000 {
