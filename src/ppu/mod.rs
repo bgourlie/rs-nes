@@ -16,7 +16,7 @@ use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::ObjectAttributeMemory;
 use ppu::scroll_register::ScrollRegister;
 use ppu::status_register::StatusRegister;
-use ppu::vram::Vram;
+use ppu::vram::{VramBase, Vram};
 use std::io::Write;
 
 const SCANLINES: u64 = 262;
@@ -27,14 +27,16 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
+pub type Ppu = PpuBase<VramBase>;
+
 #[derive(Clone)]
-pub struct Ppu {
+pub struct PpuBase<V: Vram> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
     scroll: ScrollRegister,
-    vram: Vram,
+    vram: V,
     oam: ObjectAttributeMemory,
 }
 
@@ -44,15 +46,15 @@ pub enum StepAction {
     VBlankNmi,
 }
 
-impl Ppu {
+impl<V: Vram> PpuBase<V> {
     pub fn new() -> Self {
-        Ppu {
+        PpuBase {
             cycles: 0,
             control: ControlRegister::new(0),
             mask: MaskRegister::new(0),
             status: StatusRegister::new(0),
             scroll: ScrollRegister::new(),
-            vram: Vram::new(),
+            vram: V::default(),
             oam: ObjectAttributeMemory::new(),
         }
     }

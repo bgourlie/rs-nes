@@ -1,12 +1,10 @@
-use super::Ppu;
+use std::cell::Cell;
+use super::*;
 use super::StatusRegister;
-
-// TODO: Tests that require interaction with OAM registers have subtle non-obvious interactions.
-// This doesn't make them suitable for a spec test, is there any way to make this nicer?
 
 #[test]
 fn memory_mapped_register_write() {
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
 
     // Writes to 0x2000 write the control register
     ppu.memory_mapped_register_write(0x2000, 0x1);
@@ -35,20 +33,12 @@ fn memory_mapped_register_write() {
     assert_eq!(0x6, ppu.scroll.y_pos);
 
     // Writes to 0x2006 write the vram addr register
-    ppu.vram.clear_latch();
     ppu.memory_mapped_register_write(0x2006, 0x20);
-    ppu.memory_mapped_register_write(0x2006, 0x03);
-    assert_eq!(0x2003, ppu.vram.address());
+    assert_eq!(0x20, ppu.vram.written_address.get());
 
     // Writes to 0x2007 write the vram data register
-    // HERE
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
     ppu.memory_mapped_register_write(0x2007, 0x7);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    assert_eq!(0x7, ppu.vram.read_data());
+    assert_eq!(0x7, ppu.vram.written_data);
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
@@ -73,18 +63,11 @@ fn memory_mapped_register_write() {
     ppu.memory_mapped_register_write(0x200d, 0xd);
     assert_eq!(0xd, ppu.scroll.y_pos);
 
-    ppu.vram.clear_latch();
-    ppu.memory_mapped_register_write(0x200e, 0x20);
     ppu.memory_mapped_register_write(0x200e, 0x01);
-    assert_eq!(0x2001, ppu.vram.address());
+    assert_eq!(0x01, ppu.vram.written_address.get());
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
     ppu.memory_mapped_register_write(0x200f, 0x14);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    assert_eq!(0x14, ppu.vram.read_data());
+    assert_eq!(0x14, ppu.vram.written_data);
 
     // Test mirroring on the tail end of the valid address space
 
@@ -109,23 +92,16 @@ fn memory_mapped_register_write() {
     ppu.memory_mapped_register_write(0x3ffd, 0x14);
     assert_eq!(0x14, ppu.scroll.y_pos);
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    assert_eq!(0x2001, ppu.vram.address());
+    ppu.vram.write_address(0x02);
+    assert_eq!(0x02, ppu.vram.written_address.get());
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
     ppu.memory_mapped_register_write(0x3fff, 0x15);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    assert_eq!(0x15, ppu.vram.read_data());
+    assert_eq!(0x15, ppu.vram.written_data);
 }
 
 #[test]
 fn memory_mapped_register_read() {
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
 
     ppu.control.set(0xf0);
     assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
@@ -151,13 +127,7 @@ fn memory_mapped_register_read() {
     ppu.vram.write_address(0xf6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x2006)); // write-only, should always read 0
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x07);
-    ppu.vram.write_data_increment_address(0xf7);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x07);
-    assert_eq!(0xf7, ppu.memory_mapped_register_read(0x2007));
+    assert_eq!(MockVram::read_value(), ppu.memory_mapped_register_read(0x2007));
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
@@ -185,13 +155,7 @@ fn memory_mapped_register_read() {
     ppu.vram.write_address(0xe6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x200e)); // write-only, should always read 0
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x0f);
-    ppu.vram.write_data_increment_address(0xe7);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x0f);
-    assert_eq!(0xe7, ppu.memory_mapped_register_read(0x200f));
+    assert_eq!(MockVram::read_value(), ppu.memory_mapped_register_read(0x200f));
 
     // Test mirroring on the tail end of the valid address space
 
@@ -219,13 +183,7 @@ fn memory_mapped_register_read() {
     ppu.vram.write_address(0xd6);
     assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffe)); // write-only, should always read 0
 
-    ppu.vram.clear_latch();
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    ppu.vram.write_data_increment_address(0xd7);
-    ppu.vram.write_address(0x20);
-    ppu.vram.write_address(0x01);
-    assert_eq!(0xd7, ppu.memory_mapped_register_read(0x3fff));
+    assert_eq!(MockVram::read_value(), ppu.memory_mapped_register_read(0x3fff));
 }
 
 #[test]
@@ -245,7 +203,7 @@ fn vblank_set_and_clear_cycles() {
     const CLEAR_VBLANK_CYCLE: u64 = super::CYCLES_PER_SCANLINE * super::LAST_SCANLINE + 1;
     const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
 
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
 
     // Render 100 frames and assert expected VBLANK behavior
     while ppu.cycles < super::CYCLES_PER_FRAME * 100 {
@@ -261,7 +219,7 @@ fn vblank_set_and_clear_cycles() {
 
 #[test]
 fn vblank_clear_after_status_read() {
-    let ppu = Ppu::new();
+    let ppu = new_fixture();
     ppu.status.set_in_vblank();
     let status = ppu.memory_mapped_register_read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
@@ -270,7 +228,7 @@ fn vblank_clear_after_status_read() {
 
 #[test]
 fn oam_read_non_blanking_increments_addr() {
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
     ppu.status.clear_in_vblank();
     ppu.mask.set(1);
     ppu.oam.set_address(0x0);
@@ -280,7 +238,7 @@ fn oam_read_non_blanking_increments_addr() {
 
 #[test]
 fn oam_read_v_blanking_doesnt_increments_addr() {
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
     ppu.status.set_in_vblank();
     ppu.mask.set(1);
     ppu.oam.set_address(0x0);
@@ -290,10 +248,55 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
 
 #[test]
 fn oam_read_forced_blanking_doesnt_increments_addr() {
-    let mut ppu = Ppu::new();
+    let mut ppu = new_fixture();
     ppu.status.clear_in_vblank();
     ppu.mask.set(0);
     ppu.oam.set_address(0x0);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(0x0, ppu.oam.get_address());
+}
+
+#[derive(Clone, Default)]
+pub struct MockVram {
+    written_address: Cell<u8>,
+    written_data: u8
+}
+
+impl MockVram {
+    fn read_value() -> u8 {
+        0xff
+    }
+}
+
+impl Vram for MockVram {
+    fn write_address(&self, val: u8) {
+        self.written_address.set(val)
+    }
+
+    fn read_data_increment_address(&self) -> u8 {
+        Self::read_value()
+    }
+
+    fn read_data(&self) -> u8 {
+        Self::read_value()
+    }
+
+    fn write_data_increment_address(&mut self, val: u8) {
+        self.written_data = val;
+    }
+
+    fn clear_latch(&self) {
+    }
+}
+
+pub fn new_fixture() -> PpuBase<MockVram> {
+    PpuBase {
+        cycles: 0,
+        control: ControlRegister::new(0),
+        mask: MaskRegister::new(0),
+        status: StatusRegister::new(0),
+        scroll: ScrollRegister::new(),
+        vram: MockVram::default(),
+        oam: ObjectAttributeMemory::new(),
+    }
 }

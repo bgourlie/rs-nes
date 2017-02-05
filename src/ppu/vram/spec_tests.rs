@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn write_address() {
-    let vram = Vram::new();
+    let vram = VramBase::default();
     assert_eq!(0, vram.address.get());
     assert_eq!(0, vram.address.get());
 
@@ -21,7 +21,7 @@ fn write_address() {
 
 #[test]
 fn clear_latch() {
-    let vram = Vram::new();
+    let vram = VramBase::default();
     assert_eq!(0x0, vram.address.get());
 
     vram.write_address(0x10);
@@ -34,7 +34,7 @@ fn clear_latch() {
 
 #[test]
 fn internal_memory_mapping_read() {
-    let mut vram = Vram::new();
+    let mut vram = VramBase::default();
     vram.pattern_tables = [1; 0x2000];
     vram.name_tables = [2; 0x1000];
     vram.palette = [3; 0x20];
@@ -54,7 +54,7 @@ fn internal_memory_mapping_read() {
 
 #[test]
 fn internal_memory_mapping_write() {
-    let mut vram = Vram::new();
+    let mut vram = VramBase::default();
 
     for _ in 0..0x2000 {
         vram.write_data_increment_address(1)

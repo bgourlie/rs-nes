@@ -9,7 +9,21 @@ enum LatchState {
     WriteLowByte,
 }
 
-pub struct Vram {
+impl Default for LatchState {
+    fn default() -> Self {
+        LatchState::WriteHighByte
+    }
+}
+
+pub trait Vram: Clone + Default {
+    fn write_address(&self, val: u8);
+    fn read_data_increment_address(&self) -> u8;
+    fn read_data(&self) -> u8;
+    fn write_data_increment_address(&mut self, val: u8);
+    fn clear_latch(&self);
+}
+
+pub struct VramBase {
     address: Cell<u16>,
     latch_state: Cell<LatchState>,
     pattern_tables: [u8; 0x2000], // TODO: mapper
@@ -17,13 +31,25 @@ pub struct Vram {
     palette: [u8; 0x20],
 }
 
-impl Clone for Vram {
+impl Default for VramBase {
+    fn default() -> Self {
+        VramBase {
+            address: Cell::new(0),
+            latch_state: Cell::new(LatchState::default()),
+            pattern_tables: [0; 0x2000],
+            name_tables: [0; 0x1000],
+            palette: [0; 0x20],
+        }
+    }
+}
+
+impl Clone for VramBase {
     fn clone(&self) -> Self {
         let pattern_tables = self.pattern_tables;
         let name_tables = self.name_tables;
         let palette = self.palette;
 
-        Vram {
+        VramBase {
             address: self.address.clone(),
             latch_state: self.latch_state.clone(),
             pattern_tables: pattern_tables,
@@ -33,17 +59,28 @@ impl Clone for Vram {
     }
 }
 
-impl Vram {
-    pub fn new() -> Self {
-        Vram {
-            address: Cell::new(0),
-            latch_state: Cell::new(LatchState::WriteHighByte),
-            pattern_tables: [0; 0x2000],
-            name_tables: [0; 0x1000],
-            palette: [0; 0x20],
-        }
+impl Vram for VramBase {
+    fn write_address(&self, val: u8) {
+        self.write_address(val)
     }
 
+    fn read_data_increment_address(&self) -> u8 {
+        self.read_data_increment_address()
+    }
+
+    fn read_data(&self) -> u8 {
+        self.read_data()
+    }
+
+    fn write_data_increment_address(&mut self, val: u8) {
+        self.write_data_increment_address(val)
+    }
+    fn clear_latch(&self) {
+        self.clear_latch()
+    }
+}
+
+impl VramBase {
     pub fn write_address(&self, val: u8) {
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
