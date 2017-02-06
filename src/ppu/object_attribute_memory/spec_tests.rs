@@ -93,7 +93,7 @@ fn sprite_attributes_vertical_flip() {
 #[test]
 fn oam_write_and_read() {
     let mut oam = oam_fixture(&[0xa, 0xb, 0xc, 0xd]);
-    oam.set_address(0x1);
+    oam.write_address(0x1);
     assert_eq!(0xb, oam.read_data());
     assert_eq!(0xb, oam.read_data());
     assert_eq!(0x1, oam.address.get())
@@ -108,7 +108,7 @@ fn oam_write_and_read_increment() {
     }
 
     let mut oam = oam_fixture(&mem);
-    oam.set_address(0xfe);
+    oam.write_address(0xfe);
     assert_eq!(0xfe, oam.read_data_increment_addr());
     assert_eq!(0xff, oam.address.get());
     assert_eq!(0xff, oam.read_data_increment_addr());
@@ -117,13 +117,13 @@ fn oam_write_and_read_increment() {
     assert_eq!(0x1, oam.address.get())
 }
 
-fn oam_fixture(initial_values: &[u8]) -> ObjectAttributeMemory {
+fn oam_fixture(initial_values: &[u8]) -> ObjectAttributeMemoryBase {
     let mut mem = [0_u8; 0x100];
     for (i, byte) in initial_values.iter().enumerate() {
         mem[i] = *byte;
     }
 
-    ObjectAttributeMemory {
+    ObjectAttributeMemoryBase {
         memory: mem,
         address: Cell::new(0),
     }
