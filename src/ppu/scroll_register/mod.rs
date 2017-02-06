@@ -1,6 +1,5 @@
 use std::cell::Cell;
 
-
 // TODO: Emulate Scroll vertical position quirk
 // Horizontal offsets range from 0 to 255. "Normal" vertical offsets range from 0 to 239, while
 // values of 240 to 255 are treated as -16 through -1 in a way, but tile data is incorrectly fetched
@@ -9,28 +8,31 @@ use std::cell::Cell;
 #[cfg(test)]
 mod spec_tests;
 
+pub trait ScrollRegister: Clone + Default {
+    fn write(&mut self, pos: u8);
+    fn clear_latch(&self);
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum LatchState {
     WriteX,
     WriteY,
 }
 
-#[derive(Clone)]
-pub struct ScrollRegister {
+impl Default for LatchState {
+    fn default() -> Self {
+        LatchState::WriteX
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct ScrollRegisterBase {
     latch_state: Cell<LatchState>,
     pub x_pos: u8,
     pub y_pos: u8,
 }
 
-impl ScrollRegister {
-    pub fn new() -> Self {
-        ScrollRegister {
-            latch_state: Cell::new(LatchState::WriteX),
-            x_pos: 0,
-            y_pos: 0,
-        }
-    }
-
+impl ScrollRegisterBase {
     pub fn write(&mut self, pos: u8) {
         match self.latch_state.get() {
             LatchState::WriteX => {
@@ -46,5 +48,15 @@ impl ScrollRegister {
 
     pub fn clear_latch(&self) {
         self.latch_state.set(LatchState::WriteX)
+    }
+}
+
+impl ScrollRegister for ScrollRegisterBase {
+    fn write(&mut self, pos: u8) {
+        self.write(pos)
+    }
+
+    fn clear_latch(&self) {
+        self.clear_latch()
     }
 }

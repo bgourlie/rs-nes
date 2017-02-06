@@ -21,11 +21,8 @@ fn memory_mapped_register_write() {
     assert_eq!(0x4, ppu.oam.mock_data_value());
 
     // Writes to 0x2005 write the scroll register
-    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x2005, 0x5);
-    assert_eq!(0x5, ppu.scroll.x_pos);
-    ppu.memory_mapped_register_write(0x2005, 0x6);
-    assert_eq!(0x6, ppu.scroll.y_pos);
+    assert_eq!(0x5, ppu.scroll.mock_value());
 
     // Writes to 0x2006 write the vram addr register
     ppu.memory_mapped_register_write(0x2006, 0x20);
@@ -49,11 +46,8 @@ fn memory_mapped_register_write() {
     ppu.memory_mapped_register_write(0x200c, 0xb);
     assert_eq!(0xb, ppu.oam.mock_data_value());
 
-    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x200d, 0xc);
-    assert_eq!(0xc, ppu.scroll.x_pos);
-    ppu.memory_mapped_register_write(0x200d, 0xd);
-    assert_eq!(0xd, ppu.scroll.y_pos);
+    assert_eq!(0xc, ppu.scroll.mock_value());
 
     ppu.memory_mapped_register_write(0x200e, 0x01);
     assert_eq!(0x01, ppu.vram.mock_address_value());
@@ -75,11 +69,8 @@ fn memory_mapped_register_write() {
     ppu.memory_mapped_register_write(0x3ffc, 0x12);
     assert_eq!(0x12, ppu.oam.mock_data_value());
 
-    ppu.scroll.clear_latch();
     ppu.memory_mapped_register_write(0x3ffd, 0x13);
-    assert_eq!(0x13, ppu.scroll.x_pos);
-    ppu.memory_mapped_register_write(0x3ffd, 0x14);
-    assert_eq!(0x14, ppu.scroll.y_pos);
+    assert_eq!(0x13, ppu.scroll.mock_value());
 
     ppu.vram.write_address(0x02);
     assert_eq!(0x02, ppu.vram.mock_address_value());
@@ -244,10 +235,35 @@ mod mocks {
     use super::object_attribute_memory::SpriteAttributes;
     use ppu::PpuBase;
     use ppu::object_attribute_memory::ObjectAttributeMemory;
+    use ppu::scroll_register::ScrollRegister;
     use ppu::vram::Vram;
     use std::cell::Cell;
 
-    pub type TestPpu = PpuBase<MockVram, MockOam>;
+    pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
+
+
+    #[derive(Clone, Default)]
+    pub struct MockScrollRegister {
+        mock_value: u8,
+    }
+
+    impl MockScrollRegister {
+        pub fn mock_value(&self) -> u8 {
+            self.mock_value
+        }
+
+        pub fn set_mock_value(&mut self, val: u8) {
+            self.mock_value = val
+        }
+    }
+
+    impl ScrollRegister for MockScrollRegister {
+        fn write(&mut self, val: u8) {
+            self.set_mock_value(val)
+        }
+
+        fn clear_latch(&self) {}
+    }
 
     #[derive(Clone, Default)]
     pub struct MockOam {

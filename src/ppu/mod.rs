@@ -14,7 +14,7 @@ mod vram;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
-use ppu::scroll_register::ScrollRegister;
+use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use std::io::Write;
@@ -27,15 +27,15 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
-pub type Ppu = PpuBase<VramBase, ObjectAttributeMemoryBase>;
+pub type Ppu = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
 #[derive(Clone)]
-pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
+pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
-    scroll: ScrollRegister,
+    scroll: S,
     vram: V,
     oam: O,
 }
@@ -46,14 +46,14 @@ pub enum StepAction {
     VBlankNmi,
 }
 
-impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     pub fn new() -> Self {
         PpuBase {
             cycles: 0,
             control: ControlRegister::new(0),
             mask: MaskRegister::new(0),
             status: StatusRegister::new(0),
-            scroll: ScrollRegister::new(),
+            scroll: S::default(),
             vram: V::default(),
             oam: O::default(),
         }
