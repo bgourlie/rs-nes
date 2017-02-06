@@ -33,6 +33,15 @@ impl TestCpu {
     }
 }
 
+
+#[derive(PartialEq, Eq)]
+pub enum TickAction {
+    None,
+    Nmi,
+}
+
+pub type StepResult = Result<(), ()>;
+
 pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
@@ -51,91 +60,98 @@ impl<Mem: Memory> Cpu<Mem> {
         cpu
     }
 
-    pub fn step(&mut self) {
-        let opcode = self.read_pc();
+    pub fn step(&mut self) -> StepResult {
+        let opcode = self.read_pc()?;
         self::opcodes::execute(self, opcode)
     }
 
-    fn read_memory(&mut self, addr: u16) -> u8 {
+    fn read_memory(&mut self, addr: u16) -> Result<u8, ()> {
         let val = self.memory.load(addr);
-        self.tick();
-        val
+        self.tick()?;
+        Ok(val)
     }
 
-    fn read_memory16(&mut self, addr: u16) -> u16 {
-        let low_byte = self.read_memory(addr);
-        let high_byte = self.read_memory(addr + 1);
-        from_lo_hi(low_byte, high_byte)
+    fn read_memory16(&mut self, addr: u16) -> Result<u16, ()> {
+        let low_byte = self.read_memory(addr)?;
+        let high_byte = self.read_memory(addr + 1)?;
+        Ok(from_lo_hi(low_byte, high_byte))
     }
 
-    fn read_memory16_zp(&mut self, addr: u8) -> u16 {
-        let low_byte = self.read_memory(addr as u16);
-        let high_byte = self.read_memory(wrapping_inc(addr) as u16);
-        from_lo_hi(low_byte, high_byte)
+    fn read_memory16_zp(&mut self, addr: u8) -> Result<u16, ()> {
+        let low_byte = self.read_memory(addr as u16)?;
+        let high_byte = self.read_memory(wrapping_inc(addr) as u16)?;
+        Ok(from_lo_hi(low_byte, high_byte))
     }
 
-    fn write_memory(&mut self, addr: u16, val: u8) {
+    fn write_memory(&mut self, addr: u16, val: u8) -> Result<(), ()> {
         self.memory.store(addr, val);
-        self.tick()
+        self.tick()?;
+        Ok(())
     }
 
-    pub fn reset(&mut self) {
-        let pc_low = self.read_memory(RESET_VECTOR);
-        let pc_high = self.read_memory(RESET_VECTOR + 1);
+    pub fn reset(&mut self) -> Result<(), ()> {
+        let pc_low = self.read_memory(RESET_VECTOR)?;
+        let pc_high = self.read_memory(RESET_VECTOR + 1)?;
         self.registers.pc = from_lo_hi(pc_low, pc_high);
+        Ok(())
     }
 
-    pub fn nmi(&mut self) {
+    pub fn nmi(&mut self) -> Result<(), ()> {
         let stat = self.registers.status;
         let pc = self.registers.pc;
-        self.push_stack16(pc);
-        self.push_stack(stat);
-        let pc = self.read_memory16(NMI_VECTOR);
+        self.push_stack16(pc)?;
+        self.push_stack(stat)?;
+        let pc = self.read_memory16(NMI_VECTOR)?;
         self.registers.pc = pc;
+        Ok(())
     }
 
-    fn tick(&mut self) {
+    fn tick(&mut self) -> Result<(), ()> {
         self.cycles += 1;
-        if self.memory.tick() == TickAction::Nmi {
+        if self.memory.tick()? == TickAction::Nmi {
             self.nmi()
+        } else {
+            Ok(())
         }
     }
 
-    fn read_pc(&mut self) -> u8 {
+    fn read_pc(&mut self) -> Result<u8, ()> {
         let pc = self.registers.pc;
-        let operand = self.read_memory(pc);
+        let operand = self.read_memory(pc)?;
         self.registers.pc += 1;
-        operand
+        Ok(operand)
     }
 
-    fn read_pc16(&mut self) -> u16 {
-        let low_byte = self.read_pc();
-        let high_byte = self.read_pc();
-        low_byte as u16 | (high_byte as u16) << 8
+    fn read_pc16(&mut self) -> Result<u16, ()> {
+        let low_byte = self.read_pc()?;
+        let high_byte = self.read_pc()?;
+        Ok(low_byte as u16 | (high_byte as u16) << 8)
     }
 
-    fn push_stack(&mut self, value: u8) {
+    fn push_stack(&mut self, value: u8) -> Result<(), ()> {
         let sp = self.registers.sp as u16;
-        self.write_memory(STACK_LOC + sp, value);
+        self.write_memory(STACK_LOC + sp, value)?;
         self.registers.sp = wrapping_dec(self.registers.sp);
+        Ok(())
     }
 
-    fn push_stack16(&mut self, value: u16) {
+    fn push_stack16(&mut self, value: u16) -> Result<(), ()> {
         let (low_byte, high_byte) = lo_hi(value);
-        self.push_stack(high_byte);
-        self.push_stack(low_byte);
+        self.push_stack(high_byte)?;
+        self.push_stack(low_byte)?;
+        Ok(())
     }
 
-    fn pop_stack(&mut self) -> u8 {
+    fn pop_stack(&mut self) -> Result<u8, ()> {
         let sp = wrapping_inc(self.registers.sp);
-        let val = self.read_memory(STACK_LOC + sp as u16);
+        let val = self.read_memory(STACK_LOC + sp as u16)?;
         self.registers.sp = sp;
-        val
+        Ok(val)
     }
 
-    fn pop_stack16(&mut self) -> u16 {
-        let low_byte = self.pop_stack();
-        let high_byte = self.pop_stack();
-        from_lo_hi(low_byte, high_byte)
+    fn pop_stack16(&mut self) -> Result<u16, ()> {
+        let low_byte = self.pop_stack()?;
+        let high_byte = self.pop_stack()?;
+        Ok(from_lo_hi(low_byte, high_byte))
     }
 }

@@ -11,7 +11,9 @@ pub struct Tya;
 impl OpCode for Tya {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       _: AM)
+                                                                       -> Result<(), ()> {
         cpu.registers.acc = cpu.registers.y;
         let acc = cpu.registers.acc;
         cpu.registers.set_sign_and_zero_flag(acc);

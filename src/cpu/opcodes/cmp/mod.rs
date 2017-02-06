@@ -12,8 +12,11 @@ pub struct Cmp;
 impl OpCode for Cmp {
     type Input = u8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let val = cpu.registers.acc;
         compare(cpu, am, val);
+        Ok(())
     }
 }

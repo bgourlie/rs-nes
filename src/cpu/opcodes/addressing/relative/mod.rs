@@ -7,9 +7,9 @@ pub struct Relative {
 }
 
 impl Relative {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
-        let offset = cpu.read_pc() as i8;
-        Relative { offset: offset }
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+        let offset = cpu.read_pc()? as i8;
+        Ok(Relative { offset: offset })
     }
 }
 

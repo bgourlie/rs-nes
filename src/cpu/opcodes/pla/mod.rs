@@ -11,14 +11,17 @@ pub struct Pla;
 impl OpCode for Pla {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       _: AM)
+                                                                       -> Result<(), ()> {
         // Dummy read
-        cpu.tick();
+        cpu.tick()?;
 
         // Stack pointer inc cycle
-        cpu.tick();
+        cpu.tick()?;
 
-        let val = cpu.pop_stack();
+        let val = cpu.pop_stack()?;
         cpu.registers.set_acc(val);
+        Ok(())
     }
 }

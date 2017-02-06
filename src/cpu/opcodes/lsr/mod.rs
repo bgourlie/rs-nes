@@ -12,7 +12,9 @@ pub struct Lsr;
 impl OpCode for Lsr {
     type Input = u8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         shift_right(cpu, am, false)
     }
 }

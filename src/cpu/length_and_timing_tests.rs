@@ -28,7 +28,7 @@ macro_rules! assert_length_and_cycles {
                 cpu.memory.store_many(0x200, &buf[..]);
                 let expected_cycles = $expected_cycles;
                 let expected_len = $expected_len;
-                cpu.step();
+                cpu.step().unwrap();
                 let actual_len = cpu.registers.pc - 0x200;
 
                 if expected_len != actual_len {
@@ -55,7 +55,7 @@ macro_rules! assert_cycles {
             _ => {
                 cpu.memory.store_many(0x200, &buf[..]);
                 let expected_cycles = $expected_cycles;
-                cpu.step();
+                cpu.step().unwrap();
                 if expected_cycles != cpu.cycles {
                     panic!("Expected number of executed cycles to be {} but it was {}",
                             expected_cycles, cpu.cycles)
@@ -81,7 +81,7 @@ macro_rules! assert_length_and_cycles_relative {
                 cpu.memory.store_many(0x27f, &buf[..]);
                 let expected_cycles = $expected_cycles;
                 let expected_len = $expected_len;
-                cpu.step();
+                cpu.step().unwrap();
                 let actual_len = cpu.registers.pc - 0x27f;
 
                 if expected_len != actual_len {
@@ -525,7 +525,7 @@ fn jmp() {
 fn jsr() {
     let mut cpu = TestCpu::new_test();
     // This will execute two cycles, so assert JSR cycles + 2
-    cpu.push_stack16(0x1234);
+    cpu.push_stack16(0x1234).unwrap();
 
     // Absolute
     assert_cycles!(cpu, "JSR $3333", 6 + 2);
@@ -742,10 +742,10 @@ fn ror() {
 fn rti() {
     let mut cpu = TestCpu::new_test();
     // This will execute 2 cycles
-    cpu.push_stack16(0x1234);
+    cpu.push_stack16(0x1234).unwrap();
 
     // This will execute 1 cycle
-    cpu.push_stack(0x12);
+    cpu.push_stack(0x12).unwrap();
 
     // Absolute
     assert_cycles!(cpu, "RTI\n", 6 + 3);
@@ -756,7 +756,7 @@ fn rts() {
     let mut cpu = TestCpu::new_test();
 
     // This will execute two cycles, so assert RTS cycles + 2
-    cpu.push_stack16(0x1234);
+    cpu.push_stack16(0x1234).unwrap();
 
     // Absolute
     assert_cycles!(cpu, "RTS\n", 6 + 2);

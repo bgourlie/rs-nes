@@ -11,11 +11,13 @@ pub struct Php;
 impl OpCode for Php {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       _: AM)
+                                                                       -> Result<(), ()> {
         // Dummy read
-        cpu.tick();
+        cpu.tick()?;
 
         let stat = cpu.registers.status_for_stack();
-        cpu.push_stack(stat);
+        cpu.push_stack(stat)
     }
 }

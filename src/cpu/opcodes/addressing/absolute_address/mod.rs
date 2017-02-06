@@ -9,8 +9,8 @@ pub struct AbsoluteAddress {
 }
 
 impl AbsoluteAddress {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
-        AbsoluteAddress { addr: cpu.read_pc16() }
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+        Ok(AbsoluteAddress { addr: cpu.read_pc16()? })
     }
 }
 

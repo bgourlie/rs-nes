@@ -7,9 +7,9 @@ pub struct Immediate {
 }
 
 impl Immediate {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
-        let val = cpu.read_pc();
-        Immediate { value: val }
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+        let val = cpu.read_pc()?;
+        Ok(Immediate { value: val })
     }
 }
 

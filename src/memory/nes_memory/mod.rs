@@ -1,5 +1,6 @@
-use super::{Memory, TickAction};
+use super::Memory;
 use apu::Apu;
+use cpu::TickAction;
 use input::Input;
 use ppu::{Ppu, StepAction};
 use rom::NesRom;
@@ -44,15 +45,16 @@ impl Clone for NesMemory {
 
 // Currently NROM only
 impl Memory for NesMemory {
-    fn tick(&mut self) -> TickAction {
+    fn tick(&mut self) -> Result<TickAction, ()> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
             if self.ppu.step() == StepAction::VBlankNmi {
+                // TODO: ppu.step() returns Result
                 tick_action = TickAction::Nmi;
             };
         }
-        tick_action
+        Ok(tick_action)
     }
 
     fn store(&mut self, address: u16, value: u8) {

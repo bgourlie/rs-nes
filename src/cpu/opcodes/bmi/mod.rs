@@ -12,8 +12,10 @@ pub struct Bmi;
 impl OpCode for Bmi {
     type Input = i8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let sign_set = cpu.registers.sign_flag();
-        branch(cpu, am, sign_set);
+        branch(cpu, am, sign_set)
     }
 }

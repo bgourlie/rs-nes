@@ -11,9 +11,12 @@ pub struct Ldy;
 impl OpCode for Ldy {
     type Input = u8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let val = am.read();
         cpu.registers.y = val;
         cpu.registers.set_sign_and_zero_flag(val);
+        Ok(())
     }
 }

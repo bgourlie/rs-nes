@@ -11,7 +11,9 @@ pub struct Txs;
 impl OpCode for Txs {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       _: AM)
+                                                                       -> Result<(), ()> {
         cpu.registers.sp = cpu.registers.x;
         cpu.tick()
     }

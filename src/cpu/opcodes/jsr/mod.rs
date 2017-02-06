@@ -11,11 +11,13 @@ pub struct Jsr;
 impl OpCode for Jsr {
     type Input = u16;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let loc = am.read();
         let pc = cpu.registers.pc;
-        cpu.push_stack16(pc - 1);
+        cpu.push_stack16(pc - 1)?;
         cpu.registers.pc = loc;
-        cpu.tick();
+        cpu.tick()
     }
 }

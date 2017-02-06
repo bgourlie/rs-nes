@@ -7,6 +7,6 @@ use cpu::opcodes::addressing::Implied;
 fn test() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.set_carry_flag(false);
-    Sec::execute(&mut cpu, Implied);
+    Sec::execute(&mut cpu, Implied).unwrap();
     assert_eq!(true, cpu.registers.carry_flag());
 }

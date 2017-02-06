@@ -11,7 +11,10 @@ pub struct Jmp;
 impl OpCode for Jmp {
     type Input = u16;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         cpu.registers.pc = am.read();
+        Ok(())
     }
 }

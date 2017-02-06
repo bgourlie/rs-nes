@@ -12,8 +12,11 @@ pub struct Cpx;
 impl OpCode for Cpx {
     type Input = u8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let val = cpu.registers.x;
         compare(cpu, am, val);
+        Ok(())
     }
 }

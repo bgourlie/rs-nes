@@ -12,8 +12,10 @@ pub struct Bne;
 impl OpCode for Bne {
     type Input = i8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let zero_clear = !cpu.registers.zero_flag();
-        branch(cpu, am, zero_clear);
+        branch(cpu, am, zero_clear)
     }
 }

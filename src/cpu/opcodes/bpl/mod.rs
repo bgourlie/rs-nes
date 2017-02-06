@@ -12,8 +12,10 @@ pub struct Bpl;
 impl OpCode for Bpl {
     type Input = i8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       am: AM)
+                                                                       -> Result<(), ()> {
         let sign_clear = !cpu.registers.sign_flag();
-        branch(cpu, am, sign_clear);
+        branch(cpu, am, sign_clear)
     }
 }

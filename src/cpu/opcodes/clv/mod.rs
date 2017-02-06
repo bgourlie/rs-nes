@@ -11,7 +11,9 @@ pub struct Clv;
 impl OpCode for Clv {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
+                                                                       _: AM)
+                                                                       -> Result<(), ()> {
         cpu.registers.set_overflow_flag(false);
         cpu.tick()
     }
