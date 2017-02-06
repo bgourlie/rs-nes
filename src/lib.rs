@@ -42,4 +42,4 @@ extern crate rand;
 pub mod rom;
 pub mod memory;
 pub mod cpu;
-pub mod ppu;
+mod ppu;
