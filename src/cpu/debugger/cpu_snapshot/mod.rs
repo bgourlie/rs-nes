@@ -13,14 +13,15 @@ pub enum MemorySnapshot {
 pub struct CpuSnapshot {
     registers: Registers,
     memory: MemorySnapshot,
+    cycles: u64,
 }
 
 impl CpuSnapshot {
-    pub fn new(mem_snapshot: MemorySnapshot, registers: Registers) -> Self {
-
+    pub fn new(mem_snapshot: MemorySnapshot, registers: Registers, cycles: u64) -> Self {
         CpuSnapshot {
             registers: registers,
             memory: mem_snapshot,
+            cycles: cycles,
         }
     }
 }
@@ -48,9 +49,10 @@ impl Serialize for MemorySnapshot {
 
 impl Serialize for CpuSnapshot {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut state = serializer.serialize_struct("CpuSnapshot", 2)?;
+        let mut state = serializer.serialize_struct("CpuSnapshot", 3)?;
         state.serialize_field("registers", &self.registers)?;
         state.serialize_field("memory", &self.memory)?;
+        state.serialize_field("cycles", &self.cycles)?;
         state.end()
     }
 }

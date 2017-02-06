@@ -69,7 +69,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
                     self.last_mem_hash = hash;
                 }
 
-                let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone());
+                let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cpu.cycles);
                 self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
             }
             thread::park();
