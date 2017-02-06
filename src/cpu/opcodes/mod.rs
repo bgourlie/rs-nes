@@ -613,7 +613,7 @@ pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) {
             self::jsr::Jsr::execute(cpu, am)
         }
         _ => {
-            panic!("unexpected opcode encountered");
+            panic!("unexpected opcode encountered: {:0>2X}", opcode);
         }
     }
 }

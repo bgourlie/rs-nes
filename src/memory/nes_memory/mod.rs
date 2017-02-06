@@ -64,22 +64,25 @@ impl Memory for NesMemory {
             self.input.write(value)
         } else if address < 0x4020 {
             self.apu.write(address, value)
+        } else if address < 0x6000 {
+            // TODO: what goes here?
         } else {
             panic!("Unimplemented: write to 0x{:0>4X}", address)
         }
     }
 
     fn load(&self, address: u16) -> u8 {
-        match address {
-            0x0...0x1fff => self.ram[address as usize & 0x7ff],
-            0x2000...0x3fff => self.ppu.read(address),
-            0x4000...0x7fff => 0,
-            _ => {
-                if self.rom.prg.len() > 16384 {
-                    self.rom.prg[address as usize & 0x7fff]
-                } else {
-                    self.rom.prg[address as usize & 0x3fff]
-                }
+        if address < 0x2000 {
+            self.ram[address as usize & 0x7ff]
+        } else if address < 0x4000 {
+            self.ppu.read(address)
+        } else if address < 0x8000 {
+            0
+        } else {
+            if self.rom.prg.len() > 16384 {
+                self.rom.prg[address as usize & 0x7fff]
+            } else {
+                self.rom.prg[address as usize & 0x3fff]
             }
         }
     }
