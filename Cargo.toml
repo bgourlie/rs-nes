@@ -5,7 +5,7 @@ authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 
 [features]
 default = []
-debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "asm6502"]
+debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "asm6502", "websocket"]
 
 [dependencies]
 log = "*"
