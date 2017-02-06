@@ -18,29 +18,39 @@ pub enum Priority {
     BehindBackground,
 }
 
-pub struct ObjectAttributeMemory {
+pub trait ObjectAttributeMemory: Clone + Default {
+    fn read_data(&self) -> u8;
+    fn read_data_increment_addr(&self) -> u8;
+    fn write_address(&mut self, addr: u8);
+    fn write_data(&mut self, val: u8);
+    fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes;
+}
+
+pub struct ObjectAttributeMemoryBase {
     memory: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
 }
 
-impl Clone for ObjectAttributeMemory {
+impl Clone for ObjectAttributeMemoryBase {
     fn clone(&self) -> Self {
         let mem = self.memory;
-        ObjectAttributeMemory {
+        ObjectAttributeMemoryBase {
             memory: mem,
             address: self.address.clone(),
         }
     }
 }
 
-impl ObjectAttributeMemory {
-    pub fn new() -> Self {
-        ObjectAttributeMemory {
+impl Default for ObjectAttributeMemoryBase {
+    fn default() -> Self {
+        ObjectAttributeMemoryBase {
             memory: [0; 0x100],
             address: Cell::new(0),
         }
     }
+}
 
+impl ObjectAttributeMemoryBase {
     // Maps to the PPU's oam_data register
     pub fn read_data(&self) -> u8 {
         self.memory[self.address.get() as usize]
@@ -52,23 +62,13 @@ impl ObjectAttributeMemory {
         ret
     }
 
-    pub fn set_address(&mut self, addr: u8) {
+    pub fn write_address(&mut self, addr: u8) {
         self.address.set(addr);
-    }
-
-    #[cfg(test)]
-    pub fn get_address(&self) -> u8 {
-        self.address.get()
     }
 
     pub fn write_data(&mut self, val: u8) {
         self.memory[self.address.get() as usize] = val;
         self.inc_address();
-    }
-
-    fn inc_address(&self) {
-        let new_addr = (Wrapping(self.address.get()) + Wrapping(1_u8)).0;
-        self.address.set(new_addr)
     }
 
     pub fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes {
@@ -106,6 +106,33 @@ impl ObjectAttributeMemory {
             vertical_flip: vertical_flip,
             tile_index: tile_index,
         }
+    }
+
+    fn inc_address(&self) {
+        let new_addr = (Wrapping(self.address.get()) + Wrapping(1_u8)).0;
+        self.address.set(new_addr)
+    }
+}
+
+impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
+    fn read_data(&self) -> u8 {
+        self.read_data()
+    }
+
+    fn read_data_increment_addr(&self) -> u8 {
+        self.read_data_increment_addr()
+    }
+
+    fn write_address(&mut self, addr: u8) {
+        self.write_address(addr)
+    }
+
+    fn write_data(&mut self, val: u8) {
+        self.write_data(val)
+    }
+
+    fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes {
+        self.sprite_attributes(tile_index)
     }
 }
 

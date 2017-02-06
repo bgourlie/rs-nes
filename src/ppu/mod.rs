@@ -9,12 +9,14 @@ mod mask_register;
 mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
+mod vram;
 
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
-use ppu::object_attribute_memory::ObjectAttributeMemory;
-use ppu::scroll_register::ScrollRegister;
+use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
+use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
+use ppu::vram::{Vram, VramBase};
 use std::io::Write;
 
 const SCANLINES: u64 = 262;
@@ -25,16 +27,17 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
-#[derive(Clone)]
-pub struct Ppu {
+pub type Ppu = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
+
+#[derive(Clone, Default)]
+pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
-    scroll: ScrollRegister,
-    vram_addr: u8,
-    vram_data: u8,
-    oam: ObjectAttributeMemory,
+    scroll: S,
+    vram: V,
+    oam: O,
 }
 
 #[derive(Eq, PartialEq)]
@@ -43,20 +46,7 @@ pub enum StepAction {
     VBlankNmi,
 }
 
-impl Ppu {
-    pub fn new() -> Self {
-        Ppu {
-            cycles: 0,
-            control: ControlRegister::new(0),
-            mask: MaskRegister::new(0),
-            status: StatusRegister::new(0),
-            scroll: ScrollRegister::new(),
-            vram_addr: 0,
-            vram_data: 0,
-            oam: ObjectAttributeMemory::new(),
-        }
-    }
-
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     pub fn step(&mut self) -> StepAction {
         let result = match self.cycles % CYCLES_PER_FRAME {
             VBLANK_SET_CYCLE => {
@@ -85,11 +75,11 @@ impl Ppu {
             0x0 => self.control.set(val),
             0x1 => self.mask.set(val),
             0x2 => (), // readonly
-            0x3 => self.oam.set_address(val),
+            0x3 => self.oam.write_address(val),
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
-            0x6 => self.vram_addr = val,
-            0x7 => self.vram_data = val,
+            0x6 => self.vram.write_address(val),
+            0x7 => self.vram.write_data_increment_address(val),
             _ => panic!("impossible"),
         }
     }
@@ -103,22 +93,19 @@ impl Ppu {
             0x1 => *self.mask,
             0x2 => {
                 let status = self.status.value();
-                // 0x2002 read clears vblank and the address latch used by scroll/vram_addr
                 self.status.clear_in_vblank();
                 self.scroll.clear_latch();
-
-                // TODO: Clear PPUADDR address latch
+                self.vram.clear_latch();
                 status
             }
             0x4 => {
-                if self.status.in_vblank() {
-                    // TODO: Read without increment during forced blanking
-                    self.oam.read_data()
+                if self.status.in_vblank() || self.mask.rendering_disabled() {
+                    self.oam.read_data() // No OAM addr increment during vblank or forced blank
                 } else {
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram_data,
+            0x7 => self.vram.read_data_increment_address(),
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
         }
@@ -134,7 +121,7 @@ impl Ppu {
                     self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
-                    self.vram_data];
+                    self.vram.read_data()];
 
         writer.write(&regs).unwrap()
     }

@@ -17,16 +17,12 @@ pub enum PpuMode {
 
 /// $2000, Write Only
 /// Various flags controlling PPU operation
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct ControlRegister {
     reg: u8,
 }
 
 impl ControlRegister {
-    pub fn new(reg: u8) -> Self {
-        ControlRegister { reg: reg }
-    }
-
     /// Base nametable address (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
     fn base_name_table_addr(&self) -> u16 {
         let reg = **self;

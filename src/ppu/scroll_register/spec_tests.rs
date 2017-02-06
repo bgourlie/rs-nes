@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn write() {
-    let mut reg = ScrollRegister::new();
+    let mut reg = ScrollRegisterBase::default();
     assert_eq!(0, reg.x_pos);
     assert_eq!(0, reg.y_pos);
 
@@ -25,7 +25,7 @@ fn write() {
 
 #[test]
 fn clear_latch() {
-    let mut reg = ScrollRegister::new();
+    let mut reg = ScrollRegisterBase::default();
     assert_eq!(0, reg.x_pos);
     assert_eq!(0, reg.y_pos);
 

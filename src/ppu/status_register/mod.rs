@@ -5,12 +5,13 @@ use std::cell::Cell;
 
 const VBLANK: u8 = 0b10000000;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct StatusRegister {
     reg: Cell<u8>,
 }
 
 impl StatusRegister {
+    #[cfg(test)]
     pub fn new(reg: u8) -> Self {
         StatusRegister { reg: Cell::new(reg) }
     }
