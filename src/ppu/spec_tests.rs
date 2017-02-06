@@ -84,10 +84,10 @@ fn memory_mapped_register_write() {
 fn memory_mapped_register_read() {
     let mut ppu = mocks::TestPpu::default();
 
-    ppu.control.set(0xf0);
+    ppu.control.write(0xf0);
     assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
 
-    ppu.mask.set(0xf1);
+    ppu.mask.write(0xf1);
     assert_eq!(0xf1, ppu.memory_mapped_register_read(0x2001));
 
     ppu.status = StatusRegister::new(0xf2);
@@ -110,10 +110,10 @@ fn memory_mapped_register_read() {
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
-    ppu.control.set(0xe0);
+    ppu.control.write(0xe0);
     assert_eq!(0xe0, ppu.memory_mapped_register_read(0x2008));
 
-    ppu.mask.set(0xe1);
+    ppu.mask.write(0xe1);
     assert_eq!(0xe1, ppu.memory_mapped_register_read(0x2009));
 
     ppu.status = StatusRegister::new(0xe2);
@@ -136,10 +136,10 @@ fn memory_mapped_register_read() {
 
     // Test mirroring on the tail end of the valid address space
 
-    ppu.control.set(0xd0);
+    ppu.control.write(0xd0);
     assert_eq!(0xd0, ppu.memory_mapped_register_read(0x3ff8));
 
-    ppu.mask.set(0xd1);
+    ppu.mask.write(0xd1);
     assert_eq!(0xd1, ppu.memory_mapped_register_read(0x3ff9));
 
     ppu.status = StatusRegister::new(0xd2);
@@ -198,14 +198,14 @@ fn vblank_clear_after_status_read() {
     ppu.status.set_in_vblank();
     let status = ppu.memory_mapped_register_read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
-    assert_eq!(true, ppu.status.value() & 0b10000000 == 0);
+    assert_eq!(true, ppu.status.read() & 0b10000000 == 0);
 }
 
 #[test]
 fn oam_read_non_blanking_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
-    ppu.mask.set(1);
+    ppu.mask.write(1);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(true, ppu.oam.read_data_increment_addr_called());
     assert_eq!(false, ppu.oam.read_data_called());
@@ -215,7 +215,7 @@ fn oam_read_non_blanking_increments_addr() {
 fn oam_read_v_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.set_in_vblank();
-    ppu.mask.set(1);
+    ppu.mask.write(1);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(false, ppu.oam.read_data_increment_addr_called());
     assert_eq!(true, ppu.oam.read_data_called());
@@ -225,7 +225,7 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
 fn oam_read_forced_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
-    ppu.mask.set(0);
+    ppu.mask.write(0);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(false, ppu.oam.read_data_increment_addr_called());
     assert_eq!(true, ppu.oam.read_data_called());

@@ -66,7 +66,7 @@ impl MaskRegister {
         **self & 0b10000000 > 0
     }
 
-    pub fn set(&mut self, val: u8) {
+    pub fn write(&mut self, val: u8) {
         self.reg = val;
     }
 

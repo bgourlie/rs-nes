@@ -72,8 +72,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
-            0x0 => self.control.set(val),
-            0x1 => self.mask.set(val),
+            0x0 => self.control.write(val),
+            0x1 => self.mask.write(val),
             0x2 => (), // readonly
             0x3 => self.oam.write_address(val),
             0x4 => self.oam.write_data(val),
@@ -92,7 +92,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             0x0 => *self.control,
             0x1 => *self.mask,
             0x2 => {
-                let status = self.status.value();
+                let status = self.status.read();
                 self.status.clear_in_vblank();
                 self.scroll.clear_latch();
                 self.vram.clear_latch();
@@ -116,7 +116,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
 
         let regs = [*self.control,
                     *self.mask,
-                    self.status.value(),
+                    self.status.read(),
                     0, // Write-only
                     self.oam.read_data(),
                     0, // Write-only

@@ -16,7 +16,7 @@ impl StatusRegister {
         StatusRegister { reg: Cell::new(reg) }
     }
 
-    pub fn value(&self) -> u8 {
+    pub fn read(&self) -> u8 {
         self.reg.get()
     }
 
