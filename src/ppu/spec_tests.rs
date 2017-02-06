@@ -1,8 +1,9 @@
 use super::*;
+use super::status_register::StatusRegister;
 
 #[test]
 fn memory_mapped_register_write() {
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
 
     // Writes to 0x2000 write the control register
     ppu.memory_mapped_register_write(0x2000, 0x1);
@@ -81,7 +82,7 @@ fn memory_mapped_register_write() {
 
 #[test]
 fn memory_mapped_register_read() {
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
 
     ppu.control.set(0xf0);
     assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
@@ -177,7 +178,7 @@ fn vblank_set_and_clear_cycles() {
     const CLEAR_VBLANK_CYCLE: u64 = super::CYCLES_PER_SCANLINE * super::LAST_SCANLINE + 1;
     const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
 
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
 
     // Render 100 frames and assert expected VBLANK behavior
     while ppu.cycles < super::CYCLES_PER_FRAME * 100 {
@@ -193,7 +194,7 @@ fn vblank_set_and_clear_cycles() {
 
 #[test]
 fn vblank_clear_after_status_read() {
-    let ppu = mocks::TestPpu::new();
+    let ppu = mocks::TestPpu::default();
     ppu.status.set_in_vblank();
     let status = ppu.memory_mapped_register_read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
@@ -202,7 +203,7 @@ fn vblank_clear_after_status_read() {
 
 #[test]
 fn oam_read_non_blanking_increments_addr() {
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
     ppu.mask.set(1);
     ppu.memory_mapped_register_read(0x2004);
@@ -212,7 +213,7 @@ fn oam_read_non_blanking_increments_addr() {
 
 #[test]
 fn oam_read_v_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
     ppu.status.set_in_vblank();
     ppu.mask.set(1);
     ppu.memory_mapped_register_read(0x2004);
@@ -222,14 +223,13 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
 
 #[test]
 fn oam_read_forced_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::TestPpu::new();
+    let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
     ppu.mask.set(0);
     ppu.memory_mapped_register_read(0x2004);
     assert_eq!(false, ppu.oam.read_data_increment_addr_called());
     assert_eq!(true, ppu.oam.read_data_called());
 }
-
 
 mod mocks {
     use super::object_attribute_memory::SpriteAttributes;
@@ -240,7 +240,6 @@ mod mocks {
     use std::cell::Cell;
 
     pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
-
 
     #[derive(Clone, Default)]
     pub struct MockScrollRegister {

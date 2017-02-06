@@ -29,7 +29,7 @@ const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
 pub type Ppu = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
@@ -47,18 +47,6 @@ pub enum StepAction {
 }
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    pub fn new() -> Self {
-        PpuBase {
-            cycles: 0,
-            control: ControlRegister::new(0),
-            mask: MaskRegister::new(0),
-            status: StatusRegister::new(0),
-            scroll: S::default(),
-            vram: V::default(),
-            oam: O::default(),
-        }
-    }
-
     pub fn step(&mut self) -> StepAction {
         let result = match self.cycles % CYCLES_PER_FRAME {
             VBLANK_SET_CYCLE => {

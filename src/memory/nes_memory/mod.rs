@@ -17,7 +17,7 @@ impl NesMemory {
         NesMemory {
             ram: [0_u8; 0x800],
             rom: rom,
-            ppu: Ppu::new(),
+            ppu: Ppu::default(),
         }
     }
 }

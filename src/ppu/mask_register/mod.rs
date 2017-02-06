@@ -5,7 +5,7 @@ use std::ops::Deref;
 
 /// $2001, Write Only
 /// This register controls the rendering of sprites and backgrounds, as well as colour effects.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct MaskRegister {
     reg: u8,
 }
@@ -25,10 +25,6 @@ pub enum ColorMode {
 }
 
 impl MaskRegister {
-    pub fn new(reg: u8) -> Self {
-        MaskRegister { reg: reg }
-    }
-
     /// Greyscale (0: normal color, 1: produce a greyscale display)
     fn color_mode(self) -> ColorMode {
         let mask = 0b00000001;
