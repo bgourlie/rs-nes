@@ -13,6 +13,7 @@ use rs_nes::rom::NesRom;
 fn main() {
     env_logger::init().unwrap();
     let rom = NesRom::read("test_roms/mario.nes").unwrap();
+    println!("ROM Mapper: {}", rom.mapper);
     let mem = NesMemory::new(rom);
     let cpu = Cpu::new(mem, 0x8000);
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);

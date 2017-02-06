@@ -2,82 +2,82 @@ use super::*;
 use super::status_register::StatusRegister;
 
 #[test]
-fn memory_mapped_register_write() {
+fn write() {
     let mut ppu = mocks::TestPpu::default();
 
     // Writes to 0x2000 write the control register
-    ppu.memory_mapped_register_write(0x2000, 0x1);
+    ppu.write(0x2000, 0x1);
     assert_eq!(0x1, *ppu.control);
 
     // Writes to 0x2001 write the mask register
-    ppu.memory_mapped_register_write(0x2001, 0x2);
+    ppu.write(0x2001, 0x2);
     assert_eq!(0x2, *ppu.mask);
 
     // Writes to 0x2003 write the oam addr register
-    ppu.memory_mapped_register_write(0x2003, 0x3);
-    assert_eq!(0x3, ppu.oam.mock_address_value());
+    ppu.write(0x2003, 0x3);
+    assert_eq!(0x3, ppu.oam.address_value());
 
     // Writes to 0x2004 write the oam data register
-    ppu.memory_mapped_register_write(0x2004, 0x4);
-    assert_eq!(0x4, ppu.oam.mock_data_value());
+    ppu.write(0x2004, 0x4);
+    assert_eq!(0x4, ppu.oam.data_value());
 
     // Writes to 0x2005 write the scroll register
-    ppu.memory_mapped_register_write(0x2005, 0x5);
-    assert_eq!(0x5, ppu.scroll.mock_value());
+    ppu.write(0x2005, 0x5);
+    assert_eq!(0x5, ppu.scroll.value());
 
     // Writes to 0x2006 write the vram addr register
-    ppu.memory_mapped_register_write(0x2006, 0x20);
-    assert_eq!(0x20, ppu.vram.mock_address_value());
+    ppu.write(0x2006, 0x20);
+    assert_eq!(0x20, ppu.vram.address_value());
 
     // Writes to 0x2007 write the vram data register
-    ppu.memory_mapped_register_write(0x2007, 0x7);
-    assert_eq!(0x7, ppu.vram.mock_data_value());
+    ppu.write(0x2007, 0x7);
+    assert_eq!(0x7, ppu.vram.data_value());
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
-    ppu.memory_mapped_register_write(0x2008, 0x8);
+    ppu.write(0x2008, 0x8);
     assert_eq!(0x8, *ppu.control);
 
-    ppu.memory_mapped_register_write(0x2009, 0x9);
+    ppu.write(0x2009, 0x9);
     assert_eq!(0x9, *ppu.mask);
 
-    ppu.memory_mapped_register_write(0x200b, 0xa);
-    assert_eq!(0xa, ppu.oam.mock_address_value());
+    ppu.write(0x200b, 0xa);
+    assert_eq!(0xa, ppu.oam.address_value());
 
-    ppu.memory_mapped_register_write(0x200c, 0xb);
-    assert_eq!(0xb, ppu.oam.mock_data_value());
+    ppu.write(0x200c, 0xb);
+    assert_eq!(0xb, ppu.oam.data_value());
 
-    ppu.memory_mapped_register_write(0x200d, 0xc);
-    assert_eq!(0xc, ppu.scroll.mock_value());
+    ppu.write(0x200d, 0xc);
+    assert_eq!(0xc, ppu.scroll.value());
 
-    ppu.memory_mapped_register_write(0x200e, 0x01);
-    assert_eq!(0x01, ppu.vram.mock_address_value());
+    ppu.write(0x200e, 0x01);
+    assert_eq!(0x01, ppu.vram.address_value());
 
-    ppu.memory_mapped_register_write(0x200f, 0x14);
-    assert_eq!(0x14, ppu.vram.mock_data_value());
+    ppu.write(0x200f, 0x14);
+    assert_eq!(0x14, ppu.vram.data_value());
 
     // Test mirroring on the tail end of the valid address space
 
-    ppu.memory_mapped_register_write(0x3ff8, 0xf);
+    ppu.write(0x3ff8, 0xf);
     assert_eq!(0xf, *ppu.control);
 
-    ppu.memory_mapped_register_write(0x3ff9, 0x10);
+    ppu.write(0x3ff9, 0x10);
     assert_eq!(0x10, *ppu.mask);
 
-    ppu.memory_mapped_register_write(0x3ffb, 0x11);
-    assert_eq!(0x11, ppu.oam.mock_address_value());
+    ppu.write(0x3ffb, 0x11);
+    assert_eq!(0x11, ppu.oam.address_value());
 
-    ppu.memory_mapped_register_write(0x3ffc, 0x12);
-    assert_eq!(0x12, ppu.oam.mock_data_value());
+    ppu.write(0x3ffc, 0x12);
+    assert_eq!(0x12, ppu.oam.data_value());
 
-    ppu.memory_mapped_register_write(0x3ffd, 0x13);
-    assert_eq!(0x13, ppu.scroll.mock_value());
+    ppu.write(0x3ffd, 0x13);
+    assert_eq!(0x13, ppu.scroll.value());
 
     ppu.vram.write_address(0x02);
-    assert_eq!(0x02, ppu.vram.mock_address_value());
+    assert_eq!(0x02, ppu.vram.address_value());
 
-    ppu.memory_mapped_register_write(0x3fff, 0x15);
-    assert_eq!(0x15, ppu.vram.mock_data_value());
+    ppu.write(0x3fff, 0x15);
+    assert_eq!(0x15, ppu.vram.data_value());
 }
 
 #[test]
@@ -85,80 +85,80 @@ fn memory_mapped_register_read() {
     let mut ppu = mocks::TestPpu::default();
 
     ppu.control.write(0xf0);
-    assert_eq!(0xf0, ppu.memory_mapped_register_read(0x2000));
+    assert_eq!(0xf0, ppu.read(0x2000));
 
     ppu.mask.write(0xf1);
-    assert_eq!(0xf1, ppu.memory_mapped_register_read(0x2001));
+    assert_eq!(0xf1, ppu.read(0x2001));
 
     ppu.status = StatusRegister::new(0xf2);
-    assert_eq!(0xf2, ppu.memory_mapped_register_read(0x2002));
+    assert_eq!(0xf2, ppu.read(0x2002));
 
-    ppu.oam.set_mock_address_value(0xf3);
-    assert_eq!(0, ppu.memory_mapped_register_read(0x2003)); // write-only, should always read 0
+    ppu.oam.set_address_value(0xf3);
+    assert_eq!(0, ppu.read(0x2003)); // write-only, should always read 0
 
-    ppu.oam.set_mock_data_value(0xf4);
-    assert_eq!(0xf4, ppu.memory_mapped_register_read(0x2004));
+    ppu.oam.set_data_value(0xf4);
+    assert_eq!(0xf4, ppu.read(0x2004));
 
     ppu.scroll.write(0xf5);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x2005)); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x2005)); // write-only, should always read 0
 
-    ppu.vram.set_mock_address_value(0xf6);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x2006)); // write-only, should always read 0
+    ppu.vram.set_address_value(0xf6);
+    assert_eq!(0x0, ppu.read(0x2006)); // write-only, should always read 0
 
-    ppu.vram.set_mock_data_value(0xfe);
-    assert_eq!(0xfe, ppu.memory_mapped_register_read(0x2007));
+    ppu.vram.set_data_value(0xfe);
+    assert_eq!(0xfe, ppu.read(0x2007));
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
     ppu.control.write(0xe0);
-    assert_eq!(0xe0, ppu.memory_mapped_register_read(0x2008));
+    assert_eq!(0xe0, ppu.read(0x2008));
 
     ppu.mask.write(0xe1);
-    assert_eq!(0xe1, ppu.memory_mapped_register_read(0x2009));
+    assert_eq!(0xe1, ppu.read(0x2009));
 
     ppu.status = StatusRegister::new(0xe2);
-    assert_eq!(0xe2, ppu.memory_mapped_register_read(0x200a));
+    assert_eq!(0xe2, ppu.read(0x200a));
 
-    ppu.oam.set_mock_address_value(0xe3);
-    assert_eq!(0, ppu.memory_mapped_register_read(0x200b)); // write-only, should always read 0
+    ppu.oam.set_address_value(0xe3);
+    assert_eq!(0, ppu.read(0x200b)); // write-only, should always read 0
 
-    ppu.oam.set_mock_data_value(0xe4);
-    assert_eq!(0xe4, ppu.memory_mapped_register_read(0x200c));
+    ppu.oam.set_data_value(0xe4);
+    assert_eq!(0xe4, ppu.read(0x200c));
 
     ppu.scroll.write(0xe5);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x200d)); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x200d)); // write-only, should always read 0
 
-    ppu.vram.set_mock_address_value(0xe6);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x200e)); // write-only, should always read 0
+    ppu.vram.set_address_value(0xe6);
+    assert_eq!(0x0, ppu.read(0x200e)); // write-only, should always read 0
 
-    ppu.vram.set_mock_data_value(0xfb);
-    assert_eq!(0xfb, ppu.memory_mapped_register_read(0x200f));
+    ppu.vram.set_data_value(0xfb);
+    assert_eq!(0xfb, ppu.read(0x200f));
 
     // Test mirroring on the tail end of the valid address space
 
     ppu.control.write(0xd0);
-    assert_eq!(0xd0, ppu.memory_mapped_register_read(0x3ff8));
+    assert_eq!(0xd0, ppu.read(0x3ff8));
 
     ppu.mask.write(0xd1);
-    assert_eq!(0xd1, ppu.memory_mapped_register_read(0x3ff9));
+    assert_eq!(0xd1, ppu.read(0x3ff9));
 
     ppu.status = StatusRegister::new(0xd2);
-    assert_eq!(0xd2, ppu.memory_mapped_register_read(0x3ffa));
+    assert_eq!(0xd2, ppu.read(0x3ffa));
 
-    ppu.oam.set_mock_address_value(0xd3);
-    assert_eq!(0, ppu.memory_mapped_register_read(0x3ffb)); // write-only, should always read 0
+    ppu.oam.set_address_value(0xd3);
+    assert_eq!(0, ppu.read(0x3ffb)); // write-only, should always read 0
 
-    ppu.oam.set_mock_data_value(0xd4);
-    assert_eq!(0xd4, ppu.memory_mapped_register_read(0x3ffc));
+    ppu.oam.set_data_value(0xd4);
+    assert_eq!(0xd4, ppu.read(0x3ffc));
 
     ppu.scroll.write(0xd5);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffd)); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x3ffd)); // write-only, should always read 0
 
-    ppu.vram.set_mock_address_value(0xd6);
-    assert_eq!(0x0, ppu.memory_mapped_register_read(0x3ffe)); // write-only, should always read 0
+    ppu.vram.set_address_value(0xd6);
+    assert_eq!(0x0, ppu.read(0x3ffe)); // write-only, should always read 0
 
-    ppu.vram.set_mock_data_value(0xfc);
-    assert_eq!(0xfc, ppu.memory_mapped_register_read(0x3fff));
+    ppu.vram.set_data_value(0xfc);
+    assert_eq!(0xfc, ppu.read(0x3fff));
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn vblank_set_and_clear_cycles() {
 fn vblank_clear_after_status_read() {
     let ppu = mocks::TestPpu::default();
     ppu.status.set_in_vblank();
-    let status = ppu.memory_mapped_register_read(0x2002);
+    let status = ppu.read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
     assert_eq!(true, ppu.status.read() & 0b10000000 == 0);
 }
@@ -206,7 +206,7 @@ fn oam_read_non_blanking_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
     ppu.mask.write(1);
-    ppu.memory_mapped_register_read(0x2004);
+    ppu.read(0x2004);
     assert_eq!(true, ppu.oam.read_data_increment_addr_called());
     assert_eq!(false, ppu.oam.read_data_called());
 }
@@ -216,7 +216,7 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.set_in_vblank();
     ppu.mask.write(1);
-    ppu.memory_mapped_register_read(0x2004);
+    ppu.read(0x2004);
     assert_eq!(false, ppu.oam.read_data_increment_addr_called());
     assert_eq!(true, ppu.oam.read_data_called());
 }
@@ -226,7 +226,7 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::TestPpu::default();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
-    ppu.memory_mapped_register_read(0x2004);
+    ppu.read(0x2004);
     assert_eq!(false, ppu.oam.read_data_increment_addr_called());
     assert_eq!(true, ppu.oam.read_data_called());
 }
@@ -247,18 +247,18 @@ mod mocks {
     }
 
     impl MockScrollRegister {
-        pub fn mock_value(&self) -> u8 {
+        pub fn value(&self) -> u8 {
             self.mock_value
         }
 
-        pub fn set_mock_value(&mut self, val: u8) {
+        pub fn set_value(&mut self, val: u8) {
             self.mock_value = val
         }
     }
 
     impl ScrollRegister for MockScrollRegister {
         fn write(&mut self, val: u8) {
-            self.set_mock_value(val)
+            self.set_value(val)
         }
 
         fn clear_latch(&self) {}
@@ -273,19 +273,19 @@ mod mocks {
     }
 
     impl MockOam {
-        pub fn mock_address_value(&self) -> u8 {
+        pub fn address_value(&self) -> u8 {
             self.mock_addr
         }
 
-        pub fn set_mock_address_value(&mut self, addr: u8) {
+        pub fn set_address_value(&mut self, addr: u8) {
             self.mock_addr = addr;
         }
 
-        pub fn mock_data_value(&self) -> u8 {
+        pub fn data_value(&self) -> u8 {
             self.mock_data
         }
 
-        pub fn set_mock_data_value(&mut self, data: u8) {
+        pub fn set_data_value(&mut self, data: u8) {
             self.mock_data = data;
         }
 
@@ -301,20 +301,20 @@ mod mocks {
     impl ObjectAttributeMemory for MockOam {
         fn read_data(&self) -> u8 {
             self.read_data_called.set(true);
-            self.mock_data_value()
+            self.data_value()
         }
 
         fn read_data_increment_addr(&self) -> u8 {
             self.read_data_increment_addr_called.set(true);
-            self.mock_data_value()
+            self.data_value()
         }
 
         fn write_address(&mut self, addr: u8) {
-            self.set_mock_address_value(addr)
+            self.set_address_value(addr)
         }
 
         fn write_data(&mut self, val: u8) {
-            self.set_mock_data_value(val)
+            self.set_data_value(val)
         }
 
         fn sprite_attributes(&self, _: u8) -> SpriteAttributes {
@@ -329,38 +329,38 @@ mod mocks {
     }
 
     impl MockVram {
-        pub fn mock_address_value(&self) -> u8 {
+        pub fn address_value(&self) -> u8 {
             self.mock_addr.get()
         }
 
-        pub fn mock_data_value(&self) -> u8 {
+        pub fn data_value(&self) -> u8 {
             self.mock_data
         }
 
-        pub fn set_mock_address_value(&self, addr: u8) {
+        pub fn set_address_value(&self, addr: u8) {
             self.mock_addr.set(addr)
         }
 
-        pub fn set_mock_data_value(&mut self, data: u8) {
+        pub fn set_data_value(&mut self, data: u8) {
             self.mock_data = data;
         }
     }
 
     impl Vram for MockVram {
         fn write_address(&self, val: u8) {
-            self.set_mock_address_value(val)
+            self.set_address_value(val)
         }
 
         fn read_data_increment_address(&self) -> u8 {
-            self.mock_data_value()
+            self.data_value()
         }
 
         fn read_data(&self) -> u8 {
-            self.mock_data_value()
+            self.data_value()
         }
 
         fn write_data_increment_address(&mut self, val: u8) {
-            self.set_mock_data_value(val);
+            self.set_data_value(val);
         }
 
         fn clear_latch(&self) {}

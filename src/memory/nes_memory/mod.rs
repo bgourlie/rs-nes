@@ -1,4 +1,6 @@
 use super::{Memory, TickAction};
+use apu::Apu;
+use input::Input;
 use ppu::{Ppu, StepAction};
 use rom::NesRom;
 
@@ -10,6 +12,8 @@ pub struct NesMemory {
     ram: [u8; 0x800],
     rom: NesRom,
     ppu: Ppu,
+    apu: Apu,
+    input: Input,
 }
 
 impl NesMemory {
@@ -18,6 +22,8 @@ impl NesMemory {
             ram: [0_u8; 0x800],
             rom: rom,
             ppu: Ppu::default(),
+            apu: Apu,
+            input: Input,
         }
     }
 }
@@ -30,6 +36,8 @@ impl Clone for NesMemory {
             ram: new_ram,
             rom: self.rom.clone(),
             ppu: self.ppu.clone(),
+            apu: self.apu.clone(),
+            input: self.input.clone(),
         }
     }
 }
@@ -48,17 +56,23 @@ impl Memory for NesMemory {
     }
 
     fn store(&mut self, address: u16, value: u8) {
-        match address {
-            0x0...0x1fff => self.ram[address as usize & 0x7ff] = value,
-            0x2000...0x3fff => self.ppu.memory_mapped_register_write(address, value),
-            _ => panic!("Unimplemented: write to 0x{:0>4X}", address),
+        if address < 0x2000 {
+            self.ram[address as usize & 0x7ff] = value
+        } else if address < 0x4000 {
+            self.ppu.write(address, value)
+        } else if address == 0x4018 {
+            self.input.write(value)
+        } else if address < 0x4020 {
+            self.apu.write(address, value)
+        } else {
+            panic!("Unimplemented: write to 0x{:0>4X}", address)
         }
     }
 
     fn load(&self, address: u16) -> u8 {
         match address {
             0x0...0x1fff => self.ram[address as usize & 0x7ff],
-            0x2000...0x3fff => self.ppu.memory_mapped_register_read(address),
+            0x2000...0x3fff => self.ppu.read(address),
             0x4000...0x7fff => 0,
             _ => {
                 if self.rom.prg.len() > 16384 {
@@ -81,6 +95,7 @@ impl Memory for NesMemory {
             self.ppu.dump_registers(writer);
         }
 
+        // TODO: Wire up actual APU and Input values
         // 0x4000 to 0x401f (APU and IO regs placeholder)
         writer.write(&[0_u8; 0x20]).unwrap();
 

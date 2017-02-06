@@ -68,7 +68,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
-    pub fn memory_mapped_register_write(&mut self, addr: u16, val: u8) {
+    pub fn write(&mut self, addr: u16, val: u8) {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
@@ -85,7 +85,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Accepts a PPU memory mapped address and returns the value
-    pub fn memory_mapped_register_read(&self, addr: u16) -> u8 {
+    pub fn read(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
