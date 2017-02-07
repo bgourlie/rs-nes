@@ -4,6 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Bit;
@@ -13,7 +14,7 @@ impl OpCode for Bit {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         let lhs = cpu.registers.acc;
         let rhs = am.read();
         let res = lhs & rhs;

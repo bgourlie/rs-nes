@@ -1,5 +1,6 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct IndirectIndexed {
@@ -8,15 +9,15 @@ pub struct IndirectIndexed {
 }
 
 impl IndirectIndexed {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Result<Self, ()> {
+    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Result<Self> {
         let addr = cpu.read_pc()?;
         let y = cpu.registers.y;
         let base_addr = cpu.read_memory16_zp(addr)?;
@@ -42,7 +43,7 @@ impl<M: Memory> AddressingMode<M> for IndirectIndexed {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) -> Result<(), ()> {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) -> Result<()> {
         cpu.write_memory(self.addr, value)
     }
 }

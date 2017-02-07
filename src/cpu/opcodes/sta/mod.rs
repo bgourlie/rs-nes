@@ -4,6 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Sta;
@@ -15,7 +16,7 @@ impl OpCode for Sta {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         let acc = cpu.registers.acc;
         am.write(cpu, acc)
     }

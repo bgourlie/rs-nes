@@ -5,6 +5,7 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use cpu::opcodes::branch_base::branch;
+use errors::*;
 use memory::Memory;
 
 pub struct Bcs;
@@ -14,7 +15,7 @@ impl OpCode for Bcs {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         let carry_set = cpu.registers.carry_flag();
         branch(cpu, am, carry_set)
     }

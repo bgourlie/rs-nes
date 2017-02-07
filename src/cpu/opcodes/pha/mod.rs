@@ -4,6 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Pha;
@@ -13,7 +14,7 @@ impl OpCode for Pha {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        _: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         // Dummy read
         cpu.tick()?;
 

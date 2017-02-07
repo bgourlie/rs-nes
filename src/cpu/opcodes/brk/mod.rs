@@ -4,6 +4,7 @@ mod spec_tests;
 use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 const BRK_VECTOR: u16 = 0xfffe;
@@ -15,7 +16,7 @@ impl OpCode for Brk {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        _: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         cpu.registers.pc += 1;
         let pc = cpu.registers.pc;
         let status = cpu.registers.status;

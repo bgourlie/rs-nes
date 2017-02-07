@@ -74,16 +74,17 @@ mod jsr;
 
 use cpu::Cpu;
 use cpu::opcodes::addressing::*;
+use errors::*;
 use memory::Memory;
 
 trait OpCode {
     type Input;
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()>;
+                                                                       -> Result<()>;
 }
 
-pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) -> Result<(), ()> {
+pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) -> Result<()> {
     match opcode {
         0xe8 => self::inx::Inx::execute(cpu, Implied),
         0xca => self::dex::Dex::execute(cpu, Implied),
@@ -614,8 +615,6 @@ pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) -> Result<(), ()> {
             let am = AbsoluteAddress::init(cpu)?;
             self::jsr::Jsr::execute(cpu, am)
         }
-        _ => {
-            panic!("unexpected opcode encountered: {:0>2X}", opcode);
-        }
+        _ => bail!(ErrorKind::UnexpectedOpcodeError(opcode)),
     }
 }

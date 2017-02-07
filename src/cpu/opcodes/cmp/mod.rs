@@ -5,6 +5,7 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use cpu::opcodes::compare_base::compare;
+use errors::*;
 use memory::Memory;
 
 pub struct Cmp;
@@ -14,7 +15,7 @@ impl OpCode for Cmp {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         let val = cpu.registers.acc;
         compare(cpu, am, val);
         Ok(())

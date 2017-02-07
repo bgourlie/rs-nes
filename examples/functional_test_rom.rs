@@ -24,7 +24,7 @@ fn main() {
     debugger.start().unwrap();
 
     loop {
-        debugger.step();
+        debugger.step().unwrap();
     }
 }
 

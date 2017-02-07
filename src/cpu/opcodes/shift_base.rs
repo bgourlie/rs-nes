@@ -1,11 +1,12 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub fn shift_left<M: Memory, AM: AddressingMode<M, Output = u8>>(cpu: &mut Cpu<M>,
                                                                  am: AM,
                                                                  lsb: bool)
-                                                                 -> Result<(), ()> {
+                                                                 -> Result<()> {
     let val = am.read();
     let carry = (val & 0x80) != 0;
     let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
@@ -17,7 +18,7 @@ pub fn shift_left<M: Memory, AM: AddressingMode<M, Output = u8>>(cpu: &mut Cpu<M
 pub fn shift_right<M: Memory, AM: AddressingMode<M, Output = u8>>(cpu: &mut Cpu<M>,
                                                                   am: AM,
                                                                   msb: bool)
-                                                                  -> Result<(), ()> {
+                                                                  -> Result<()> {
     let val = am.read();
     let carry = (val & 0x1) != 0;
     let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };

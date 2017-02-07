@@ -1,11 +1,12 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub fn branch<M: Memory, AM: AddressingMode<M, Output = i8>>(cpu: &mut Cpu<M>,
                                                              am: AM,
                                                              condition: bool)
-                                                             -> Result<(), ()> {
+                                                             -> Result<()> {
     if condition {
         let rel_addr = am.read();
         let old_pc = cpu.registers.pc;

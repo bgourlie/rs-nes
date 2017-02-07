@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::byte_utils::wrapping_add;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct IndexedIndirect {
@@ -9,15 +10,15 @@ pub struct IndexedIndirect {
 }
 
 impl IndexedIndirect {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Result<Self, ()> {
+    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Result<Self> {
         let operand = cpu.read_pc()?;
         let base_addr = wrapping_add(operand, cpu.registers.x) as u16;
 
@@ -43,7 +44,7 @@ impl<M: Memory> AddressingMode<M> for IndexedIndirect {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) -> Result<(), ()> {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) -> Result<()> {
         cpu.write_memory(self.addr, value)
     }
 }

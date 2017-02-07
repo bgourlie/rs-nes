@@ -19,7 +19,7 @@ fn main() {
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
     debugger.start().unwrap();
     loop {
-        debugger.step();
+        debugger.step().unwrap();
     }
 }
 

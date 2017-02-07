@@ -1,3 +1,6 @@
+// `error_chain!` can recurse deeply
+#![recursion_limit = "1024"]
+
 #[cfg(feature = "debugger")]
 #[macro_use]
 extern crate log;
@@ -39,9 +42,13 @@ extern crate asm6502;
 #[cfg(test)]
 extern crate rand;
 
+#[macro_use]
+extern crate error_chain;
+
 pub mod rom;
 pub mod memory;
 pub mod cpu;
 mod input;
 mod apu;
 mod ppu;
+mod errors;

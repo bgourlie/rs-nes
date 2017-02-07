@@ -1,5 +1,6 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Immediate {
@@ -7,7 +8,7 @@ pub struct Immediate {
 }
 
 impl Immediate {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let val = cpu.read_pc()?;
         Ok(Immediate { value: val })
     }

@@ -1,5 +1,6 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Relative {
@@ -7,7 +8,7 @@ pub struct Relative {
 }
 
 impl Relative {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let offset = cpu.read_pc()? as i8;
         Ok(Relative { offset: offset })
     }

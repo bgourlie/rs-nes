@@ -5,6 +5,7 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use cpu::opcodes::branch_base::branch;
+use errors::*;
 use memory::Memory;
 
 pub struct Bpl;
@@ -14,7 +15,7 @@ impl OpCode for Bpl {
 
     fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
                                                                        am: AM)
-                                                                       -> Result<(), ()> {
+                                                                       -> Result<()> {
         let sign_clear = !cpu.registers.sign_flag();
         branch(cpu, am, sign_clear)
     }

@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::byte_utils::from_lo_hi;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 pub struct Indirect {
@@ -8,7 +9,7 @@ pub struct Indirect {
 }
 
 impl Indirect {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self, ()> {
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let addr = cpu.read_pc16()?;
 
         // Recreate hardware bug specific to indirect jmp
