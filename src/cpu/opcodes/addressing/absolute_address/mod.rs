@@ -1,5 +1,6 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
+use errors::*;
 use memory::Memory;
 
 /// An absolute addressing mode for instructions that operate on the actually memory address, and
@@ -9,8 +10,8 @@ pub struct AbsoluteAddress {
 }
 
 impl AbsoluteAddress {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
-        AbsoluteAddress { addr: cpu.read_pc16() }
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
+        Ok(AbsoluteAddress { addr: cpu.read_pc16()? })
     }
 }
 

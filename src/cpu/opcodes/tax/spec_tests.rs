@@ -8,7 +8,7 @@ fn tax() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.acc = 0xff;
     cpu.registers.x = 0x0;
-    Tax::execute(&mut cpu, Implied);
+    Tax::execute(&mut cpu, Implied).unwrap();
     assert_eq!(0xff, cpu.registers.x);
 }
 

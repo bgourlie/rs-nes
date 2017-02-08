@@ -7,7 +7,7 @@ use cpu::opcodes::iny::Iny;
 fn test1() {
     inc_base_1(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Iny::execute(cpu, Implied);
+        Iny::execute(cpu, Implied).unwrap();
         cpu.registers.y
     });
 }
@@ -16,7 +16,7 @@ fn test1() {
 fn test2() {
     inc_base_2(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Iny::execute(cpu, Implied);
+        Iny::execute(cpu, Implied).unwrap();
         cpu.registers.y
     });
 }
@@ -25,7 +25,7 @@ fn test2() {
 fn test3() {
     inc_base_3(|ref mut cpu, val| {
         cpu.registers.y = val;
-        Iny::execute(cpu, Implied);
+        Iny::execute(cpu, Implied).unwrap();
         cpu.registers.y
     });
 }

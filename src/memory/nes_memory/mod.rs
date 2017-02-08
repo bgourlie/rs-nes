@@ -1,5 +1,7 @@
-use super::{Memory, TickAction};
+use super::Memory;
 use apu::Apu;
+use cpu::TickAction;
+use errors::*;
 use input::Input;
 use ppu::{Ppu, StepAction};
 use rom::NesRom;
@@ -44,22 +46,23 @@ impl Clone for NesMemory {
 
 // Currently NROM only
 impl Memory for NesMemory {
-    fn tick(&mut self) -> TickAction {
+    fn tick(&mut self) -> Result<TickAction> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
             if self.ppu.step() == StepAction::VBlankNmi {
+                // TODO: https://github.com/bgourlie/rs-nes/issues/14
                 tick_action = TickAction::Nmi;
             };
         }
-        tick_action
+        Ok(tick_action)
     }
 
-    fn store(&mut self, address: u16, value: u8) {
+    fn store(&mut self, address: u16, value: u8) -> Result<()> {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
-            self.ppu.write(address, value)
+            self.ppu.write(address, value)?
         } else if address == 0x4018 {
             self.input.write(value)
         } else if address < 0x4020 {
@@ -69,13 +72,14 @@ impl Memory for NesMemory {
         } else {
             panic!("Unimplemented: write to 0x{:0>4X}", address)
         }
+        Ok(())
     }
 
-    fn load(&self, address: u16) -> u8 {
-        if address < 0x2000 {
+    fn load(&self, address: u16) -> Result<u8> {
+        let val = if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
         } else if address < 0x4000 {
-            self.ppu.read(address)
+            self.ppu.read(address)?
         } else if address < 0x8000 {
             0
         } else {
@@ -84,7 +88,8 @@ impl Memory for NesMemory {
             } else {
                 self.rom.prg[address as usize & 0x3fff]
             }
-        }
+        };
+        Ok(val)
     }
 
     fn dump<T: Write>(&self, writer: &mut T) {

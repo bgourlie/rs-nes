@@ -11,6 +11,7 @@ mod scroll_register;
 mod object_attribute_memory;
 mod vram;
 
+use errors::*;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
@@ -68,7 +69,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
-    pub fn write(&mut self, addr: u16, val: u8) {
+    pub fn write(&mut self, addr: u16, val: u8) -> Result<()> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
@@ -79,16 +80,17 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
             0x6 => self.vram.write_address(val),
-            0x7 => self.vram.write_data_increment_address(val),
+            0x7 => self.vram.write_data_increment_address(val)?,
             _ => panic!("impossible"),
         }
+        Ok(())
     }
 
     /// Accepts a PPU memory mapped address and returns the value
-    pub fn read(&self, addr: u16) -> u8 {
+    pub fn read(&self, addr: u16) -> Result<u8> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
-        match addr & 7 {
+        let val = match addr & 7 {
             0x0 => *self.control,
             0x1 => *self.mask,
             0x2 => {
@@ -105,10 +107,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram.read_data_increment_address(),
+            0x7 => self.vram.read_data_increment_address()?,
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => panic!("impossible"),
-        }
+        };
+        Ok(val)
     }
 
     /// Dump register memory
@@ -121,7 +124,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
-                    self.vram.read_data()];
+                    self.vram.read_data().unwrap()];
 
         writer.write(&regs).unwrap()
     }

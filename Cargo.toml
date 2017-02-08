@@ -10,7 +10,7 @@ debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", 
 [dependencies]
 log = "*"
 env_logger = "*"
-rand = "*"
+error-chain = "*"
 
 # Debugger dependencies
 websocket = {version = "*", optional = true}

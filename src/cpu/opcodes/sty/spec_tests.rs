@@ -9,6 +9,6 @@ fn stx() {
     cpu.registers.y = 0xff;
     let am = WriterAddressingMode::new();
     let write_ref = am.write_ref();
-    Sty::execute(&mut cpu, am);
+    Sty::execute(&mut cpu, am).unwrap();
     assert_eq!(0xff, write_ref.get());
 }

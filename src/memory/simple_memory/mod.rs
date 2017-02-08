@@ -1,4 +1,5 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
+use errors::*;
 
 #[cfg(feature = "debugger")]
 use seahash;
@@ -15,7 +16,7 @@ impl SimpleMemory {
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
         for (i, byte) in data.iter().enumerate() {
-            self.store(addr + i as u16, *byte);
+            self.store(addr + i as u16, *byte).unwrap();
         }
     }
 }
@@ -33,14 +34,15 @@ impl Default for SimpleMemory {
 }
 
 impl Memory for SimpleMemory {
-    fn store(&mut self, addr: u16, data: u8) {
+    fn store(&mut self, addr: u16, data: u8) -> Result<()> {
         let addr = addr as usize;
         self.addr[addr] = data;
+        Ok(())
     }
 
-    fn load(&self, addr: u16) -> u8 {
+    fn load(&self, addr: u16) -> Result<u8> {
         let addr = addr as usize;
-        self.addr[addr]
+        Ok(self.addr[addr])
     }
 
     fn dump<T: Write>(&self, writer: &mut T) {
