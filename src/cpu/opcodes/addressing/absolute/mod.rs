@@ -25,7 +25,7 @@ impl Absolute {
         let addr = cpu.read_pc16()?;
 
         // Read must consume a cycle for stores, so we call cpu.memory.load() directly
-        let value = cpu.memory.load(addr);
+        let value = cpu.memory.load(addr)?;
 
         Ok(Absolute {
             addr: addr,

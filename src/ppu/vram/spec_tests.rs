@@ -40,15 +40,15 @@ fn internal_memory_mapping_read() {
     vram.palette = [3; 0x20];
 
     for _ in 0..0x2000 {
-        assert_eq!(1, vram.read_data_increment_address())
+        assert_eq!(1, vram.read_data_increment_address().unwrap())
     }
 
     for _ in 0x2000..0x3f00 {
-        assert_eq!(2, vram.read_data_increment_address())
+        assert_eq!(2, vram.read_data_increment_address().unwrap())
     }
 
     for _ in 0x3f00..0x4000 {
-        assert_eq!(3, vram.read_data_increment_address())
+        assert_eq!(3, vram.read_data_increment_address().unwrap())
     }
 }
 
@@ -57,15 +57,15 @@ fn internal_memory_mapping_write() {
     let mut vram = VramBase::default();
 
     for _ in 0..0x2000 {
-        vram.write_data_increment_address(1)
+        vram.write_data_increment_address(1).unwrap()
     }
 
     for _ in 0x2000..0x3f00 {
-        vram.write_data_increment_address(2)
+        vram.write_data_increment_address(2).unwrap()
     }
 
     for _ in 0x3f00..0x4000 {
-        vram.write_data_increment_address(3)
+        vram.write_data_increment_address(3).unwrap()
     }
 
     assert_eq!(true, vram.pattern_tables.into_iter().all(|val| *val == 1));

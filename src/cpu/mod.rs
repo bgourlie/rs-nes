@@ -67,7 +67,7 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     fn read_memory(&mut self, addr: u16) -> Result<u8> {
-        let val = self.memory.load(addr);
+        let val = self.memory.load(addr)?;
         self.tick()?;
         Ok(val)
     }
@@ -85,7 +85,7 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     fn write_memory(&mut self, addr: u16, val: u8) -> Result<()> {
-        self.memory.store(addr, val);
+        self.memory.store(addr, val)?;
         self.tick()
     }
 

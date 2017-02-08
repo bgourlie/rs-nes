@@ -25,7 +25,7 @@ impl ZeroPage {
         let addr = cpu.read_pc()? as u16;
 
         // Read must consume a cycle for stores, so we call cpu.memory.load() directly
-        let val = cpu.memory.load(addr);
+        let val = cpu.memory.load(addr)?;
 
         Ok(ZeroPage {
             addr: addr,

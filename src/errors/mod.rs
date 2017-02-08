@@ -2,6 +2,8 @@
 pub enum CrashReason {
     InvalidOperation(String),
     UnexpectedOpcode(u8),
+    InvalidVramAccess(u16),
+    Unimplemented(String),
 }
 
 error_chain! {

@@ -1,3 +1,4 @@
+use errors::*;
 use std::cell::Cell;
 
 #[cfg(test)]
@@ -17,9 +18,9 @@ impl Default for LatchState {
 
 pub trait Vram: Clone + Default {
     fn write_address(&self, val: u8);
-    fn read_data_increment_address(&self) -> u8;
-    fn read_data(&self) -> u8;
-    fn write_data_increment_address(&mut self, val: u8);
+    fn read_data_increment_address(&self) -> Result<u8>;
+    fn read_data(&self) -> Result<u8>;
+    fn write_data_increment_address(&mut self, val: u8) -> Result<()>;
     fn clear_latch(&self);
 }
 
@@ -64,15 +65,15 @@ impl Vram for VramBase {
         self.write_address(val)
     }
 
-    fn read_data_increment_address(&self) -> u8 {
+    fn read_data_increment_address(&self) -> Result<u8> {
         self.read_data_increment_address()
     }
 
-    fn read_data(&self) -> u8 {
+    fn read_data(&self) -> Result<u8> {
         self.read_data()
     }
 
-    fn write_data_increment_address(&mut self, val: u8) {
+    fn write_data_increment_address(&mut self, val: u8) -> Result<()> {
         self.write_data_increment_address(val)
     }
     fn clear_latch(&self) {
@@ -96,13 +97,13 @@ impl VramBase {
         }
     }
 
-    pub fn read_data_increment_address(&self) -> u8 {
-        let val = self.read_data();
+    pub fn read_data_increment_address(&self) -> Result<u8> {
+        let val = self.read_data()?;
         self.address.set(self.address.get() + 1);
-        val
+        Ok(val)
     }
 
-    pub fn read_data(&self) -> u8 {
+    pub fn read_data(&self) -> Result<u8> {
         let addr = self.address.get();
         let val = if addr < 0x2000 {
             self.pattern_tables[addr as usize]
@@ -111,12 +112,12 @@ impl VramBase {
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f]
         } else {
-            panic!("Attempt to read invalid vram address: {}", addr)
+            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
         };
-        val
+        Ok(val)
     }
 
-    pub fn write_data_increment_address(&mut self, val: u8) {
+    pub fn write_data_increment_address(&mut self, val: u8) -> Result<()> {
         let addr = self.address.get();
 
         if addr < 0x2000 {
@@ -126,10 +127,11 @@ impl VramBase {
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f] = val;
         } else {
-            panic!("Attempt to write invalid vram address: {:0>4X}", addr)
+            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
         }
 
         self.address.set(addr + 1);
+        Ok(())
     }
 
     pub fn clear_latch(&self) {
