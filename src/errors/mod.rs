@@ -1,6 +1,11 @@
+#[derive(Debug)]
+pub enum CrashReason {
+    InvalidOperation(String),
+    UnexpectedOpcode(u8),
+}
+
 error_chain! {
     errors {
-        InvalidOperation(desc: String) {}
-        UnexpectedOpcodeError(opcode: u8){}
+        Crash(reason: CrashReason){}
     }
 }

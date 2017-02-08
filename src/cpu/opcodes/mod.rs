@@ -615,6 +615,6 @@ pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) -> Result<()> {
             let am = AbsoluteAddress::init(cpu)?;
             self::jsr::Jsr::execute(cpu, am)
         }
-        _ => bail!(ErrorKind::UnexpectedOpcodeError(opcode)),
+        _ => bail!(ErrorKind::Crash(CrashReason::UnexpectedOpcode(opcode))),
     }
 }

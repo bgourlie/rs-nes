@@ -5,7 +5,8 @@ use memory::Memory;
 pub fn adc_base<M: Memory>(cpu: &mut Cpu<M>, lhs: u8, rhs: u8) -> Result<()> {
 
     if cpu.registers.decimal_flag() {
-        bail!(ErrorKind::InvalidOperation("Attempted decimal mode arithmetic".to_owned()));
+        let msg = "Attempted decimal mode arithmetic".to_owned();
+        bail!(ErrorKind::Crash(CrashReason::InvalidOperation(msg)));
     } else {
         // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
         let carry = if cpu.registers.carry_flag() { 1 } else { 0 };
