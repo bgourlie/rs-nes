@@ -18,24 +18,21 @@ fn functional_test() {
     let mut last_pc = PC_START;
 
     loop {
-        if let Ok(_) = cpu.step() {
-            // Prevent endless loop
-            if cpu.cycles > MAX_CYCLES {
-                assert!(false, "Took too many cycles to complete");
-            }
-
-            if cpu.registers.pc == 0x3399 {
-                // Success!
-                return;
-            }
-
-            if last_pc == cpu.registers.pc {
-                assert!(false, "Trap detected");
-            }
-
-            last_pc = cpu.registers.pc;
-        } else {
-            panic!("CPU Crashed!")
+        cpu.step().unwrap();
+        // Prevent endless loop
+        if cpu.cycles > MAX_CYCLES {
+            assert!(false, "Took too many cycles to complete");
         }
+
+        if cpu.registers.pc == 0x3399 {
+            // Success!
+            return;
+        }
+
+        if last_pc == cpu.registers.pc {
+            assert!(false, "Trap detected");
+        }
+
+        last_pc = cpu.registers.pc;
     }
 }
