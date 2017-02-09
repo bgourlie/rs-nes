@@ -96,7 +96,7 @@ impl<Mem: Memory> Cpu<Mem> {
         Ok(())
     }
 
-    pub fn nmi(&mut self) -> Result<()> {
+    fn nmi(&mut self) -> Result<()> {
         let stat = self.registers.status;
         let pc = self.registers.pc;
         self.push_stack16(pc)?;
