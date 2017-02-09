@@ -68,9 +68,8 @@ impl Memory for NesMemory {
         } else if address < 0x4020 {
             self.apu.write(address, value)
         } else {
-            bail!(ErrorKind::Crash(CrashReason::Unimplemented(format!("Unimplemented: write to \
-                                                                    0x{:0>4X}",
-                                                                   address))))
+            let msg = format!("Unimplemented: write to 0x{:0>4X}", address);
+            bail!(ErrorKind::Crash(CrashReason::Unimplemented(msg)))
         }
         Ok(())
     }
