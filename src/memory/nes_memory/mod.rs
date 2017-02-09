@@ -58,7 +58,7 @@ impl Memory for NesMemory {
         Ok(tick_action)
     }
 
-    fn store(&mut self, address: u16, value: u8) -> Result<()> {
+    fn write(&mut self, address: u16, value: u8) -> Result<()> {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
@@ -75,7 +75,7 @@ impl Memory for NesMemory {
         Ok(())
     }
 
-    fn load(&self, address: u16) -> Result<u8> {
+    fn read(&self, address: u16) -> Result<u8> {
         let val = if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
         } else if address < 0x4000 {
