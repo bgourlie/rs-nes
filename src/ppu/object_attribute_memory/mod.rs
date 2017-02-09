@@ -85,7 +85,7 @@ impl ObjectAttributeMemoryBase {
             1 => PaletteIndex::One,
             2 => PaletteIndex::Two,
             3 => PaletteIndex::Three,
-            _ => panic!("impossible"),
+            _ => unreachable!(),
         };
 
         let priority = if attributes & 0b00100000 == 0 {
