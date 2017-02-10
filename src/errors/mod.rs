@@ -1,9 +1,9 @@
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum CrashReason {
     InvalidOperation(String),
     UnexpectedOpcode(u8),
     InvalidVramAccess(u16),
-    Unimplemented(String),
+    UnimplementedOperation(String),
 }
 
 error_chain! {

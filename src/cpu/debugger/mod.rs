@@ -10,6 +10,7 @@ use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
+use errors::*;
 use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
@@ -17,6 +18,7 @@ use serde_json;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
+use std::time::Duration;
 use websocket::{Message as WsMessage, Server as WsServer};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
@@ -53,13 +55,13 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         }
     }
 
-    pub fn start(&mut self) -> Result<(), String> {
+    pub fn start(&mut self) -> Result<()> {
         self.start_http_server_thread()?;
         self.start_websocket_thread()?;
         Ok(())
     }
 
-    pub fn step(&mut self) -> super::StepResult {
+    pub fn step(&mut self) -> Result<()> {
         let cpu = &mut (*self.cpu.lock().unwrap());
         if let Some(break_reason) = self.break_reason(cpu) {
             {
@@ -75,7 +77,18 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             thread::park();
         }
         self.last_pc = cpu.registers.pc;
-        cpu.step()
+        let result = cpu.step();
+
+        if let Err(Error(ErrorKind::Crash(ref reason), _)) = result {
+            let mem_snapshot = self.memory_snapshot(cpu);
+            let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cpu.cycles);
+            self.ws_tx.send(DebuggerCommand::Crash(reason.clone(), snapshot));
+
+            // Give the web socket thread enough time to send the Crash message
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        result
     }
 
     fn break_reason(&self, cpu: &Cpu<Mem>) -> Option<BreakReason> {
@@ -107,7 +120,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         }
     }
 
-    fn start_websocket_thread(&mut self) -> Result<(), String> {
+    fn start_websocket_thread(&mut self) -> Result<()> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string())?;
         info!("Waiting for debugger to attach");
@@ -135,7 +148,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         Ok(())
     }
 
-    fn start_http_server_thread(&self) -> Result<(), String> {
+    fn start_http_server_thread(&self) -> Result<()> {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();

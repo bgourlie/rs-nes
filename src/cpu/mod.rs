@@ -41,8 +41,6 @@ pub enum TickAction {
     Nmi,
 }
 
-pub type StepResult = Result<()>;
-
 pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
@@ -61,7 +59,7 @@ impl<Mem: Memory> Cpu<Mem> {
         cpu
     }
 
-    pub fn step(&mut self) -> StepResult {
+    pub fn step(&mut self) -> Result<()> {
         let opcode = self.read_pc()?;
         self::opcodes::execute(self, opcode)
     }
