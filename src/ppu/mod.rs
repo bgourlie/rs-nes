@@ -28,7 +28,14 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
-pub type Ppu = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
+pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
+
+pub trait Ppu: Clone + Default {
+    fn write(&mut self, addr: u16, val: u8) -> Result<()>;
+    fn read(&self, addr: u16) -> Result<u8>;
+    fn step(&mut self) -> StepAction;
+    fn dump_registers<T: Write>(&self, writer: &mut T) -> usize;
+}
 
 #[derive(Clone, Default)]
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
@@ -127,5 +134,23 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     self.vram.read_data().unwrap()];
 
         writer.write(&regs).unwrap()
+    }
+}
+
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
+    fn write(&mut self, addr: u16, val: u8) -> Result<()> {
+        self.write(addr, val)
+    }
+
+    fn read(&self, addr: u16) -> Result<u8> {
+        self.read(addr)
+    }
+
+    fn step(&mut self) -> StepAction {
+        self.step()
+    }
+
+    fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
+        self.dump_registers(writer)
     }
 }

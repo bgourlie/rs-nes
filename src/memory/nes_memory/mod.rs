@@ -1,40 +1,45 @@
+#[cfg(test)]
+mod spec_tests;
+
 use super::Memory;
-use apu::Apu;
+use apu::{Apu, ApuBase};
 use cpu::TickAction;
 use errors::*;
-use input::Input;
-use ppu::{Ppu, StepAction};
+use input::{Input, InputBase};
+use ppu::{Ppu, PpuImpl, StepAction};
 use rom::NesRom;
 
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
 
-pub struct NesMemory {
+pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;
+
+pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
     ram: [u8; 0x800],
     rom: NesRom,
-    ppu: Ppu,
-    apu: Apu,
-    input: Input,
+    ppu: P,
+    apu: A,
+    input: I,
 }
 
-impl NesMemory {
+impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
     pub fn new(rom: NesRom) -> Self {
-        NesMemory {
+        NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
-            ppu: Ppu::default(),
-            apu: Apu,
-            input: Input,
+            ppu: P::default(),
+            apu: A::default(),
+            input: I::default(),
         }
     }
 }
 
-impl Clone for NesMemory {
+impl<P: Ppu, A: Apu, I: Input> Clone for NesMemoryBase<P, A, I> {
     fn clone(&self) -> Self {
         // This copies the array since the element type (u8) implements Copy
         let new_ram = self.ram;
-        NesMemory {
+        NesMemoryBase {
             ram: new_ram,
             rom: self.rom.clone(),
             ppu: self.ppu.clone(),
@@ -45,7 +50,7 @@ impl Clone for NesMemory {
 }
 
 // Currently NROM only
-impl Memory for NesMemory {
+impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Result<TickAction> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
@@ -63,9 +68,9 @@ impl Memory for NesMemory {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
             self.ppu.write(address, value)?
-        } else if address == 0x4018 {
-            self.input.write(value)
-        } else if address < 0x4020 {
+        } else if address == 0x4016 {
+            self.input.write_probe(value)
+        } else if address < 0x4018 {
             self.apu.write(address, value)
         } else {
             let msg = format!("Write to 0x{:0>4X}", address);
@@ -79,8 +84,15 @@ impl Memory for NesMemory {
             self.ram[address as usize & 0x7ff]
         } else if address < 0x4000 {
             self.ppu.read(address)?
+        } else if address == 0x4015 {
+            self.apu.read_control()
+        } else if address == 0x4016 {
+            self.input.read_joy_1()
+        } else if address == 0x4017 {
+            self.input.read_joy_2()
         } else if address < 0x8000 {
-            0
+            let msg = format!("Read from 0x{:0>4X}", address);
+            bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
         } else {
             if self.rom.prg.len() > 16384 {
                 self.rom.prg[address as usize & 0x7fff]

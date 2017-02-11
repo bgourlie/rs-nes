@@ -1,6 +1,11 @@
-#[derive(Clone)]
-pub struct Apu;
+#[derive(Clone, Default)]
+pub struct ApuBase;
 
-impl Apu {
-    pub fn write(&mut self, _: u16, _: u8) {}
+pub trait Apu: Clone + Default {
+    fn write(&mut self, _: u16, _: u8) {}
+    fn read_control(&self) -> u8 {
+        0
+    }
 }
+
+impl Apu for ApuBase {}
