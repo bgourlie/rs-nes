@@ -106,7 +106,7 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
     fn dump<T: Write>(&self, writer: &mut T) {
         // 0x0 to 0x1fff
         for _ in 0..4 {
-            writer.write(&self.ram).unwrap();
+            writer.write_all(&self.ram).unwrap();
         }
 
         // 0x2000 to 0x3fff
@@ -116,20 +116,19 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
 
         // TODO: Wire up actual APU and Input values
         // 0x4000 to 0x401f (APU and IO regs placeholder)
-        writer.write(&[0_u8; 0x20]).unwrap();
+        writer.write_all(&[0_u8; 0x20]).unwrap();
 
         // Not sure what goes here, but gotta pad it for now to have correct ROM size
-        writer.write(&[0_u8; 16352]).unwrap();
+        writer.write_all(&[0_u8; 16352]).unwrap();
 
         // 0x6000 to 0xFFFF
         if self.rom.prg.len() > 0x4000 {
-            writer.write(&self.rom.prg).unwrap();
+            writer.write_all(&self.rom.prg).unwrap();
         } else {
             // PRG is mirrored if only one bank
-            writer.write(&self.rom.prg).unwrap();
-            writer.write(&self.rom.prg).unwrap();
+            writer.write_all(&self.rom.prg).unwrap();
+            writer.write_all(&self.rom.prg).unwrap();
         }
-
     }
 
     #[cfg(feature = "debugger")]

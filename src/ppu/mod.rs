@@ -34,7 +34,7 @@ pub trait Ppu: Clone + Default {
     fn write(&mut self, addr: u16, val: u8) -> Result<()>;
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> StepAction;
-    fn dump_registers<T: Write>(&self, writer: &mut T) -> usize;
+    fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
 #[derive(Clone, Default)]
@@ -122,7 +122,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Dump register memory
-    pub fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
+    pub fn dump_registers<T: Write>(&self, writer: &mut T) {
 
         let regs = [*self.control,
                     *self.mask,
@@ -133,7 +133,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     0, // Write-only
                     self.vram.read_data().unwrap()];
 
-        writer.write(&regs).unwrap()
+        writer.write_all(&regs).unwrap()
     }
 }
 
@@ -150,7 +150,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         self.step()
     }
 
-    fn dump_registers<T: Write>(&self, writer: &mut T) -> usize {
+    fn dump_registers<T: Write>(&self, writer: &mut T) {
         self.dump_registers(writer)
     }
 }
