@@ -1,4 +1,3 @@
-
 use self::mocks::new_fixture;
 use memory::Memory;
 
@@ -203,7 +202,7 @@ mod mocks {
             unimplemented!()
         }
 
-        fn dump_registers<T: Write>(&self, _: &mut T) -> usize {
+        fn dump_registers<T: Write>(&self, _: &mut T) {
             unimplemented!()
         }
     }
