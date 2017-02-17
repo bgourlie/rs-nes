@@ -24,12 +24,9 @@ impl ZeroPage {
     pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let addr = cpu.read_pc()? as u16;
 
-        // Read must consume a cycle for stores, so we call cpu.memory.load() directly
-        let val = cpu.memory.read(addr)?;
-
         Ok(ZeroPage {
             addr: addr,
-            value: val,
+            value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
             is_store: true,
         })
     }

@@ -44,7 +44,12 @@ impl AbsoluteX {
             cpu.tick()?;
         }
 
-        let val = cpu.read_memory(target_addr)?;
+        let val = if variant != Variant::Store {
+            cpu.read_memory(target_addr)?
+        } else {
+            cpu.tick()?;
+            0x0 // Stores do not read memory and can cause illegal memory access if attempted
+        };
 
         Ok(AbsoluteX {
             addr: target_addr,

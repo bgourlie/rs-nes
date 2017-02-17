@@ -28,7 +28,12 @@ impl ZeroPageY {
             cpu.tick()?;
         }
 
-        let val = cpu.read_memory(target_addr)?;
+        let val = if !is_store {
+            cpu.read_memory(target_addr)?
+        } else {
+            cpu.tick()?;
+            0x0 // Stores don't read memory, can cause illegal memory access if attempted
+        };
 
         Ok(ZeroPageY {
             addr: target_addr,

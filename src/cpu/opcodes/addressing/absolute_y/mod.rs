@@ -26,7 +26,12 @@ impl AbsoluteY {
             cpu.tick()?
         }
 
-        let val = cpu.read_memory(target_addr)?;
+        let val = if !is_store {
+            cpu.read_memory(target_addr)?
+        } else {
+            cpu.tick()?;
+            0x0 // Stores do not read memory and can cause illegal memory access if attempted
+        };
 
         Ok(AbsoluteY {
             addr: target_addr,

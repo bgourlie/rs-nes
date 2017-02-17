@@ -24,12 +24,9 @@ impl Absolute {
     pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let addr = cpu.read_pc16()?;
 
-        // Read must consume a cycle for stores, so we call cpu.memory.load() directly
-        let value = cpu.memory.read(addr)?;
-
         Ok(Absolute {
             addr: addr,
-            value: value,
+            value: 0, // Stores don't use the value and can cause illegal memory access if attempted
             is_store: true,
         })
     }
