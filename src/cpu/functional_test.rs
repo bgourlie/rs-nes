@@ -10,10 +10,9 @@ const MAX_CYCLES: u64 = 100000000;
 fn functional_test() {
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
-    let bytes_read = f.read_to_end(&mut rom).unwrap();
-    assert!(bytes_read == 65536);
+    f.read_to_end(&mut rom).unwrap();
     let mut mem = SimpleMemory::new();
-    mem.store_many(0, &rom);
+    mem.store_many(PC_START, &rom);
     let mut cpu = Cpu::new(mem, PC_START);
     let mut last_pc = PC_START;
 
@@ -24,7 +23,7 @@ fn functional_test() {
             assert!(false, "Took too many cycles to complete");
         }
 
-        if cpu.registers.pc == 0x3399 {
+        if cpu.registers.pc == 0x3367 {
             // Success!
             return;
         }
