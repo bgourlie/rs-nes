@@ -40,7 +40,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
     pub fn new(cpu: Cpu<Mem>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
-        let instructions = InstructionDecoder::new(&buf, cpu.registers.pc as usize).collect();
+        let instructions = InstructionDecoder::new(&buf, cpu.registers.pc).collect();
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,
