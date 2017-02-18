@@ -19,7 +19,7 @@ fn main() {
     f.read_to_end(&mut buf).unwrap();
     let mut mem = SimpleMemory::new();
     mem.store_many(PC_START, &buf);
-    let cpu = Cpu::new(mem, PC_START);
+    let cpu = Cpu::new_init_pc(mem, PC_START);
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
     debugger.start().unwrap();
 

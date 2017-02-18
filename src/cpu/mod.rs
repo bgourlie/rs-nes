@@ -30,7 +30,7 @@ pub type TestCpu = Cpu<SimpleMemory>;
 impl TestCpu {
     pub fn new_test() -> Self {
         let memory = SimpleMemory::new();
-        Cpu::new(memory, 0x200)
+        Cpu::new_init_pc(memory, 0x200)
     }
 }
 
@@ -48,15 +48,18 @@ pub struct Cpu<M: Memory> {
 }
 
 impl<Mem: Memory> Cpu<Mem> {
-    pub fn new(memory: Mem, pc: u16) -> Self {
-        let mut cpu = Cpu {
+    pub fn new_init_pc(memory: Mem, pc: u16) -> Self {
+        let mut cpu = Self::new(memory);
+        cpu.registers.pc = pc;
+        cpu
+    }
+
+    pub fn new(memory: Mem) -> Self {
+        Cpu {
             registers: Registers::new(),
             memory: memory,
             cycles: 0,
-        };
-
-        cpu.registers.pc = pc;
-        cpu
+        }
     }
 
     pub fn step(&mut self) -> Result<()> {

@@ -15,7 +15,8 @@ fn main() {
     let rom = NesRom::read("test_roms/mario.nes").unwrap();
     println!("ROM Mapper: {}", rom.mapper);
     let mem = NesMemoryImpl::new(rom);
-    let cpu = Cpu::new(mem, 0x8000);
+    let mut cpu = Cpu::new(mem);
+    cpu.reset().unwrap();
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
     debugger.start().unwrap();
     loop {

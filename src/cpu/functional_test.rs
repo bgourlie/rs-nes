@@ -13,7 +13,7 @@ fn functional_test() {
     f.read_to_end(&mut rom).unwrap();
     let mut mem = SimpleMemory::new();
     mem.store_many(PC_START, &rom);
-    let mut cpu = Cpu::new(mem, PC_START);
+    let mut cpu = Cpu::new_init_pc(mem, PC_START);
     let mut last_pc = PC_START;
 
     loop {
