@@ -2,7 +2,7 @@
 mod spec_tests;
 
 #[cfg(test)]
-mod functional_test;
+mod functional_tests;
 
 #[cfg(test)]
 mod length_and_timing_tests;
@@ -22,6 +22,7 @@ use memory::*;
 const STACK_LOC: u16 = 0x100;
 const NMI_VECTOR: u16 = 0xfffa;
 const RESET_VECTOR: u16 = 0xfffc;
+const BREAK_VECTOR: u16 = 0xfffe;
 
 #[cfg(test)]
 pub type TestCpu = Cpu<SimpleMemory>;
@@ -67,6 +68,40 @@ impl<Mem: Memory> Cpu<Mem> {
         self::opcodes::execute(self, opcode)
     }
 
+    pub fn reset(&mut self) -> Result<()> {
+        let pc_low = self.read_memory(RESET_VECTOR)?;
+        let pc_high = self.read_memory(RESET_VECTOR + 1)?;
+        self.registers.pc = from_lo_hi(pc_low, pc_high);
+        Ok(())
+    }
+
+    fn nmi(&mut self) -> Result<()> {
+        self.push_pc_and_status()?;
+        let pc = self.read_memory16(NMI_VECTOR)?;
+        self.registers.set_interrupt_disable_flag(true);
+        self.registers.pc = pc;
+        Ok(())
+    }
+
+    fn irq(&mut self) -> Result<()> {
+        if self.registers.interrupt_disable_flag() {
+            Ok(())
+        } else {
+            self.push_pc_and_status()?;
+            let pc = self.read_memory16(BREAK_VECTOR)?;
+            self.registers.set_interrupt_disable_flag(true);
+            self.registers.pc = pc;
+            Ok(())
+        }
+    }
+
+    fn push_pc_and_status(&mut self) -> Result<()> {
+        let stat = self.registers.status_sans_break();
+        let pc = self.registers.pc;
+        self.push_stack16(pc)?;
+        self.push_stack(stat)
+    }
+
     fn read_memory(&mut self, addr: u16) -> Result<u8> {
         let val = self.memory.read(addr)?;
         self.tick()?;
@@ -88,23 +123,6 @@ impl<Mem: Memory> Cpu<Mem> {
     fn write_memory(&mut self, addr: u16, val: u8) -> Result<()> {
         self.memory.write(addr, val)?;
         self.tick()
-    }
-
-    pub fn reset(&mut self) -> Result<()> {
-        let pc_low = self.read_memory(RESET_VECTOR)?;
-        let pc_high = self.read_memory(RESET_VECTOR + 1)?;
-        self.registers.pc = from_lo_hi(pc_low, pc_high);
-        Ok(())
-    }
-
-    fn nmi(&mut self) -> Result<()> {
-        let stat = self.registers.status;
-        let pc = self.registers.pc;
-        self.push_stack16(pc)?;
-        self.push_stack(stat)?;
-        let pc = self.read_memory16(NMI_VECTOR)?;
-        self.registers.pc = pc;
-        Ok(())
     }
 
     fn tick(&mut self) -> Result<()> {

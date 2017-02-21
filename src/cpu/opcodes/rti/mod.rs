@@ -23,7 +23,7 @@ impl OpCode for Rti {
 
         let stat = cpu.pop_stack()?;
         let pc = cpu.pop_stack16()?;
-        cpu.registers.status = stat;
+        cpu.registers.set_status_from_stack(stat);
         cpu.registers.pc = pc;
         Ok(())
     }

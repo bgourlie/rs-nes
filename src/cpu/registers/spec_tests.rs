@@ -37,15 +37,6 @@ fn decimal_flag() {
 }
 
 #[test]
-fn break_flag() {
-    let regs = new_with_status(0b00000000);
-    assert_eq!(false, regs.break_flag());
-
-    let regs = new_with_status(0b00010000);
-    assert_eq!(true, regs.break_flag())
-}
-
-#[test]
 fn overflow_flag() {
     let regs = new_with_status(0b00000000);
     assert_eq!(false, regs.overflow_flag());
@@ -69,13 +60,6 @@ fn set_status_from_stack() {
     let mut regs = new_with_status(0b00110000);
     regs.set_status_from_stack(0b00000000);
     assert_eq!(0b00110000, regs.status);
-}
-
-#[test]
-fn status_for_stack() {
-    // Break and unused bits are always set when pushing to stack
-    let regs = new_with_status(0b00000000);
-    assert_eq!(0b00110000, regs.status_for_stack());
 }
 
 fn new_with_status(stat: u8) -> Registers {

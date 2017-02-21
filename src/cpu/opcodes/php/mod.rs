@@ -18,7 +18,7 @@ impl OpCode for Php {
         // Dummy read
         cpu.tick()?;
 
-        let stat = cpu.registers.status_for_stack();
+        let stat = cpu.registers.status;
         cpu.push_stack(stat)
     }
 }
