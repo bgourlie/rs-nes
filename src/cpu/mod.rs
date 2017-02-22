@@ -42,9 +42,16 @@ pub enum TickAction {
     Nmi,
 }
 
+enum Interrupt {
+    None,
+    Nmi,
+    Irq,
+}
+
 pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
+    pending_interrupt: Interrupt,
     cycles: u64,
 }
 
@@ -60,12 +67,25 @@ impl<Mem: Memory> Cpu<Mem> {
             registers: Registers::new(),
             memory: memory,
             cycles: 0,
+            pending_interrupt: Interrupt::None,
         }
     }
 
     pub fn step(&mut self) -> Result<()> {
         let opcode = self.read_pc()?;
-        self::opcodes::execute(self, opcode)
+        self::opcodes::execute(self, opcode)?;
+
+        match self.pending_interrupt {
+            Interrupt::None => Ok(()),
+            Interrupt::Nmi => {
+                self.pending_interrupt = Interrupt::None;
+                self.nmi()
+            }
+            Interrupt::Irq => {
+                self.pending_interrupt = Interrupt::None;
+                self.irq()
+            }
+        }
     }
 
     pub fn reset(&mut self) -> Result<()> {
@@ -128,10 +148,9 @@ impl<Mem: Memory> Cpu<Mem> {
     fn tick(&mut self) -> Result<()> {
         self.cycles += 1;
         if self.memory.tick()? == TickAction::Nmi {
-            self.nmi()
-        } else {
-            Ok(())
+            self.pending_interrupt = Interrupt::Nmi;
         }
+        Ok(())
     }
 
     fn read_pc(&mut self) -> Result<u8> {

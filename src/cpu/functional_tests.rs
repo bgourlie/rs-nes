@@ -54,12 +54,12 @@ fn interrupts() {
             previous_interrupt_probe = interrupt_probe;
 
             if interrupt_probe & 0x2 > 0 {
-                cpu.nmi().unwrap();
+                cpu.pending_interrupt = Interrupt::Nmi;
             }
         }
 
         if !cpu.registers.interrupt_disable_flag() && (interrupt_probe & 0x1) > 0 {
-            cpu.irq().unwrap();
+            cpu.pending_interrupt = Interrupt::Irq;
         }
 
         cpu.step().unwrap();
