@@ -27,7 +27,7 @@ const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
 pub struct HttpDebugger<Mem: Memory> {
     ws_tx: Sender<DebuggerCommand>,
     ws_rx: Receiver<DebuggerCommand>,
-    cpu: Arc<Mutex<Cpu<Mem>>>,
+    cpu: Cpu<Mem>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
@@ -45,7 +45,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         HttpDebugger {
             ws_tx: ws_sender,
             ws_rx: ws_receiver,
-            cpu: Arc::new(Mutex::new(cpu)),
+            cpu: cpu,
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             cpu_thread_handle: thread::current(),
             cpu_paused: Arc::new(AtomicBool::new(true)),
@@ -62,26 +62,18 @@ impl<Mem: Memory> HttpDebugger<Mem> {
     }
 
     pub fn step(&mut self) -> Result<()> {
-        let cpu = &mut (*self.cpu.lock().unwrap());
-        if let Some(break_reason) = self.break_reason(cpu) {
+        if let Some(break_reason) = self.break_reason() {
             {
-                let mem_snapshot = self.memory_snapshot(cpu);
-                if let MemorySnapshot::Updated(hash, _) = mem_snapshot {
-                    debug!("Memory altered");
-                    self.last_mem_hash = hash;
-                }
-
-                let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cpu.cycles);
+                let snapshot = self.cpu_snapshot();
                 self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
             }
             thread::park();
         }
-        self.last_pc = cpu.registers.pc;
-        let result = cpu.step();
+        self.last_pc = self.cpu.registers.pc;
+        let result = self.cpu.step();
 
         if let Err(Error(ErrorKind::Crash(ref reason), _)) = result {
-            let mem_snapshot = self.memory_snapshot(cpu);
-            let snapshot = CpuSnapshot::new(mem_snapshot, cpu.registers.clone(), cpu.cycles);
+            let snapshot = self.cpu_snapshot();
             self.ws_tx.send(DebuggerCommand::Crash(reason.clone(), snapshot));
 
             // Give the web socket thread enough time to send the Crash message
@@ -91,33 +83,38 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         result
     }
 
-    fn break_reason(&self, cpu: &Cpu<Mem>) -> Option<BreakReason> {
+    fn break_reason(&self) -> Option<BreakReason> {
         // Stepping deliberately takes the least precedence when determining the break reason
-        if self.last_pc == cpu.registers.pc {
+        if self.last_pc == self.cpu.registers.pc {
             debug!("Trap detected @ {:0>4X}. CPU thread paused.",
-                   cpu.registers.pc);
+                   self.cpu.registers.pc);
             Some(BreakReason::Trap)
-        } else if self.at_breakpoint(cpu.registers.pc) {
+        } else if self.at_breakpoint(self.cpu.registers.pc) {
             debug!("Breakpoint hit @ {:0>4X}. CPU thread paused.",
-                   cpu.registers.pc);
+                   self.cpu.registers.pc);
             Some(BreakReason::Breakpoint)
         } else if self.cpu_paused.load(Ordering::Relaxed) {
-            debug!("Stepping @ {:0>4X}. CPU thread paused.", cpu.registers.pc);
+            debug!("Stepping @ {:0>4X}. CPU thread paused.",
+                   self.cpu.registers.pc);
             Some(BreakReason::Step)
         } else {
             None
         }
     }
 
-    fn memory_snapshot(&self, cpu: &Cpu<Mem>) -> MemorySnapshot {
-        let hash = cpu.memory.hash();
-        if hash != self.last_mem_hash {
+    fn cpu_snapshot(&mut self) -> CpuSnapshot {
+        let hash = self.cpu.memory.hash();
+        let mem_snapshot = if hash != self.last_mem_hash {
+            debug!("Memory altered");
             let mut buf = Vec::with_capacity(ADDRESSABLE_MEMORY);
-            cpu.memory.dump(&mut buf);
+            self.cpu.memory.dump(&mut buf);
+            self.last_mem_hash = hash;
             MemorySnapshot::Updated(hash, buf)
         } else {
             MemorySnapshot::NoChange(hash)
-        }
+        };
+
+        CpuSnapshot::new(mem_snapshot, self.cpu.registers.clone(), self.cpu.cycles)
     }
 
     fn start_websocket_thread(&mut self) -> Result<()> {
