@@ -6,6 +6,7 @@ mod cpu_snapshot;
 use asm6502::{Instruction, InstructionDecoder};
 use chan::{self, Receiver, Sender};
 use cpu::Cpu;
+use cpu::byte_utils::from_lo_hi;
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
@@ -24,6 +25,13 @@ use websocket::{Message as WsMessage, Server as WsServer};
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
 const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
 
+#[derive(Eq, PartialEq)]
+pub enum InterruptHandler {
+    None,
+    Irq,
+    Nmi,
+}
+
 pub struct HttpDebugger<Mem: Memory> {
     ws_tx: Sender<DebuggerCommand>,
     ws_rx: Receiver<DebuggerCommand>,
@@ -31,6 +39,7 @@ pub struct HttpDebugger<Mem: Memory> {
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
+    break_on_nmi: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
     instructions: Arc<Vec<Instruction>>, // TODO: https://github.com/bgourlie/rs-nes/issues/9
@@ -49,6 +58,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             cpu_thread_handle: thread::current(),
             cpu_paused: Arc::new(AtomicBool::new(true)),
+            break_on_nmi: Arc::new(AtomicBool::new(true)),
             last_pc: 0,
             last_mem_hash: 0,
             instructions: Arc::new(instructions),
@@ -84,8 +94,11 @@ impl<Mem: Memory> HttpDebugger<Mem> {
     }
 
     fn break_reason(&self) -> Option<BreakReason> {
-        // Stepping deliberately takes the least precedence when determining the break reason
-        if self.last_pc == self.cpu.registers.pc {
+        if self.interrupt_handler() == InterruptHandler::Nmi &&
+           self.break_on_nmi.load(Ordering::Relaxed) {
+            debug!("Break on NMI. CPU thread paused.");
+            Some(BreakReason::Nmi)
+        } else if self.last_pc == self.cpu.registers.pc {
             debug!("Trap detected @ {:0>4X}. CPU thread paused.",
                    self.cpu.registers.pc);
             Some(BreakReason::Trap)
@@ -94,6 +107,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
                    self.cpu.registers.pc);
             Some(BreakReason::Breakpoint)
         } else if self.cpu_paused.load(Ordering::Relaxed) {
+            // Stepping deliberately takes the least precedence when determining the break reason
             debug!("Stepping @ {:0>4X}. CPU thread paused.",
                    self.cpu.registers.pc);
             Some(BreakReason::Step)
@@ -150,20 +164,25 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
         let cpu_paused = self.cpu_paused.clone();
+        let break_on_nmi = self.break_on_nmi.clone();
         let instructions = self.instructions.clone();
 
         thread::spawn(move || {
             let mut router = Router::new();
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
             router.get("/instructions",
-                       InstructionHandler::new(instructions.clone()),
+                       InstructionHandler::new(instructions),
                        "instructions");
             router.get("/continue",
-                       ContinueHandler::new(cpu_thread.clone(), cpu_paused),
+                       ContinueHandler::new(cpu_thread, cpu_paused),
                        "continue");
             router.get("/toggle_breakpoint/:addr",
-                       ToggleBreakpointHandler::new(breakpoints.clone()),
+                       ToggleBreakpointHandler::new(breakpoints),
                        "toggle_breakpoint");
+
+            router.get("/toggle_break_on_nmi",
+                       ToggleBreakOnNmiHandler::new(break_on_nmi),
+                       "toggle_break_on_nmi");
             Iron::new(router).http(DEBUGGER_HTTP_ADDR).unwrap();
         });
 
@@ -178,5 +197,21 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         } else {
             false
         }
+    }
+
+    fn interrupt_handler(&self) -> InterruptHandler {
+        if self.cpu.registers.pc == self.peek_mem(super::NMI_VECTOR) {
+            InterruptHandler::Nmi
+        } else if self.cpu.registers.pc == self.peek_mem(super::BREAK_VECTOR) {
+            InterruptHandler::Irq
+        } else {
+            InterruptHandler::None
+        }
+    }
+
+    fn peek_mem(&self, addr: u16) -> u16 {
+        let low_byte = self.cpu.memory.read(addr).unwrap();
+        let high_byte = self.cpu.memory.read(addr + 1).unwrap();
+        from_lo_hi(low_byte, high_byte)
     }
 }

@@ -41,6 +41,39 @@ impl ToggleBreakpointResponse {
     }
 }
 
+#[derive(Serialize)]
+pub struct ToggleBreakOnNmiResponse {
+    is_set: bool,
+}
+
+impl ToggleBreakOnNmiResponse {
+    pub fn new(is_set: bool) -> Self {
+        ToggleBreakOnNmiResponse { is_set: is_set }
+    }
+}
+
+pub struct ToggleBreakOnNmiHandler {
+    break_on_nmi: Arc<AtomicBool>,
+}
+
+impl ToggleBreakOnNmiHandler {
+    pub fn new(break_on_nmi: Arc<AtomicBool>) -> Self {
+        ToggleBreakOnNmiHandler { break_on_nmi: break_on_nmi }
+    }
+}
+
+impl Handler for ToggleBreakOnNmiHandler {
+    fn handle(&self, _: &mut Request) -> IronResult<Response> {
+        debug!("Toggle break-on-nmi request received!");
+        let new_val = !self.break_on_nmi.load(Ordering::Relaxed);
+        self.break_on_nmi.store(new_val, Ordering::Relaxed);
+        let resp_model = ToggleBreakOnNmiResponse::new(new_val);
+        let resp_body = serde_json::to_string(&resp_model).unwrap();
+        let resp = response_with((status::Ok, resp_body));
+        Ok(resp)
+    }
+}
+
 pub struct ToggleBreakpointHandler {
     breakpoints: Arc<Mutex<BreakpointMap>>,
 }
