@@ -58,7 +58,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             breakpoints: Arc::new(Mutex::new(BreakpointMap::new())),
             cpu_thread_handle: thread::current(),
             cpu_paused: Arc::new(AtomicBool::new(true)),
-            break_on_nmi: Arc::new(AtomicBool::new(true)),
+            break_on_nmi: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
             instructions: Arc::new(instructions),
