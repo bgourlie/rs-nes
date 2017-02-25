@@ -1,11 +1,10 @@
-use cpu::TestCpu;
+use cpu::{TestCpu, TestMemory};
 use cpu::opcodes::addressing::AddressingMode;
 use errors::*;
-use memory::SimpleMemory;
 use std::cell::Cell;
 use std::rc::Rc;
 
-impl AddressingMode<SimpleMemory> for u8 {
+impl AddressingMode<TestMemory> for u8 {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
@@ -18,7 +17,7 @@ impl AddressingMode<SimpleMemory> for u8 {
     }
 }
 
-impl AddressingMode<SimpleMemory> for i8 {
+impl AddressingMode<TestMemory> for i8 {
     type Output = i8;
 
     fn read(&self) -> Self::Output {
@@ -55,7 +54,7 @@ impl WriterAddressingMode {
     }
 }
 
-impl AddressingMode<SimpleMemory> for WriterAddressingMode {
+impl AddressingMode<TestMemory> for WriterAddressingMode {
     type Output = u8;
     fn read(&self) -> Self::Output {
         self.read_value
@@ -67,7 +66,7 @@ impl AddressingMode<SimpleMemory> for WriterAddressingMode {
     }
 }
 
-impl AddressingMode<SimpleMemory> for u16 {
+impl AddressingMode<TestMemory> for u16 {
     type Output = Self;
     fn read(&self) -> Self::Output {
         *self

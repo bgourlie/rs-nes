@@ -48,6 +48,7 @@ extern crate error_chain;
 pub mod rom;
 pub mod memory;
 pub mod cpu;
+pub mod screen;
 mod input;
 mod apu;
 mod ppu;

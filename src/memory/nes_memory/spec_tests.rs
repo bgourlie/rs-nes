@@ -98,7 +98,9 @@ mod mocks {
     use memory::nes_memory::{NesMemoryBase, StepAction};
     use ppu::Ppu;
     use rom::*;
+    use screen::NesScreen;
     use std::io::Write;
+    use std::rc::Rc;
 
     #[derive(Default)]
     pub struct InputMock {
@@ -230,6 +232,7 @@ mod mocks {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
+            screen: Rc::new(NesScreen::default()),
             ppu: PpuMock::default(),
             apu: ApuMock::default(),
             input: InputMock::default(),

@@ -15,7 +15,9 @@ use errors::*;
 use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
+use screen::Screen;
 use serde_json;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -32,7 +34,7 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<Mem: Memory> {
+pub struct HttpDebugger<Mem: Memory, S: Screen> {
     ws_tx: Sender<DebuggerCommand>,
     ws_rx: Receiver<DebuggerCommand>,
     cpu: Cpu<Mem>,
@@ -42,11 +44,12 @@ pub struct HttpDebugger<Mem: Memory> {
     break_on_nmi: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
+    screen: Rc<S>,
     instructions: Arc<Vec<Instruction>>, // TODO: https://github.com/bgourlie/rs-nes/issues/9
 }
 
-impl<Mem: Memory> HttpDebugger<Mem> {
-    pub fn new(cpu: Cpu<Mem>) -> Self {
+impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
+    pub fn new(cpu: Cpu<Mem>, screen: Rc<S>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
         let instructions = InstructionDecoder::new(&buf, cpu.registers.pc).collect();
@@ -62,6 +65,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
             last_pc: 0,
             last_mem_hash: 0,
             instructions: Arc::new(instructions),
+            screen: screen,
         }
     }
 

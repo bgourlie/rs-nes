@@ -19,18 +19,24 @@ use cpu::registers::Registers;
 use errors::*;
 use memory::*;
 
+#[cfg(test)]
+use screen::NoScreen;
+
 const STACK_LOC: u16 = 0x100;
 const NMI_VECTOR: u16 = 0xfffa;
 const RESET_VECTOR: u16 = 0xfffc;
 const BREAK_VECTOR: u16 = 0xfffe;
 
 #[cfg(test)]
-pub type TestCpu = Cpu<SimpleMemory>;
+pub type TestMemory = SimpleMemory<NoScreen>;
+
+#[cfg(test)]
+pub type TestCpu = Cpu<TestMemory>;
 
 #[cfg(test)]
 impl TestCpu {
     pub fn new_test() -> Self {
-        let memory = SimpleMemory::new();
+        let memory = SimpleMemory::default();
         Cpu::new_init_pc(memory, 0x200)
     }
 }

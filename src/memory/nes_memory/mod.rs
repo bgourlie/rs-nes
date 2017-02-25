@@ -8,26 +8,30 @@ use errors::*;
 use input::{Input, InputBase};
 use ppu::{Ppu, PpuImpl, StepAction};
 use rom::NesRom;
+use screen::NesScreen;
 
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
+use std::rc::Rc;
 
 pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;
 
 pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
     ram: [u8; 0x800],
     rom: NesRom,
+    screen: Rc<NesScreen>,
     ppu: P,
     apu: A,
     input: I,
 }
 
 impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
-    pub fn new(rom: NesRom) -> Self {
+    pub fn new(rom: NesRom, screen: Rc<NesScreen>) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
+            screen: screen,
             ppu: P::default(),
             apu: A::default(),
             input: I::default(),
@@ -37,6 +41,8 @@ impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 
 // Currently NROM only
 impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
+    type S = NesScreen;
+
     fn tick(&mut self) -> Result<TickAction> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
@@ -121,5 +127,9 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
     fn hash(&self) -> u64 {
         // Hashing just the ram will suffice for now...
         seahash::hash(&self.ram)
+    }
+
+    fn screen_buffer(&self) -> Rc<Self::S> {
+        self.screen.clone()
     }
 }

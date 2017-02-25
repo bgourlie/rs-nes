@@ -18,7 +18,9 @@ use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryB
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
+use screen::NesScreen;
 use std::io::Write;
+use std::rc::Rc;
 
 const SCANLINES: u64 = 262;
 const CYCLES_PER_SCANLINE: u64 = 341;
@@ -46,6 +48,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     scroll: S,
     vram: V,
     oam: O,
+    screen: Rc<NesScreen>,
 }
 
 
@@ -54,6 +57,15 @@ pub enum StepAction {
     None,
     VBlankNmi,
 }
+
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
+    pub fn new(screen: Rc<NesScreen>) -> Self {
+        let mut ppu = Self::default();
+        ppu.screen = screen;
+        ppu
+    }
+}
+
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
     fn step(&mut self) -> StepAction {
