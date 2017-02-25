@@ -7,7 +7,7 @@ use seahash;
 use std::io::Write;
 use std::rc::Rc;
 
-pub struct SimpleMemory<S> {
+pub struct SimpleMemory<S: Screen> {
     addr: [u8; ADDRESSABLE_MEMORY],
     screen: Rc<S>,
 }
