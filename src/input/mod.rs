@@ -1,11 +1,11 @@
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct InputBase {
     probe: u8,
     joy1: u8,
     joy2: u8,
 }
 
-pub trait Input: Clone + Default {
+pub trait Input: Default {
     fn write_probe(&mut self, _: u8);
     fn read_joy_1(&self) -> u8;
     fn read_joy_2(&self) -> u8;

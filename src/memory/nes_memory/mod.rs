@@ -35,20 +35,6 @@ impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
     }
 }
 
-impl<P: Ppu, A: Apu, I: Input> Clone for NesMemoryBase<P, A, I> {
-    fn clone(&self) -> Self {
-        // This copies the array since the element type (u8) implements Copy
-        let new_ram = self.ram;
-        NesMemoryBase {
-            ram: new_ram,
-            rom: self.rom.clone(),
-            ppu: self.ppu.clone(),
-            apu: self.apu.clone(),
-            input: self.input.clone(),
-        }
-    }
-}
-
 // Currently NROM only
 impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Result<TickAction> {

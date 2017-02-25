@@ -16,7 +16,7 @@ impl Default for LatchState {
     }
 }
 
-pub trait Vram: Clone + Default {
+pub trait Vram: Default {
     fn write_address(&self, val: u8);
     fn read_data_increment_address(&self) -> Result<u8>;
     fn read_data(&self) -> Result<u8>;
@@ -40,22 +40,6 @@ impl Default for VramBase {
             pattern_tables: [0; 0x2000],
             name_tables: [0; 0x1000],
             palette: [0; 0x20],
-        }
-    }
-}
-
-impl Clone for VramBase {
-    fn clone(&self) -> Self {
-        let pattern_tables = self.pattern_tables;
-        let name_tables = self.name_tables;
-        let palette = self.palette;
-
-        VramBase {
-            address: self.address.clone(),
-            latch_state: self.latch_state.clone(),
-            pattern_tables: pattern_tables,
-            name_tables: name_tables,
-            palette: palette,
         }
     }
 }

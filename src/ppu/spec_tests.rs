@@ -242,7 +242,7 @@ mod mocks {
 
     pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
 
-    #[derive(Clone, Default)]
+    #[derive(Default)]
     pub struct MockScrollRegister {
         mock_value: u8,
     }
@@ -265,7 +265,7 @@ mod mocks {
         fn clear_latch(&self) {}
     }
 
-    #[derive(Clone, Default)]
+    #[derive(Default)]
     pub struct MockOam {
         read_data_called: Cell<bool>,
         read_data_increment_addr_called: Cell<bool>,
@@ -323,7 +323,7 @@ mod mocks {
         }
     }
 
-    #[derive(Clone, Default)]
+    #[derive(Default)]
     pub struct MockVram {
         mock_addr: Cell<u8>,
         mock_data: u8,

@@ -21,12 +21,6 @@ impl SimpleMemory {
     }
 }
 
-impl Clone for SimpleMemory {
-    fn clone(&self) -> Self {
-        SimpleMemory { addr: self.addr }
-    }
-}
-
 impl Default for SimpleMemory {
     fn default() -> Self {
         Self::new()

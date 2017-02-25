@@ -100,7 +100,7 @@ mod mocks {
     use rom::*;
     use std::io::Write;
 
-    #[derive(Copy, Clone, Default)]
+    #[derive(Default)]
     pub struct InputMock {
         probe: u8,
         joy1: u8,
@@ -135,7 +135,7 @@ mod mocks {
         }
     }
 
-    #[derive(Copy, Clone, Default)]
+    #[derive(Default)]
     pub struct ApuMock {
         write_addr: u16,
         write_value: u8,
@@ -167,7 +167,7 @@ mod mocks {
         }
     }
 
-    #[derive(Copy, Clone, Default)]
+    #[derive(Default)]
     pub struct PpuMock {
         addr: u16,
         value: u8,

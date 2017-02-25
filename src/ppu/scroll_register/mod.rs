@@ -8,7 +8,7 @@ use std::cell::Cell;
 #[cfg(test)]
 mod spec_tests;
 
-pub trait ScrollRegister: Clone + Default {
+pub trait ScrollRegister: Default {
     fn write(&mut self, pos: u8);
     fn clear_latch(&self);
 }
@@ -25,7 +25,7 @@ impl Default for LatchState {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct ScrollRegisterBase {
     latch_state: Cell<LatchState>,
     pub x_pos: u8,

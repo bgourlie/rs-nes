@@ -8,7 +8,7 @@ use std::io::Write;
 
 pub const ADDRESSABLE_MEMORY: usize = 65536;
 
-pub trait Memory: Clone {
+pub trait Memory {
     fn tick(&mut self) -> Result<TickAction> {
         Ok(TickAction::None)
     }

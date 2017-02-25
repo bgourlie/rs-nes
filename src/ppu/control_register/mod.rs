@@ -3,13 +3,13 @@ mod spec_tests;
 
 use std::ops::Deref;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum SpriteSize {
     X8, // 8x8
     X16, // 8x16
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum PpuMode {
     Master,
     Slave,
@@ -17,7 +17,7 @@ pub enum PpuMode {
 
 /// $2000, Write Only
 /// Various flags controlling PPU operation
-#[derive(Copy, Clone, Default)]
+#[derive(Default)]
 pub struct ControlRegister {
     reg: u8,
 }

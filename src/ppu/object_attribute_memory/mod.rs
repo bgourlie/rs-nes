@@ -4,7 +4,7 @@ use std::num::Wrapping;
 #[cfg(test)]
 mod spec_tests;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum PaletteIndex {
     Zero,
     One,
@@ -12,13 +12,13 @@ pub enum PaletteIndex {
     Three,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum Priority {
     InFrontOfBackground,
     BehindBackground,
 }
 
-pub trait ObjectAttributeMemory: Clone + Default {
+pub trait ObjectAttributeMemory: Default {
     fn read_data(&self) -> u8;
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
@@ -29,16 +29,6 @@ pub trait ObjectAttributeMemory: Clone + Default {
 pub struct ObjectAttributeMemoryBase {
     memory: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
-}
-
-impl Clone for ObjectAttributeMemoryBase {
-    fn clone(&self) -> Self {
-        let mem = self.memory;
-        ObjectAttributeMemoryBase {
-            memory: mem,
-            address: self.address.clone(),
-        }
-    }
 }
 
 impl Default for ObjectAttributeMemoryBase {

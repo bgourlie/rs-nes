@@ -5,7 +5,7 @@ use std::cell::Cell;
 
 const VBLANK: u8 = 0b10000000;
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct StatusRegister {
     reg: Cell<u8>,
 }

@@ -30,14 +30,14 @@ const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-pub trait Ppu: Clone + Default {
+pub trait Ppu: Default {
     fn write(&mut self, addr: u16, val: u8) -> Result<()>;
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> StepAction;
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
@@ -47,6 +47,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     vram: V,
     oam: O,
 }
+
 
 #[derive(Eq, PartialEq)]
 pub enum StepAction {
