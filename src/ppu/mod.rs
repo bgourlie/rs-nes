@@ -55,8 +55,8 @@ pub enum StepAction {
     VBlankNmi,
 }
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    pub fn step(&mut self) -> StepAction {
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
+    fn step(&mut self) -> StepAction {
         let result = match self.cycles % CYCLES_PER_FRAME {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
@@ -77,7 +77,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
-    pub fn write(&mut self, addr: u16, val: u8) -> Result<()> {
+    fn write(&mut self, addr: u16, val: u8) -> Result<()> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         match addr & 7 {
@@ -95,7 +95,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Accepts a PPU memory mapped address and returns the value
-    pub fn read(&self, addr: u16) -> Result<u8> {
+    fn read(&self, addr: u16) -> Result<u8> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
         let val = match addr & 7 {
@@ -123,7 +123,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 
     /// Dump register memory
-    pub fn dump_registers<T: Write>(&self, writer: &mut T) {
+    fn dump_registers<T: Write>(&self, writer: &mut T) {
 
         let regs = [*self.control,
                     *self.mask,
@@ -135,23 +135,5 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     self.vram.read_data().unwrap()];
 
         writer.write_all(&regs).unwrap()
-    }
-}
-
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
-    fn write(&mut self, addr: u16, val: u8) -> Result<()> {
-        self.write(addr, val)
-    }
-
-    fn read(&self, addr: u16) -> Result<u8> {
-        self.read(addr)
-    }
-
-    fn step(&mut self) -> StepAction {
-        self.step()
-    }
-
-    fn dump_registers<T: Write>(&self, writer: &mut T) {
-        self.dump_registers(writer)
     }
 }

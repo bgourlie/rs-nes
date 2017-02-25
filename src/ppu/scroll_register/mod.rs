@@ -32,8 +32,8 @@ pub struct ScrollRegisterBase {
     pub y_pos: u8,
 }
 
-impl ScrollRegisterBase {
-    pub fn write(&mut self, pos: u8) {
+impl ScrollRegister for ScrollRegisterBase {
+    fn write(&mut self, pos: u8) {
         match self.latch_state.get() {
             LatchState::WriteX => {
                 self.x_pos = pos;
@@ -46,17 +46,7 @@ impl ScrollRegisterBase {
         }
     }
 
-    pub fn clear_latch(&self) {
-        self.latch_state.set(LatchState::WriteX)
-    }
-}
-
-impl ScrollRegister for ScrollRegisterBase {
-    fn write(&mut self, pos: u8) {
-        self.write(pos)
-    }
-
     fn clear_latch(&self) {
-        self.clear_latch()
+        self.latch_state.set(LatchState::WriteX)
     }
 }
