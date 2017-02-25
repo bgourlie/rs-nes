@@ -35,8 +35,8 @@ pub enum InterruptHandler {
 }
 
 pub struct HttpDebugger<Mem: Memory, S: Screen> {
-    ws_tx: Sender<DebuggerCommand>,
-    ws_rx: Receiver<DebuggerCommand>,
+    ws_tx: Sender<DebuggerCommand<S>>,
+    ws_rx: Receiver<DebuggerCommand<S>>,
     cpu: Cpu<Mem>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
@@ -121,7 +121,7 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
         }
     }
 
-    fn cpu_snapshot(&mut self) -> CpuSnapshot {
+    fn cpu_snapshot(&mut self) -> CpuSnapshot<S> {
         let hash = self.cpu.memory.hash();
         let mem_snapshot = if hash != self.last_mem_hash {
             debug!("Memory altered");
@@ -133,7 +133,8 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        CpuSnapshot::new(mem_snapshot, self.cpu.registers.clone(), self.cpu.cycles)
+        let screen: S = *(self.screen.as_ref()).clone();
+        CpuSnapshot::new(mem_snapshot, self.cpu.registers.clone(), screen, self.cpu.cycles)
     }
 
     fn start_websocket_thread(&mut self) -> Result<()> {

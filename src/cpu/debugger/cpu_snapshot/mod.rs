@@ -4,24 +4,27 @@ use memory::ADDRESSABLE_MEMORY;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 use std::io::Cursor;
+use screen::Screen;
 
 pub enum MemorySnapshot {
     NoChange(u64), // If no change, just send the hash.
     Updated(u64, Vec<u8>), // Updated, send hash and memory
 }
 
-pub struct CpuSnapshot {
+pub struct CpuSnapshot<S: Screen> {
     registers: Registers,
     memory: MemorySnapshot,
     cycles: u64,
+    screen: S,
 }
 
-impl CpuSnapshot {
-    pub fn new(mem_snapshot: MemorySnapshot, registers: Registers, cycles: u64) -> Self {
+impl<S: Screen> CpuSnapshot<S> {
+    pub fn new(mem_snapshot: MemorySnapshot, registers: Registers, screen: S, cycles: u64) -> Self {
         CpuSnapshot {
             registers: registers,
             memory: mem_snapshot,
             cycles: cycles,
+            screen: screen,
         }
     }
 }
@@ -47,7 +50,7 @@ impl Serialize for MemorySnapshot {
     }
 }
 
-impl Serialize for CpuSnapshot {
+impl<Scr: Screen> Serialize for CpuSnapshot<Scr> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("CpuSnapshot", 3)?;
         state.serialize_field("registers", &self.registers)?;
