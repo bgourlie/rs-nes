@@ -97,6 +97,7 @@ impl<Mem: Memory> HttpDebugger<Mem> {
         if self.interrupt_handler() == InterruptHandler::Nmi &&
            self.break_on_nmi.load(Ordering::Relaxed) {
             debug!("Break on NMI. CPU thread paused.");
+            self.cpu_paused.compare_and_swap(false, true, Ordering::Relaxed);
             Some(BreakReason::Nmi)
         } else if self.last_pc == self.cpu.registers.pc {
             debug!("Trap detected @ {:0>4X}. CPU thread paused.",
