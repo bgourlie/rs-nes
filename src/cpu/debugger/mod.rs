@@ -78,10 +78,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
 
     pub fn step(&mut self) -> Result<()> {
         if let Some(break_reason) = self.break_reason() {
-            {
-                let snapshot = self.cpu_snapshot();
-                self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
-            }
+            let snapshot = self.cpu_snapshot();
+            self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
             thread::park();
         }
         self.last_pc = self.cpu.registers.pc;
@@ -148,23 +146,26 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         let connection = ws_server.accept();
         info!("Debugger attached!");
         let ws_rx = self.ws_rx.clone();
-        thread::spawn(move || {
-            let request = connection.unwrap().read_request().unwrap();
-            request.validate().unwrap();
-            let response = request.accept();
-            let mut sender = response.send().unwrap();
+        thread::Builder::new()
+            .name("Websocket Server".to_owned())
+            .stack_size(4 * 1024 * 1024) // Should probably put DebuggerMessage in shared mutex
+            .spawn(move || {
+                let request = connection.unwrap().read_request().unwrap();
+                request.validate().unwrap();
+                let response = request.accept();
+                let mut sender = response.send().unwrap();
 
-            while let Some(debugger_msg) = ws_rx.recv() {
-                let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
-                    .unwrap());
+                while let Some(debugger_msg) = ws_rx.recv() {
+                    let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
+                        .unwrap());
 
-                if sender.send_message(&message).is_err() {
-                    break;
+                    if sender.send_message(&message).is_err() {
+                        break;
+                    }
                 }
-            }
 
-            info!("Websocket thread is terminating!")
-        });
+                info!("Websocket thread is terminating!")
+            }).unwrap();
 
         Ok(())
     }
