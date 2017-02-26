@@ -1,8 +1,10 @@
-use byte_utils;
+
+use byteorder::{LittleEndian, ReadBytesExt};
 use cpu::Registers;
 use screen::Screen;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use std::io::Cursor;
 
 pub enum MemorySnapshot {
     NoChange(u64), // If no change, just send the hash.
@@ -37,7 +39,7 @@ impl Serialize for MemorySnapshot {
                 state.end()
             }
             MemorySnapshot::Updated(hash, ref memory) => {
-                let packed_bytes = byte_utils::pack_memory(&memory);
+                let packed_bytes = pack_memory(&memory);
                 let mut state = serializer.serialize_struct("Memory", 3)?;
                 state.serialize_field("state", "Updated")?;
                 state.serialize_field("hash", &hash)?;
@@ -57,4 +59,27 @@ impl<Scr: Screen + Serialize> Serialize for CpuSnapshot<Scr> {
         state.serialize_field("screen", &self.screen)?;
         state.end()
     }
+}
+
+// Convert an array of bytes into an array 32-bit signed integers.
+//
+// This is done to reduce the json payload when serializing memory. Once elm supports binary data,
+// this shouldn't be necessary.
+fn pack_memory(rom: &[u8]) -> Vec<i32> {
+    let mut packed = Vec::<i32>::new();
+    for i in 0..(rom.len() / 4) {
+        let bytes = {
+            let index = i * 4;
+            let b1 = rom[index];
+            let b2 = rom[index + 1];
+            let b3 = rom[index + 2];
+            let b4 = rom[index + 3];
+            [b1, b2, b3, b4]
+        };
+
+        let mut buffer = Cursor::new(&bytes[..]);
+        let val = buffer.read_i32::<LittleEndian>().unwrap();
+        packed.push(val);
+    }
+    packed
 }

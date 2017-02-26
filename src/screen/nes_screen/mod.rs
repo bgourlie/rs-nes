@@ -1,6 +1,6 @@
 use super::*;
 #[cfg(feature = "debugger")]
-use byte_utils;
+use base64;
 #[cfg(feature = "debugger")]
 use serde::{Serialize, Serializer};
 #[cfg(feature = "debugger")]
@@ -31,10 +31,10 @@ impl Serialize for NesScreen {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("ScreenSnapshot", 3)?;
         let (width, height) = Self::dimensions();
-        let packed_bytes = byte_utils::pack_memory(&self.buffer);
+        let encoded_buffer = base64::encode(&self.buffer);
         state.serialize_field("height", &height)?;
         state.serialize_field("width", &width)?;
-        state.serialize_field("buffer", &packed_bytes)?;
+        state.serialize_field("buffer", &encoded_buffer)?;
         state.end()
     }
 }

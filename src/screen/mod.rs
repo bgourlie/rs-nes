@@ -23,10 +23,9 @@ pub struct NoScreen;
 impl Serialize for NoScreen {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("ScreenSnapshot", 3)?;
-        let empty_slice = Vec::<u8>::new();
         state.serialize_field("height", &0)?;
         state.serialize_field("width", &0)?;
-        state.serialize_field("buffer", &empty_slice)?;
+        state.serialize_field("buffer", &"")?;
         state.end()
     }
 }
