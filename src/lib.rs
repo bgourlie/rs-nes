@@ -53,3 +53,4 @@ mod input;
 mod apu;
 mod ppu;
 mod errors;
+mod byte_utils;

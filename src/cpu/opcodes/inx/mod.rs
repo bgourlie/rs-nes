@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod spec_tests;
 
+use byte_utils::wrapping_inc;
 use cpu::Cpu;
-use cpu::byte_utils::wrapping_inc;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use errors::*;

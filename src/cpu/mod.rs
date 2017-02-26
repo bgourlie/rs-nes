@@ -10,11 +10,10 @@ mod length_and_timing_tests;
 #[cfg(feature = "debugger")]
 pub mod debugger;
 
-mod byte_utils;
 mod registers;
 mod opcodes;
 
-use cpu::byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
+use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
 use errors::*;
 use memory::*;

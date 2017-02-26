@@ -1,5 +1,5 @@
+use byte_utils::wrapping_add;
 use cpu::Cpu;
-use cpu::byte_utils::wrapping_add;
 use cpu::opcodes::addressing::AddressingMode;
 use errors::*;
 use memory::Memory;

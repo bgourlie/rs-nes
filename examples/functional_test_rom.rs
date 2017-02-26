@@ -19,7 +19,7 @@ fn main() {
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut buf = Vec::new();
     f.read_to_end(&mut buf).unwrap();
-    let screen = Rc::new(NoScreen);
+    let screen = Rc::new(NoScreen::default());
     let mut mem = SimpleMemory::new(screen.clone());
     mem.store_many(PC_START, &buf);
     let cpu = Cpu::new_init_pc(mem, PC_START);

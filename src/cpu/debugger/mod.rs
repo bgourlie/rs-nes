@@ -4,9 +4,9 @@ mod breakpoint_map;
 mod cpu_snapshot;
 
 use asm6502::{Instruction, InstructionDecoder};
+use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
 use cpu::Cpu;
-use cpu::byte_utils::from_lo_hi;
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
@@ -16,6 +16,7 @@ use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
 use screen::Screen;
+use serde::Serialize;
 use serde_json;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -34,7 +35,7 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<Mem: Memory, S: Screen> {
+pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     ws_tx: Sender<DebuggerCommand<S>>,
     ws_rx: Receiver<DebuggerCommand<S>>,
     cpu: Cpu<Mem>,
@@ -48,7 +49,7 @@ pub struct HttpDebugger<Mem: Memory, S: Screen> {
     instructions: Arc<Vec<Instruction>>, // TODO: https://github.com/bgourlie/rs-nes/issues/9
 }
 
-impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
+impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     pub fn new(cpu: Cpu<Mem>, screen: Rc<S>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
@@ -133,8 +134,11 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        let screen: S = *(self.screen.as_ref()).clone();
-        CpuSnapshot::new(mem_snapshot, self.cpu.registers.clone(), screen, self.cpu.cycles)
+        let screen: S = (self.screen.as_ref()).clone();
+        CpuSnapshot::new(mem_snapshot,
+                         self.cpu.registers.clone(),
+                         screen,
+                         self.cpu.cycles)
     }
 
     fn start_websocket_thread(&mut self) -> Result<()> {

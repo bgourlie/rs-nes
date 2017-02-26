@@ -1,5 +1,5 @@
+use byte_utils::from_lo_hi;
 use cpu::Cpu;
-use cpu::byte_utils::from_lo_hi;
 use cpu::opcodes::addressing::AddressingMode;
 use errors::*;
 use memory::Memory;

@@ -1,11 +1,11 @@
 use super::CpuSnapshot;
 use errors::CrashReason;
+use screen::Screen;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
-use screen::Screen;
 
 // The web socket message sent from the debugger to the client
-pub enum DebuggerCommand<S: Screen> {
+pub enum DebuggerCommand<S: Screen + Serialize> {
     Break(BreakReason, CpuSnapshot<S>),
     Crash(CrashReason, CpuSnapshot<S>),
 }
@@ -28,7 +28,7 @@ impl ToString for BreakReason {
     }
 }
 
-impl<Scr: Screen> Serialize for DebuggerCommand<Scr> {
+impl<Scr: Screen + Serialize> Serialize for DebuggerCommand<Scr> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("Command", 3)?;
         match *self {
