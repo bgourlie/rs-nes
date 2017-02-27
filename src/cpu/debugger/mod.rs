@@ -3,7 +3,6 @@ mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
 
-use asm6502::{Instruction, InstructionDecoder};
 use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
 use cpu::Cpu;
@@ -46,14 +45,12 @@ pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     last_pc: u16,
     last_mem_hash: u64,
     screen: Rc<S>,
-    instructions: Arc<Vec<Instruction>>, // TODO: https://github.com/bgourlie/rs-nes/issues/9
 }
 
 impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     pub fn new(cpu: Cpu<Mem>, screen: Rc<S>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
-        let instructions = InstructionDecoder::new(&buf, cpu.registers.pc).collect();
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,
@@ -65,7 +62,6 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             break_on_nmi: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
-            instructions: Arc::new(instructions),
             screen: screen,
         }
     }
@@ -176,14 +172,10 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         let breakpoints = self.breakpoints.clone();
         let cpu_paused = self.cpu_paused.clone();
         let break_on_nmi = self.break_on_nmi.clone();
-        let instructions = self.instructions.clone();
 
         thread::spawn(move || {
             let mut router = Router::new();
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
-            router.get("/instructions",
-                       InstructionHandler::new(instructions),
-                       "instructions");
             router.get("/continue",
                        ContinueHandler::new(cpu_thread, cpu_paused),
                        "continue");

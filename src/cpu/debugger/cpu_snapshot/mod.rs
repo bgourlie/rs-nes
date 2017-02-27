@@ -1,4 +1,3 @@
-
 use base64;
 use cpu::Registers;
 use screen::Screen;
