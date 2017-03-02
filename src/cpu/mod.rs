@@ -27,7 +27,7 @@ const RESET_VECTOR: u16 = 0xfffc;
 const BREAK_VECTOR: u16 = 0xfffe;
 
 #[cfg(test)]
-pub type TestMemory = SimpleMemory<NoScreen>;
+pub type TestMemory = SimpleMemory;
 
 #[cfg(test)]
 pub type TestCpu = Cpu<TestMemory>;

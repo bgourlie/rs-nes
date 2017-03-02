@@ -8,17 +8,13 @@ use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
-pub struct SimpleMemory<S> {
+pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
-    screen: Rc<RefCell<S>>,
 }
 
-impl<S: Screen> SimpleMemory<S> {
-    pub fn new(screen: Rc<RefCell<S>>) -> Self {
-        SimpleMemory {
-            addr: [0; ADDRESSABLE_MEMORY],
-            screen: screen,
-        }
+impl SimpleMemory {
+    pub fn new() -> Self {
+        SimpleMemory { addr: [0; ADDRESSABLE_MEMORY] }
     }
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
@@ -28,15 +24,13 @@ impl<S: Screen> SimpleMemory<S> {
     }
 }
 
-impl<S: Screen> Default for SimpleMemory<S> {
+impl Default for SimpleMemory {
     fn default() -> Self {
-        Self::new(Rc::new(RefCell::new(S::default())))
+        Self::new()
     }
 }
 
-impl<S: Screen> Memory for SimpleMemory<S> {
-    type S = S;
-
+impl Memory for SimpleMemory {
     fn write(&mut self, addr: u16, data: u8) -> Result<()> {
         let addr = addr as usize;
         self.addr[addr] = data;
@@ -55,9 +49,5 @@ impl<S: Screen> Memory for SimpleMemory<S> {
     #[cfg(feature = "debugger")]
     fn hash(&self) -> u64 {
         seahash::hash(&self.addr)
-    }
-
-    fn screen_buffer(&self) -> Rc<RefCell<Self::S>> {
-        self.screen.clone()
     }
 }

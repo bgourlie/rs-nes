@@ -42,8 +42,6 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 
 // Currently NROM only
 impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
-    type S = NesScreen;
-
     fn tick(&mut self) -> Result<TickAction> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
@@ -128,9 +126,5 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
     fn hash(&self) -> u64 {
         // Hashing just the ram will suffice for now...
         seahash::hash(&self.ram)
-    }
-
-    fn screen_buffer(&self) -> Rc<RefCell<Self::S>> {
-        self.screen.clone()
     }
 }

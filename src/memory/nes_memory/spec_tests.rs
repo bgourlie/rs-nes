@@ -99,6 +99,7 @@ mod mocks {
     use ppu::Ppu;
     use rom::*;
     use screen::NesScreen;
+    use std::cell::RefCell;
     use std::io::Write;
     use std::rc::Rc;
 
@@ -210,7 +211,7 @@ mod mocks {
             unimplemented!()
         }
 
-        fn new(screen: Rc<Self::Scr>) -> Self {
+        fn new(screen: Rc<RefCell<Self::Scr>>) -> Self {
             unimplemented!()
         }
     }
@@ -238,7 +239,7 @@ mod mocks {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
-            screen: Rc::new(NesScreen::default()),
+            screen: Rc::new(RefCell::new(NesScreen::default())),
             ppu: PpuMock::default(),
             apu: ApuMock::default(),
             input: InputMock::default(),
