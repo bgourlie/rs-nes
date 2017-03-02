@@ -17,6 +17,7 @@ use router::Router;
 use screen::Screen;
 use serde::Serialize;
 use serde_json;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -44,11 +45,11 @@ pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     break_on_nmi: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
-    screen: Rc<S>,
+    screen: Rc<RefCell<S>>,
 }
 
 impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
-    pub fn new(cpu: Cpu<Mem>, screen: Rc<S>) -> Self {
+    pub fn new(cpu: Cpu<Mem>, screen: Rc<RefCell<S>>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
         let (ws_sender, ws_receiver) = chan::sync(0);
@@ -128,7 +129,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        let screen: S = (self.screen.as_ref()).clone();
+        let screen: S = (self.screen.as_ref()).borrow().clone();
         CpuSnapshot::new(mem_snapshot,
                          self.cpu.registers.clone(),
                          screen,

@@ -23,9 +23,7 @@ impl Default for NesScreen {
 
 impl Clone for NesScreen {
     fn clone(&self) -> Self {
-        println!("After clone: {:?}", self.screen_buffer[0]);
         let buffer = self.screen_buffer;
-        println!("After clone: {:?}", self.screen_buffer[0]);
         NesScreen { screen_buffer: buffer }
     }
 }
@@ -58,7 +56,6 @@ impl Screen for NesScreen {
         self.screen_buffer[i] = r;
         self.screen_buffer[i + 1] = g;
         self.screen_buffer[i + 2] = b;
-        println!("After put pixel: {:?}", self.screen_buffer[0]);
     }
 
     fn dimensions() -> (usize, usize) {

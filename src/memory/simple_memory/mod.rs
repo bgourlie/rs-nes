@@ -4,16 +4,17 @@ use screen::Screen;
 
 #[cfg(feature = "debugger")]
 use seahash;
+use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
 pub struct SimpleMemory<S> {
     addr: [u8; ADDRESSABLE_MEMORY],
-    screen: Rc<S>,
+    screen: Rc<RefCell<S>>,
 }
 
 impl<S: Screen> SimpleMemory<S> {
-    pub fn new(screen: Rc<S>) -> Self {
+    pub fn new(screen: Rc<RefCell<S>>) -> Self {
         SimpleMemory {
             addr: [0; ADDRESSABLE_MEMORY],
             screen: screen,
@@ -29,7 +30,7 @@ impl<S: Screen> SimpleMemory<S> {
 
 impl<S: Screen> Default for SimpleMemory<S> {
     fn default() -> Self {
-        Self::new(Rc::new(S::default()))
+        Self::new(Rc::new(RefCell::new(S::default())))
     }
 }
 
@@ -56,7 +57,7 @@ impl<S: Screen> Memory for SimpleMemory<S> {
         seahash::hash(&self.addr)
     }
 
-    fn screen_buffer(&self) -> Rc<Self::S> {
+    fn screen_buffer(&self) -> Rc<RefCell<Self::S>> {
         self.screen.clone()
     }
 }

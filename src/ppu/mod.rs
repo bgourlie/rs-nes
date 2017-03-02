@@ -19,6 +19,7 @@ use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use screen::{self, NesScreen, Screen};
+use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -33,6 +34,9 @@ const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
 pub trait Ppu: Default {
+    type Scr: Screen;
+
+    fn new(screen: Rc<RefCell<Self::Scr>>) -> Self;
     fn write(&mut self, addr: u16, val: u8) -> Result<()>;
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> StepAction;
@@ -48,7 +52,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     scroll: S,
     vram: V,
     oam: O,
-    screen: Rc<NesScreen>,
+    screen: Rc<RefCell<NesScreen>>,
 }
 
 
@@ -58,16 +62,15 @@ pub enum StepAction {
     VBlankNmi,
 }
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    pub fn new(screen: Rc<NesScreen>) -> Self {
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
+    type Scr = NesScreen;
+
+    fn new(screen: Rc<RefCell<Self::Scr>>) -> Self {
         let mut ppu = Self::default();
         ppu.screen = screen;
         ppu
     }
-}
 
-
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
     fn step(&mut self) -> StepAction {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let result = match frame_cycle {
@@ -89,12 +92,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
 
         if scanline >= 1 && scanline < 241 {
-            let mut screen = Rc::get_mut(&mut self.screen).unwrap();
-            let x = (frame_cycle % CYCLES_PER_SCANLINE);
+            let mut screen = self.screen.borrow_mut();
+            let x = frame_cycle % CYCLES_PER_SCANLINE;
             let y = scanline - 1;
             let color = (frame_cycle % 255) as u8;
             screen.put_pixel(x as _, y as _, screen::Pixel(color, color, color));
-            println!("putpixel: {},{} = {}", x, y, color);
         }
 
         self.cycles += 1;

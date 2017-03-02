@@ -5,6 +5,7 @@ pub use self::simple_memory::SimpleMemory;
 use cpu::TickAction;
 use errors::*;
 use screen::Screen;
+use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -19,7 +20,7 @@ pub trait Memory {
     fn write(&mut self, u16, u8) -> Result<()>;
     fn read(&self, u16) -> Result<u8>;
     fn dump<T: Write>(&self, writer: &mut T);
-    fn screen_buffer(&self) -> Rc<Self::S>;
+    fn screen_buffer(&self) -> Rc<RefCell<Self::S>>;
     fn hash(&self) -> u64 {
         0
     }

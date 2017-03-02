@@ -190,6 +190,8 @@ mod mocks {
     }
 
     impl Ppu for PpuMock {
+        type Scr = NesScreen;
+
         fn write(&mut self, addr: u16, val: u8) -> Result<()> {
             self.addr = addr;
             self.value = val;
@@ -205,6 +207,10 @@ mod mocks {
         }
 
         fn dump_registers<T: Write>(&self, _: &mut T) {
+            unimplemented!()
+        }
+
+        fn new(screen: Rc<Self::Scr>) -> Self {
             unimplemented!()
         }
     }

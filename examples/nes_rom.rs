@@ -9,13 +9,14 @@ use rs_nes::cpu::*;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 #[cfg(feature = "debugger")]
 fn main() {
     env_logger::init().unwrap();
     let rom = NesRom::read("test_roms/mario.nes").unwrap();
-    let screen = Rc::new(NesScreen::default());
+    let screen = Rc::new(RefCell::new(NesScreen::default()));
     println!("ROM Mapper: {}", rom.mapper);
     let mem = NesMemoryImpl::new(rom, screen.clone());
     let mut cpu = Cpu::new(mem);
