@@ -18,7 +18,7 @@ use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryB
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
-use screen::NesScreen;
+use screen::{self, NesScreen, Screen};
 use std::io::Write;
 use std::rc::Rc;
 
@@ -69,7 +69,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
     fn step(&mut self) -> StepAction {
-        let result = match self.cycles % CYCLES_PER_FRAME {
+        let frame_cycle = self.cycles % CYCLES_PER_FRAME;
+        let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
@@ -84,6 +85,18 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             }
             _ => StepAction::None,
         };
+
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+
+        if scanline >= 1 && scanline < 241 {
+            let mut screen = Rc::get_mut(&mut self.screen).unwrap();
+            let x = (frame_cycle % CYCLES_PER_SCANLINE);
+            let y = scanline - 1;
+            let color = (frame_cycle % 255) as u8;
+            screen.put_pixel(x as _, y as _, screen::Pixel(color, color, color));
+            println!("putpixel: {},{} = {}", x, y, color);
+        }
+
         self.cycles += 1;
         result
     }

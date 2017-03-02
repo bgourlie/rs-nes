@@ -39,7 +39,10 @@ extern crate seahash;
 #[cfg(feature = "debugger")]
 extern crate base64;
 
-#[cfg(any(test, feature = "debugger"))]
+#[cfg(feature = "debugger")]
+extern crate png;
+
+#[cfg(test)]
 extern crate asm6502;
 
 #[cfg(test)]
