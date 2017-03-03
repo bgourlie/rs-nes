@@ -89,16 +89,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             _ => StepAction::None,
         };
 
-        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
-
-        if scanline >= 1 && scanline < 241 {
-            let mut screen = self.screen.borrow_mut();
-            let x = frame_cycle % CYCLES_PER_SCANLINE;
-            let y = scanline - 1;
-            let color = (frame_cycle % 255) as u8;
-            screen.put_pixel(x as _, y as _, screen::Pixel(color, color, color));
-        }
-
         self.cycles += 1;
         result
     }
