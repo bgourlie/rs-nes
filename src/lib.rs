@@ -36,7 +36,13 @@ extern crate chan;
 #[cfg(feature = "debugger")]
 extern crate seahash;
 
-#[cfg(any(test, feature = "debugger"))]
+#[cfg(feature = "debugger")]
+extern crate base64;
+
+#[cfg(feature = "debugger")]
+extern crate png;
+
+#[cfg(test)]
 extern crate asm6502;
 
 #[cfg(test)]
@@ -53,3 +59,4 @@ mod input;
 mod apu;
 mod ppu;
 mod errors;
+mod byte_utils;

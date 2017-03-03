@@ -1,6 +1,5 @@
 use cpu::*;
 use memory::*;
-use screen::NoScreen;
 use std::fs::File;
 use std::io::Read;
 
@@ -12,7 +11,7 @@ fn opcodes() {
     let mut f = File::open("test_roms/6502_functional_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
     f.read_to_end(&mut rom).unwrap();
-    let mut mem = SimpleMemory::<NoScreen>::default();
+    let mut mem = SimpleMemory::default();
     mem.store_many(PC_START, &rom);
     let mut cpu = Cpu::new_init_pc(mem, PC_START);
     let mut last_pc = PC_START;
@@ -42,7 +41,7 @@ fn interrupts() {
     let mut f = File::open("test_roms/6502_interrupt_test.bin").unwrap();
     let mut rom = Vec::<u8>::new();
     f.read_to_end(&mut rom).unwrap();
-    let mut mem = SimpleMemory::<NoScreen>::default();
+    let mut mem = SimpleMemory::default();
     mem.store_many(PC_START, &rom);
     let mut cpu = Cpu::new_init_pc(mem, PC_START);
     let mut last_pc = PC_START;

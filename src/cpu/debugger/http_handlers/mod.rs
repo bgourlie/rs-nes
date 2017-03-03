@@ -1,5 +1,4 @@
 use super::breakpoint_map::BreakpointMap;
-use asm6502::Instruction;
 use cpu::registers::Registers;
 use iron::{headers, status};
 use iron::Handler;
@@ -98,25 +97,6 @@ impl Handler for ToggleBreakpointHandler {
             let resp = response_with((status::BadRequest));
             Ok(resp)
         }
-    }
-}
-
-pub struct InstructionHandler {
-    instructions: Arc<Vec<Instruction>>,
-}
-
-impl InstructionHandler {
-    pub fn new(instructions: Arc<Vec<Instruction>>) -> Self {
-        InstructionHandler { instructions: instructions }
-    }
-}
-
-impl Handler for InstructionHandler {
-    fn handle(&self, _: &mut Request) -> IronResult<Response> {
-        debug!("get instruction request received!");
-        let resp_body = serde_json::to_string(&self.instructions).unwrap();
-        let resp = response_with((status::Ok, resp_body));
-        Ok(resp)
     }
 }
 

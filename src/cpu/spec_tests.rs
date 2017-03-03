@@ -1,5 +1,5 @@
+use byte_utils::lo_hi;
 use cpu::*;
-use cpu::byte_utils::lo_hi;
 use memory::*;
 
 #[test]

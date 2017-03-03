@@ -3,10 +3,9 @@ mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
 
-use asm6502::{Instruction, InstructionDecoder};
+use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
 use cpu::Cpu;
-use cpu::byte_utils::from_lo_hi;
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
@@ -16,7 +15,9 @@ use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
 use screen::Screen;
+use serde::Serialize;
 use serde_json;
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -34,9 +35,9 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<Mem: Memory, S: Screen> {
-    ws_tx: Sender<DebuggerCommand>,
-    ws_rx: Receiver<DebuggerCommand>,
+pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
+    ws_tx: Sender<DebuggerCommand<S>>,
+    ws_rx: Receiver<DebuggerCommand<S>>,
     cpu: Cpu<Mem>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
@@ -44,15 +45,13 @@ pub struct HttpDebugger<Mem: Memory, S: Screen> {
     break_on_nmi: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
-    screen: Rc<S>,
-    instructions: Arc<Vec<Instruction>>, // TODO: https://github.com/bgourlie/rs-nes/issues/9
+    screen: Rc<RefCell<S>>,
 }
 
-impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
-    pub fn new(cpu: Cpu<Mem>, screen: Rc<S>) -> Self {
+impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
+    pub fn new(cpu: Cpu<Mem>, screen: Rc<RefCell<S>>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
-        let instructions = InstructionDecoder::new(&buf, cpu.registers.pc).collect();
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,
@@ -64,7 +63,6 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
             break_on_nmi: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
-            instructions: Arc::new(instructions),
             screen: screen,
         }
     }
@@ -77,10 +75,8 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
 
     pub fn step(&mut self) -> Result<()> {
         if let Some(break_reason) = self.break_reason() {
-            {
-                let snapshot = self.cpu_snapshot();
-                self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
-            }
+            let snapshot = self.cpu_snapshot();
+            self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
             thread::park();
         }
         self.last_pc = self.cpu.registers.pc;
@@ -121,7 +117,7 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
         }
     }
 
-    fn cpu_snapshot(&mut self) -> CpuSnapshot {
+    fn cpu_snapshot(&mut self) -> CpuSnapshot<S> {
         let hash = self.cpu.memory.hash();
         let mem_snapshot = if hash != self.last_mem_hash {
             debug!("Memory altered");
@@ -133,7 +129,11 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        CpuSnapshot::new(mem_snapshot, self.cpu.registers.clone(), self.cpu.cycles)
+        let screen: S = (self.screen.as_ref()).borrow().clone();
+        CpuSnapshot::new(mem_snapshot,
+                         self.cpu.registers.clone(),
+                         screen,
+                         self.cpu.cycles)
     }
 
     fn start_websocket_thread(&mut self) -> Result<()> {
@@ -143,23 +143,26 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
         let connection = ws_server.accept();
         info!("Debugger attached!");
         let ws_rx = self.ws_rx.clone();
-        thread::spawn(move || {
-            let request = connection.unwrap().read_request().unwrap();
-            request.validate().unwrap();
-            let response = request.accept();
-            let mut sender = response.send().unwrap();
+        thread::Builder::new()
+            .name("Websocket Server".to_owned())
+            .stack_size(4 * 1024 * 1024) // Should probably put DebuggerMessage in shared mutex
+            .spawn(move || {
+                let request = connection.unwrap().read_request().unwrap();
+                request.validate().unwrap();
+                let response = request.accept();
+                let mut sender = response.send().unwrap();
 
-            while let Some(debugger_msg) = ws_rx.recv() {
-                let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
-                    .unwrap());
+                while let Some(debugger_msg) = ws_rx.recv() {
+                    let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
+                        .unwrap());
 
-                if sender.send_message(&message).is_err() {
-                    break;
+                    if sender.send_message(&message).is_err() {
+                        break;
+                    }
                 }
-            }
 
-            info!("Websocket thread is terminating!")
-        });
+                info!("Websocket thread is terminating!")
+            }).unwrap();
 
         Ok(())
     }
@@ -170,14 +173,10 @@ impl<Mem: Memory, S: Screen> HttpDebugger<Mem, S> {
         let breakpoints = self.breakpoints.clone();
         let cpu_paused = self.cpu_paused.clone();
         let break_on_nmi = self.break_on_nmi.clone();
-        let instructions = self.instructions.clone();
 
         thread::spawn(move || {
             let mut router = Router::new();
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
-            router.get("/instructions",
-                       InstructionHandler::new(instructions),
-                       "instructions");
             router.get("/continue",
                        ContinueHandler::new(cpu_thread, cpu_paused),
                        "continue");
