@@ -47,13 +47,13 @@ impl ControlRegister {
     }
 
     /// Sprite pattern table address for 8x8 sprites (0: $0000; 1: $1000; ignored in 8x16 mode)
-    fn sprite_pattern_table_addr(&self) -> u16 {
+    pub fn sprite_pattern_table(&self) -> u16 {
         let reg = **self;
         if reg & 0b00001000 == 0 { 0x0 } else { 0x1000 }
     }
 
     /// Background pattern table address (0: $0000; 1: $1000)
-    fn background_pattern_table_addr(&self) -> u16 {
+    pub fn background_pattern_table(&self) -> u16 {
         let reg = **self;
         if reg & 0b00010000 == 0 { 0x0 } else { 0x1000 }
     }

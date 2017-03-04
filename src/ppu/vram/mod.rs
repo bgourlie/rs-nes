@@ -17,10 +17,11 @@ impl Default for LatchState {
 }
 
 pub trait Vram: Default {
-    fn write_address(&self, val: u8);
-    fn read_data_increment_address(&self) -> Result<u8>;
-    fn read_data(&self) -> Result<u8>;
-    fn write_data_increment_address(&mut self, val: u8) -> Result<()>;
+    fn write_ppu_addr(&self, val: u8);
+    fn write_ppu_data(&mut self, val: u8) -> Result<()>;
+    fn read_ppu_data(&self) -> Result<u8>;
+    fn ppu_data(&self) -> Result<u8>;
+    fn read(&self, addr: u16) -> Result<u8>;
     fn clear_latch(&self);
 }
 
@@ -45,7 +46,7 @@ impl Default for VramBase {
 }
 
 impl Vram for VramBase {
-    fn write_address(&self, val: u8) {
+    fn write_ppu_addr(&self, val: u8) {
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
                 let addr = self.address.get();
@@ -60,27 +61,18 @@ impl Vram for VramBase {
         }
     }
 
-    fn read_data_increment_address(&self) -> Result<u8> {
-        let val = self.read_data()?;
+    fn read_ppu_data(&self) -> Result<u8> {
+        let val = self.ppu_data()?;
         self.address.set(self.address.get() + 1);
         Ok(val)
     }
 
-    fn read_data(&self) -> Result<u8> {
+    fn ppu_data(&self) -> Result<u8> {
         let addr = self.address.get();
-        let val = if addr < 0x2000 {
-            self.pattern_tables[addr as usize]
-        } else if addr < 0x3f00 {
-            self.name_tables[addr as usize & 0x0fff]
-        } else if addr < 0x4000 {
-            self.palette[addr as usize & 0x1f]
-        } else {
-            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
-        };
-        Ok(val)
+        self.read(addr)
     }
 
-    fn write_data_increment_address(&mut self, val: u8) -> Result<()> {
+    fn write_ppu_data(&mut self, val: u8) -> Result<()> {
         let addr = self.address.get();
 
         if addr < 0x2000 {
@@ -100,11 +92,17 @@ impl Vram for VramBase {
     fn clear_latch(&self) {
         self.latch_state.set(LatchState::WriteHighByte)
     }
-}
 
-impl VramBase {
-    #[cfg(test)]
-    pub fn address(&self) -> u16 {
-        self.address.get()
+    fn read(&self, addr: u16) -> Result<u8> {
+        let val = if addr < 0x2000 {
+            self.pattern_tables[addr as usize]
+        } else if addr < 0x3f00 {
+            self.name_tables[addr as usize & 0x0fff]
+        } else if addr < 0x4000 {
+            self.palette[addr as usize & 0x1f]
+        } else {
+            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
+        };
+        Ok(val)
     }
 }

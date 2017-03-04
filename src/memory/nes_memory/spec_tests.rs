@@ -211,7 +211,7 @@ mod mocks {
             unimplemented!()
         }
 
-        fn new(screen: Rc<RefCell<Self::Scr>>) -> Self {
+        fn new(_: Rc<RefCell<Self::Scr>>) -> Self {
             unimplemented!()
         }
     }
@@ -239,7 +239,6 @@ mod mocks {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
-            screen: Rc::new(RefCell::new(NesScreen::default())),
             ppu: PpuMock::default(),
             apu: ApuMock::default(),
             input: InputMock::default(),

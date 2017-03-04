@@ -18,7 +18,7 @@ use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryB
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
-use screen::{self, NesScreen, Screen};
+use screen::{NesScreen, Screen};
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -62,6 +62,51 @@ pub enum StepAction {
     VBlankNmi,
 }
 
+impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
+    fn draw_pixel(&mut self, frame_cycle: u64) {
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+        let x = frame_cycle % CYCLES_PER_SCANLINE;
+        if scanline < 240 && x < 256 {
+            let (base, x_index, y_index) = self.nametable_index(x as _, scanline as _);
+            let vram_addr = base + 32 * y_index + x_index;
+            let tile = self.vram.read(vram_addr).unwrap(); // TODO: revisit Result for vram fns
+            let pixel = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8);
+            println!("rendering {},{}. tile_index: {:0>4X}, tile: {:0>2X}, pixel: {}",
+                     x,
+                     scanline,
+                     vram_addr,
+                     tile,
+                     pixel);
+        }
+    }
+
+    fn background_pixel(&self, tile: u16, x: u8, y: u8) -> u8 {
+        let offset = (tile << 4) + (y as u16);
+        let offset = offset + self.control.background_pattern_table();
+
+        // Determine the color of this pixel.
+        let plane0 = self.vram.read(offset).unwrap();
+        let plane1 = self.vram.read(offset + 8).unwrap();
+        let bit0 = (plane0 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
+        let bit1 = (plane1 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
+        (bit1 << 1) | bit0
+    }
+
+    fn nametable_index(&self, x: u16, y: u16) -> (u16, u16, u16) {
+        let tile_x = (x / 8) % 64;
+        let tile_y = (y / 8) % 60;
+
+        let base = match (tile_x >= 32, tile_y >= 30) {
+            (false, false) => 0x2000,
+            (true, false) => 0x2400,
+            (false, true) => 0x2800,
+            (true, true) => 0x2c00,
+        };
+
+        (base, tile_x % 32, tile_y % 30)
+    }
+}
+
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
     type Scr = NesScreen;
 
@@ -89,6 +134,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             _ => StepAction::None,
         };
 
+        self.draw_pixel(frame_cycle);
         self.cycles += 1;
         result
     }
@@ -104,8 +150,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x3 => self.oam.write_address(val),
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
-            0x6 => self.vram.write_address(val),
-            0x7 => self.vram.write_data_increment_address(val)?,
+            0x6 => self.vram.write_ppu_addr(val),
+            0x7 => self.vram.write_ppu_data(val)?,
             _ => unreachable!(),
         }
         Ok(())
@@ -132,7 +178,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram.read_data_increment_address()?,
+            0x7 => self.vram.read_ppu_data()?,
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => unreachable!(),
         };
@@ -149,7 +195,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
-                    self.vram.read_data().unwrap()];
+                    self.vram.ppu_data().unwrap()];
 
         writer.write_all(&regs).unwrap()
     }

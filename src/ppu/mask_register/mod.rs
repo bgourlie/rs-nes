@@ -27,9 +27,7 @@ pub enum ColorMode {
 impl MaskRegister {
     /// Greyscale (0: normal color, 1: produce a greyscale display)
     fn color_mode(self) -> ColorMode {
-        let mask = 0b00000001;
-        let reg = *self;
-        let val = reg & mask;
+        let val = self.reg & 0b00000001;
 
         if val == 0 {
             ColorMode::Normal
@@ -39,31 +37,31 @@ impl MaskRegister {
     }
 
     fn background_render_leftmost_8_px(&self) -> bool {
-        **self & 0b00000010 > 0
+        self.reg & 0b00000010 > 0
     }
 
     fn sprites_render_leftmost_8_px(&self) -> bool {
-        **self & 0b00000100 > 0
+        self.reg & 0b00000100 > 0
     }
 
     fn show_background(&self) -> bool {
-        **self & 0b00001000 > 0
+        self.reg & 0b00001000 > 0
     }
 
     fn show_sprites(&self) -> bool {
-        **self & 0b00010000 > 0
+        self.reg & 0b00010000 > 0
     }
 
     fn emphasize_red(&self) -> bool {
-        **self & 0b00100000 > 0
+        self.reg & 0b00100000 > 0
     }
 
     fn emphasize_green(&self) -> bool {
-        **self & 0b01000000 > 0
+        self.reg & 0b01000000 > 0
     }
 
     fn emphasize_blue(&self) -> bool {
-        **self & 0b10000000 > 0
+        self.reg & 0b10000000 > 0
     }
 
     pub fn write(&mut self, val: u8) {
@@ -71,6 +69,6 @@ impl MaskRegister {
     }
 
     pub fn rendering_disabled(&self) -> bool {
-        **self == 0
+        self.reg == 0
     }
 }

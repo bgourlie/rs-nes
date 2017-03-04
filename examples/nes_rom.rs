@@ -7,6 +7,7 @@ extern crate rs_nes;
 
 use rs_nes::cpu::*;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
+use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
 use std::cell::RefCell;
@@ -17,8 +18,9 @@ fn main() {
     env_logger::init().unwrap();
     let rom = NesRom::read("test_roms/mario.nes").unwrap();
     let screen = Rc::new(RefCell::new(NesScreen::default()));
+    let ppu = PpuImpl::new(screen.clone());
     println!("ROM Mapper: {}", rom.mapper);
-    let mem = NesMemoryImpl::new(rom, screen.clone());
+    let mem = NesMemoryImpl::new(rom, ppu);
     let mut cpu = Cpu::new(mem);
     cpu.reset().unwrap();
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu, screen);

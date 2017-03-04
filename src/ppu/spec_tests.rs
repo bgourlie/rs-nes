@@ -73,7 +73,7 @@ fn write() {
     ppu.write(0x3ffd, 0x13).unwrap();
     assert_eq!(0x13, ppu.scroll.value());
 
-    ppu.vram.write_address(0x02);
+    ppu.vram.write_ppu_addr(0x02);
     assert_eq!(0x02, ppu.vram.address_value());
 
     ppu.write(0x3fff, 0x15).unwrap();
@@ -348,23 +348,27 @@ mod mocks {
     }
 
     impl Vram for MockVram {
-        fn write_address(&self, val: u8) {
+        fn write_ppu_addr(&self, val: u8) {
             self.set_address_value(val)
         }
 
-        fn read_data_increment_address(&self) -> Result<u8> {
+        fn read_ppu_data(&self) -> Result<u8> {
             Ok(self.data_value())
         }
 
-        fn read_data(&self) -> Result<u8> {
+        fn ppu_data(&self) -> Result<u8> {
             Ok(self.data_value())
         }
 
-        fn write_data_increment_address(&mut self, val: u8) -> Result<()> {
+        fn write_ppu_data(&mut self, val: u8) -> Result<()> {
             self.set_data_value(val);
             Ok(())
         }
 
         fn clear_latch(&self) {}
+
+        fn read(&self, _: u16) -> Result<u8> {
+            Ok(0)
+        }
     }
 }

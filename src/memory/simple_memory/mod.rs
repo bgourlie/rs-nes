@@ -1,12 +1,9 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
 use errors::*;
-use screen::Screen;
 
 #[cfg(feature = "debugger")]
 use seahash;
-use std::cell::RefCell;
 use std::io::Write;
-use std::rc::Rc;
 
 pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
