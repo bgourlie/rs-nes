@@ -4,6 +4,8 @@ mod spec_tests;
 use std::cell::Cell;
 
 const VBLANK: u8 = 0b10000000;
+const SPRITE_ZERO: u8 = 0b01000000;
+const SPRITE_OVERFLOW: u8 = 0b00100000;
 
 #[derive(Default)]
 pub struct StatusRegister {
@@ -41,8 +43,18 @@ impl StatusRegister {
     /// Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
     /// a nonzero background pixel; cleared at dot 1 of the pre-render
     /// line.  Used for raster timing.
-    fn sprite_zero_hit(&self) -> bool {
-        self.reg.get() & 0b01000000 > 0
+    pub fn sprite_zero_hit(&self) -> bool {
+        self.reg.get() & SPRITE_ZERO > 0
+    }
+
+    pub fn set_sprite_zero_hit(&self) {
+        let reg = self.reg.get() | SPRITE_ZERO;
+        self.reg.set(reg)
+    }
+
+    pub fn clear_sprite_zero_hit(&self) {
+        let cleared = self.reg.get() & !SPRITE_ZERO;
+        self.reg.set(cleared);
     }
     /// Sprite overflow. The intent was for this flag to be set
     /// whenever more than eight sprites appear on a scanline, but a
@@ -52,7 +64,12 @@ impl StatusRegister {
     /// evaluation and cleared at dot 1 (the second dot) of the
     /// pre-render line.
     /// See: https://github.com/christopherpow/nes-test-roms
-    fn sprite_overflow(&self) -> bool {
+    pub fn sprite_overflow(&self) -> bool {
         self.reg.get() & 0b00100000 > 0
+    }
+
+    pub fn clear_sprite_overflow(&self) {
+        let cleared = self.reg.get() & !SPRITE_OVERFLOW;
+        self.reg.set(cleared);
     }
 }

@@ -3,7 +3,7 @@ use super::status_register::StatusRegister;
 
 #[test]
 fn write() {
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
 
     // Writes to 0x2000 write the control register
     ppu.write(0x2000, 0x1).unwrap();
@@ -82,7 +82,7 @@ fn write() {
 
 #[test]
 fn memory_mapped_register_read() {
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
 
     ppu.control.write(0xf0);
     assert_eq!(0xf0, ppu.read(0x2000).unwrap());
@@ -178,7 +178,7 @@ fn vblank_set_and_clear_cycles() {
     const CLEAR_VBLANK_CYCLE: u64 = super::CYCLES_PER_SCANLINE * super::LAST_SCANLINE + 1;
     const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
 
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
 
     // Render 100 frames and assert expected VBLANK behavior
     while ppu.cycles < super::CYCLES_PER_FRAME * 100 {
@@ -188,13 +188,13 @@ fn vblank_set_and_clear_cycles() {
             VBLANK_OFF_AGAIN...super::CYCLES_PER_FRAME => assert_eq!(false, ppu.status.in_vblank()),
             _ => panic!("We should never get here"),
         }
-        ppu.step();
+        ppu.step().unwrap();
     }
 }
 
 #[test]
 fn vblank_clear_after_status_read() {
-    let ppu = mocks::TestPpu::default();
+    let ppu = mocks::mock_ppu();
     ppu.status.set_in_vblank();
     let status = ppu.read(0x2002).unwrap();
     assert_eq!(true, status & 0b10000000 > 0);
@@ -203,7 +203,7 @@ fn vblank_clear_after_status_read() {
 
 #[test]
 fn oam_read_non_blanking_increments_addr() {
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
     ppu.status.clear_in_vblank();
     ppu.mask.write(1);
     ppu.read(0x2004).unwrap();
@@ -213,7 +213,7 @@ fn oam_read_non_blanking_increments_addr() {
 
 #[test]
 fn oam_read_v_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
     ppu.status.set_in_vblank();
     ppu.mask.write(1);
     ppu.read(0x2004).unwrap();
@@ -223,7 +223,7 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
 
 #[test]
 fn oam_read_forced_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::TestPpu::default();
+    let mut ppu = mocks::mock_ppu();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
     ppu.read(0x2004).unwrap();
@@ -235,12 +235,32 @@ mod mocks {
     use super::object_attribute_memory::SpriteAttributes;
     use errors::*;
     use ppu::PpuBase;
+    use ppu::control_register::{ControlRegister, IncrementAmount};
+    use ppu::mask_register::MaskRegister;
     use ppu::object_attribute_memory::ObjectAttributeMemory;
     use ppu::scroll_register::ScrollRegister;
+    use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
+    use rom::NesRom;
+    use screen::NesScreen;
     use std::cell::Cell;
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
+
+    pub fn mock_ppu() -> TestPpu {
+        PpuBase {
+            cycles: 0,
+            control: ControlRegister::default(),
+            mask: MaskRegister::default(),
+            status: StatusRegister::default(),
+            scroll: MockScrollRegister::default(),
+            vram: MockVram::new(NesRom::default()),
+            oam: MockOam::default(),
+            screen: Rc::new(RefCell::new(NesScreen::default())),
+        }
+    }
 
     #[derive(Default)]
     pub struct MockScrollRegister {
@@ -352,7 +372,7 @@ mod mocks {
             self.set_address_value(val)
         }
 
-        fn read_ppu_data(&self) -> Result<u8> {
+        fn read_ppu_data(&self, _: IncrementAmount) -> Result<u8> {
             Ok(self.data_value())
         }
 
@@ -360,7 +380,7 @@ mod mocks {
             Ok(self.data_value())
         }
 
-        fn write_ppu_data(&mut self, val: u8) -> Result<()> {
+        fn write_ppu_data(&mut self, val: u8, _: IncrementAmount) -> Result<()> {
             self.set_data_value(val);
             Ok(())
         }
@@ -369,6 +389,10 @@ mod mocks {
 
         fn read(&self, _: u16) -> Result<u8> {
             Ok(0)
+        }
+
+        fn new(_: NesRom) -> Self {
+            Self::default()
         }
     }
 }

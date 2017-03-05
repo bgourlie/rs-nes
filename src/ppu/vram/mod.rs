@@ -1,4 +1,7 @@
+
+use super::control_register::IncrementAmount;
 use errors::*;
+use rom::NesRom;
 use std::cell::Cell;
 
 #[cfg(test)]
@@ -16,10 +19,11 @@ impl Default for LatchState {
     }
 }
 
-pub trait Vram: Default {
+pub trait Vram {
+    fn new(rom: NesRom) -> Self;
     fn write_ppu_addr(&self, val: u8);
-    fn write_ppu_data(&mut self, val: u8) -> Result<()>;
-    fn read_ppu_data(&self) -> Result<u8>;
+    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) -> Result<()>;
+    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> Result<u8>;
     fn ppu_data(&self) -> Result<u8>;
     fn read(&self, addr: u16) -> Result<u8>;
     fn clear_latch(&self);
@@ -28,24 +32,22 @@ pub trait Vram: Default {
 pub struct VramBase {
     address: Cell<u16>,
     latch_state: Cell<LatchState>,
-    pattern_tables: [u8; 0x2000], // TODO: mapper
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
-}
-
-impl Default for VramBase {
-    fn default() -> Self {
-        VramBase {
-            address: Cell::new(0),
-            latch_state: Cell::new(LatchState::default()),
-            pattern_tables: [0; 0x2000],
-            name_tables: [0; 0x1000],
-            palette: [0; 0x20],
-        }
-    }
+    rom: NesRom, // TODO: mapper
 }
 
 impl Vram for VramBase {
+    fn new(rom: NesRom) -> Self {
+        VramBase {
+            address: Cell::new(0),
+            latch_state: Cell::new(LatchState::default()),
+            name_tables: [0; 0x1000],
+            palette: [0; 0x20],
+            rom: rom,
+        }
+    }
+
     fn write_ppu_addr(&self, val: u8) {
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
@@ -61,9 +63,12 @@ impl Vram for VramBase {
         }
     }
 
-    fn read_ppu_data(&self) -> Result<u8> {
+    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> Result<u8> {
         let val = self.ppu_data()?;
-        self.address.set(self.address.get() + 1);
+        match inc_amount {
+            IncrementAmount::One => self.address.set(self.address.get() + 1),
+            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
+        }
         Ok(val)
     }
 
@@ -72,20 +77,25 @@ impl Vram for VramBase {
         self.read(addr)
     }
 
-    fn write_ppu_data(&mut self, val: u8) -> Result<()> {
+    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) -> Result<()> {
         let addr = self.address.get();
 
         if addr < 0x2000 {
-            self.pattern_tables[addr as usize] = val;
+            self.rom.chr[addr as usize] = val;
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f] = val;
         } else {
-            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
+            //bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
+            println!("invalid vram write at {:0>4X}", addr);
+            self.palette[addr as usize & 0x1f] = val;
         }
 
-        self.address.set(addr + 1);
+        match inc_amount {
+            IncrementAmount::One => self.address.set(self.address.get() + 1),
+            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
+        }
         Ok(())
     }
 
@@ -95,13 +105,15 @@ impl Vram for VramBase {
 
     fn read(&self, addr: u16) -> Result<u8> {
         let val = if addr < 0x2000 {
-            self.pattern_tables[addr as usize]
+            self.rom.chr[addr as usize]
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f]
         } else {
-            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
+            println!("invalid vram read at {:0>4X}", addr);
+            //bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
+            self.palette[addr as usize & 0x1f]
         };
         Ok(val)
     }

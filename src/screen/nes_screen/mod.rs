@@ -17,7 +17,14 @@ pub struct NesScreen {
 
 impl Default for NesScreen {
     fn default() -> Self {
-        NesScreen { screen_buffer: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3] }
+        let mut screen = NesScreen { screen_buffer: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 3] };
+
+        for y in 0..SCREEN_HEIGHT {
+            for x in 0..SCREEN_WIDTH {
+                screen.put_pixel(x, y, Pixel(0xff, 0, 0))
+            }
+        }
+        screen
     }
 }
 
@@ -52,7 +59,7 @@ impl Serialize for NesScreen {
 impl Screen for NesScreen {
     fn put_pixel(&mut self, x: usize, y: usize, pixel: Pixel) {
         let Pixel(r, g, b) = pixel;
-        let i = (y * SCREEN_HEIGHT) + x;
+        let i = ((y * SCREEN_WIDTH) + x) * 3;
         self.screen_buffer[i] = r;
         self.screen_buffer[i + 1] = g;
         self.screen_buffer[i + 2] = b;

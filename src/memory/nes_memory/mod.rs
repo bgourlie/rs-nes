@@ -42,7 +42,7 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
         let mut tick_action = TickAction::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
-            if self.ppu.step() == StepAction::VBlankNmi {
+            if self.ppu.step()? == StepAction::VBlankNmi {
                 // TODO: https://github.com/bgourlie/rs-nes/issues/14
                 tick_action = TickAction::Nmi;
             };

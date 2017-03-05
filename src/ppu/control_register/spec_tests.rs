@@ -1,4 +1,4 @@
-use ppu::control_register::{ControlRegister, PpuMode, SpriteSize};
+use super::*;
 
 #[test]
 fn base_nametable_addr() {
@@ -18,10 +18,10 @@ fn base_nametable_addr() {
 #[test]
 fn vram_addr_increment() {
     let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(1, ppu_ctrl.vram_addr_increment());
+    assert_eq!(IncrementAmount::One, ppu_ctrl.vram_addr_increment());
 
     let ppu_ctrl = new_control_register(0b00000100);
-    assert_eq!(32, ppu_ctrl.vram_addr_increment());
+    assert_eq!(IncrementAmount::ThirtyTwo, ppu_ctrl.vram_addr_increment());
 }
 
 #[test]

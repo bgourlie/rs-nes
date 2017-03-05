@@ -203,7 +203,7 @@ mod mocks {
             Ok(self.value)
         }
 
-        fn step(&mut self) -> StepAction {
+        fn step(&mut self) -> Result<StepAction> {
             unimplemented!()
         }
 
@@ -211,7 +211,7 @@ mod mocks {
             unimplemented!()
         }
 
-        fn new(_: Rc<RefCell<Self::Scr>>) -> Self {
+        fn new(_: NesRom, _: Rc<RefCell<Self::Scr>>) -> Self {
             unimplemented!()
         }
     }

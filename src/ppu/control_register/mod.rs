@@ -15,6 +15,12 @@ pub enum PpuMode {
     Slave,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum IncrementAmount {
+    One,
+    ThirtyTwo,
+}
+
 /// $2000, Write Only
 /// Various flags controlling PPU operation
 #[derive(Default)]
@@ -25,43 +31,45 @@ pub struct ControlRegister {
 impl ControlRegister {
     /// Base nametable address (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
     fn base_name_table_addr(&self) -> u16 {
-        let reg = **self;
-        let val = reg & 0b00000011;
-
-        if val == 0 {
-            0x2000
-        } else if val == 1 {
-            0x2400
-        } else if val == 2 {
-            0x2800
-        } else {
-            0x2C00
+        match self.reg & 0b00000011 {
+            0 => 0x2000,
+            1 => 0x2400,
+            2 => 0x2800,
+            _ => 0x2C00,
         }
     }
 
     /// VRAM address increment per CPU read/write of PPUDATA
     /// (0: add 1, going across; 1: add 32, going down)
-    fn vram_addr_increment(&self) -> u16 {
-        let reg = **self;
-        if reg & 0b0000100 == 0 { 1 } else { 32 }
+    pub fn vram_addr_increment(&self) -> IncrementAmount {
+        if self.reg & 0b0000100 == 0 {
+            IncrementAmount::One
+        } else {
+            IncrementAmount::ThirtyTwo
+        }
     }
 
     /// Sprite pattern table address for 8x8 sprites (0: $0000; 1: $1000; ignored in 8x16 mode)
     pub fn sprite_pattern_table(&self) -> u16 {
-        let reg = **self;
-        if reg & 0b00001000 == 0 { 0x0 } else { 0x1000 }
+        if self.reg & 0b00001000 == 0 {
+            0x0
+        } else {
+            0x1000
+        }
     }
 
     /// Background pattern table address (0: $0000; 1: $1000)
     pub fn background_pattern_table(&self) -> u16 {
-        let reg = **self;
-        if reg & 0b00010000 == 0 { 0x0 } else { 0x1000 }
+        if self.reg & 0b00010000 == 0 {
+            0x0
+        } else {
+            0x1000
+        }
     }
 
     /// Sprite size (0: 8x8; 1: 8x16)
-    fn sprite_size(&self) -> SpriteSize {
-        let reg = **self;
-        if reg & 0b00100000 == 0 {
+    pub fn sprite_size(&self) -> SpriteSize {
+        if self.reg & 0b00100000 == 0 {
             SpriteSize::X8
         } else {
             SpriteSize::X16
@@ -73,9 +81,7 @@ impl ControlRegister {
     /// *Note:* I don't think this is necessary for emulation since the NES never set the PPU
     /// slave bit. Apparently, it could actually harm the NES hardware if it were set.
     fn ppu_mode(&self) -> PpuMode {
-        let reg = **self;
-
-        if reg & 0b01000000 == 0 {
+        if self.reg & 0b01000000 == 0 {
             PpuMode::Master
         } else {
             PpuMode::Slave
@@ -84,8 +90,7 @@ impl ControlRegister {
 
     /// Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)
     pub fn nmi_on_vblank_start(&self) -> bool {
-        let reg = **self;
-        !(reg & 0b10000000 == 0)
+        !(self.reg & 0b10000000 == 0)
     }
 
     pub fn write(&mut self, val: u8) {

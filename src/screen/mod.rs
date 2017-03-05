@@ -15,7 +15,7 @@ pub trait Screen: Default + Send + Clone + 'static {
     }
 }
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, Debug)]
 pub struct Pixel(pub u8, pub u8, pub u8);
 
 #[derive(Copy, Clone, Default)]

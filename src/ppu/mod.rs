@@ -18,7 +18,8 @@ use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryB
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
-use screen::{NesScreen, Screen};
+use rom::NesRom;
+use screen::{NesScreen, Pixel, Screen};
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -31,19 +32,85 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
+static PALETTE: [Pixel; 64] = [Pixel(0x7C, 0x7C, 0x7C),
+                               Pixel(0x00, 0x00, 0xFC),
+                               Pixel(0x00, 0x00, 0xBC),
+                               Pixel(0x44, 0x28, 0xBC),
+                               Pixel(0x94, 0x00, 0x84),
+                               Pixel(0xA8, 0x00, 0x20),
+                               Pixel(0xA8, 0x10, 0x00),
+                               Pixel(0x88, 0x14, 0x00),
+                               Pixel(0x50, 0x30, 0x00),
+                               Pixel(0x00, 0x78, 0x00),
+                               Pixel(0x00, 0x68, 0x00),
+                               Pixel(0x00, 0x58, 0x00),
+                               Pixel(0x00, 0x40, 0x58),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0xBC, 0xBC, 0xBC),
+                               Pixel(0x00, 0x78, 0xF8),
+                               Pixel(0x00, 0x58, 0xF8),
+                               Pixel(0x68, 0x44, 0xFC),
+                               Pixel(0xD8, 0x00, 0xCC),
+                               Pixel(0xE4, 0x00, 0x58),
+                               Pixel(0xF8, 0x38, 0x00),
+                               Pixel(0xE4, 0x5C, 0x10),
+                               Pixel(0xAC, 0x7C, 0x00),
+                               Pixel(0x00, 0xB8, 0x00),
+                               Pixel(0x00, 0xA8, 0x00),
+                               Pixel(0x00, 0xA8, 0x44),
+                               Pixel(0x00, 0x88, 0x88),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0xF8, 0xF8, 0xF8),
+                               Pixel(0x3C, 0xBC, 0xFC),
+                               Pixel(0x68, 0x88, 0xFC),
+                               Pixel(0x98, 0x78, 0xF8),
+                               Pixel(0xF8, 0x78, 0xF8),
+                               Pixel(0xF8, 0x58, 0x98),
+                               Pixel(0xF8, 0x78, 0x58),
+                               Pixel(0xFC, 0xA0, 0x44),
+                               Pixel(0xF8, 0xB8, 0x00),
+                               Pixel(0xB8, 0xF8, 0x18),
+                               Pixel(0x58, 0xD8, 0x54),
+                               Pixel(0x58, 0xF8, 0x98),
+                               Pixel(0x00, 0xE8, 0xD8),
+                               Pixel(0x78, 0x78, 0x78),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0xFC, 0xFC, 0xFC),
+                               Pixel(0xA4, 0xE4, 0xFC),
+                               Pixel(0xB8, 0xB8, 0xF8),
+                               Pixel(0xD8, 0xB8, 0xF8),
+                               Pixel(0xF8, 0xB8, 0xF8),
+                               Pixel(0xF8, 0xA4, 0xC0),
+                               Pixel(0xF0, 0xD0, 0xB0),
+                               Pixel(0xFC, 0xE0, 0xA8),
+                               Pixel(0xF8, 0xD8, 0x78),
+                               Pixel(0xD8, 0xF8, 0x78),
+                               Pixel(0xB8, 0xF8, 0xB8),
+                               Pixel(0xB8, 0xF8, 0xD8),
+                               Pixel(0x00, 0xFC, 0xFC),
+                               Pixel(0xF8, 0xD8, 0xF8),
+                               Pixel(0x00, 0x00, 0x00),
+                               Pixel(0x00, 0x00, 0x00)];
+
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-pub trait Ppu: Default {
+type Palette = [Pixel; 3];
+
+pub trait Ppu {
     type Scr: Screen;
 
-    fn new(screen: Rc<RefCell<Self::Scr>>) -> Self;
+    fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self;
     fn write(&mut self, addr: u16, val: u8) -> Result<()>;
     fn read(&self, addr: u16) -> Result<u8>;
-    fn step(&mut self) -> StepAction;
+    fn step(&mut self) -> Result<StepAction>;
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
-#[derive(Default)]
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
@@ -63,36 +130,48 @@ pub enum StepAction {
 }
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    fn draw_pixel(&mut self, frame_cycle: u64) {
+    fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % CYCLES_PER_SCANLINE;
         if scanline < 240 && x < 256 {
             let (base, x_index, y_index) = self.nametable_index(x as _, scanline as _);
             let vram_addr = base + 32 * y_index + x_index;
-            let tile = self.vram.read(vram_addr).unwrap(); // TODO: revisit Result for vram fns
-            let pixel = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8);
-            println!("rendering {},{}. tile_index: {:0>4X}, tile: {:0>2X}, pixel: {}",
-                     x,
-                     scanline,
-                     vram_addr,
-                     tile,
-                     pixel);
+            let tile = self.vram.read(vram_addr)?;
+            let palette = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8)?;
+            let pixel = match palette {
+                0 => Pixel(0, 0, 0),
+                1 => Pixel(100, 100, 100),
+                2 => Pixel(180, 180, 180),
+                3 => Pixel(255, 255, 255),
+                _ => unreachable!(),
+            };
+
+            // TEMPORARY and not correct behavior
+            if !self.status.sprite_zero_hit() && palette > 0 {
+                println!("setting sprite zero hit");
+                self.status.set_sprite_zero_hit();
+            }
+
+            self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel);
         }
+        Ok(())
     }
 
-    fn background_pixel(&self, tile: u16, x: u8, y: u8) -> u8 {
+    fn background_pixel(&self, tile: u16, x: u8, y: u8) -> Result<u8> {
+        // Graciously adapted from sprocket nes
         let offset = (tile << 4) + (y as u16);
         let offset = offset + self.control.background_pattern_table();
 
         // Determine the color of this pixel.
-        let plane0 = self.vram.read(offset).unwrap();
-        let plane1 = self.vram.read(offset + 8).unwrap();
+        let plane0 = self.vram.read(offset)?;
+        let plane1 = self.vram.read(offset + 8)?;
         let bit0 = (plane0 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
         let bit1 = (plane1 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
-        (bit1 << 1) | bit0
+        Ok((bit1 << 1) | bit0)
     }
 
     fn nametable_index(&self, x: u16, y: u16) -> (u16, u16, u16) {
+        // Graciously adapted from sprocket nes
         let tile_x = (x / 8) % 64;
         let tile_y = (y / 8) % 60;
 
@@ -105,18 +184,49 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
 
         (base, tile_x % 32, tile_y % 30)
     }
+
+    fn background_palettes(&self) -> Result<[Palette; 4]> {
+        let color0 = self.vram.read(0x3f01)? as usize;
+        let color1 = self.vram.read(0x3f02)? as usize;
+        let color2 = self.vram.read(0x3f03)? as usize;
+        let palette0: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f05)? as usize;
+        let color1 = self.vram.read(0x3f06)? as usize;
+        let color2 = self.vram.read(0x3f07)? as usize;
+        let palette1: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f09)? as usize;
+        let color1 = self.vram.read(0x3f0a)? as usize;
+        let color2 = self.vram.read(0x3f0b)? as usize;
+        let palette2: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f0d)? as usize;
+        let color1 = self.vram.read(0x3f0e)? as usize;
+        let color2 = self.vram.read(0x3f0f)? as usize;
+        let palette3: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        Ok([palette0, palette1, palette2, palette3])
+    }
 }
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
     type Scr = NesScreen;
 
-    fn new(screen: Rc<RefCell<Self::Scr>>) -> Self {
-        let mut ppu = Self::default();
-        ppu.screen = screen;
-        ppu
+    fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
+        PpuBase {
+            cycles: 0,
+            control: ControlRegister::default(),
+            mask: MaskRegister::default(),
+            status: StatusRegister::default(),
+            scroll: S::default(),
+            vram: V::new(rom),
+            oam: O::default(),
+            screen: screen,
+        }
     }
 
-    fn step(&mut self) -> StepAction {
+    fn step(&mut self) -> Result<StepAction> {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
@@ -129,14 +239,15 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             }
             VBLANK_CLEAR_CYCLE => {
                 self.status.clear_in_vblank();
+                self.status.clear_sprite_zero_hit();
                 StepAction::None
             }
             _ => StepAction::None,
         };
 
-        self.draw_pixel(frame_cycle);
+        self.draw_pixel(frame_cycle)?;
         self.cycles += 1;
-        result
+        Ok(result)
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
@@ -151,7 +262,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x4 => self.oam.write_data(val),
             0x5 => self.scroll.write(val),
             0x6 => self.vram.write_ppu_addr(val),
-            0x7 => self.vram.write_ppu_data(val)?,
+            0x7 => {
+                let inc_amount = self.control.vram_addr_increment();
+                self.vram.write_ppu_data(val, inc_amount)?
+            }
             _ => unreachable!(),
         }
         Ok(())
@@ -178,7 +292,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     self.oam.read_data_increment_addr()
                 }
             }
-            0x7 => self.vram.read_ppu_data()?,
+            0x7 => {
+                let inc_amount = self.control.vram_addr_increment();
+                self.vram.read_ppu_data(inc_amount)?
+            }
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => unreachable!(),
         };
@@ -195,7 +312,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     self.oam.read_data(),
                     0, // Write-only
                     0, // Write-only
-                    self.vram.ppu_data().unwrap()];
+                    0];
 
         writer.write_all(&regs).unwrap()
     }
