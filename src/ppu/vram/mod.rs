@@ -1,4 +1,3 @@
-
 use super::control_register::IncrementAmount;
 use errors::*;
 use rom::NesRom;
@@ -49,6 +48,7 @@ impl Vram for VramBase {
     }
 
     fn write_ppu_addr(&self, val: u8) {
+        println!("write ppu addr: {:0>2X}", val);
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
                 let addr = self.address.get();
@@ -59,6 +59,7 @@ impl Vram for VramBase {
                 let addr = self.address.get();
                 self.address.set((addr & 0xff00) | val as u16);
                 self.latch_state.set(LatchState::WriteHighByte);
+                println!("ppu address set: {:0>4X}", self.address.get());
             }
         }
     }
@@ -87,9 +88,8 @@ impl Vram for VramBase {
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f] = val;
         } else {
-            //bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
-            println!("invalid vram write at {:0>4X}", addr);
-            self.palette[addr as usize & 0x1f] = val;
+            let message = "Invalid write".to_owned();
+            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
         }
 
         match inc_amount {
@@ -111,9 +111,8 @@ impl Vram for VramBase {
         } else if addr < 0x4000 {
             self.palette[addr as usize & 0x1f]
         } else {
-            println!("invalid vram read at {:0>4X}", addr);
-            //bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(addr)));
-            self.palette[addr as usize & 0x1f]
+            let message = "Invalid read".to_owned();
+            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
         };
         Ok(val)
     }

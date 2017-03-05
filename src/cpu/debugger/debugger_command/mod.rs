@@ -56,9 +56,10 @@ impl Serialize for CrashReason {
                 state.serialize_field("type", "invalidOperation")?;
                 state.serialize_field("description", &description.to_owned())?;
             }
-            CrashReason::InvalidVramAccess(addr) => {
+            CrashReason::InvalidVramAccess(ref description, addr) => {
                 state.serialize_field("type", "invalidVramAccess")?;
                 state.serialize_field("address", &addr)?;
+                state.serialize_field("description", &description)?;
             }
             CrashReason::UnexpectedOpcode(opcode) => {
                 state.serialize_field("type", "unexpectedOpcode")?;

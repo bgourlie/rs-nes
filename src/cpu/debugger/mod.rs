@@ -89,7 +89,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             self.ws_tx.send(DebuggerCommand::Crash(reason.clone(), snapshot));
 
             // Give the web socket thread enough time to send the Crash message
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(1000));
         }
 
         result

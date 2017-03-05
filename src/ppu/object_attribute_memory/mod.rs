@@ -59,8 +59,8 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
         ret
     }
 
-    fn write_address(&mut self, addr: u8) {
-        self.address.set(addr);
+    fn write_address(&mut self, val: u8) {
+        self.address.set(val);
     }
 
     fn write_data(&mut self, val: u8) {

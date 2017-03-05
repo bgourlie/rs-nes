@@ -138,18 +138,20 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             let vram_addr = base + 32 * y_index + x_index;
             let tile = self.vram.read(vram_addr)?;
             let palette = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8)?;
+
+            let (bg, palettes) = self.background_palettes()?; // TODO: perf
+
             let pixel = match palette {
-                0 => Pixel(0, 0, 0),
-                1 => Pixel(100, 100, 100),
-                2 => Pixel(180, 180, 180),
-                3 => Pixel(255, 255, 255),
+                0 => bg,
+                1 => palettes[0][0],
+                2 => palettes[1][0],
+                3 => palettes[2][0],
                 _ => unreachable!(),
             };
 
-            // TEMPORARY and not correct behavior
+            // FIXME: TEMPORARY and not correct behavior
             if !self.status.sprite_zero_hit() && palette > 0 {
-                println!("setting sprite zero hit");
-                self.status.set_sprite_zero_hit();
+                //self.status.set_sprite_zero_hit();
             }
 
             self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel);
@@ -185,7 +187,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         (base, tile_x % 32, tile_y % 30)
     }
 
-    fn background_palettes(&self) -> Result<[Palette; 4]> {
+    fn background_palettes(&self) -> Result<(Pixel, [Palette; 4])> {
+        let bg = self.vram.read(0x3f00)? as usize;
+        let bg = PALETTE[bg];
+
         let color0 = self.vram.read(0x3f01)? as usize;
         let color1 = self.vram.read(0x3f02)? as usize;
         let color2 = self.vram.read(0x3f03)? as usize;
@@ -206,7 +211,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let color2 = self.vram.read(0x3f0f)? as usize;
         let palette3: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
-        Ok([palette0, palette1, palette2, palette3])
+        Ok((bg, [palette0, palette1, palette2, palette3]))
     }
 }
 
