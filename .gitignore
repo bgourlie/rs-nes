@@ -20,4 +20,4 @@
 npm-debug.log
 
 # Don't version private copy roms
-test_roms/mario.nes
+test_roms/*.nes
