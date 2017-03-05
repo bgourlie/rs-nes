@@ -135,17 +135,22 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let x = frame_cycle % CYCLES_PER_SCANLINE;
         if scanline < 240 && x < 256 {
             let (base, x_index, y_index) = self.nametable_index(x as _, scanline as _);
-            let vram_addr = base + 32 * y_index + x_index;
-            let tile = self.vram.read(vram_addr)?;
+            let tile_offset = base + 32 * y_index + x_index;
+            let palette_index = self.palette_index(base, x as _, scanline as _)?;
+
+            println!("tile_offset: {:0>4X}, palette_index: {}",
+                     tile_offset,
+                     palette_index);
+            let tile = self.vram.read(tile_offset)?;
             let palette = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8)?;
 
             let (bg, palettes) = self.background_palettes()?; // TODO: perf
 
             let pixel = match palette {
                 0 => bg,
-                1 => palettes[0][0],
-                2 => palettes[1][0],
-                3 => palettes[2][0],
+                1 => palettes[palette_index as usize][0],
+                2 => palettes[palette_index as usize][1],
+                3 => palettes[palette_index as usize][2],
                 _ => unreachable!(),
             };
 
@@ -170,6 +175,37 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let bit0 = (plane0 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
         let bit1 = (plane1 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
         Ok((bit1 << 1) | bit0)
+    }
+
+    fn palette_index(&self, nametable_base: u16, x: u8, y: u8) -> Result<u8> {
+        let tile_x = (x as u16 / 16) % 8;
+        let tile_y = (y as u16 / 16) % 8;
+
+        let attr_offset = (nametable_base + 0x3c0) + 8 * tile_y + tile_x;
+        let attr = self.vram.read(attr_offset)?;
+        println!("attr_offset: {:0>4X}, attr value: {:0>2X}",
+                 attr_offset,
+                 attr);
+        let palette_index = match ((tile_y % 16) / 8 == 0, (tile_x % 16) / 8 == 0) {
+            (true, true) => {
+                // top left
+                attr & 0x3
+            }
+            (true, false) => {
+                // top right
+                (attr >> 2) & 0x3
+            }
+            (false, true) => {
+                // bottom left
+                (attr >> 4) & 0x3
+            }
+            (false, false) => {
+                // bottom right
+                (attr >> 6) & 0x3
+            }
+        };
+
+        Ok(palette_index)
     }
 
     fn nametable_index(&self, x: u16, y: u16) -> (u16, u16, u16) {
