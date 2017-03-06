@@ -18,9 +18,6 @@ use cpu::registers::Registers;
 use errors::*;
 use memory::*;
 
-#[cfg(test)]
-use screen::NoScreen;
-
 const STACK_LOC: u16 = 0x100;
 const NMI_VECTOR: u16 = 0xfffa;
 const RESET_VECTOR: u16 = 0xfffc;

@@ -29,3 +29,12 @@ png = {version = "^0.6.2", optional = true}
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
 rand = "*"
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'unwind'

@@ -43,6 +43,7 @@ pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
     break_on_nmi: Arc<AtomicBool>,
+    break_on_trap: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
     screen: Rc<RefCell<S>>,
@@ -61,6 +62,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             cpu_thread_handle: thread::current(),
             cpu_paused: Arc::new(AtomicBool::new(true)),
             break_on_nmi: Arc::new(AtomicBool::new(false)),
+            break_on_trap: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
             screen: screen,
@@ -87,7 +89,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             self.ws_tx.send(DebuggerCommand::Crash(reason.clone(), snapshot));
 
             // Give the web socket thread enough time to send the Crash message
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(1000));
         }
 
         result
@@ -99,7 +101,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             debug!("Break on NMI. CPU thread paused.");
             self.cpu_paused.compare_and_swap(false, true, Ordering::Relaxed);
             Some(BreakReason::Nmi)
-        } else if self.last_pc == self.cpu.registers.pc {
+        } else if self.last_pc == self.cpu.registers.pc &&
+                  self.break_on_trap.load(Ordering::Relaxed) {
             debug!("Trap detected @ {:0>4X}. CPU thread paused.",
                    self.cpu.registers.pc);
             Some(BreakReason::Trap)

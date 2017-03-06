@@ -40,6 +40,27 @@ pub struct NesRom {
     pub prg: Vec<u8>,
 }
 
+impl Default for NesRom {
+    fn default() -> Self {
+        NesRom {
+            format: RomFormat::INes,
+            video_standard: VideoStandard::Ntsc,
+            mapper: 0,
+            mirroring: Mirroring::Horizontal,
+            prg_rom_banks: 2,
+            prg_ram_banks: 0,
+            chr_rom_banks: 2,
+            has_sram: false,
+            has_trainer: false,
+            is_pc10: false,
+            is_vs_unisystem: false,
+            trainer: Vec::new(),
+            chr: Vec::new(),
+            prg: Vec::new(),
+        }
+    }
+}
+
 impl NesRom {
     pub fn read(path: &str) -> Result<NesRom, &'static str> {
         let mut f = match File::open(path) {

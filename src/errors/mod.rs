@@ -2,7 +2,7 @@
 pub enum CrashReason {
     InvalidOperation(String),
     UnexpectedOpcode(u8),
-    InvalidVramAccess(u16),
+    InvalidVramAccess(String, u16),
     UnimplementedOperation(String),
 }
 
