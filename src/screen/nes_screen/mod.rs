@@ -21,7 +21,7 @@ impl Default for NesScreen {
 
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
-                screen.put_pixel(x, y, Pixel(0xff, 0, 0))
+                screen.put_pixel(x, y, Color(0xff, 0, 0))
             }
         }
         screen
@@ -57,8 +57,8 @@ impl Serialize for NesScreen {
 }
 
 impl Screen for NesScreen {
-    fn put_pixel(&mut self, x: usize, y: usize, pixel: Pixel) {
-        let Pixel(r, g, b) = pixel;
+    fn put_pixel(&mut self, x: usize, y: usize, pixel: Color) {
+        let Color(r, g, b) = pixel;
         let i = ((y * SCREEN_WIDTH) + x) * 3;
         self.screen_buffer[i] = r;
         self.screen_buffer[i + 1] = g;

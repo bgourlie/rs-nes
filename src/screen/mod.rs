@@ -9,14 +9,14 @@ use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
 pub trait Screen: Default + Send + Clone + 'static {
-    fn put_pixel(&mut self, _: usize, _: usize, _: Pixel) {}
+    fn put_pixel(&mut self, _: usize, _: usize, _: Color) {}
     fn dimensions() -> (usize, usize) {
         (0, 0)
     }
 }
 
 #[derive(Copy, Clone, Default, Debug)]
-pub struct Pixel(pub u8, pub u8, pub u8);
+pub struct Color(pub u8, pub u8, pub u8);
 
 #[derive(Copy, Clone, Default)]
 pub struct NoScreen;

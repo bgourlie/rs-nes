@@ -10,16 +10,18 @@ mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
 mod vram;
+mod pixel;
 
 use errors::*;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
+use ppu::pixel::{Pixel, Quadrant};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
-use screen::{NesScreen, Pixel, Screen};
+use screen::{Color, NesScreen, Screen};
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -32,74 +34,74 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
-static PALETTE: [Pixel; 64] = [Pixel(0x7C, 0x7C, 0x7C),
-                               Pixel(0x00, 0x00, 0xFC),
-                               Pixel(0x00, 0x00, 0xBC),
-                               Pixel(0x44, 0x28, 0xBC),
-                               Pixel(0x94, 0x00, 0x84),
-                               Pixel(0xA8, 0x00, 0x20),
-                               Pixel(0xA8, 0x10, 0x00),
-                               Pixel(0x88, 0x14, 0x00),
-                               Pixel(0x50, 0x30, 0x00),
-                               Pixel(0x00, 0x78, 0x00),
-                               Pixel(0x00, 0x68, 0x00),
-                               Pixel(0x00, 0x58, 0x00),
-                               Pixel(0x00, 0x40, 0x58),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0xBC, 0xBC, 0xBC),
-                               Pixel(0x00, 0x78, 0xF8),
-                               Pixel(0x00, 0x58, 0xF8),
-                               Pixel(0x68, 0x44, 0xFC),
-                               Pixel(0xD8, 0x00, 0xCC),
-                               Pixel(0xE4, 0x00, 0x58),
-                               Pixel(0xF8, 0x38, 0x00),
-                               Pixel(0xE4, 0x5C, 0x10),
-                               Pixel(0xAC, 0x7C, 0x00),
-                               Pixel(0x00, 0xB8, 0x00),
-                               Pixel(0x00, 0xA8, 0x00),
-                               Pixel(0x00, 0xA8, 0x44),
-                               Pixel(0x00, 0x88, 0x88),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0xF8, 0xF8, 0xF8),
-                               Pixel(0x3C, 0xBC, 0xFC),
-                               Pixel(0x68, 0x88, 0xFC),
-                               Pixel(0x98, 0x78, 0xF8),
-                               Pixel(0xF8, 0x78, 0xF8),
-                               Pixel(0xF8, 0x58, 0x98),
-                               Pixel(0xF8, 0x78, 0x58),
-                               Pixel(0xFC, 0xA0, 0x44),
-                               Pixel(0xF8, 0xB8, 0x00),
-                               Pixel(0xB8, 0xF8, 0x18),
-                               Pixel(0x58, 0xD8, 0x54),
-                               Pixel(0x58, 0xF8, 0x98),
-                               Pixel(0x00, 0xE8, 0xD8),
-                               Pixel(0x78, 0x78, 0x78),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0xFC, 0xFC, 0xFC),
-                               Pixel(0xA4, 0xE4, 0xFC),
-                               Pixel(0xB8, 0xB8, 0xF8),
-                               Pixel(0xD8, 0xB8, 0xF8),
-                               Pixel(0xF8, 0xB8, 0xF8),
-                               Pixel(0xF8, 0xA4, 0xC0),
-                               Pixel(0xF0, 0xD0, 0xB0),
-                               Pixel(0xFC, 0xE0, 0xA8),
-                               Pixel(0xF8, 0xD8, 0x78),
-                               Pixel(0xD8, 0xF8, 0x78),
-                               Pixel(0xB8, 0xF8, 0xB8),
-                               Pixel(0xB8, 0xF8, 0xD8),
-                               Pixel(0x00, 0xFC, 0xFC),
-                               Pixel(0xF8, 0xD8, 0xF8),
-                               Pixel(0x00, 0x00, 0x00),
-                               Pixel(0x00, 0x00, 0x00)];
+static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
+                               Color(0x00, 0x00, 0xFC),
+                               Color(0x00, 0x00, 0xBC),
+                               Color(0x44, 0x28, 0xBC),
+                               Color(0x94, 0x00, 0x84),
+                               Color(0xA8, 0x00, 0x20),
+                               Color(0xA8, 0x10, 0x00),
+                               Color(0x88, 0x14, 0x00),
+                               Color(0x50, 0x30, 0x00),
+                               Color(0x00, 0x78, 0x00),
+                               Color(0x00, 0x68, 0x00),
+                               Color(0x00, 0x58, 0x00),
+                               Color(0x00, 0x40, 0x58),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0xBC, 0xBC, 0xBC),
+                               Color(0x00, 0x78, 0xF8),
+                               Color(0x00, 0x58, 0xF8),
+                               Color(0x68, 0x44, 0xFC),
+                               Color(0xD8, 0x00, 0xCC),
+                               Color(0xE4, 0x00, 0x58),
+                               Color(0xF8, 0x38, 0x00),
+                               Color(0xE4, 0x5C, 0x10),
+                               Color(0xAC, 0x7C, 0x00),
+                               Color(0x00, 0xB8, 0x00),
+                               Color(0x00, 0xA8, 0x00),
+                               Color(0x00, 0xA8, 0x44),
+                               Color(0x00, 0x88, 0x88),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0xF8, 0xF8, 0xF8),
+                               Color(0x3C, 0xBC, 0xFC),
+                               Color(0x68, 0x88, 0xFC),
+                               Color(0x98, 0x78, 0xF8),
+                               Color(0xF8, 0x78, 0xF8),
+                               Color(0xF8, 0x58, 0x98),
+                               Color(0xF8, 0x78, 0x58),
+                               Color(0xFC, 0xA0, 0x44),
+                               Color(0xF8, 0xB8, 0x00),
+                               Color(0xB8, 0xF8, 0x18),
+                               Color(0x58, 0xD8, 0x54),
+                               Color(0x58, 0xF8, 0x98),
+                               Color(0x00, 0xE8, 0xD8),
+                               Color(0x78, 0x78, 0x78),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0xFC, 0xFC, 0xFC),
+                               Color(0xA4, 0xE4, 0xFC),
+                               Color(0xB8, 0xB8, 0xF8),
+                               Color(0xD8, 0xB8, 0xF8),
+                               Color(0xF8, 0xB8, 0xF8),
+                               Color(0xF8, 0xA4, 0xC0),
+                               Color(0xF0, 0xD0, 0xB0),
+                               Color(0xFC, 0xE0, 0xA8),
+                               Color(0xF8, 0xD8, 0x78),
+                               Color(0xD8, 0xF8, 0x78),
+                               Color(0xB8, 0xF8, 0xB8),
+                               Color(0xB8, 0xF8, 0xD8),
+                               Color(0x00, 0xFC, 0xFC),
+                               Color(0xF8, 0xD8, 0xF8),
+                               Color(0x00, 0x00, 0x00),
+                               Color(0x00, 0x00, 0x00)];
 
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-type Palette = [Pixel; 3];
+type Palette = [Color; 3];
 
 pub trait Ppu {
     type Scr: Screen;
@@ -134,15 +136,17 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % CYCLES_PER_SCANLINE;
         if scanline < 240 && x < 256 {
+            let (x, scanline) = (x as u8, scanline as u8);
+            let pixel = Pixel(x, scanline);
             let (base, x_index, y_index) = self.nametable_index(x as _, scanline as _);
             let tile_offset = base + 32 * y_index + x_index;
-            let palette_index = self.palette_index(base, x as _, scanline as _)?;
+            let palette_index = self.palette_index(base, pixel)?;
 
-            println!("tile_offset: {:0>4X}, palette_index: {}",
-                     tile_offset,
-                     palette_index);
+            //            println!("tile_offset: {:0>4X}, palette_index: {}",
+            //                     tile_offset,
+            //                     palette_index);
             let tile = self.vram.read(tile_offset)?;
-            let palette = self.background_pixel(tile as u16, (x % 8) as u8, (scanline % 8) as u8)?;
+            let palette = self.background_pixel(tile as u16, pixel)?;
 
             let (bg, palettes) = self.background_palettes()?; // TODO: perf
 
@@ -164,8 +168,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         Ok(())
     }
 
-    fn background_pixel(&self, tile: u16, x: u8, y: u8) -> Result<u8> {
+    fn background_pixel(&self, tile: u16, pixel: Pixel) -> Result<u8> {
         // Graciously adapted from sprocket nes
+        let Pixel(x, y) = pixel;
+        let (x, y) = (x % 8, y % 8);
         let offset = (tile << 4) + (y as u16);
         let offset = offset + self.control.background_pattern_table();
 
@@ -177,29 +183,25 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         Ok((bit1 << 1) | bit0)
     }
 
-    fn palette_index(&self, nametable_base: u16, x: u8, y: u8) -> Result<u8> {
-        let tile_x = (x as u16 / 16) % 8;
-        let tile_y = (y as u16 / 16) % 8;
-
-        let attr_offset = (nametable_base + 0x3c0) + 8 * tile_y + tile_x;
+    fn palette_index(&self, nametable_base: u16, pixel: Pixel) -> Result<u8> {
+        let (tile_x, tile_y) = pixel.tile32_coords();
+        let attr_offset = (nametable_base + 0x3c0) + 8 * tile_y as u16 + tile_x as u16;
         let attr = self.vram.read(attr_offset)?;
-        println!("attr_offset: {:0>4X}, attr value: {:0>2X}",
-                 attr_offset,
-                 attr);
-        let palette_index = match ((tile_y % 16) / 8 == 0, (tile_x % 16) / 8 == 0) {
-            (true, true) => {
+
+        let palette_index = match pixel.tile32_quadrant() {
+            Quadrant::TopLeft => {
                 // top left
                 attr & 0x3
             }
-            (true, false) => {
+            Quadrant::TopRight => {
                 // top right
                 (attr >> 2) & 0x3
             }
-            (false, true) => {
+            Quadrant::BottomLeft => {
                 // bottom left
                 (attr >> 4) & 0x3
             }
-            (false, false) => {
+            Quadrant::BottomRight => {
                 // bottom right
                 (attr >> 6) & 0x3
             }
@@ -223,29 +225,29 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         (base, tile_x % 32, tile_y % 30)
     }
 
-    fn background_palettes(&self) -> Result<(Pixel, [Palette; 4])> {
+    fn background_palettes(&self) -> Result<(Color, [Palette; 4])> {
         let bg = self.vram.read(0x3f00)? as usize;
         let bg = PALETTE[bg];
 
         let color0 = self.vram.read(0x3f01)? as usize;
         let color1 = self.vram.read(0x3f02)? as usize;
         let color2 = self.vram.read(0x3f03)? as usize;
-        let palette0: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette0: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f05)? as usize;
         let color1 = self.vram.read(0x3f06)? as usize;
         let color2 = self.vram.read(0x3f07)? as usize;
-        let palette1: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette1: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f09)? as usize;
         let color1 = self.vram.read(0x3f0a)? as usize;
         let color2 = self.vram.read(0x3f0b)? as usize;
-        let palette2: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette2: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f0d)? as usize;
         let color1 = self.vram.read(0x3f0e)? as usize;
         let color2 = self.vram.read(0x3f0f)? as usize;
-        let palette3: [Pixel; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette3: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         Ok((bg, [palette0, palette1, palette2, palette3]))
     }
