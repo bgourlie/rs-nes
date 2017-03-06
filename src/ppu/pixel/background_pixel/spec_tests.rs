@@ -25,46 +25,46 @@ fn quadrant_palette_index() {
 
 #[test]
 fn attribute_quadrant() {
-    let pixel = BackgroundPixel::new(0, 0);
+    let pixel = BackgroundPixel::new(0, 0, 0);
     assert_eq!(AttributeQuadrant::TopLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(15, 0);
+    let pixel = BackgroundPixel::new(15, 0, 0);
     assert_eq!(AttributeQuadrant::TopLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(0, 15);
+    let pixel = BackgroundPixel::new(0, 15, 0);
     assert_eq!(AttributeQuadrant::TopLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(16, 0);
+    let pixel = BackgroundPixel::new(16, 0, 0);
     assert_eq!(AttributeQuadrant::TopRight, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(31, 0);
+    let pixel = BackgroundPixel::new(31, 0, 0);
     assert_eq!(AttributeQuadrant::TopRight, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(0, 16);
+    let pixel = BackgroundPixel::new(0, 16, 0);
     assert_eq!(AttributeQuadrant::BottomLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(0, 31);
+    let pixel = BackgroundPixel::new(0, 31, 0);
     assert_eq!(AttributeQuadrant::BottomLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(16, 16);
+    let pixel = BackgroundPixel::new(16, 16, 0);
     assert_eq!(AttributeQuadrant::BottomRight, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(31, 31);
+    let pixel = BackgroundPixel::new(31, 31, 0);
     assert_eq!(AttributeQuadrant::BottomRight, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(0, 223);
+    let pixel = BackgroundPixel::new(0, 223, 0);
     assert_eq!(AttributeQuadrant::BottomLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(15, 223);
+    let pixel = BackgroundPixel::new(15, 223, 0);
     assert_eq!(AttributeQuadrant::BottomLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(15, 224);
+    let pixel = BackgroundPixel::new(15, 224, 0);
     assert_eq!(AttributeQuadrant::TopLeft, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(16, 224);
+    let pixel = BackgroundPixel::new(16, 224, 0);
     assert_eq!(AttributeQuadrant::TopRight, pixel.attribute_quadrant());
 
-    let pixel = BackgroundPixel::new(16, 240);
+    let pixel = BackgroundPixel::new(16, 240, 0);
     assert_eq!(AttributeQuadrant::BottomRight, pixel.attribute_quadrant());
 }
 

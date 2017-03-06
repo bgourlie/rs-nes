@@ -10,13 +10,13 @@ mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
 mod vram;
-mod background_pixel;
+mod pixel;
 
 use errors::*;
-use ppu::background_pixel::BackgroundPixel;
-use ppu::control_register::ControlRegister;
+use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
+use ppu::pixel::{BackgroundPixel, Pixel};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
@@ -133,23 +133,32 @@ pub enum StepAction {
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
+        if self.control.sprite_size() == SpriteSize::X16 {
+            bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation("8X16 sprites".to_owned())));
+        }
+
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % CYCLES_PER_SCANLINE;
-        let pixel = BackgroundPixel::new(x as u16, scanline as u16);
-        if pixel.is_visible() {
-            let name_table_entry = self.vram.read(pixel.name_table_offset)?;
-            let attribute_table_entry = self.vram.read(pixel.attribute_table_offset)?;
-            let pattern_offset = pixel.pattern_offset(name_table_entry) +
-                                 self.control.bg_pattern_table();
-            let pattern_lower = self.vram.read(pattern_offset)?;
-            let pattern_upper = self.vram.read(pattern_offset + 8)?;
-            let color_index = pixel.color(pattern_lower, pattern_upper) as usize;
-            let palette_index = pixel.palette(attribute_table_entry) as usize;
-            let palettes = self.background_palettes()?;
-            let color = palettes[palette_index][color_index];
-            self.screen.borrow_mut().put_pixel(pixel.x as _, pixel.y as _, color);
+        let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
+        if bg_pixel.is_visible() {
+            let bg_color = {
+                let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
+                let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
+                let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
+                let pattern_lower = self.vram.read(pattern_offset)?;
+                let pattern_upper = self.vram.read(pattern_offset + 8)?;
+                let color_index = bg_pixel.color(pattern_lower, pattern_upper) as usize;
+                let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
+                let palettes = self.background_palettes()?;
+                palettes[palette_index][color_index]
+            };
+            self.screen.borrow_mut().put_pixel(x as _, scanline as _, bg_color);
         }
         Ok(())
+    }
+
+    fn sprite_zero_hit(&self) -> bool {
+        false
     }
 
     fn background_palettes(&self) -> Result<[Palette; 4]> {

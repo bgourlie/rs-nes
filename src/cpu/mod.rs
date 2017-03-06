@@ -44,6 +44,7 @@ pub enum TickAction {
     Nmi,
 }
 
+#[allow(dead_code)]
 enum Interrupt {
     None,
     Nmi,

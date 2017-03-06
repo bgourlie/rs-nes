@@ -16,7 +16,7 @@ use std::rc::Rc;
 #[cfg(feature = "debugger")]
 fn main() {
     env_logger::init().unwrap();
-    let rom = NesRom::read("test_roms/mario.nes").unwrap();
+    let rom = NesRom::read("test_roms/super_mario.nes").unwrap();
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
