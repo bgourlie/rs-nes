@@ -59,7 +59,7 @@ impl ControlRegister {
     }
 
     /// Background pattern table address (0: $0000; 1: $1000)
-    pub fn background_pattern_table(&self) -> u16 {
+    pub fn bg_pattern_table(&self) -> u16 {
         if self.reg & 0b00010000 == 0 {
             0x0
         } else {

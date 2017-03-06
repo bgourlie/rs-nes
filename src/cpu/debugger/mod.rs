@@ -115,9 +115,6 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             debug!("Stepping @ {:0>4X}. CPU thread paused.",
                    self.cpu.registers.pc);
             Some(BreakReason::Step)
-        } else if self.last_pc == self.cpu.registers.pc {
-            //println!("trapped"); // TEMPORARY
-            None
         } else {
             None
         }

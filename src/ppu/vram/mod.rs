@@ -48,7 +48,6 @@ impl Vram for VramBase {
     }
 
     fn write_ppu_addr(&self, val: u8) {
-        println!("write ppu addr: {:0>2X}", val);
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
                 let addr = self.address.get();
@@ -59,7 +58,6 @@ impl Vram for VramBase {
                 let addr = self.address.get();
                 self.address.set((addr & 0xff00) | val as u16);
                 self.latch_state.set(LatchState::WriteHighByte);
-                println!("ppu address set: {:0>4X}", self.address.get());
             }
         }
     }

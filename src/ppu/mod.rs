@@ -10,13 +10,13 @@ mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
 mod vram;
-mod pixel;
+mod background_pixel;
 
 use errors::*;
+use ppu::background_pixel::BackgroundPixel;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
-use ppu::pixel::{Pixel, Quadrant};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
@@ -101,7 +101,7 @@ static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
 
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-type Palette = [Color; 3];
+type Palette = [Color; 4];
 
 pub trait Ppu {
     type Scr: Screen;
@@ -135,121 +135,48 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % CYCLES_PER_SCANLINE;
-        if scanline < 240 && x < 256 {
-            let (x, scanline) = (x as u8, scanline as u8);
-            let pixel = Pixel(x, scanline);
-            let (base, x_index, y_index) = self.nametable_index(x as _, scanline as _);
-            let tile_offset = base + 32 * y_index + x_index;
-            let palette_index = self.palette_index(base, pixel)?;
-
-            //            println!("tile_offset: {:0>4X}, palette_index: {}",
-            //                     tile_offset,
-            //                     palette_index);
-            let tile = self.vram.read(tile_offset)?;
-            let palette = self.background_pixel(tile as u16, pixel)?;
-
-            let (bg, palettes) = self.background_palettes()?; // TODO: perf
-
-            let pixel = match palette {
-                0 => bg,
-                1 => palettes[palette_index as usize][0],
-                2 => palettes[palette_index as usize][1],
-                3 => palettes[palette_index as usize][2],
-                _ => unreachable!(),
-            };
-
-            // FIXME: TEMPORARY and not correct behavior
-            if !self.status.sprite_zero_hit() && palette > 0 {
-                //self.status.set_sprite_zero_hit();
-            }
-
-            self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel);
+        let pixel = BackgroundPixel::new(x as u16, scanline as u16);
+        if pixel.is_visible() {
+            let name_table_entry = self.vram.read(pixel.name_table_offset)?;
+            let attribute_table_entry = self.vram.read(pixel.attribute_table_offset)?;
+            let pattern_offset = pixel.pattern_offset(name_table_entry) +
+                                 self.control.bg_pattern_table();
+            let pattern_lower = self.vram.read(pattern_offset)?;
+            let pattern_upper = self.vram.read(pattern_offset + 8)?;
+            let color_index = pixel.color(pattern_lower, pattern_upper) as usize;
+            let palette_index = pixel.palette(attribute_table_entry) as usize;
+            let palettes = self.background_palettes()?;
+            let color = palettes[palette_index][color_index];
+            self.screen.borrow_mut().put_pixel(pixel.x as _, pixel.y as _, color);
         }
         Ok(())
     }
 
-    fn background_pixel(&self, tile: u16, pixel: Pixel) -> Result<u8> {
-        // Graciously adapted from sprocket nes
-        let Pixel(x, y) = pixel;
-        let (x, y) = (x % 8, y % 8);
-        let offset = (tile << 4) + (y as u16);
-        let offset = offset + self.control.background_pattern_table();
-
-        // Determine the color of this pixel.
-        let plane0 = self.vram.read(offset)?;
-        let plane1 = self.vram.read(offset + 8)?;
-        let bit0 = (plane0 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
-        let bit1 = (plane1 >> ((7 - ((x % 8) as u8)) as usize)) & 1;
-        Ok((bit1 << 1) | bit0)
-    }
-
-    fn palette_index(&self, nametable_base: u16, pixel: Pixel) -> Result<u8> {
-        let (tile_x, tile_y) = pixel.tile32_coords();
-        let attr_offset = (nametable_base + 0x3c0) + 8 * tile_y as u16 + tile_x as u16;
-        let attr = self.vram.read(attr_offset)?;
-
-        let palette_index = match pixel.tile32_quadrant() {
-            Quadrant::TopLeft => {
-                // top left
-                attr & 0x3
-            }
-            Quadrant::TopRight => {
-                // top right
-                (attr >> 2) & 0x3
-            }
-            Quadrant::BottomLeft => {
-                // bottom left
-                (attr >> 4) & 0x3
-            }
-            Quadrant::BottomRight => {
-                // bottom right
-                (attr >> 6) & 0x3
-            }
-        };
-
-        Ok(palette_index)
-    }
-
-    fn nametable_index(&self, x: u16, y: u16) -> (u16, u16, u16) {
-        // Graciously adapted from sprocket nes
-        let tile_x = (x / 8) % 64;
-        let tile_y = (y / 8) % 60;
-
-        let base = match (tile_x >= 32, tile_y >= 30) {
-            (false, false) => 0x2000,
-            (true, false) => 0x2400,
-            (false, true) => 0x2800,
-            (true, true) => 0x2c00,
-        };
-
-        (base, tile_x % 32, tile_y % 30)
-    }
-
-    fn background_palettes(&self) -> Result<(Color, [Palette; 4])> {
+    fn background_palettes(&self) -> Result<[Palette; 4]> {
         let bg = self.vram.read(0x3f00)? as usize;
         let bg = PALETTE[bg];
 
         let color0 = self.vram.read(0x3f01)? as usize;
         let color1 = self.vram.read(0x3f02)? as usize;
         let color2 = self.vram.read(0x3f03)? as usize;
-        let palette0: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f05)? as usize;
         let color1 = self.vram.read(0x3f06)? as usize;
         let color2 = self.vram.read(0x3f07)? as usize;
-        let palette1: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f09)? as usize;
         let color1 = self.vram.read(0x3f0a)? as usize;
         let color2 = self.vram.read(0x3f0b)? as usize;
-        let palette2: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         let color0 = self.vram.read(0x3f0d)? as usize;
         let color1 = self.vram.read(0x3f0e)? as usize;
         let color2 = self.vram.read(0x3f0f)? as usize;
-        let palette3: [Color; 3] = [PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
-        Ok((bg, [palette0, palette1, palette2, palette3]))
+        Ok([palette0, palette1, palette2, palette3])
     }
 }
 

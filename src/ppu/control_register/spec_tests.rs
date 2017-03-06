@@ -36,10 +36,10 @@ fn sprite_pattern_table_addr() {
 #[test]
 fn background_pattern_table_addr() {
     let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0, ppu_ctrl.background_pattern_table());
+    assert_eq!(0, ppu_ctrl.bg_pattern_table());
 
     let ppu_ctrl = new_control_register(0b00010000);
-    assert_eq!(0x1000, ppu_ctrl.background_pattern_table());
+    assert_eq!(0x1000, ppu_ctrl.bg_pattern_table());
 }
 
 #[test]
