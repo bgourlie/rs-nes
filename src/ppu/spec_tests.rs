@@ -339,6 +339,10 @@ mod mocks {
         }
 
         fn sprite_attributes(&self, _: u8) -> SpriteAttributes {
+            SpriteAttributes::default()
+        }
+
+        fn dma(&mut self, _: [u8; 0x100]) {
             unimplemented!()
         }
     }

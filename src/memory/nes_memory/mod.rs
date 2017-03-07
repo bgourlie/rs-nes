@@ -55,6 +55,20 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
             self.ppu.write(address, value)?
+        } else if address == 0x4014 {
+            // TODO: OAM dma mapping tests
+            // TODO: timing
+            let start = (value as u16) << 8;
+            println!("wrote {:0>2X} to oam dma transfer. starting from {:0>4X} to {:0>4X}",
+                     value,
+                     start,
+                     start + 0x100);
+            let mut bytes: [u8; 0x100] = [0; 0x100];
+            for i in 0..0x100 {
+                let byte = self.read(i + start)?;
+                bytes[i as usize] = byte;
+            }
+            self.ppu.oam_dma(bytes);
         } else if address == 0x4016 {
             self.input.write_probe(value)
         } else if address < 0x4018 {

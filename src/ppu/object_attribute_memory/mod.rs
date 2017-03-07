@@ -10,12 +10,19 @@ pub enum Priority {
     BehindBackground,
 }
 
+impl Default for Priority {
+    fn default() -> Self {
+        Priority::InFrontOfBackground
+    }
+}
+
 pub trait ObjectAttributeMemory: Default {
     fn read_data(&self) -> u8;
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
     fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes;
+    fn dma(&mut self, [u8; 0x100]);
 }
 
 pub struct ObjectAttributeMemoryBase {
@@ -57,6 +64,7 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
 
     fn write_data(&mut self, val: u8) {
         self.memory[self.address.get() as usize] = val;
+        println!("oam write data: {:0>4X} = {:0>4X}", self.address.get(), val);
         self.inc_address();
     }
 
@@ -90,8 +98,13 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
             tile_index: tile_index,
         }
     }
+
+    fn dma(&mut self, mem: [u8; 0x100]) {
+        self.memory = mem;
+    }
 }
 
+#[derive(Default)]
 pub struct SpriteAttributes {
     pub x: u8,
     pub y: u8,

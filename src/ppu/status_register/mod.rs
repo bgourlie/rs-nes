@@ -68,6 +68,11 @@ impl StatusRegister {
         self.reg.get() & 0b00100000 > 0
     }
 
+    pub fn set_sprite_overflow(&self) {
+        let reg = self.reg.get() | SPRITE_OVERFLOW;
+        self.reg.set(reg)
+    }
+
     pub fn clear_sprite_overflow(&self) {
         let cleared = self.reg.get() & !SPRITE_OVERFLOW;
         self.reg.set(cleared);

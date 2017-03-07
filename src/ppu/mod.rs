@@ -16,7 +16,7 @@ use errors::*;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
-use ppu::pixel::{BackgroundPixel, Pixel};
+use ppu::pixel::{BackgroundPixel, Pixel, SpritePixel};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
@@ -111,6 +111,7 @@ pub trait Ppu {
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> Result<StepAction>;
     fn dump_registers<T: Write>(&self, writer: &mut T);
+    fn oam_dma(&mut self, mem: [u8; 0x100]);
 }
 
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
@@ -141,7 +142,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let x = frame_cycle % CYCLES_PER_SCANLINE;
         let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
         if bg_pixel.is_visible() {
-            let bg_color = {
+            let (bg_color_index, bg_color) = {
+                let palettes = self.background_palettes()?;
                 let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
                 let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
                 let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
@@ -149,10 +151,69 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 let pattern_upper = self.vram.read(pattern_offset + 8)?;
                 let color_index = bg_pixel.color(pattern_lower, pattern_upper) as usize;
                 let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
-                let palettes = self.background_palettes()?;
-                palettes[palette_index][color_index]
+                (color_index, palettes[palette_index][color_index])
             };
-            self.screen.borrow_mut().put_pixel(x as _, scanline as _, bg_color);
+
+            // compute visible sprites
+            let mut visible_sprites = 0;
+            let mut sprite_pixels: [Option<Color>; 8] = [None; 8];
+            let palettes = self.sprite_palettes()?;
+            for i in 0..64 {
+                let attrs = self.oam.sprite_attributes(i);
+                if attrs.y as u64 == scanline {
+                    visible_sprites += 1;
+                    if visible_sprites == 8 {
+                        if !self.status.sprite_overflow() {
+                            self.status.set_sprite_overflow();
+                        }
+                        break;
+                    }
+
+                    if attrs.x as u64 == x {
+                        let sprite_pixel = SpritePixel::new(attrs,
+                                                            self.control.sprite_pattern_table());
+
+                        // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
+                        let pattern_offset = sprite_pixel.pattern_offset(0);
+
+                        let pattern_lower = self.vram.read(pattern_offset)?;
+                        let pattern_upper = self.vram.read(pattern_offset + 8)?;
+                        let sprite_color_index = sprite_pixel.color(pattern_lower, pattern_upper) as
+                                                 usize;
+
+                        // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
+                        let palette_index = sprite_pixel.palette(0) as usize;
+
+                        println!("sprite at pixel! sprite #{}, color index: {}",
+                                 i,
+                                 sprite_color_index);
+                        if i == 0 && bg_color_index != 0 && sprite_color_index != 0 &&
+                           !self.status.sprite_zero_hit() {
+                            println!("sprite zero hit!");
+                            self.status.set_sprite_zero_hit();
+                        }
+
+                        sprite_pixels[visible_sprites - 1] = Some(palettes[palette_index]
+                                                                      [sprite_color_index]);
+                    }
+                }
+            }
+
+            let mut sprite_pixel_written = false;
+            for i in 0..8 {
+                if let Some(sprite_color) = sprite_pixels[i] {
+                    println!("putting sprite color {:?} at {},{}",
+                             sprite_color,
+                             x,
+                             scanline);
+                    self.screen.borrow_mut().put_pixel(x as _, scanline as _, sprite_color);
+                    sprite_pixel_written = true;
+                    break;
+                }
+            }
+            if !sprite_pixel_written {
+                self.screen.borrow_mut().put_pixel(x as _, scanline as _, bg_color);
+            }
         }
         Ok(())
     }
@@ -183,6 +244,33 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let color0 = self.vram.read(0x3f0d)? as usize;
         let color1 = self.vram.read(0x3f0e)? as usize;
         let color2 = self.vram.read(0x3f0f)? as usize;
+        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        Ok([palette0, palette1, palette2, palette3])
+    }
+
+    fn sprite_palettes(&self) -> Result<[Palette; 4]> {
+        let bg = self.vram.read(0x3f00)? as usize;
+        let bg = PALETTE[bg];
+
+        let color0 = self.vram.read(0x3f11)? as usize;
+        let color1 = self.vram.read(0x3f12)? as usize;
+        let color2 = self.vram.read(0x3f13)? as usize;
+        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f15)? as usize;
+        let color1 = self.vram.read(0x3f16)? as usize;
+        let color2 = self.vram.read(0x3f17)? as usize;
+        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f19)? as usize;
+        let color1 = self.vram.read(0x3f1a)? as usize;
+        let color2 = self.vram.read(0x3f1b)? as usize;
+        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
+
+        let color0 = self.vram.read(0x3f1d)? as usize;
+        let color1 = self.vram.read(0x3f1e)? as usize;
+        let color2 = self.vram.read(0x3f1f)? as usize;
         let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
 
         Ok([palette0, palette1, palette2, palette3])
@@ -294,5 +382,9 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     0];
 
         writer.write_all(&regs).unwrap()
+    }
+
+    fn oam_dma(&mut self, mem: [u8; 0x100]) {
+        self.oam.dma(mem)
     }
 }

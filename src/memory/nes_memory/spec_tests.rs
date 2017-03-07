@@ -214,6 +214,10 @@ mod mocks {
         fn new(_: NesRom, _: Rc<RefCell<Self::Scr>>) -> Self {
             unimplemented!()
         }
+
+        fn oam_dma(&mut self, _: [u8; 0x100]) {
+            unimplemented!()
+        }
     }
 
     pub type NesMemoryFixture = NesMemoryBase<PpuMock, ApuMock, InputMock>;
