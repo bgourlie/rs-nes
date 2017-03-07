@@ -67,6 +67,44 @@ fn write_mapping() {
     assert_eq!(true, vram.name_tables.into_iter().all(|val| *val == 2));
 }
 
+
+#[test]
+fn ppu_addr_mirroring() {
+    let vram = vram_fixture();
+
+    vram.write_ppu_addr(0x10);
+    vram.write_ppu_addr(0x20);
+
+    assert_eq!(0x1020, vram.address.get());
+
+    vram.write_ppu_addr(0x3f);
+    vram.write_ppu_addr(0xff);
+    assert_eq!(0x3fff, vram.address.get());
+
+    vram.write_ppu_addr(0x40);
+    vram.write_ppu_addr(0x00);
+    assert_eq!(0x0, vram.address.get());
+
+    vram.write_ppu_addr(0x40);
+    vram.write_ppu_addr(0x01);
+    assert_eq!(0x1, vram.address.get());
+
+    vram.write_ppu_addr(0x7f);
+    vram.write_ppu_addr(0xff);
+    assert_eq!(0x3fff, vram.address.get());
+
+    vram.write_ppu_addr(0x80);
+    vram.write_ppu_addr(0x00);
+    assert_eq!(0x0, vram.address.get());
+
+    vram.write_ppu_addr(0xff);
+    vram.write_ppu_addr(0xff);
+    assert_eq!(0x3fff, vram.address.get());
+
+    vram.write_ppu_addr(0xff);
+    assert_eq!(0x3fff, vram.address.get());
+}
+
 #[test]
 fn palette_read_mapping() {
     // Verifying the following:

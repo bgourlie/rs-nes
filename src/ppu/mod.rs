@@ -187,9 +187,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                         // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
                         let palette_index = sprite_pixel.palette(0) as usize;
 
-                        println!("sprite at pixel! sprite #{}, color index: {}",
-                                 i,
-                                 sprite_color_index);
                         if i == 0 && bg_color_index != 0 && sprite_color_index != 0 &&
                            !self.status.sprite_zero_hit() {
                             println!("sprite zero hit!");
@@ -205,10 +202,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             let mut sprite_pixel_written = false;
             for i in 0..8 {
                 if let Some(sprite_color) = sprite_pixels[i] {
-                    println!("putting sprite color {:?} at {},{}",
-                             sprite_color,
-                             x,
-                             scanline);
                     self.screen.borrow_mut().put_pixel(x as _, scanline as _, sprite_color);
                     sprite_pixel_written = true;
                     break;

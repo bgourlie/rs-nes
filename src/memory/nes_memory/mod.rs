@@ -59,10 +59,6 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
             // TODO: OAM dma mapping tests
             // TODO: timing
             let start = (value as u16) << 8;
-            println!("wrote {:0>2X} to oam dma transfer. starting from {:0>4X} to {:0>4X}",
-                     value,
-                     start,
-                     start + 0x100);
             let mut bytes: [u8; 0x100] = [0; 0x100];
             for i in 0..0x100 {
                 let byte = self.read(i + start)?;

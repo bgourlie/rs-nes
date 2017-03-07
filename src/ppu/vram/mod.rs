@@ -48,15 +48,17 @@ impl Vram for VramBase {
     }
 
     fn write_ppu_addr(&self, val: u8) {
+        // Addresses greater than 0x3fff are mirrored down
         match self.latch_state.get() {
             LatchState::WriteHighByte => {
                 let addr = self.address.get();
-                self.address.set((addr & 0x00ff) | ((val as u16) << 8));
+                self.address.set((addr & 0x80ff) | ((val as u16) & 0x3f) << 8);
                 self.latch_state.set(LatchState::WriteLowByte);
             }
             LatchState::WriteLowByte => {
                 let addr = self.address.get();
-                self.address.set((addr & 0xff00) | val as u16);
+                let addr = (addr & 0xff00) | val as u16;
+                self.address.set(addr);
                 self.latch_state.set(LatchState::WriteHighByte);
             }
         }
