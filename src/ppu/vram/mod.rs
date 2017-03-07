@@ -84,7 +84,16 @@ impl Vram for VramBase {
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {
-            self.palette[addr as usize & 0x1f] = val;
+            let addr = addr as usize & 0x1f;
+            // Certain sprite addresses are mirrored back into background addresses
+            let addr = match addr & 0xf {
+                0x0 => 0x0,
+                0x4 => 0x4,
+                0x8 => 0x8,
+                0xc => 0xc,
+                _ => addr,
+            };
+            self.palette[addr] = val;
         } else {
             let message = "Invalid write".to_owned();
             bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
@@ -107,7 +116,16 @@ impl Vram for VramBase {
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {
-            self.palette[addr as usize & 0x1f]
+            let addr = addr as usize & 0x1f;
+            // Certain sprite addresses are mirrored back into background addresses
+            let addr = match addr & 0xf {
+                0x0 => 0x0,
+                0x4 => 0x4,
+                0x8 => 0x8,
+                0xc => 0xc,
+                _ => addr,
+            };
+            self.palette[addr]
         } else {
             let message = "Invalid read".to_owned();
             bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
