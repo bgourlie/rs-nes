@@ -60,11 +60,18 @@ fn apu_memory_mapped_read() {
 fn apu_memory_mapped_write() {
     let mut fixture = new_fixture();
 
-    for addr in 0x4000..0x4016_u16 {
+    for addr in 0x4000..0x4014_u16 {
         fixture.write(addr, 0xff).unwrap();
         assert_eq!(addr, fixture.apu.write_addr());
         assert_eq!(0xff, fixture.apu.write_value());
     }
+    // Skip 0x4014, since it's ppu DMA address
+
+    fixture.write(0x4015, 0xff).unwrap();
+    assert_eq!(0x4015, fixture.apu.write_addr());
+    assert_eq!(0xff, fixture.apu.write_value());
+
+    // Skip 0x4016 since it's input probe register
 
     for addr in 0x4017..0x4018_u16 {
         fixture.write(addr, 0xff).unwrap();

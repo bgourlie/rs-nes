@@ -160,7 +160,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             let palettes = self.sprite_palettes()?;
             for i in 0..64 {
                 let attrs = self.oam.sprite_attributes(i);
-                if attrs.y as u64 == scanline {
+                let (sprite_x, sprite_y) = (attrs.x as u64, attrs.y as u64);
+                if scanline >= sprite_y && scanline < sprite_y + 8 {
                     visible_sprites += 1;
                     if visible_sprites == 8 {
                         if !self.status.sprite_overflow() {
@@ -169,8 +170,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                         break;
                     }
 
-                    if attrs.x as u64 == x {
-                        let sprite_pixel = SpritePixel::new(attrs,
+                    if x >= sprite_x && x < sprite_x + 8 {
+                        let sprite_pixel = SpritePixel::new(x as _,
+                                                            scanline as _,
+                                                            attrs,
                                                             self.control.sprite_pattern_table());
 
                         // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
