@@ -183,8 +183,12 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                         let palette_index = sprite_pixel.palette(0) as usize;
 
                         if i == 0 && bg_color_index != 0 && sprite_color_index != 0 &&
+                           self.mask.show_sprites() &&
+                           self.mask.show_background() &&
+                           !((!self.mask.sprites_render_leftmost_8_px() ||
+                              !self.mask.background_render_leftmost_8_px()) &&
+                             x < 8) && x != 255 &&
                            !self.status.sprite_zero_hit() {
-                            println!("sprite zero hit!");
                             self.status.set_sprite_zero_hit();
                         }
 

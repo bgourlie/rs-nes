@@ -36,19 +36,19 @@ impl MaskRegister {
         }
     }
 
-    fn background_render_leftmost_8_px(&self) -> bool {
+    pub fn background_render_leftmost_8_px(&self) -> bool {
         self.reg & 0b00000010 > 0
     }
 
-    fn sprites_render_leftmost_8_px(&self) -> bool {
+    pub fn sprites_render_leftmost_8_px(&self) -> bool {
         self.reg & 0b00000100 > 0
     }
 
-    fn show_background(&self) -> bool {
+    pub fn show_background(&self) -> bool {
         self.reg & 0b00001000 > 0
     }
 
-    fn show_sprites(&self) -> bool {
+    pub fn show_sprites(&self) -> bool {
         self.reg & 0b00010000 > 0
     }
 
