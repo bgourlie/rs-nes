@@ -122,6 +122,8 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     vram: V,
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
+    sprite_palettes: [Palette; 4],
+    bg_palettes: [Palette; 4],
 }
 
 
@@ -138,7 +140,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
         if bg_pixel.is_visible() {
             let (bg_color_index, bg_color) = {
-                let palettes = self.background_palettes()?;
                 let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
                 let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
                 let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
@@ -146,13 +147,12 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 let pattern_upper = self.vram.read(pattern_offset + 8)?;
                 let color_index = bg_pixel.color(pattern_lower, pattern_upper) as usize;
                 let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
-                (color_index, palettes[palette_index][color_index])
+                (color_index, self.bg_palettes[palette_index][color_index])
             };
 
             // compute visible sprites
             let mut visible_sprites = 0;
             let mut sprite_pixels: [Option<Color>; 8] = [None; 8];
-            let palettes = self.sprite_palettes()?;
             for i in 0..64 {
                 let attrs = self.oam.sprite_attributes(i);
                 let (sprite_x, sprite_y) = (attrs.x as u64, attrs.y as u64);
@@ -188,8 +188,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                             self.status.set_sprite_zero_hit();
                         }
 
-                        sprite_pixels[visible_sprites - 1] = Some(palettes[palette_index]
-                                                                      [sprite_color_index]);
+                        sprite_pixels[visible_sprites - 1] =
+                            Some(self.sprite_palettes[palette_index][sprite_color_index]);
                     }
                 }
             }
@@ -272,6 +272,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
+        let empty: [Color; 4] = [Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00)];
         PpuBase {
             cycles: 0,
             control: ControlRegister::default(),
@@ -281,6 +285,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             vram: V::new(rom),
             oam: O::default(),
             screen: screen,
+            sprite_palettes: [empty, empty, empty, empty],
+            bg_palettes: [empty, empty, empty, empty],
         }
     }
 
@@ -296,6 +302,10 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 }
             }
             VBLANK_CLEAR_CYCLE => {
+                // Reading palettes here isn't accurate, but should suffice for now
+                self.bg_palettes = self.background_palettes()?;
+                self.sprite_palettes = self.sprite_palettes()?;
+
                 self.status.clear_in_vblank();
                 self.status.clear_sprite_zero_hit();
                 StepAction::None
