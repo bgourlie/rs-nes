@@ -12,7 +12,7 @@ pub trait Memory {
     fn tick(&mut self) -> Result<TickAction> {
         Ok(TickAction::None)
     }
-    fn write(&mut self, u16, u8) -> Result<()>;
+    fn write(&mut self, u16, u8, u64) -> Result<u64>;
     fn read(&self, u16) -> Result<u8>;
     fn dump<T: Write>(&self, writer: &mut T);
     fn hash(&self) -> u64 {

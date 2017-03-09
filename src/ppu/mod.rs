@@ -111,7 +111,6 @@ pub trait Ppu {
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> Result<StepAction>;
     fn dump_registers<T: Write>(&self, writer: &mut T);
-    fn oam_dma(&mut self, mem: [u8; 0x100]);
 }
 
 pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
@@ -134,10 +133,6 @@ pub enum StepAction {
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
-        if self.control.sprite_size() == SpriteSize::X16 {
-            bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation("8X16 sprites".to_owned())));
-        }
-
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % CYCLES_PER_SCANLINE;
         let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
@@ -317,8 +312,15 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
     fn write(&mut self, addr: u16, val: u8) -> Result<()> {
         debug_assert!(addr >= 0x2000 && addr < 0x4000,
                       "Invalid memory mapped ppu address");
+
         match addr & 7 {
-            0x0 => self.control.write(val),
+            0x0 => {
+                self.control.write(val);
+                if self.control.sprite_size() == SpriteSize::X16 {
+                    let msg = "8X16 sprites".to_owned();
+                    bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)));
+                }
+            }
             0x1 => self.mask.write(val),
             0x2 => (), // readonly
             0x3 => self.oam.write_address(val),
@@ -378,9 +380,5 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     0];
 
         writer.write_all(&regs).unwrap()
-    }
-
-    fn oam_dma(&mut self, mem: [u8; 0x100]) {
-        self.oam.dma(mem)
     }
 }

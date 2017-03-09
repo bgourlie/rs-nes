@@ -144,7 +144,8 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     fn write_memory(&mut self, addr: u16, val: u8) -> Result<()> {
-        self.memory.write(addr, val)?;
+        // If OAM dma occurs, additional cycles will elapse
+        self.cycles += self.memory.write(addr, val, self.cycles)?;
         self.tick()
     }
 

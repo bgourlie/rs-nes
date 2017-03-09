@@ -16,7 +16,7 @@ impl SimpleMemory {
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
         for (i, byte) in data.iter().enumerate() {
-            self.write(addr + i as u16, *byte).unwrap();
+            self.write(addr + i as u16, *byte, 0).unwrap();
         }
     }
 }
@@ -28,10 +28,10 @@ impl Default for SimpleMemory {
 }
 
 impl Memory for SimpleMemory {
-    fn write(&mut self, addr: u16, data: u8) -> Result<()> {
+    fn write(&mut self, addr: u16, data: u8, _: u64) -> Result<u64> {
         let addr = addr as usize;
         self.addr[addr] = data;
-        Ok(())
+        Ok(0)
     }
 
     fn read(&self, addr: u16) -> Result<u8> {
