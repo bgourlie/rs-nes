@@ -188,8 +188,12 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                             self.status.set_sprite_zero_hit();
                         }
 
-                        sprite_pixels[visible_sprites - 1] =
-                            Some(self.sprite_palettes[palette_index][sprite_color_index]);
+                        // Ghetto pixel multiplexing
+                        sprite_pixels[visible_sprites - 1] = if sprite_color_index > 0 {
+                            Some(self.sprite_palettes[palette_index][sprite_color_index])
+                        } else {
+                            None
+                        }
                     }
                 }
             }
