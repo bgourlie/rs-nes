@@ -11,7 +11,9 @@ mod scroll_register;
 mod object_attribute_memory;
 mod vram;
 mod pixel;
+mod write_latch;
 
+use self::write_latch::WriteLatch;
 use errors::*;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
@@ -124,6 +126,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     screen: Rc<RefCell<NesScreen>>,
     sprite_palettes: [Palette; 4],
     bg_palettes: [Palette; 4],
+    write_latch: WriteLatch,
 }
 
 
@@ -295,6 +298,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             screen: screen,
             sprite_palettes: [empty, empty, empty, empty],
             bg_palettes: [empty, empty, empty, empty],
+            write_latch: WriteLatch::default(),
         }
     }
 
@@ -343,8 +347,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x2 => (), // readonly
             0x3 => self.oam.write_address(val),
             0x4 => self.oam.write_data(val),
-            0x5 => self.scroll.write(val),
-            0x6 => self.vram.write_ppu_addr(val),
+            0x5 => self.scroll.write(self.write_latch.write(val)),
+            0x6 => self.vram.write_ppu_addr(self.write_latch.write(val)),
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();
                 self.vram.write_ppu_data(val, inc_amount)?
@@ -364,8 +368,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x2 => {
                 let status = self.status.read();
                 self.status.clear_in_vblank();
-                self.scroll.clear_latch();
-                self.vram.clear_latch();
+                self.write_latch.clear();
                 status
             }
             0x4 => {

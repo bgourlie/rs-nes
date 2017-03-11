@@ -1,5 +1,6 @@
 use super::*;
 use ppu::control_register::IncrementAmount;
+use ppu::write_latch::LatchState;
 use rom::NesRom;
 
 #[test]
@@ -8,30 +9,17 @@ fn write_address() {
     assert_eq!(0, vram.address.get());
     assert_eq!(0, vram.address.get());
 
-    vram.write_ppu_addr(0x10);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x10));
     assert_eq!(0x1000, vram.address.get());
 
-    vram.write_ppu_addr(0x11);
+    vram.write_ppu_addr(LatchState::SecondWrite(0x11));
     assert_eq!(0x1011, vram.address.get());
 
-    vram.write_ppu_addr(0x12);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x12));
     assert_eq!(0x1211, vram.address.get());
 
-    vram.write_ppu_addr(0x13);
+    vram.write_ppu_addr(LatchState::SecondWrite(0x13));
     assert_eq!(0x1213, vram.address.get());
-}
-
-#[test]
-fn clear_latch() {
-    let vram = vram_fixture();
-    assert_eq!(0x0, vram.address.get());
-
-    vram.write_ppu_addr(0x10);
-    assert_eq!(0x1000, vram.address.get());
-
-    assert_eq!(LatchState::WriteLowByte, vram.latch_state.get());
-    vram.clear_latch();
-    assert_eq!(LatchState::WriteHighByte, vram.latch_state.get());
 }
 
 #[test]
@@ -72,36 +60,36 @@ fn write_mapping() {
 fn ppu_addr_mirroring() {
     let vram = vram_fixture();
 
-    vram.write_ppu_addr(0x10);
-    vram.write_ppu_addr(0x20);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x10));
+    vram.write_ppu_addr(LatchState::SecondWrite(0x20));
 
     assert_eq!(0x1020, vram.address.get());
 
-    vram.write_ppu_addr(0x3f);
-    vram.write_ppu_addr(0xff);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x3f));
+    vram.write_ppu_addr(LatchState::SecondWrite(0xff));
     assert_eq!(0x3fff, vram.address.get());
 
-    vram.write_ppu_addr(0x40);
-    vram.write_ppu_addr(0x00);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x40));
+    vram.write_ppu_addr(LatchState::SecondWrite(0x00));
     assert_eq!(0x0, vram.address.get());
 
-    vram.write_ppu_addr(0x40);
-    vram.write_ppu_addr(0x01);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x40));
+    vram.write_ppu_addr(LatchState::SecondWrite(0x01));
     assert_eq!(0x1, vram.address.get());
 
-    vram.write_ppu_addr(0x7f);
-    vram.write_ppu_addr(0xff);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x7f));
+    vram.write_ppu_addr(LatchState::SecondWrite(0xff));
     assert_eq!(0x3fff, vram.address.get());
 
-    vram.write_ppu_addr(0x80);
-    vram.write_ppu_addr(0x00);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x80));
+    vram.write_ppu_addr(LatchState::SecondWrite(0x00));
     assert_eq!(0x0, vram.address.get());
 
-    vram.write_ppu_addr(0xff);
-    vram.write_ppu_addr(0xff);
+    vram.write_ppu_addr(LatchState::FirstWrite(0xff));
+    vram.write_ppu_addr(LatchState::SecondWrite(0xff));
     assert_eq!(0x3fff, vram.address.get());
 
-    vram.write_ppu_addr(0xff);
+    vram.write_ppu_addr(LatchState::FirstWrite(0xff));
     assert_eq!(0x3fff, vram.address.get());
 }
 
@@ -128,8 +116,8 @@ fn palette_write_mapping() {
     // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C for reads and writes
 
     let mut vram = vram_fixture();
-    vram.write_ppu_addr(0x3f);
-    vram.write_ppu_addr(0x00);
+    vram.write_ppu_addr(LatchState::FirstWrite(0x3f));
+    vram.write_ppu_addr(LatchState::SecondWrite(0x00));
     for i in 0..0x20 {
         vram.write_ppu_data(i, IncrementAmount::One).unwrap();
     }
