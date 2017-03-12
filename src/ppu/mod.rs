@@ -288,7 +288,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                                  Color(0x00, 0x00, 0x00),
                                  Color(0x00, 0x00, 0x00)];
         PpuBase {
-            cycles: 0,
+            cycles: VBLANK_SET_CYCLE,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),

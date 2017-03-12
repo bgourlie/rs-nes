@@ -12,16 +12,16 @@ const SCREEN_WIDTH: usize = 256;
 const SCREEN_HEIGHT: usize = 240;
 
 pub struct NesScreen {
-    screen_buffer: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+    pub screen_buffer: Vec<u8>,
 }
 
 impl Default for NesScreen {
     fn default() -> Self {
-        let mut screen = NesScreen { screen_buffer: [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 3] };
+        let mut screen = NesScreen { screen_buffer: vec![0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 3] };
 
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
-                screen.put_pixel(x, y, Color(0xff, 0, 0))
+                screen.put_pixel(x, y, Color(0xf0, 0, 0))
             }
         }
         screen
@@ -30,7 +30,7 @@ impl Default for NesScreen {
 
 impl Clone for NesScreen {
     fn clone(&self) -> Self {
-        let buffer = self.screen_buffer;
+        let buffer = self.screen_buffer.clone();
         NesScreen { screen_buffer: buffer }
     }
 }

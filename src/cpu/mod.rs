@@ -45,7 +45,8 @@ pub enum TickAction {
 }
 
 #[allow(dead_code)]
-enum Interrupt {
+#[derive(Eq, PartialEq)]
+pub enum Interrupt {
     None,
     Nmi,
     Irq,
@@ -54,8 +55,8 @@ enum Interrupt {
 pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
-    pending_interrupt: Interrupt,
-    cycles: u64,
+    pub pending_interrupt: Interrupt,
+    pub cycles: u64,
 }
 
 impl<Mem: Memory> Cpu<Mem> {
@@ -153,6 +154,7 @@ impl<Mem: Memory> Cpu<Mem> {
         self.cycles += 1;
         if self.memory.tick()? == TickAction::Nmi {
             self.pending_interrupt = Interrupt::Nmi;
+            println!("nmi!")
         }
         Ok(())
     }
