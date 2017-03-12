@@ -6,8 +6,8 @@ use memory::*;
 fn reset() {
     let mut cpu = TestCpu::new_test();
     let (addr_low, addr_high) = lo_hi(0xdead);
-    cpu.memory.write(RESET_VECTOR, addr_low).unwrap();
-    cpu.memory.write(RESET_VECTOR + 1, addr_high).unwrap();
+    cpu.memory.write(RESET_VECTOR, addr_low, 0).unwrap();
+    cpu.memory.write(RESET_VECTOR + 1, addr_high, 0).unwrap();
     cpu.reset().unwrap();
     assert_eq!(cpu.registers.pc, 0xdead);
 }
@@ -16,8 +16,8 @@ fn reset() {
 fn nmi() {
     let mut cpu = TestCpu::new_test();
     let (addr_low, addr_high) = lo_hi(0xdead);
-    cpu.memory.write(NMI_VECTOR, addr_low).unwrap();
-    cpu.memory.write(NMI_VECTOR + 1, addr_high).unwrap();
+    cpu.memory.write(NMI_VECTOR, addr_low, 0).unwrap();
+    cpu.memory.write(NMI_VECTOR + 1, addr_high, 0).unwrap();
     cpu.nmi().unwrap();
     assert_eq!(cpu.registers.pc, 0xdead);
 }

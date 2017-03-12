@@ -5,17 +5,15 @@ use std::num::Wrapping;
 mod spec_tests;
 
 #[derive(Debug, PartialEq)]
-pub enum PaletteIndex {
-    Zero,
-    One,
-    Two,
-    Three,
-}
-
-#[derive(Debug, PartialEq)]
 pub enum Priority {
     InFrontOfBackground,
     BehindBackground,
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Priority::InFrontOfBackground
+    }
 }
 
 pub trait ObjectAttributeMemory: Default {
@@ -71,19 +69,13 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
     fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes {
         debug_assert!(tile_index <= 64, "Tile index out of bounds: {}", tile_index);
         let mem = self.memory;
-        let index = (tile_index * 4) as usize;
+        let index = tile_index as usize * 4;
         let y = mem[index];
         let tile_index = mem[index + 1];
         let attributes = mem[index + 2];
         let x = mem[index + 3];
 
-        let palette_index = match attributes & 0b00000011 {
-            0 => PaletteIndex::Zero,
-            1 => PaletteIndex::One,
-            2 => PaletteIndex::Two,
-            3 => PaletteIndex::Three,
-            _ => unreachable!(),
-        };
+        let palette = attributes & 0b00000011;
 
         let priority = if attributes & 0b00100000 == 0 {
             Priority::InFrontOfBackground
@@ -97,7 +89,7 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
         SpriteAttributes {
             x: x,
             y: y,
-            palette_index: palette_index,
+            palette: palette,
             priority: priority,
             horizontal_flip: horizontal_flip,
             vertical_flip: vertical_flip,
@@ -106,12 +98,13 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
     }
 }
 
+#[derive(Default)]
 pub struct SpriteAttributes {
-    x: u8,
-    y: u8,
-    tile_index: u8,
-    palette_index: PaletteIndex,
-    priority: Priority,
-    horizontal_flip: bool,
-    vertical_flip: bool,
+    pub x: u8,
+    pub y: u8,
+    pub tile_index: u8,
+    pub palette: u8,
+    pub priority: Priority,
+    pub horizontal_flip: bool,
+    pub vertical_flip: bool,
 }

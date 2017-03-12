@@ -45,16 +45,16 @@ fn sprite_attributes_palette_index() {
                             0b00000000, 0]);
 
     let attrs = oam.sprite_attributes(0);
-    assert_eq!(PaletteIndex::Three, attrs.palette_index);
+    assert_eq!(3, attrs.palette);
 
     let attrs = oam.sprite_attributes(1);
-    assert_eq!(PaletteIndex::Two, attrs.palette_index);
+    assert_eq!(2, attrs.palette);
 
     let attrs = oam.sprite_attributes(2);
-    assert_eq!(PaletteIndex::One, attrs.palette_index);
+    assert_eq!(1, attrs.palette);
 
     let attrs = oam.sprite_attributes(3);
-    assert_eq!(PaletteIndex::Zero, attrs.palette_index);
+    assert_eq!(0, attrs.palette);
 }
 
 #[test]

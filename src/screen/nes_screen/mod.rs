@@ -12,7 +12,7 @@ const SCREEN_WIDTH: usize = 256;
 const SCREEN_HEIGHT: usize = 240;
 
 pub struct NesScreen {
-    screen_buffer: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+    pub screen_buffer: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
 }
 
 impl Default for NesScreen {
@@ -21,7 +21,7 @@ impl Default for NesScreen {
 
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
-                screen.put_pixel(x, y, Color(0xff, 0, 0))
+                screen.put_pixel(x, y, Color(0xf0, 0, 0))
             }
         }
         screen

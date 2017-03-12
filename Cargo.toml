@@ -6,6 +6,7 @@ authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 [features]
 default = []
 debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "websocket", "base64", "png"]
+slow_tests = []
 
 
 [dependencies]
@@ -25,6 +26,7 @@ seahash = {version = "*", optional = true}
 chan = {version = "^0.1.18", optional = true}
 base64 = {version = "^0.4.0", optional = true}
 png = {version = "^0.6.2", optional = true}
+glium = "*"
 
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
@@ -32,9 +34,6 @@ rand = "*"
 
 [profile.release]
 opt-level = 3
-debug = false
-rpath = false
+debug = true
 lto = true
 debug-assertions = false
-codegen-units = 1
-panic = 'unwind'

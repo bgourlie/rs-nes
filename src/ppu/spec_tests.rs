@@ -1,5 +1,6 @@
 use super::*;
 use super::status_register::StatusRegister;
+use super::write_latch::LatchState;
 
 #[test]
 fn write() {
@@ -73,7 +74,7 @@ fn write() {
     ppu.write(0x3ffd, 0x13).unwrap();
     assert_eq!(0x13, ppu.scroll.value());
 
-    ppu.vram.write_ppu_addr(0x02);
+    ppu.write(0x3ffe, 0x02).unwrap();
     assert_eq!(0x02, ppu.vram.address_value());
 
     ppu.write(0x3fff, 0x15).unwrap();
@@ -99,7 +100,7 @@ fn memory_mapped_register_read() {
     ppu.oam.set_data_value(0xf4);
     assert_eq!(0xf4, ppu.read(0x2004).unwrap());
 
-    ppu.scroll.write(0xf5);
+    ppu.scroll.write(LatchState::FirstWrite(0xf5));
     assert_eq!(0x0, ppu.read(0x2005).unwrap()); // write-only, should always read 0
 
     ppu.vram.set_address_value(0xf6);
@@ -125,7 +126,7 @@ fn memory_mapped_register_read() {
     ppu.oam.set_data_value(0xe4);
     assert_eq!(0xe4, ppu.read(0x200c).unwrap());
 
-    ppu.scroll.write(0xe5);
+    ppu.scroll.write(LatchState::FirstWrite(0xe5));
     assert_eq!(0x0, ppu.read(0x200d).unwrap()); // write-only, should always read 0
 
     ppu.vram.set_address_value(0xe6);
@@ -151,7 +152,7 @@ fn memory_mapped_register_read() {
     ppu.oam.set_data_value(0xd4);
     assert_eq!(0xd4, ppu.read(0x3ffc).unwrap());
 
-    ppu.scroll.write(0xd5);
+    ppu.scroll.write(LatchState::FirstWrite(0xd5));
     assert_eq!(0x0, ppu.read(0x3ffd).unwrap()); // write-only, should always read 0
 
     ppu.vram.set_address_value(0xd6);
@@ -162,6 +163,7 @@ fn memory_mapped_register_read() {
 }
 
 #[test]
+#[cfg(feature = "slow_tests")]
 fn vblank_set_and_clear_cycles() {
     // VBLANK is clear until cycle 1 of the 241st scanline (which is the second cycle, as there is a
     // cycle 0). Therefore:
@@ -241,8 +243,9 @@ mod mocks {
     use ppu::scroll_register::ScrollRegister;
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
+    use ppu::write_latch::{LatchState, WriteLatch};
     use rom::NesRom;
-    use screen::NesScreen;
+    use screen::{Color, NesScreen};
     use std::cell::Cell;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -250,6 +253,11 @@ mod mocks {
     pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
 
     pub fn mock_ppu() -> TestPpu {
+        let empty: [Color; 4] = [Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00),
+                                 Color(0x00, 0x00, 0x00)];
+
         PpuBase {
             cycles: 0,
             control: ControlRegister::default(),
@@ -259,6 +267,9 @@ mod mocks {
             vram: MockVram::new(NesRom::default()),
             oam: MockOam::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
+            sprite_palettes: [empty, empty, empty, empty],
+            bg_palettes: [empty, empty, empty, empty],
+            write_latch: WriteLatch::default(),
         }
     }
 
@@ -278,11 +289,14 @@ mod mocks {
     }
 
     impl ScrollRegister for MockScrollRegister {
-        fn write(&mut self, val: u8) {
+        fn write(&mut self, latch_state: LatchState) {
+            let val = match latch_state {
+                LatchState::FirstWrite(val) => val,
+                LatchState::SecondWrite(val) => val,
+            };
+
             self.set_value(val)
         }
-
-        fn clear_latch(&self) {}
     }
 
     #[derive(Default)]
@@ -339,7 +353,7 @@ mod mocks {
         }
 
         fn sprite_attributes(&self, _: u8) -> SpriteAttributes {
-            unimplemented!()
+            SpriteAttributes::default()
         }
     }
 
@@ -368,7 +382,12 @@ mod mocks {
     }
 
     impl Vram for MockVram {
-        fn write_ppu_addr(&self, val: u8) {
+        fn write_ppu_addr(&self, latch_state: LatchState) {
+            let val = match latch_state {
+                LatchState::FirstWrite(val) => val,
+                LatchState::SecondWrite(val) => val,
+            };
+
             self.set_address_value(val)
         }
 
@@ -384,8 +403,6 @@ mod mocks {
             self.set_data_value(val);
             Ok(())
         }
-
-        fn clear_latch(&self) {}
 
         fn read(&self, _: u16) -> Result<u8> {
             Ok(0)

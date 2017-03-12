@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod spec_tests;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "slow_tests"))]
 mod functional_tests;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "slow_tests"))]
 mod length_and_timing_tests;
 
 #[cfg(feature = "debugger")]
@@ -38,13 +38,9 @@ impl TestCpu {
 }
 
 
-#[derive(PartialEq, Eq)]
-pub enum TickAction {
-    None,
-    Nmi,
-}
-
-enum Interrupt {
+#[allow(dead_code)]
+#[derive(Eq, PartialEq, Copy, Clone)]
+pub enum Interrupt {
     None,
     Nmi,
     Irq,
@@ -54,7 +50,7 @@ pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
     pending_interrupt: Interrupt,
-    cycles: u64,
+    pub cycles: u64,
 }
 
 impl<Mem: Memory> Cpu<Mem> {
@@ -73,21 +69,23 @@ impl<Mem: Memory> Cpu<Mem> {
         }
     }
 
-    pub fn step(&mut self) -> Result<()> {
+    pub fn step(&mut self) -> Result<Interrupt> {
         let opcode = self.read_pc()?;
         self::opcodes::execute(self, opcode)?;
 
-        match self.pending_interrupt {
-            Interrupt::None => Ok(()),
+        let pending_interrupt = self.pending_interrupt;
+        match pending_interrupt {
+            Interrupt::None => (),
             Interrupt::Nmi => {
                 self.pending_interrupt = Interrupt::None;
-                self.nmi()
+                self.nmi()?;
             }
             Interrupt::Irq => {
                 self.pending_interrupt = Interrupt::None;
-                self.irq()
+                self.irq()?;
             }
         }
+        Ok(pending_interrupt)
     }
 
     pub fn reset(&mut self) -> Result<()> {
@@ -143,13 +141,14 @@ impl<Mem: Memory> Cpu<Mem> {
     }
 
     fn write_memory(&mut self, addr: u16, val: u8) -> Result<()> {
-        self.memory.write(addr, val)?;
+        // If OAM dma occurs, additional cycles will elapse
+        self.cycles += self.memory.write(addr, val, self.cycles)?;
         self.tick()
     }
 
     fn tick(&mut self) -> Result<()> {
         self.cycles += 1;
-        if self.memory.tick()? == TickAction::Nmi {
+        if self.memory.tick()? == Interrupt::Nmi {
             self.pending_interrupt = Interrupt::Nmi;
         }
         Ok(())

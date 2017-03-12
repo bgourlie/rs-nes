@@ -3,16 +3,28 @@ mod spec_tests;
 
 use super::Memory;
 use apu::{Apu, ApuBase};
-use cpu::TickAction;
+use cpu::Interrupt;
 use errors::*;
 use input::{Input, InputBase};
-use ppu::{Ppu, PpuImpl, StepAction};
+use ppu::{Ppu, PpuImpl};
 use rom::NesRom;
 use screen::NesScreen;
 
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
+
+macro_rules! dma_tick {
+    ( $mem : expr ) => {
+        {
+            let tick_action = $mem.tick()?;
+            if tick_action != Interrupt::None {
+                let msg = "nmi during dma".to_owned();
+                bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
+            }
+        }
+    };
+}
 
 pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;
 
@@ -34,27 +46,52 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
             input: I::default(),
         }
     }
+
+    fn dma_write(&mut self, value: u8, cycles: u64) -> Result<u64> {
+        let mut elapsed_cycles = 513;
+        dma_tick!(self);
+
+        if cycles % 2 == 1 {
+            dma_tick!(self);
+            elapsed_cycles += 1;
+        }
+
+        let start = (value as u16) << 8;
+        for i in 0..0x100 {
+            let val = self.read(i + start)?;
+            dma_tick!(self);
+            self.write(0x2004, val, cycles + 1)?;
+            dma_tick!(self);
+        }
+        Ok(elapsed_cycles)
+    }
 }
 
 // Currently NROM only
-impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
-    fn tick(&mut self) -> Result<TickAction> {
-        let mut tick_action = TickAction::None;
+impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
+    fn tick(&mut self) -> Result<Interrupt> {
+        let mut tick_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
-            if self.ppu.step()? == StepAction::VBlankNmi {
-                // TODO: https://github.com/bgourlie/rs-nes/issues/14
-                tick_action = TickAction::Nmi;
+            let ppu_step_action = self.ppu.step()?;
+            if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
+                tick_action = Interrupt::Nmi;
+            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
+                let msg = "Two different interrupt requests during PPU step".to_owned();
+                bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
             };
         }
         Ok(tick_action)
     }
 
-    fn write(&mut self, address: u16, value: u8) -> Result<()> {
+    fn write(&mut self, address: u16, value: u8, cycles: u64) -> Result<u64> {
+        let mut addl_cycles = 0_u64;
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
             self.ppu.write(address, value)?
+        } else if address == 0x4014 {
+            addl_cycles = self.dma_write(value, cycles)?
         } else if address == 0x4016 {
             self.input.write_probe(value)
         } else if address < 0x4018 {
@@ -63,7 +100,7 @@ impl<P: Ppu, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
             let msg = format!("Write to 0x{:0>4X}", address);
             bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
         }
-        Ok(())
+        Ok(addl_cycles)
     }
 
     fn read(&self, address: u16) -> Result<u8> {
