@@ -14,6 +14,7 @@ mod pixel;
 mod write_latch;
 
 use self::write_latch::WriteLatch;
+use cpu::Interrupt;
 use errors::*;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
@@ -111,7 +112,7 @@ pub trait Ppu {
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self;
     fn write(&mut self, addr: u16, val: u8) -> Result<()>;
     fn read(&self, addr: u16) -> Result<u8>;
-    fn step(&mut self) -> Result<StepAction>;
+    fn step(&mut self) -> Result<Interrupt>;
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
@@ -129,12 +130,6 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     write_latch: WriteLatch,
 }
 
-
-#[derive(Eq, PartialEq)]
-pub enum StepAction {
-    None,
-    VBlankNmi,
-}
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
@@ -302,15 +297,15 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         }
     }
 
-    fn step(&mut self) -> Result<StepAction> {
+    fn step(&mut self) -> Result<Interrupt> {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
-                    StepAction::VBlankNmi
+                    Interrupt::Nmi
                 } else {
-                    StepAction::None
+                    Interrupt::None
                 }
             }
             VBLANK_CLEAR_CYCLE => {
@@ -320,9 +315,9 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
 
                 self.status.clear_in_vblank();
                 self.status.clear_sprite_zero_hit();
-                StepAction::None
+                Interrupt::None
             }
-            _ => StepAction::None,
+            _ => Interrupt::None,
         };
 
         self.draw_pixel(frame_cycle)?;

@@ -5,10 +5,8 @@ extern crate glium;
 extern crate log;
 extern crate rs_nes;
 
-use std::thread;
 use glium::{DisplayBuild, Surface};
 use glium::glutin;
-use std::time::{Instant, Duration};
 
 
 use rs_nes::cpu::*;
@@ -18,6 +16,8 @@ use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::thread;
+use std::time::{Duration, Instant};
 fn main() {
     env_logger::init().unwrap();
 
@@ -45,7 +45,8 @@ fn main() {
 
     let screen_buffer = {
         let borrowed_scr: NesScreen = screen.borrow().to_owned();
-        let screen = glium::texture::RawImage2d::from_raw_rgb_reversed(borrowed_scr.screen_buffer, image_dimensions);
+        let screen = glium::texture::RawImage2d::from_raw_rgb_reversed(borrowed_scr.screen_buffer,
+                                                                       image_dimensions);
         glium::Texture2d::new(&display, screen).unwrap()
     };
 
@@ -53,18 +54,18 @@ fn main() {
         let target = display.draw();
         screen_buffer.as_surface().fill(&target, glium::uniforms::MagnifySamplerFilter::Nearest);
         target.finish().unwrap();
-        let mut thousands = 0;
+        let mut frame_count = 0;
         for event in display.poll_events() {
             match event {
                 glutin::Event::Closed => return Action::Stop,
                 _ => {
                     loop {
-                        cpu.step().unwrap();
-                        if cpu.cycles % 1000 <= 2 {
-                            thousands += 1;
-                            println!("{} thousand", thousands);
-                        }
-                        if cpu.pending_interrupt == Interrupt::Nmi {
+                        let interrupt = cpu.step().unwrap();
+                        if interrupt == Interrupt::Nmi {
+                            frame_count += 1;
+                            if frame_count % 24 == 0 {
+                                println!("rendered {} frames", frame_count);
+                            }
                             break;
                         }
                     }
@@ -74,7 +75,8 @@ fn main() {
                         let screen = glium::texture::RawImage2d::from_raw_rgb_reversed(borrowed_scr.screen_buffer, image_dimensions);
                         glium::Texture2d::new(&display, screen).unwrap()
                     };
-                    screen_buffer.as_surface().fill(&target, glium::uniforms::MagnifySamplerFilter::Nearest);
+                    screen_buffer.as_surface()
+                        .fill(&target, glium::uniforms::MagnifySamplerFilter::Nearest);
                     target.finish().unwrap();
                 }
             }
@@ -90,14 +92,16 @@ pub enum Action {
     Continue,
 }
 
-pub fn start_loop<F>(mut callback: F) where F: FnMut() -> Action {
+pub fn start_loop<F>(mut callback: F)
+    where F: FnMut() -> Action
+{
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
 
     loop {
         match callback() {
             Action::Stop => break,
-            Action::Continue => ()
+            Action::Continue => (),
         };
 
         let now = Instant::now();

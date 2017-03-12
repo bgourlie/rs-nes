@@ -38,13 +38,12 @@ impl Vram for VramBase {
         match latch_state {
             LatchState::FirstWrite(val) => {
                 let addr = self.address.get();
-                self.address.set((addr & 0x00ff) | (val as u16) << 8);
+                self.address.set((addr & 0x80ff) | ((val as u16) & 0x3f) << 8);
             }
             LatchState::SecondWrite(val) => {
                 let addr = self.address.get();
                 let addr = (addr & 0xff00) | val as u16;
                 self.address.set(addr);
-                println!("ppu addr set to {:0>4X}", addr)
             }
         }
     }

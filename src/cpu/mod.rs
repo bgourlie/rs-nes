@@ -38,14 +38,8 @@ impl TestCpu {
 }
 
 
-#[derive(PartialEq, Eq)]
-pub enum TickAction {
-    None,
-    Nmi,
-}
-
 #[allow(dead_code)]
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Copy, Clone)]
 pub enum Interrupt {
     None,
     Nmi,
@@ -55,7 +49,7 @@ pub enum Interrupt {
 pub struct Cpu<M: Memory> {
     registers: Registers,
     memory: M,
-    pub pending_interrupt: Interrupt,
+    pending_interrupt: Interrupt,
     pub cycles: u64,
 }
 
@@ -75,21 +69,23 @@ impl<Mem: Memory> Cpu<Mem> {
         }
     }
 
-    pub fn step(&mut self) -> Result<()> {
+    pub fn step(&mut self) -> Result<Interrupt> {
         let opcode = self.read_pc()?;
         self::opcodes::execute(self, opcode)?;
 
-        match self.pending_interrupt {
-            Interrupt::None => Ok(()),
+        let pending_interrupt = self.pending_interrupt;
+        match pending_interrupt {
+            Interrupt::None => (),
             Interrupt::Nmi => {
                 self.pending_interrupt = Interrupt::None;
-                self.nmi()
+                self.nmi()?;
             }
             Interrupt::Irq => {
                 self.pending_interrupt = Interrupt::None;
-                self.irq()
+                self.irq()?;
             }
         }
+        Ok(pending_interrupt)
     }
 
     pub fn reset(&mut self) -> Result<()> {
@@ -152,9 +148,8 @@ impl<Mem: Memory> Cpu<Mem> {
 
     fn tick(&mut self) -> Result<()> {
         self.cycles += 1;
-        if self.memory.tick()? == TickAction::Nmi {
+        if self.memory.tick()? == Interrupt::Nmi {
             self.pending_interrupt = Interrupt::Nmi;
-            println!("nmi!")
         }
         Ok(())
     }

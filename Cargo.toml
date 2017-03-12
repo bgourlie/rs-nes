@@ -34,9 +34,6 @@ rand = "*"
 
 [profile.release]
 opt-level = 3
-debug = false
-rpath = false
+debug = true
 lto = true
 debug-assertions = false
-codegen-units = 1
-panic = 'unwind'

@@ -3,10 +3,10 @@ mod spec_tests;
 
 use super::Memory;
 use apu::{Apu, ApuBase};
-use cpu::TickAction;
+use cpu::Interrupt;
 use errors::*;
 use input::{Input, InputBase};
-use ppu::{Ppu, PpuImpl, StepAction};
+use ppu::{Ppu, PpuImpl};
 use rom::NesRom;
 use screen::NesScreen;
 
@@ -18,7 +18,7 @@ macro_rules! dma_tick {
     ( $mem : expr ) => {
         {
             let tick_action = $mem.tick()?;
-            if tick_action != TickAction::None {
+            if tick_action != Interrupt::None {
                 let msg = "nmi during dma".to_owned();
                 bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
             }
@@ -69,13 +69,16 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 
 // Currently NROM only
 impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I> {
-    fn tick(&mut self) -> Result<TickAction> {
-        let mut tick_action = TickAction::None;
+    fn tick(&mut self) -> Result<Interrupt> {
+        let mut tick_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
-            if self.ppu.step()? == StepAction::VBlankNmi {
-                // TODO: https://github.com/bgourlie/rs-nes/issues/14
-                tick_action = TickAction::Nmi;
+            let ppu_step_action = self.ppu.step()?;
+            if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
+                tick_action = Interrupt::Nmi;
+            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
+                let msg = "Two different interrupt requests during PPU step".to_owned();
+                bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)))
             };
         }
         Ok(tick_action)

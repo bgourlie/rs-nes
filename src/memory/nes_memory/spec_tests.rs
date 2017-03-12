@@ -110,9 +110,10 @@ fn oam_dma_timing() {
 
 mod mocks {
     use apu::Apu;
+    use cpu::Interrupt;
     use errors::*;
     use input::Input;
-    use memory::nes_memory::{NesMemoryBase, StepAction};
+    use memory::nes_memory::NesMemoryBase;
     use ppu::Ppu;
     use rom::*;
     use screen::NesScreen;
@@ -220,8 +221,8 @@ mod mocks {
             Ok(self.value)
         }
 
-        fn step(&mut self) -> Result<StepAction> {
-            Ok(StepAction::None)
+        fn step(&mut self) -> Result<Interrupt> {
+            Ok(Interrupt::None)
         }
 
         fn dump_registers<T: Write>(&self, _: &mut T) {

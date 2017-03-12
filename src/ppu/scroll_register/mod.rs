@@ -24,11 +24,9 @@ impl ScrollRegister for ScrollRegisterBase {
         match latch_state {
             LatchState::FirstWrite(val) => {
                 self.x_pos = val;
-                println!("ppu scroll x set to {:0>2X}", val)
             }
             LatchState::SecondWrite(val) => {
                 self.y_pos = val;
-                println!("ppu scroll y set to {:0>2X}", val)
             }
         }
     }

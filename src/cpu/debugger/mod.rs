@@ -5,7 +5,7 @@ mod cpu_snapshot;
 
 use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
-use cpu::Cpu;
+use cpu::{Cpu, Interrupt};
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
@@ -75,7 +75,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         Ok(())
     }
 
-    pub fn step(&mut self) -> Result<()> {
+    pub fn step(&mut self) -> Result<Interrupt> {
         if let Some(break_reason) = self.break_reason() {
             let snapshot = self.cpu_snapshot();
             self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
