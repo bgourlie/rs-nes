@@ -143,7 +143,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
                 let pattern_lower = self.vram.read(pattern_offset)?;
                 let pattern_upper = self.vram.read(pattern_offset + 8)?;
-                let color_index = bg_pixel.color(pattern_lower, pattern_upper) as usize;
+                let color_index = bg_pixel.color_index(pattern_lower, pattern_upper) as usize;
                 let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
                 (color_index, self.bg_palettes[palette_index][color_index])
             };
@@ -174,8 +174,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
 
                         let pattern_lower = self.vram.read(pattern_offset)?;
                         let pattern_upper = self.vram.read(pattern_offset + 8)?;
-                        let sprite_color_index = sprite_pixel.color(pattern_lower, pattern_upper) as
-                                                 usize;
+                        let sprite_color_index =
+                            sprite_pixel.color_index(pattern_lower, pattern_upper) as usize;
 
                         // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
                         let palette_index = sprite_pixel.palette(0) as usize;

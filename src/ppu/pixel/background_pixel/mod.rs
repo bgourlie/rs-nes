@@ -67,8 +67,12 @@ impl Pixel for BackgroundPixel {
         self.pattern_table_base_offset + ((tile_index as u16) << 4) + (self.y % 8)
     }
 
-    fn coords(&self) -> (u16, u16) {
-        (self.x, self.y)
+    fn color_index(&self, pattern_lower: u8, pattern_upper: u8) -> u8 {
+        let x = self.x % 8;
+        // credit sprocket nes for the fancy bit fiddling
+        let bit0 = (pattern_lower >> ((7 - ((x % 8) as u8)) as usize)) & 1;
+        let bit1 = (pattern_upper >> ((7 - ((x % 8) as u8)) as usize)) & 1;
+        (bit1 << 1) | bit0
     }
 }
 
