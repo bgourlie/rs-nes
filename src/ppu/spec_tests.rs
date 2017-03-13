@@ -270,6 +270,7 @@ mod mocks {
             sprite_palettes: [empty, empty, empty, empty],
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
+            sprite_buffer: [None, None, None, None, None, None, None, None],
         }
     }
 
