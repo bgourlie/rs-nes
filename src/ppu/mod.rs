@@ -156,7 +156,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                     if let Some(ref sprite) = self.sprite_buffer[i] {
                         if let Some(sprite_color_index) = sprite.pixel_at(x) {
                             if sprite_color_index > 0 {
-                                // If sprite color index is zero then bg wins everytime. Is that correct?
                                 ret = Some((sprite.palette(), sprite_color_index));
                                 if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
                                    self.mask.show_background() &&
@@ -211,10 +210,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         }
 
         // Clear any remaining sprites from last scanline
-        if sprites_on_scanline > 0 {
-            for i in (sprites_on_scanline - 1)..8 {
-                self.sprite_buffer[i] = None;
-            }
+        for i in sprites_on_scanline..8 {
+            self.sprite_buffer[i] = None;
         }
 
         Ok(())
@@ -307,7 +304,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         // Fill OAM buffer just before the scanline begins to render.
         // This is not hardware accurate behavior but should produce correct results for most games.
         if scanline < 240 && x == 0 {
-            println!("filling oam buffer for scanline {}", scanline);
             self.fill_secondary_oam(scanline as u8)?;
         }
 

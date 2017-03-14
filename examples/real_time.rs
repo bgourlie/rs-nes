@@ -62,7 +62,6 @@ fn main() {
         for event in display.poll_events() {
             match event {
                 glutin::Event::Closed => {
-                    println!("WINDOW CLOSED!");
                     return Action::Stop;
                 }
                 _ => (),
@@ -88,7 +87,7 @@ fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
     let mut fps = 0.0_f32;
-    let fps_smoothing = 0.9_f32;
+    let fps_smoothing = 0.995_f32;
 
     loop {
         match callback() {
@@ -101,9 +100,9 @@ fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
         previous_clock = now;
 
         let fixed_time_stamp = Duration::new(0, 16666667);
+        let frame_start = time::precise_time_ns();
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
-            let frame_start = time::precise_time_ns();
             loop {
                 if cpu.step().unwrap() == Interrupt::Nmi {
                     let frame_time = time::precise_time_ns() - frame_start;
@@ -139,7 +138,7 @@ fn update_screen(display: &Display,
 
     // Write diagnostic text
     {
-        let text = glium_text::TextDisplay::new(text_system, font, &format!("{}", fps));
+        let text = glium_text::TextDisplay::new(text_system, font, &format!("FPS:{:.0}", fps));
         let (w, h) = display.get_framebuffer_dimensions();
         // Finally, drawing the text is done like this:
         let matrix = [[0.05, 0.0, 0.0, 0.0],
