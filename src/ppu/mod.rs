@@ -135,9 +135,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
 
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
-        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
-        let x = frame_cycle % CYCLES_PER_SCANLINE;
+    fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
         if bg_pixel.is_visible() {
             let (bg_palette_index, bg_color_index) = {
@@ -156,7 +154,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 let mut ret = None;
                 for i in 0..8 {
                     if let Some(ref sprite) = self.sprite_buffer[i] {
-                        if let Some(sprite_color_index) = sprite.pixel_at(x as u16) {
+                        if let Some(sprite_color_index) = sprite.pixel_at(x) {
                             if sprite_color_index > 0 {
                                 // If sprite color index is zero then bg wins everytime. Is that correct?
                                 ret = Some((sprite.palette(), sprite_color_index));
@@ -182,7 +180,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
                     self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
                 } else {
-                    self.sprite_palettes[bg_palette_index as usize][bg_color_index as usize]
+                    self.bg_palettes[bg_palette_index as usize][bg_color_index as usize]
                 }
             };
 
@@ -212,8 +210,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
             }
         }
 
-        for i in (sprites_on_scanline - 1)..8 {
-            self.sprite_buffer[i] = None;
+        // Clear any remaining sprites from last scanline
+        if sprites_on_scanline > 0 {
+            for i in (sprites_on_scanline - 1)..8 {
+                self.sprite_buffer[i] = None;
+            }
         }
 
         Ok(())
@@ -300,6 +301,16 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
 
     fn step(&mut self) -> Result<Interrupt> {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
+        let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
+        let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
+
+        // Fill OAM buffer just before the scanline begins to render.
+        // This is not hardware accurate behavior but should produce correct results for most games.
+        if scanline < 240 && x == 0 {
+            println!("filling oam buffer for scanline {}", scanline);
+            self.fill_secondary_oam(scanline as u8)?;
+        }
+
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
@@ -310,21 +321,18 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 }
             }
             VBLANK_CLEAR_CYCLE => {
-                let scanline = frame_cycle % CYCLES_PER_SCANLINE;
-
                 // Reading palettes here isn't accurate, but should suffice for now
                 self.bg_palettes = self.background_palettes()?;
                 self.sprite_palettes = self.sprite_palettes()?;
 
                 self.status.clear_in_vblank();
                 self.status.clear_sprite_zero_hit();
-                self.fill_secondary_oam(scanline as u8 + 1)?;
                 Interrupt::None
             }
             _ => Interrupt::None,
         };
 
-        self.draw_pixel(frame_cycle)?;
+        self.draw_pixel(x, scanline)?;
         self.cycles += 1;
         Ok(result)
     }
