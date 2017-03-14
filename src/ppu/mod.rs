@@ -12,6 +12,7 @@ mod object_attribute_memory;
 mod vram;
 mod pixel;
 mod write_latch;
+mod pattern;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
@@ -19,7 +20,8 @@ use errors::*;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
-use ppu::pixel::{BackgroundPixel, Pixel, SpritePixel};
+use ppu::pattern::Sprite;
+use ppu::pixel::{BackgroundPixel, Pixel};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
@@ -128,16 +130,15 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     sprite_palettes: [Palette; 4],
     bg_palettes: [Palette; 4],
     write_latch: WriteLatch,
+    sprite_buffer: [Option<Sprite>; 8],
 }
 
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
-    fn draw_pixel(&mut self, frame_cycle: u64) -> Result<()> {
-        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
-        let x = frame_cycle % CYCLES_PER_SCANLINE;
+    fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
         if bg_pixel.is_visible() {
-            let (bg_color_index, bg_color) = {
+            let (bg_palette_index, bg_color_index) = {
                 let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
                 let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
                 let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
@@ -145,78 +146,75 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 let pattern_upper = self.vram.read(pattern_offset + 8)?;
                 let color_index = bg_pixel.color_index(pattern_lower, pattern_upper) as usize;
                 let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
-                (color_index, self.bg_palettes[palette_index][color_index])
+                (palette_index, color_index)
             };
 
-            // compute visible sprites
-            let mut visible_sprites = 0;
-            let mut sprite_pixels: [Option<Color>; 8] = [None; 8];
-            for i in 0..64 {
-                let attrs = self.oam.sprite_attributes(i);
-                let (sprite_x, sprite_y) = (attrs.x as u64, attrs.y as u64);
-                if scanline >= sprite_y && scanline < sprite_y + 8 {
-                    visible_sprites += 1;
-                    if visible_sprites == 8 {
-                        if !self.status.sprite_overflow() {
-                            self.status.set_sprite_overflow();
+            // draw sprites
+            let sprite_pixel = {
+                let mut ret = None;
+                for i in 0..8 {
+                    if let Some(ref sprite) = self.sprite_buffer[i] {
+                        if let Some(sprite_color_index) = sprite.pixel_at(x) {
+                            if sprite_color_index > 0 {
+                                ret = Some((sprite.palette(), sprite_color_index));
+                                if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
+                                   self.mask.show_background() &&
+                                   !((!self.mask.sprites_render_leftmost_8_px() ||
+                                      !self.mask.background_render_leftmost_8_px()) &&
+                                     x < 8) && x != 255 &&
+                                   !self.status.sprite_zero_hit() {
+                                    self.status.set_sprite_zero_hit();
+                                }
+                                break;
+                            }
                         }
+                    } else {
                         break;
                     }
-
-                    if x >= sprite_x && x < sprite_x + 8 {
-                        let sprite_pixel = SpritePixel::new(x as _,
-                                                            scanline as _,
-                                                            attrs,
-                                                            self.control.sprite_pattern_table());
-
-                        // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
-                        let pattern_offset = sprite_pixel.pattern_offset(0);
-
-                        let pattern_lower = self.vram.read(pattern_offset)?;
-                        let pattern_upper = self.vram.read(pattern_offset + 8)?;
-                        let sprite_color_index =
-                            sprite_pixel.color_index(pattern_lower, pattern_upper) as usize;
-
-                        // TODO: sprite pixel takes a dummy argument here because it isn't needed. refactor to be more general
-                        let palette_index = sprite_pixel.palette(0) as usize;
-
-                        if i == 0 && bg_color_index != 0 && sprite_color_index != 0 &&
-                           self.mask.show_sprites() &&
-                           self.mask.show_background() &&
-                           !((!self.mask.sprites_render_leftmost_8_px() ||
-                              !self.mask.background_render_leftmost_8_px()) &&
-                             x < 8) && x != 255 &&
-                           !self.status.sprite_zero_hit() {
-                            self.status.set_sprite_zero_hit();
-                        }
-
-                        // Ghetto pixel multiplexing
-                        sprite_pixels[visible_sprites - 1] = if sprite_color_index > 0 {
-                            Some(self.sprite_palettes[palette_index][sprite_color_index])
-                        } else {
-                            None
-                        }
-                    }
                 }
-            }
+                ret
+            };
 
-            let mut sprite_pixel_written = false;
-            for i in 0..8 {
-                if let Some(sprite_color) = sprite_pixels[i] {
-                    self.screen.borrow_mut().put_pixel(x as _, scanline as _, sprite_color);
-                    sprite_pixel_written = true;
-                    break;
+            let pixel_color = {
+                if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
+                    self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
+                } else {
+                    self.bg_palettes[bg_palette_index as usize][bg_color_index as usize]
                 }
-            }
-            if !sprite_pixel_written {
-                self.screen.borrow_mut().put_pixel(x as _, scanline as _, bg_color);
-            }
+            };
+
+            self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
         }
         Ok(())
     }
 
-    fn sprite_zero_hit(&self) -> bool {
-        false
+    fn fill_secondary_oam(&mut self, scanline: u8) -> Result<()> {
+        let pattern_table_base = self.control.sprite_pattern_table();
+        let mut sprites_on_scanline = 0;
+        for i in 0..64 {
+            let sprite_attributes = self.oam.sprite_attributes(i);
+            if sprite_attributes.is_on_scanline(scanline) {
+                let sprite = pattern::Sprite::read(scanline,
+                                                   sprite_attributes,
+                                                   pattern_table_base,
+                                                   &self.vram)?;
+                self.sprite_buffer[sprites_on_scanline] = Some(sprite);
+                sprites_on_scanline += 1;
+                if sprites_on_scanline == 8 {
+                    if !self.status.sprite_overflow() {
+                        self.status.set_sprite_overflow();
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Clear any remaining sprites from last scanline
+        for i in sprites_on_scanline..8 {
+            self.sprite_buffer[i] = None;
+        }
+
+        Ok(())
     }
 
     fn background_palettes(&self) -> Result<[Palette; 4]> {
@@ -294,11 +292,21 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             sprite_palettes: [empty, empty, empty, empty],
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
+            sprite_buffer: [None, None, None, None, None, None, None, None],
         }
     }
 
     fn step(&mut self) -> Result<Interrupt> {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
+        let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
+        let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
+
+        // Fill OAM buffer just before the scanline begins to render.
+        // This is not hardware accurate behavior but should produce correct results for most games.
+        if scanline < 240 && x == 0 {
+            self.fill_secondary_oam(scanline as u8)?;
+        }
+
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
@@ -320,7 +328,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             _ => Interrupt::None,
         };
 
-        self.draw_pixel(frame_cycle)?;
+        self.draw_pixel(x, scanline)?;
         self.cycles += 1;
         Ok(result)
     }

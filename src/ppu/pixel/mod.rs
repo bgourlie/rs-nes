@@ -1,8 +1,6 @@
 mod background_pixel;
-mod sprite_pixel;
 
 pub use self::background_pixel::BackgroundPixel;
-pub use self::sprite_pixel::SpritePixel;
 
 pub trait Pixel {
     fn palette(&self, attributes: u8) -> u8;
