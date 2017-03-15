@@ -92,6 +92,7 @@ impl Vram for VramBase {
         Ok(())
     }
 
+    #[inline(always)]
     fn read(&self, addr: u16) -> Result<u8> {
         let val = if addr < 0x2000 {
             self.rom.chr[addr as usize]
