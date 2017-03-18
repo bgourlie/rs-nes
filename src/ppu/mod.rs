@@ -136,8 +136,8 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
-        if bg_pixel.is_visible() {
+        if x < 256 && scanline < 240 {
+            let bg_pixel = BackgroundPixel::new(x + self.scroll.x(), scanline, self.control.bg_pattern_table());
             let (bg_palette_index, bg_color_index) = {
                 let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
                 let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;

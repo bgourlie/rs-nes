@@ -30,7 +30,7 @@ fn main() {
     env_logger::init().unwrap();
 
     // INIT NES
-    let rom = NesRom::read("test_roms/mario.nes").unwrap();
+    let rom = NesRom::read("test_roms/excitebike.nes").unwrap();
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,

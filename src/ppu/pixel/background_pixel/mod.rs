@@ -52,10 +52,6 @@ impl BackgroundPixel {
             (false, false) => AttributeQuadrant::BottomRight,
         }
     }
-
-    pub fn is_visible(&self) -> bool {
-        self.x < 256 && self.y < 240
-    }
 }
 
 impl Pixel for BackgroundPixel {
