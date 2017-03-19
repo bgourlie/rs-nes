@@ -47,7 +47,12 @@ impl Sprite {
             // credit sprocket nes for the fancy bit fiddling
             let bit0 = (self.pattern_lower >> ((7 - x) as usize)) & 1;
             let bit1 = (self.pattern_upper >> ((7 - x) as usize)) & 1;
-            Some((bit1 << 1) | bit0)
+            let color_index = (bit1 << 1) | bit0;
+            if color_index == 0 {
+                None
+            } else {
+                Some(color_index)
+            }
         } else {
             None
         }

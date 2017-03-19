@@ -153,18 +153,16 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                 for i in 0..8 {
                     if let Some(ref sprite) = self.sprite_buffer[i] {
                         if let Some(sprite_color_index) = sprite.pixel_at(x) {
-                            if sprite_color_index > 0 {
-                                ret = Some((sprite.palette(), sprite_color_index));
-                                if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
-                                   self.mask.show_background() &&
-                                   !((!self.mask.sprites_render_leftmost_8_px() ||
-                                      !self.mask.background_render_leftmost_8_px()) &&
-                                     x < 8) && x != 255 &&
-                                   !self.status.sprite_zero_hit() {
-                                    self.status.set_sprite_zero_hit();
-                                }
-                                break;
+                            ret = Some((sprite.palette(), sprite_color_index));
+                            if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
+                               self.mask.show_background() &&
+                               !((!self.mask.sprites_render_leftmost_8_px() ||
+                                  !self.mask.background_render_leftmost_8_px()) &&
+                                 x < 8) && x != 255 &&
+                               !self.status.sprite_zero_hit() {
+                                self.status.set_sprite_zero_hit();
                             }
+                            break;
                         }
                     } else {
                         break;

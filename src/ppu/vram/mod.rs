@@ -21,6 +21,7 @@ pub struct VramBase {
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
     rom: NesRom, // TODO: mapper
+    ppu_data_buffer: Cell<u8>,
 }
 
 impl Vram for VramBase {
@@ -30,6 +31,7 @@ impl Vram for VramBase {
             name_tables: [0; 0x1000],
             palette: [0; 0x20],
             rom: rom,
+            ppu_data_buffer: Cell::new(0),
         }
     }
 
@@ -54,12 +56,23 @@ impl Vram for VramBase {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
         }
+
+
         Ok(val)
     }
 
     fn ppu_data(&self) -> Result<u8> {
         let addr = self.address.get();
-        self.read(addr)
+        let val = self.read(addr)?;
+
+        // TODO: Tests for this buffering behavior
+        if addr < 0x3f00 {
+            let buffered_val = self.ppu_data_buffer.get();
+            self.ppu_data_buffer.set(val);
+            Ok(buffered_val)
+        } else {
+            Ok(val)
+        }
     }
 
     fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) -> Result<()> {
