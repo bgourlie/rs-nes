@@ -139,16 +139,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         if x < 256 && scanline < 240 {
             let bg_pixel = BackgroundPattern::new(x + self.scroll.x(),
                                                   scanline,
-                                                  self.control.bg_pattern_table());
+                                                  self.control.bg_pattern_table(),
+                                                  &self.vram)?;
+
             let (bg_palette_index, bg_color_index) = {
-                let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
-                let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
-                let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
-                let pattern_lower = self.vram.read(pattern_offset)?;
-                let pattern_upper = self.vram.read(pattern_offset + 8)?;
-                let color_index = bg_pixel.color_index(pattern_lower, pattern_upper) as usize;
-                let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
-                (palette_index, color_index)
+                (bg_pixel.palette_index, bg_pixel.color_index)
             };
 
             // draw sprites

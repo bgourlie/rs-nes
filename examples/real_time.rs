@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate env_logger;
-
 extern crate time;
 extern crate glium;
 extern crate glium_text;
@@ -27,10 +24,8 @@ const NS_PER_SEC: f32 = 1000000000.0;
 static SCREEN_DIMENSIONS: (u32, u32) = (256, 240);
 
 fn main() {
-    env_logger::init().unwrap();
-
     // INIT NES
-    let rom = NesRom::read("test_roms/excitebike.nes").unwrap();
+    let rom = NesRom::read("test_roms/mario.nes").unwrap();
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
