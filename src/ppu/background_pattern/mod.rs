@@ -20,8 +20,8 @@ impl BackgroundPattern {
                         pattern_table_base_offset: u16,
                         vram: &V)
                         -> Result<Self> {
-
         let name_table_base = Self::nametable_base_offset(nametable_x_pixel, nametable_y_pixel);
+
         // Determine the color of this pixel.
         let screen_tile_x = (nametable_x_pixel / 8) % 32;
         let screen_tile_y = (nametable_y_pixel / 8) % 30;
@@ -50,10 +50,9 @@ impl BackgroundPattern {
     }
 
     pub fn palette_index<V: Vram>(&self, vram: &V) -> Result<u8> {
+        let block_index = self.screen_tile_y / 4 * 8 + self.screen_tile_x / 4;
 
-        let group = self.screen_tile_y / 4 * 8 + self.screen_tile_x / 4;
-
-        let attr_byte = vram.read(self.name_table_base_offset + 0x3c0 + (group as u16))?;
+        let attr_byte = vram.read(self.name_table_base_offset + 0x3c0 + (block_index as u16))?;
         let (left, top) = (self.screen_tile_x % 4 < 2, self.screen_tile_y % 4 < 2);
 
         let color_index = match (left, top) {
@@ -79,48 +78,6 @@ impl BackgroundPattern {
             (true, false) => 0x2400,
             (false, true) => 0x2800,
             (true, true) => 0x2c00,
-        }
-    }
-
-    fn attribute_quadrant(&self) -> AttributeQuadrant {
-        let (x_tile16, y_tile16) = ((self.nametable_pixel_x / 16) as u8,
-                                    (self.nametable_pixel_y / 16) as u8);
-        match (y_tile16 % 2 == 0, x_tile16 % 2 == 0) {
-            (true, true) => AttributeQuadrant::TopLeft,
-            (true, false) => AttributeQuadrant::TopRight,
-            (false, true) => AttributeQuadrant::BottomLeft,
-            (false, false) => AttributeQuadrant::BottomRight,
-        }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-enum AttributeQuadrant {
-    TopLeft,
-    TopRight,
-    BottomLeft,
-    BottomRight,
-}
-
-impl AttributeQuadrant {
-    fn palette(&self, attribute_table_entry: u8) -> u8 {
-        match *self {
-            AttributeQuadrant::TopLeft => {
-                // top left
-                attribute_table_entry & 0x3
-            }
-            AttributeQuadrant::TopRight => {
-                // top right
-                (attribute_table_entry >> 2) & 0x3
-            }
-            AttributeQuadrant::BottomLeft => {
-                // bottom left
-                (attribute_table_entry >> 4) & 0x3
-            }
-            AttributeQuadrant::BottomRight => {
-                // bottom right
-                (attribute_table_entry >> 6) & 0x3
-            }
         }
     }
 }

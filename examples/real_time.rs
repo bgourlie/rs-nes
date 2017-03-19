@@ -25,7 +25,7 @@ static SCREEN_DIMENSIONS: (u32, u32) = (256, 240);
 
 fn main() {
     // INIT NES
-    let rom = NesRom::read("test_roms/excitebike.nes").unwrap();
+    let rom = NesRom::read("test_roms/super_mario.nes").unwrap();
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,

@@ -20,7 +20,8 @@ use errors::*;
 use ppu::background_pattern::BackgroundPattern;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
-use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
+use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
+                                   SpriteAttributes};
 use ppu::pattern::Sprite;
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
@@ -190,14 +191,16 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let mut sprites_on_scanline = 0;
         for i in 0..64 {
             let sprite_attributes = self.oam.sprite_attributes(i);
-            if sprite_attributes.is_on_scanline(scanline) {
+            if self.is_on_scanline(&sprite_attributes, scanline) {
                 let sprite = pattern::Sprite::read(scanline,
                                                    sprite_attributes,
                                                    pattern_table_base,
                                                    &self.vram)?;
-                self.sprite_buffer[sprites_on_scanline] = Some(sprite);
-                sprites_on_scanline += 1;
-                if sprites_on_scanline == 8 {
+
+                if sprites_on_scanline < 8 {
+                    self.sprite_buffer[sprites_on_scanline] = Some(sprite);
+                    sprites_on_scanline += 1;
+                } else {
                     if !self.status.sprite_overflow() {
                         self.status.set_sprite_overflow();
                     }
@@ -212,6 +215,14 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         }
 
         Ok(())
+    }
+
+    fn is_on_scanline(&self, sprite: &SpriteAttributes, scanline: u8) -> bool {
+        let height = match self.control.sprite_size() {
+            SpriteSize::X8 => 8,
+            SpriteSize::X16 => 16,
+        };
+        scanline >= sprite.y && scanline < sprite.y + height
     }
 
     fn background_palettes(&self) -> Result<[Palette; 4]> {
