@@ -143,7 +143,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
                                                   &self.vram)?;
 
             let (bg_palette_index, bg_color_index) = {
-                (bg_pixel.palette_index, bg_pixel.color_index(&self.vram)?)
+                (bg_pixel.palette_index(&self.vram)?, bg_pixel.color_index(&self.vram)?)
             };
 
             // draw sprites
