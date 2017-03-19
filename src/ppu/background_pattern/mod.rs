@@ -6,10 +6,10 @@ use ppu::vram::Vram;
 
 #[derive(Copy, Clone)]
 pub struct BackgroundPattern {
-    pub pixel_x: u16,
-    pub pixel_y: u16,
+    pub nametable_pixel_x: u16,
+    pub nametable_pixel_y: u16,
+    pattern_offset: u16,
     pub palette_index: u8,
-    pub color_index: u8,
 }
 
 impl BackgroundPattern {
@@ -18,31 +18,16 @@ impl BackgroundPattern {
                         pattern_table_base_offset: u16,
                         vram: &V)
                         -> Result<Self> {
-        // Nametables are twice the width and height of the screen, so 64 x 60 tiles
-        let nametable_tile_x = (x_pixel / 8) % 64;
-        let nametable_tile_y = (y_pixel / 8) % 60;
-        let (tile_pixel_x, tile_pixel_y) = ((x_pixel % 8) as u8, (y_pixel % 8) as u8);
-        let name_table_base = match (nametable_tile_x >= 32, nametable_tile_y >= 30) {
-            (false, false) => 0x2000,
-            (true, false) => 0x2400,
-            (false, true) => 0x2800,
-            (true, true) => 0x2c00,
-        };
+        let name_table_base = Self::nametable_base_offset(x_pixel, y_pixel);
 
-        let screen_tile_x = nametable_tile_x % 32;
-        let screen_tile_y = nametable_tile_y % 30;
+        let screen_tile_x = (x_pixel / 8) % 32;
+        let screen_tile_y = (y_pixel / 8) % 30;
 
-        let tile =
-            vram.read(name_table_base + 32 * (screen_tile_y as u16) + (screen_tile_x as u16))?;
+        let tile_offset = name_table_base + 32 * (screen_tile_y as u16) + (screen_tile_x as u16);
+        let tile = vram.read(tile_offset)?;
+
+        let tile_pixel_y = (y_pixel % 8) as u8;
         let pattern_offset = pattern_table_base_offset + ((tile as u16) << 4) + tile_pixel_y as u16;
-
-        // Determine the color of this pixel.
-        let plane0 = vram.read(pattern_offset)?;
-        let plane1 = vram.read(pattern_offset + 8)?;
-        let bit0 = (plane0 >> ((7 - ((tile_pixel_x % 8) as u8)) as usize)) & 1;
-        let bit1 = (plane1 >> ((7 - ((tile_pixel_x % 8) as u8)) as usize)) & 1;
-        let color_index = (bit1 << 1) | bit0;
-
 
         let group = screen_tile_y / 4 * 8 + screen_tile_x / 4;
 
@@ -61,19 +46,42 @@ impl BackgroundPattern {
         //let palette_index = vram.read(0x3f00 + (tile_color as u16))? & 0x3f;
 
         Ok(BackgroundPattern {
-            pixel_x: x_pixel,
-            pixel_y: y_pixel,
+            nametable_pixel_x: x_pixel,
+            nametable_pixel_y: y_pixel,
             palette_index: palette_index,
-            color_index: color_index,
+            pattern_offset: pattern_offset,
         })
+    }
+
+    pub fn color_index<V: Vram>(&self, vram: &V) -> Result<u8> {
+        // Determine the color of this pixel.
+        let plane0 = vram.read(self.pattern_offset)?;
+        let plane1 = vram.read(self.pattern_offset + 8)?;
+        let tile_pixel_x = (self.nametable_pixel_x % 8) as u8;
+        let bit0 = (plane0 >> ((7 - ((tile_pixel_x % 8) as u8)) as usize)) & 1;
+        let bit1 = (plane1 >> ((7 - ((tile_pixel_x % 8) as u8)) as usize)) & 1;
+        Ok((bit1 << 1) | bit0)
     }
 
     fn attribute_table_offset(x: u16, y: u16) -> u16 {
         8 * (y / 32) + (x / 32)
     }
 
+    fn nametable_base_offset(x_pixel: u16, y_pixel: u16) -> u16 {
+        // Nametables are twice the width and height of the screen, so 64 x 60 tiles
+        let nametable_tile_x = (x_pixel / 8) % 64;
+        let nametable_tile_y = (y_pixel / 8) % 60;
+        match (nametable_tile_x >= 32, nametable_tile_y >= 30) {
+            (false, false) => 0x2000,
+            (true, false) => 0x2400,
+            (false, true) => 0x2800,
+            (true, true) => 0x2c00,
+        }
+    }
+
     fn attribute_quadrant(&self) -> AttributeQuadrant {
-        let (x_tile16, y_tile16) = ((self.pixel_x / 16) as u8, (self.pixel_y / 16) as u8);
+        let (x_tile16, y_tile16) = ((self.nametable_pixel_x / 16) as u8,
+                                    (self.nametable_pixel_y / 16) as u8);
         match (y_tile16 % 2 == 0, x_tile16 % 2 == 0) {
             (true, true) => AttributeQuadrant::TopLeft,
             (true, false) => AttributeQuadrant::TopRight,
