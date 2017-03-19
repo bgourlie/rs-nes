@@ -62,7 +62,7 @@ impl Default for NesRom {
 }
 
 impl NesRom {
-    pub fn read(path: &str) -> Result<NesRom, &'static str> {
+    pub fn read(path: String) -> Result<NesRom, &'static str> {
         let mut f = match File::open(path) {
             Ok(file) => file,
             Err(_) => return Err("Unable to open file."),

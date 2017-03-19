@@ -14,6 +14,7 @@ use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
 use std::cell::RefCell;
+use std::env;
 use std::fs::File;
 use std::path::Path;
 use std::rc::Rc;
@@ -25,7 +26,10 @@ static SCREEN_DIMENSIONS: (u32, u32) = (256, 240);
 
 fn main() {
     // INIT NES
-    let rom = NesRom::read("test_roms/super_mario.nes").unwrap();
+    let args: Vec<String> = env::args().collect();
+    let file = &args[args.len() - 1];
+
+    let rom = NesRom::read(format!("test_roms/{}", file)).unwrap();
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
