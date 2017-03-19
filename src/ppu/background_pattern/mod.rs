@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod spec_tests;
 
-use super::*;
-
 #[derive(Copy, Clone)]
-pub struct BackgroundPixel {
+pub struct BackgroundPattern {
     pub x: u16,
     pub y: u16,
     pub name_table_offset: u16,
@@ -12,7 +10,7 @@ pub struct BackgroundPixel {
     pattern_table_base_offset: u16,
 }
 
-impl BackgroundPixel {
+impl BackgroundPattern {
     pub fn new(x: u16, y: u16, pattern_table_base_offset: u16) -> Self {
         let tile_x = (x / 8) % 64;
         let tile_y = (y / 8) % 60;
@@ -30,7 +28,7 @@ impl BackgroundPixel {
         let name_table_offset = name_table_base + 32 * tile_y as u16 + tile_x as u16;
         let attribute_table_offset = name_table_base + 0x3c0 + Self::attribute_table_offset(x, y);
 
-        BackgroundPixel {
+        BackgroundPattern {
             x: x,
             y: y,
             name_table_offset: name_table_offset,
@@ -52,18 +50,16 @@ impl BackgroundPixel {
             (false, false) => AttributeQuadrant::BottomRight,
         }
     }
-}
 
-impl Pixel for BackgroundPixel {
-    fn palette(&self, attribute_table_entry: u8) -> u8 {
+    pub fn palette(&self, attribute_table_entry: u8) -> u8 {
         self.attribute_quadrant().palette(attribute_table_entry)
     }
 
-    fn pattern_offset(&self, tile_index: u16) -> u16 {
+    pub fn pattern_offset(&self, tile_index: u16) -> u16 {
         self.pattern_table_base_offset + ((tile_index as u16) << 4) + (self.y % 8)
     }
 
-    fn color_index(&self, pattern_lower: u8, pattern_upper: u8) -> u8 {
+    pub fn color_index(&self, pattern_lower: u8, pattern_upper: u8) -> u8 {
         let x = self.x % 8;
         // credit sprocket nes for the fancy bit fiddling
         let bit0 = (pattern_lower >> ((7 - ((x % 8) as u8)) as usize)) & 1;

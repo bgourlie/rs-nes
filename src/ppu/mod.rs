@@ -10,18 +10,18 @@ mod status_register;
 mod scroll_register;
 mod object_attribute_memory;
 mod vram;
-mod pixel;
+mod background_pattern;
 mod write_latch;
 mod pattern;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
+use ppu::background_pattern::BackgroundPattern;
 use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
 use ppu::pattern::Sprite;
-use ppu::pixel::{BackgroundPixel, Pixel};
 use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
@@ -137,7 +137,9 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         if x < 256 && scanline < 240 {
-            let bg_pixel = BackgroundPixel::new(x + self.scroll.x(), scanline, self.control.bg_pattern_table());
+            let bg_pixel = BackgroundPattern::new(x + self.scroll.x(),
+                                                  scanline,
+                                                  self.control.bg_pattern_table());
             let (bg_palette_index, bg_color_index) = {
                 let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
                 let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
