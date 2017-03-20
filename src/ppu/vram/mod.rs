@@ -14,6 +14,7 @@ pub trait Vram {
     fn read_ppu_data(&self, inc_amount: IncrementAmount) -> Result<u8>;
     fn ppu_data(&self) -> Result<u8>;
     fn read(&self, addr: u16) -> Result<u8>;
+    fn addr(&self) -> u16;
 }
 
 pub struct VramBase {
@@ -56,8 +57,6 @@ impl Vram for VramBase {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
         }
-
-
         Ok(val)
     }
 
@@ -127,5 +126,9 @@ impl Vram for VramBase {
             bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
         };
         Ok(val)
+    }
+
+    fn addr(&self) -> u16 {
+        self.address.get()
     }
 }

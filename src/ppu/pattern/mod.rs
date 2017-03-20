@@ -27,10 +27,10 @@ impl Sprite {
         let pattern_upper = vram.read(pattern_offset + 8)?;
 
         Ok(Sprite {
-            attributes: attributes,
-            pattern_lower: pattern_lower,
-            pattern_upper: pattern_upper,
-        })
+               attributes: attributes,
+               pattern_lower: pattern_lower,
+               pattern_upper: pattern_upper,
+           })
     }
 
     pub fn pixel_at(&self, x: u16) -> Option<u8> {

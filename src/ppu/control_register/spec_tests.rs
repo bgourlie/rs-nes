@@ -1,18 +1,18 @@
 use super::*;
 
 #[test]
-fn base_nametable_addr() {
+fn base_scroll_values() {
     let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0x2000, ppu_ctrl.base_name_table_addr());
+    assert_eq!(0, ppu_ctrl.scroll_x_base());
 
     let ppu_ctrl = new_control_register(0b00000001);
-    assert_eq!(0x2400, ppu_ctrl.base_name_table_addr());
+    assert_eq!(256, ppu_ctrl.scroll_x_base());
+
+    let ppu_ctrl = new_control_register(0b00000000);
+    assert_eq!(0, ppu_ctrl.scroll_y_base());
 
     let ppu_ctrl = new_control_register(0b00000010);
-    assert_eq!(0x2800, ppu_ctrl.base_name_table_addr());
-
-    let ppu_ctrl = new_control_register(0b00000011);
-    assert_eq!(0x2C00, ppu_ctrl.base_name_table_addr());
+    assert_eq!(240, ppu_ctrl.scroll_y_base());
 }
 
 #[test]

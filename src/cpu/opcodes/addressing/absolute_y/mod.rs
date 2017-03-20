@@ -34,9 +34,9 @@ impl AbsoluteY {
         };
 
         Ok(AbsoluteY {
-            addr: target_addr,
-            value: val,
-        })
+               addr: target_addr,
+               value: val,
+           })
     }
 }
 

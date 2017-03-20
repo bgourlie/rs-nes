@@ -15,20 +15,20 @@ impl ZeroPage {
         let val = cpu.read_memory(addr)?;
 
         Ok(ZeroPage {
-            addr: addr,
-            value: val,
-            is_store: false,
-        })
+               addr: addr,
+               value: val,
+               is_store: false,
+           })
     }
 
     pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let addr = cpu.read_pc()? as u16;
 
         Ok(ZeroPage {
-            addr: addr,
-            value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
-            is_store: true,
-        })
+               addr: addr,
+               value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
+               is_store: true,
+           })
     }
 }
 

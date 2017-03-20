@@ -31,9 +31,9 @@ impl IndexedIndirect {
         let value = cpu.read_memory(target_addr)?;
 
         Ok(IndexedIndirect {
-            addr: target_addr,
-            value: value,
-        })
+               addr: target_addr,
+               value: value,
+           })
     }
 }
 

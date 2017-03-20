@@ -217,8 +217,14 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     }
 
     fn peek_mem(&self, addr: u16) -> u16 {
-        let low_byte = self.cpu.memory.read(addr).unwrap();
-        let high_byte = self.cpu.memory.read(addr + 1).unwrap();
+        let low_byte = self.cpu
+            .memory
+            .read(addr)
+            .unwrap();
+        let high_byte = self.cpu
+            .memory
+            .read(addr + 1)
+            .unwrap();
         from_lo_hi(low_byte, high_byte)
     }
 }

@@ -15,20 +15,20 @@ impl Absolute {
         let value = cpu.read_memory(addr)?;
 
         Ok(Absolute {
-            addr: addr,
-            value: value,
-            is_store: false,
-        })
+               addr: addr,
+               value: value,
+               is_store: false,
+           })
     }
 
     pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
         let addr = cpu.read_pc16()?;
 
         Ok(Absolute {
-            addr: addr,
-            value: 0, // Stores don't use the value and can cause illegal memory access if attempted
-            is_store: true,
-        })
+               addr: addr,
+               value: 0, // Stores don't use the value and can cause illegal memory access if attempted
+               is_store: true,
+           })
     }
 }
 

@@ -36,10 +36,10 @@ impl ZeroPageY {
         };
 
         Ok(ZeroPageY {
-            addr: target_addr,
-            value: val,
-            is_store: is_store,
-        })
+               addr: target_addr,
+               value: val,
+               is_store: is_store,
+           })
     }
 }
 

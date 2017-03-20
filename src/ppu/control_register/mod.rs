@@ -29,14 +29,12 @@ pub struct ControlRegister {
 }
 
 impl ControlRegister {
-    /// Base nametable address (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-    fn base_name_table_addr(&self) -> u16 {
-        match self.reg & 0b00000011 {
-            0 => 0x2000,
-            1 => 0x2400,
-            2 => 0x2800,
-            _ => 0x2C00,
-        }
+    pub fn scroll_x_base(&self) -> u16 {
+        if self.reg & 0b00000001 == 0 { 0 } else { 256 }
+    }
+
+    pub fn scroll_y_base(&self) -> u16 {
+        if self.reg & 0b00000010 == 0 { 0 } else { 240 }
     }
 
     /// VRAM address increment per CPU read/write of PPUDATA

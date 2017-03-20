@@ -13,8 +13,6 @@ use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
 use std::cell::RefCell;
 use std::env;
-use std::fs::File;
-use std::path::Path;
 use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -24,8 +22,7 @@ static SCREEN_DIMENSIONS: (u32, u32) = (256, 240);
 fn main() {
     // INIT NES
     let file = env::args().last().unwrap();
-
-    let rom = NesRom::read(format!("test_roms/{}", file)).unwrap();
+    let rom = NesRom::read(format!("{}", file)).expect("Couldn't find rom file");
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
@@ -38,10 +35,7 @@ fn main() {
     cpu.reset().unwrap();
 
     // building the display, ie. the main object
-    let display = glutin::WindowBuilder::new()
-        .with_vsync()
-        .build_glium()
-        .unwrap();
+    let display = glutin::WindowBuilder::new().with_vsync().build_glium().unwrap();
 
     start_loop(cpu, screen, &display, || {
         for event in display.poll_events() {

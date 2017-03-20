@@ -31,13 +31,13 @@ impl BackgroundPattern {
         let pattern_offset = pattern_table_base_offset + ((tile as u16) << 4) + tile_pixel_y as u16;
 
         Ok(BackgroundPattern {
-            nametable_pixel_x: nametable_x_pixel,
-            nametable_pixel_y: nametable_y_pixel,
-            pattern_offset: pattern_offset,
-            screen_tile_x: screen_tile_x as u8,
-            screen_tile_y: screen_tile_y as u8,
-            name_table_base_offset: name_table_base,
-        })
+               nametable_pixel_x: nametable_x_pixel,
+               nametable_pixel_y: nametable_y_pixel,
+               pattern_offset: pattern_offset,
+               screen_tile_x: screen_tile_x as u8,
+               screen_tile_y: screen_tile_y as u8,
+               name_table_base_offset: name_table_base,
+           })
     }
 
     pub fn color_index<V: Vram>(&self, vram: &V) -> Result<u8> {

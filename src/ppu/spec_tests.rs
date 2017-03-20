@@ -271,6 +271,8 @@ mod mocks {
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
+            scroll_x: 0,
+            scroll_y: 0,
         }
     }
 
@@ -297,6 +299,13 @@ mod mocks {
             };
 
             self.set_value(val)
+        }
+        fn x(&self) -> u16 {
+            unimplemented!()
+        }
+
+        fn y(&self) -> u16 {
+            unimplemented!()
         }
     }
 
@@ -411,6 +420,10 @@ mod mocks {
 
         fn new(_: NesRom) -> Self {
             Self::default()
+        }
+
+        fn addr(&self) -> u16 {
+            0
         }
     }
 }

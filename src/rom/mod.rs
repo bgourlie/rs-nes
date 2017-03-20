@@ -121,21 +121,21 @@ impl NesRom {
             NesRom::load_common(bytes);
 
         Ok(NesRom {
-            format: RomFormat::INesArchaic,
-            video_standard: VideoStandard::Indeterminite,
-            mapper: mapper_lo,
-            mirroring: mirroring,
-            prg_rom_banks: prg_rom_banks,
-            prg_ram_banks: 1,
-            chr_rom_banks: chr_rom_banks,
-            has_sram: has_sram,
-            has_trainer: has_trainer,
-            is_pc10: false,
-            is_vs_unisystem: false,
-            trainer: Vec::new(), // TODO
-            prg: Vec::new(),
-            chr: Vec::new(),
-        })
+               format: RomFormat::INesArchaic,
+               video_standard: VideoStandard::Indeterminite,
+               mapper: mapper_lo,
+               mirroring: mirroring,
+               prg_rom_banks: prg_rom_banks,
+               prg_ram_banks: 1,
+               chr_rom_banks: chr_rom_banks,
+               has_sram: has_sram,
+               has_trainer: has_trainer,
+               is_pc10: false,
+               is_vs_unisystem: false,
+               trainer: Vec::new(), // TODO
+               prg: Vec::new(),
+               chr: Vec::new(),
+           })
     }
 
     fn load_ines(bytes: &[u8]) -> Result<NesRom, &'static str> {
@@ -183,21 +183,21 @@ impl NesRom {
         chr.extend(bytes[chr_start..(chr_start + chr_size)].iter().cloned());
 
         Ok(NesRom {
-            format: RomFormat::INes,
-            video_standard: video_standard,
-            mapper: mapper,
-            mirroring: mirroring,
-            prg_rom_banks: prg_rom_banks,
-            prg_ram_banks: prg_ram_banks,
-            chr_rom_banks: chr_rom_banks,
-            has_sram: has_sram,
-            has_trainer: has_trainer,
-            is_pc10: is_pc10,
-            is_vs_unisystem: is_vs_unisystem,
-            trainer: trainer,
-            prg: prg,
-            chr: chr,
-        })
+               format: RomFormat::INes,
+               video_standard: video_standard,
+               mapper: mapper,
+               mirroring: mirroring,
+               prg_rom_banks: prg_rom_banks,
+               prg_ram_banks: prg_ram_banks,
+               chr_rom_banks: chr_rom_banks,
+               has_sram: has_sram,
+               has_trainer: has_trainer,
+               is_pc10: is_pc10,
+               is_vs_unisystem: is_vs_unisystem,
+               trainer: trainer,
+               prg: prg,
+               chr: chr,
+           })
     }
 
     // See http://wiki.nesdev.com/w/index.php/INES#Variant_comparison for

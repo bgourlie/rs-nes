@@ -52,10 +52,10 @@ impl AbsoluteX {
         };
 
         Ok(AbsoluteX {
-            addr: target_addr,
-            value: val,
-            is_store: variant == Variant::Store,
-        })
+               addr: target_addr,
+               value: val,
+               is_store: variant == Variant::Store,
+           })
     }
 }
 
