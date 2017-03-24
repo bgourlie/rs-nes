@@ -15,6 +15,8 @@ pub trait Vram {
     fn ppu_data(&self) -> Result<u8>;
     fn read(&self, addr: u16) -> Result<u8>;
     fn addr(&self) -> u16;
+    fn scroll_write(&self, latch_state: LatchState);
+    fn control_write(&self, val: u8);
 }
 
 pub struct VramBase {
@@ -23,6 +25,7 @@ pub struct VramBase {
     palette: [u8; 0x20],
     rom: NesRom, // TODO: mapper
     ppu_data_buffer: Cell<u8>,
+    t: Cell<u16>,
 }
 
 impl Vram for VramBase {
@@ -33,6 +36,7 @@ impl Vram for VramBase {
             palette: [0; 0x20],
             rom: rom,
             ppu_data_buffer: Cell::new(0),
+            t: Cell::new(0),
         }
     }
 
@@ -40,13 +44,22 @@ impl Vram for VramBase {
         // Addresses greater than 0x3fff are mirrored down
         match latch_state {
             LatchState::FirstWrite(val) => {
-                let addr = self.address.get();
-                self.address.set((addr & 0x80ff) | ((val as u16) & 0x3f) << 8);
+                //self.address.set((addr & 0x80ff) | ((val as u16) & 0x3f) << 8);
+
+                // t: ..FEDCBA ........ = d: ..FEDCBA
+                // t: .X...... ........ = 0
+                let t = self.t.get();
+                let t_preserved = t & 0b1100_0000_00000000;
+                let new_t = (t_preserved | ((val as u16 & 0b0011_1111) << 8)) &
+                            0b1011_1111_1111_1111;
+                self.t.set(new_t);
             }
             LatchState::SecondWrite(val) => {
-                let addr = self.address.get();
-                let addr = (addr & 0xff00) | val as u16;
-                self.address.set(addr);
+                // t: ....... HGFEDCBA = d: HGFEDCBA
+                // v                   = t
+                let new_t = self.t.get() & val as u16;
+                self.t.set(new_t);
+                self.address.set(new_t);
             }
         }
     }
@@ -130,5 +143,26 @@ impl Vram for VramBase {
 
     fn addr(&self) -> u16 {
         self.address.get()
+    }
+    fn scroll_write(&self, latch_state: LatchState) {
+        match latch_state {
+            LatchState::FirstWrite(val) => {
+                // t: ....... ...HGFED = d: HGFED...
+                let t = self.t.get();
+                self.t.set(t & 0b0000_0000_0001_1111 & ((val as u16 & 0b1111_1000) >> 3));
+            }
+            LatchState::SecondWrite(val) => {
+                // t: CBA..HG FED..... = d: HGFEDCBA
+                let t = self.t.get();
+                let t_preserved = t & 0b0000_1100_0001_1111;
+                self.t.set(t_preserved |
+                           ((val as u16 & 0b0000_0111) | ((val as u16 >> 3) & 0b0001_1111)));
+            }
+        }
+    }
+    fn control_write(&self, val: u8) {
+        // t: ...BA.. ........ = d: ......BA
+        let t = self.t.get();
+        self.t.set(t & 0b0000_1100_0000_0000 & ((val as u16) << 10));
     }
 }

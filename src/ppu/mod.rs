@@ -132,15 +132,14 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     bg_palettes: [Palette; 4],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
-    scroll_x: u16,
-    scroll_y: u16,
+    fine_x: u8,
 }
 
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         if x < 256 && scanline < 240 {
-            let bg_pixel = BackgroundPattern::new(x + self.scroll_x,
+            let bg_pixel = BackgroundPattern::new(x + self.scroll.x(),
                                                   scanline,
                                                   self.control.bg_pattern_table(),
                                                   &self.vram)?;
@@ -301,8 +300,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            scroll_x: 0,
-            scroll_y: 0,
+            fine_x: 0,
         }
     }
 
@@ -355,9 +353,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     let msg = "8X16 sprites".to_owned();
                     bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)));
                 }
-
-                self.scroll_x = (self.scroll_x & 0x00ff) | self.control.scroll_x_base();
-                self.scroll_y = (self.scroll_y & 0x00ff) | self.control.scroll_y_base();
             }
             0x1 => self.mask.write(val),
             0x2 => (), // readonly
@@ -366,23 +361,18 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x5 => {
                 let latch_state = self.write_latch.write(val);
                 match latch_state {
-                    write_latch::LatchState::FirstWrite(x) => {
-                        self.scroll_x = (self.scroll_x & 0xff00) | (x as u16);
+                    write_latch::LatchState::FirstWrite(_) => {
+                        // x:              CBA = d: .....CBA
+                        self.fine_x &= val & 0b0000_0111;
                     }
-                    write_latch::LatchState::SecondWrite(y) => {
-                        self.scroll_y = (self.scroll_y & 0xff00) | (y as u16);
-                    }
+                    _ => {}
                 }
+                self.vram.scroll_write(latch_state);
                 self.scroll.write(latch_state);
             }
             0x6 => {
                 let latch_state = self.write_latch.write(val);
                 self.vram.write_ppu_addr(latch_state);
-                if let write_latch::LatchState::SecondWrite(_) = latch_state {
-                    let addr = self.vram.addr() & 0x07ff;
-                    let xscroll_base = if addr < 0x400 { 0 } else { 256 };
-                    self.scroll_x = (self.scroll_x & 0xff) | xscroll_base;
-                }
             }
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();

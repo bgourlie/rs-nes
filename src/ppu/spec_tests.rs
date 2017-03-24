@@ -271,8 +271,7 @@ mod mocks {
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            scroll_x: 0,
-            scroll_y: 0,
+            fine_x: 0,
         }
     }
 
@@ -300,12 +299,13 @@ mod mocks {
 
             self.set_value(val)
         }
+
         fn x(&self) -> u16 {
-            unimplemented!()
+            0
         }
 
         fn y(&self) -> u16 {
-            unimplemented!()
+            0
         }
     }
 
@@ -425,5 +425,7 @@ mod mocks {
         fn addr(&self) -> u16 {
             0
         }
+        fn scroll_write(&self, _: LatchState) {}
+        fn control_write(&self, _: u8) {}
     }
 }
