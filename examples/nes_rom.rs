@@ -11,12 +11,14 @@ use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use rs_nes::screen::NesScreen;
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
 
 #[cfg(feature = "debugger")]
 fn main() {
     env_logger::init().unwrap();
-    let rom = NesRom::read("./test_roms/mario.nes".to_owned()).unwrap();
+    let file = env::args().last().unwrap();
+    let rom = NesRom::read(format!("{}", file)).expect("Couldn't find rom file");
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
