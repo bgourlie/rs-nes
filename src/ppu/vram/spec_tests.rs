@@ -118,6 +118,68 @@ fn palette_read_mapping() {
 }
 
 #[test]
+fn scroll_first_write() {
+    // Verify correct temporary VRAM changes during first scroll register writes:
+    // t: ....... ...HGFED = d: HGFED...
+
+    let vram = vram_fixture();
+    vram.t.set(0);
+    vram.scroll_write(LatchState::FirstWrite(0b1111_1000));
+    assert_eq!(0b0000_0000_0001_1111, vram.t.get());
+
+    vram.t.set(0b0111_1111_1110_0000);
+    vram.scroll_write(LatchState::FirstWrite(0b1111_1000));
+    assert_eq!(0b0111_1111_1111_1111, vram.t.get());
+
+    vram.t.set(0b0101_1010_1110_0100);
+    vram.scroll_write(LatchState::FirstWrite(0b1101_1000));
+    assert_eq!(0b0101_1010_1111_1011, vram.t.get());
+}
+
+#[test]
+fn scroll_second_write() {
+    // Verify correct temporary VRAM changes during second scroll register writes:
+    // t: CBA..HG FED..... = d: HGFEDCBA
+
+    let vram = vram_fixture();
+    vram.t.set(0);
+    vram.scroll_write(LatchState::SecondWrite(0b0000_0111));
+    assert_eq!(0b0111_0000_0000_0000, vram.t.get());
+
+    vram.t.set(0);
+    vram.scroll_write(LatchState::SecondWrite(0b1111_1000));
+    assert_eq!(0b0000_0011_1110_0000, vram.t.get());
+
+
+    vram.t.set(0b0000_1100_0001_1111);
+    vram.scroll_write(LatchState::SecondWrite(0b1111_1111));
+    assert_eq!(0b0111_1111_1111_1111, vram.t.get());
+}
+
+#[test]
+fn control_write() {
+    // Verify correct temporary VRAM changes during control register writes:
+    // t: ...BA.. ........ = d: ......BA
+    let vram = vram_fixture();
+
+    vram.t.set(0b0000_0000_0000_0000);
+    vram.control_write(0b0000_0011);
+    assert_eq!(0b0000_1100_0000_0000, vram.t.get());
+
+    vram.t.set(0b0111_0011_1111_1111);
+    vram.control_write(0b0000_0010);
+    assert_eq!(0b0111_1011_1111_1111, vram.t.get());
+
+    vram.t.set(0b0111_0011_1111_1111);
+    vram.control_write(0b0000_0010);
+    assert_eq!(0b0111_1011_1111_1111, vram.t.get());
+
+    vram.t.set(0b0111_0011_1111_1111);
+    vram.control_write(0b0000_0001);
+    assert_eq!(0b0111_0111_1111_1111, vram.t.get());
+}
+
+#[test]
 #[ignore] // FIXME
 fn palette_write_mapping() {
     // Verifying the following:

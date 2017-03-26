@@ -148,21 +148,22 @@ impl Vram for VramBase {
         match latch_state {
             LatchState::FirstWrite(val) => {
                 // t: ....... ...HGFED = d: HGFED...
-                let t = self.t.get();
-                self.t.set(t & 0b0000_0000_0001_1111 & ((val as u16 & 0b1111_1000) >> 3));
+                let t = self.t.get() & 0b1111_1111_1110_0000;
+                self.t.set(((val as u16 & 0b1111_1000) >> 3) | t);
             }
             LatchState::SecondWrite(val) => {
                 // t: CBA..HG FED..... = d: HGFEDCBA
-                let t = self.t.get();
-                let t_preserved = t & 0b0000_1100_0001_1111;
-                self.t.set(t_preserved |
-                           ((val as u16 & 0b0000_0111) | ((val as u16 >> 3) & 0b0001_1111)));
+                let t = self.t.get() & 0b0000_1100_0001_1111;
+                let cba_mask = (val as u16 & 0b0000_0111) << 12;
+                let hgfed_mask = (val as u16 & 0b1111_1000) << 2;
+                self.t.set((cba_mask | hgfed_mask) | t);
             }
         }
     }
     fn control_write(&self, val: u8) {
         // t: ...BA.. ........ = d: ......BA
-        let t = self.t.get();
-        self.t.set(t & 0b0000_1100_0000_0000 & ((val as u16) << 10));
+        let t = self.t.get() & 0b0111_0011_1111_1111;
+        let new_t = ((val as u16 & 0b0011) << 10) | t;
+        self.t.set(new_t);
     }
 }
