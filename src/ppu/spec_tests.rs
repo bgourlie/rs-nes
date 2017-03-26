@@ -433,5 +433,6 @@ mod mocks {
         fn vertical_increment(&self) {}
 
         fn copy_horizontal_pos_to_addr(&self) {}
+        fn copy_vertical_pos_to_addr(&self) {}
     }
 }
