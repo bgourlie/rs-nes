@@ -427,5 +427,11 @@ mod mocks {
         }
         fn scroll_write(&self, _: LatchState) {}
         fn control_write(&self, _: u8) {}
+
+        fn horizontal_increment(&self) {}
+
+        fn vertical_increment(&self) {}
+
+        fn copy_horizontal_pos_to_addr(&self) {}
     }
 }

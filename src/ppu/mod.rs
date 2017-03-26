@@ -139,11 +139,8 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         if x < 256 && scanline < 240 {
-            let bg_pixel = BackgroundPattern::new(x + self.scroll.x(),
-                                                  scanline,
-                                                  self.control.bg_pattern_table(),
-                                                  &self.vram)?;
-
+            let bg_pixel =
+                BackgroundPattern::new(self.control.bg_pattern_table(), self.fine_x, &self.vram)?;
             let (bg_palette_index, bg_color_index) = {
                 (bg_pixel.palette_index(&self.vram)?, bg_pixel.color_index(&self.vram)?)
             };
@@ -315,6 +312,43 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             self.fill_secondary_oam(scanline as u8)?;
         }
 
+
+        // Horizontal increment on dot 256 of the scanline if rendering is enabled
+        if self.mask.rendering_enabled() {
+
+            if ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
+                // At dot 256 of each scanline, if rendering is enabled, the PPU increments the
+                // horizontal position in v many times across the scanline, it begins at dots 328
+                // and 336, and will continue through the next scanline at 8, 16, 24... 240, 248,
+                // 256 (every 8 dots across the scanline until 256). The effective X scroll
+                // coordinate is incremented, which will wrap to the next nametable appropriately.
+                self.vram.horizontal_increment();
+            }
+
+            if x == 256 {
+                // If rendering is enabled, fine Y is incremented at dot 256 of each scanline,
+                // overflowing to coarse Y, and finally adjusted to wrap among the nametables
+                // vertically. Bits 12-14 are fine Y. Bits 5-9 are coarse Y. Bit 11 selects the
+                // vertical nametable.
+                self.vram.vertical_increment();
+            } else if x == 257 {
+                // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits
+                // related to horizontal position from t to v:
+                // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
+                self.vram.copy_horizontal_pos_to_addr();
+            }
+
+            if scanline == 261 && x >= 280 && x <= 304 {
+                // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
+                // is enabled, at the end of vblank, shortly after the horizontal bits are copied
+                // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
+                // v from dots 280 to 304, completing the full initialization of v from t:
+                // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
+                //self.vram.copy_vertical_pos_to_addr();
+            }
+        }
+
+        // Cycle-specific behavior
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
@@ -349,6 +383,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         match addr & 7 {
             0x0 => {
                 self.control.write(val);
+                self.vram.control_write(val);
                 if self.control.sprite_size() == SpriteSize::X16 {
                     let msg = "8X16 sprites".to_owned();
                     bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)));
@@ -363,7 +398,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 match latch_state {
                     write_latch::LatchState::FirstWrite(_) => {
                         // x:              CBA = d: .....CBA
-                        self.fine_x &= val & 0b0000_0111;
+                        let fine_x = self.fine_x & 0b1111_1000;
+                        self.fine_x = (val & 0b0000_0111) | fine_x;
                     }
                     _ => {}
                 }
@@ -397,7 +433,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 status
             }
             0x4 => {
-                if self.status.in_vblank() || self.mask.rendering_disabled() {
+                if self.status.in_vblank() || self.mask.forced_blank() {
                     self.oam.read_data() // No OAM addr increment during vblank or forced blank
                 } else {
                     self.oam.read_data_increment_addr()

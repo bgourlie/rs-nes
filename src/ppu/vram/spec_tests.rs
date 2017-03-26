@@ -147,6 +147,19 @@ fn addr_second_write() {
 }
 
 #[test]
+fn copy_horizontal_pos_to_addr() {
+    // Test scanline cycle 257 behavior
+    // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
+    let vram = vram_fixture();
+    vram.t.set(0xffff);
+    vram.address.set(0);
+
+    vram.copy_horizontal_pos_to_addr();
+
+    assert_eq!(0b0000_0100_0001_1111, vram.address.get())
+}
+
+#[test]
 fn scroll_first_write() {
     // Verify correct temporary VRAM address changes during first scroll register writes:
     // t: ....... ...HGFED = d: HGFED...

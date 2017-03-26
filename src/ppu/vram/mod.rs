@@ -17,6 +17,10 @@ pub trait Vram {
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
+    fn horizontal_increment(&self);
+    fn vertical_increment(&self);
+    fn copy_horizontal_pos_to_addr(&self);
+    fn copy_vertical_pos_to_addr(&self);
 }
 
 pub struct VramBase {
@@ -160,5 +164,73 @@ impl Vram for VramBase {
         let t = self.t.get() & 0b0111_0011_1111_1111;
         let new_t = ((val as u16 & 0b0011) << 10) | t;
         self.t.set(new_t);
+    }
+
+    // TODO test
+    fn horizontal_increment(&self) {
+        let v = self.address.get();
+
+        // The coarse X component of v needs to be incremented when the next tile is reached. Bits
+        // 0-4 are incremented, with overflow toggling bit 10. This means that bits 0-4 count from 0
+        // to 31 across a single nametable, and bit 10 selects the current nametable horizontally.
+        let v = if v & 0x001F == 31 {
+            (v & !0x001F) ^ 0x0400 // set coarse X = 0 and switch horizontal nametable
+        } else {
+            v + 1 // increment coarse X
+        };
+
+        self.address.set(v);
+    }
+
+    // TODO test
+    fn vertical_increment(&self) {
+        let v = self.address.get();
+
+        let v = if v & 0x7000 != 0x7000 {
+            // if fine Y < 7, increment fine Y
+            v + 0x1000
+        } else {
+            // if fine Y = 0...
+            let v = v & !0x7000;
+
+            // let y = coarse Y
+            let mut y = (v & 0x03E0) >> 5;
+            let v = if y == 29 {
+                // set coarse Y to 0
+                y = 0;
+
+                // switch vertical nametable
+                v ^ 0x0800
+            } else if y == 31 {
+                // set coarse Y = 0, nametable not switched
+                y = 0;
+                v
+            } else {
+                // increment coarse Y
+                y += 1;
+                v
+            };
+
+            // put coarse Y back into v
+            (v & !0x03E0) | (y << 5)
+        };
+
+        self.address.set(v);
+    }
+
+    // TODO: Test
+    fn copy_horizontal_pos_to_addr(&self) {
+        // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
+        let mask = 0b1111_1011_1110_0000;
+        let v = self.address.get() & mask;
+        self.address.set((self.t.get() & !mask) | v)
+    }
+
+    // TODO: Test
+    fn copy_vertical_pos_to_addr(&self) {
+        // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
+        let mask = 0b0000_0100_0001_1111;
+        let v = self.address.get() & mask;
+        self.address.set((self.t.get() & !mask) | v)
     }
 }

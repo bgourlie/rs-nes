@@ -29,14 +29,6 @@ pub struct ControlRegister {
 }
 
 impl ControlRegister {
-    pub fn scroll_x_base(&self) -> u16 {
-        if self.reg & 0b00000001 == 0 { 0 } else { 256 }
-    }
-
-    pub fn scroll_y_base(&self) -> u16 {
-        if self.reg & 0b00000010 == 0 { 0 } else { 240 }
-    }
-
     /// VRAM address increment per CPU read/write of PPUDATA
     /// (0: add 1, going across; 1: add 32, going down)
     pub fn vram_addr_increment(&self) -> IncrementAmount {
