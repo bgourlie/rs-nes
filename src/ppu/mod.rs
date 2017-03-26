@@ -312,9 +312,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             self.fill_secondary_oam(scanline as u8)?;
         }
 
-
-        // Horizontal increment on dot 256 of the scanline if rendering is enabled
-        if self.mask.rendering_enabled() {
+        // VRAM position increments and copies occur when rendering is enabled
+        // TODO: Clarify what it means for rendering to be enabled
+        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
+        if self.mask.rendering_enabled() && !self.mask.forced_blank() &&
+           (scanline < 240 || scanline == 261) {
 
             if ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
                 // At dot 256 of each scanline, if rendering is enabled, the PPU increments the
@@ -328,13 +330,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             if x == 256 {
                 // If rendering is enabled, fine Y is incremented at dot 256 of each scanline,
                 // overflowing to coarse Y, and finally adjusted to wrap among the nametables
-                // vertically. Bits 12-14 are fine Y. Bits 5-9 are coarse Y. Bit 11 selects the
-                // vertical nametable.
+                // vertically.
                 self.vram.fine_y_increment();
             } else if x == 257 {
                 // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits
-                // related to horizontal position from t to v:
-                // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
+                // related to horizontal position from t to v.
                 self.vram.copy_horizontal_pos_to_addr();
             }
 
@@ -343,8 +343,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 // is enabled, at the end of vblank, shortly after the horizontal bits are copied
                 // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
                 // v from dots 280 to 304, completing the full initialization of v from t:
-                // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
-                //self.vram.copy_vertical_pos_to_addr();
+                self.vram.copy_vertical_pos_to_addr();
             }
         }
 
