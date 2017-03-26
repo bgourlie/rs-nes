@@ -188,14 +188,75 @@ fn increment_coarse_x_called() {
         ppu.vram.reset_mock();
     }
 
-    // Increment should never occur if rendering is disabled
+    // Verify not called if rendering is disabled
 
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); // Disable rendering
-    // Render 5 frames and assert that the VRAM coarse x increment function is called
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step().unwrap();
         assert_eq!(false, ppu.vram.coarse_x_increment_called.get())
+    }
+}
+
+#[test]
+fn copy_horizontal_pos_to_addr_called() {
+    // At dot 257 of each scanline, if rendering is enabled, VRAM copy_horizontal_pos_to_addr()
+    // should be called
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00011000); // Enable rendering
+    while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
+        let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+        let x = frame_cycle % super::CYCLES_PER_SCANLINE;
+        ppu.step().unwrap();
+        // TODO: Clarify what it means for rendering to be enabled
+        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
+        if (scanline < 240 || scanline == 261) && x == 257 {
+            assert_eq!(true, ppu.vram.copy_horizontal_pos_to_addr_called.get())
+        } else {
+            assert_eq!(false, ppu.vram.copy_horizontal_pos_to_addr_called.get())
+        }
+        ppu.vram.reset_mock();
+    }
+
+    // Verify not called if rendering is disabled
+
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00000000); //
+    while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
+        ppu.step().unwrap();
+        assert_eq!(false, ppu.vram.copy_horizontal_pos_to_addr_called.get())
+    }
+}
+
+#[test]
+fn copy_vertical_pos_to_addr_called() {
+    // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering is enabled,
+    // vram copy_vertical_pos_addr should be called
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00011000); // Enable rendering
+    while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
+        let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+        let x = frame_cycle % super::CYCLES_PER_SCANLINE;
+        ppu.step().unwrap();
+        // TODO: Clarify what it means for rendering to be enabled
+        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
+        if scanline == 261 && x >= 280 && x <= 304 {
+            assert_eq!(true, ppu.vram.copy_vertical_pos_to_addr_called.get())
+        } else {
+            assert_eq!(false, ppu.vram.copy_vertical_pos_to_addr_called.get())
+        }
+        ppu.vram.reset_mock();
+    }
+
+    // Verify not called if rendering is disabled
+
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00000000); //
+    while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
+        ppu.step().unwrap();
+        assert_eq!(false, ppu.vram.copy_vertical_pos_to_addr_called.get())
     }
 }
 
@@ -204,7 +265,6 @@ fn increment_fine_y_called() {
     // If rendering is enabled, VRAM increment_find_y should be called at dot 256 of each scanline
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00011000); // Enable rendering
-    // Render 5 frames and assert that the VRAM fine y increment function is called
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
@@ -220,11 +280,10 @@ fn increment_fine_y_called() {
         ppu.vram.reset_mock();
     }
 
-    // Increment should never occur if rendering is disabled
+    // Verify not called if rendering is disabled
 
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); // Disable rendering
-    // Render 5 frames and assert that the VRAM coarse x increment function is called
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step().unwrap();
         assert_eq!(false, ppu.vram.fine_y_increment_called.get())
@@ -251,7 +310,6 @@ fn vblank_set_and_clear_cycles() {
 
     let mut ppu = mocks::mock_ppu();
 
-    // Render 5 frames and assert expected VBLANK behavior
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         match ppu.cycles % super::CYCLES_PER_FRAME {
             0...VBLANK_OFF => assert_eq!(false, ppu.status.in_vblank()),

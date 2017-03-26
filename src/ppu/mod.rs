@@ -342,7 +342,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
                 // is enabled, at the end of vblank, shortly after the horizontal bits are copied
                 // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
-                // v from dots 280 to 304, completing the full initialization of v from t:
+                // v from dots 280 to 304.
                 self.vram.copy_vertical_pos_to_addr();
             }
         }
