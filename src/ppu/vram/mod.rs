@@ -44,22 +44,17 @@ impl Vram for VramBase {
         // Addresses greater than 0x3fff are mirrored down
         match latch_state {
             LatchState::FirstWrite(val) => {
-                //self.address.set((addr & 0x80ff) | ((val as u16) & 0x3f) << 8);
-
                 // t: ..FEDCBA ........ = d: ..FEDCBA
                 // t: .X...... ........ = 0
-                let t = self.t.get();
-                let t_preserved = t & 0b1100_0000_00000000;
-                let new_t = (t_preserved | ((val as u16 & 0b0011_1111) << 8)) &
-                            0b1011_1111_1111_1111;
-                self.t.set(new_t);
+                let t = self.t.get() & 0b1000_0000_1111_1111;
+                self.t.set(((val as u16 & 0b0011_1111) << 8) | t)
             }
             LatchState::SecondWrite(val) => {
                 // t: ....... HGFEDCBA = d: HGFEDCBA
                 // v                   = t
-                let new_t = self.t.get() & val as u16;
-                self.t.set(new_t);
-                self.address.set(new_t);
+                let t = val as u16 | (self.t.get() & 0b0111_1111_0000_0000);
+                self.t.set(t);
+                self.address.set(t);
             }
         }
     }

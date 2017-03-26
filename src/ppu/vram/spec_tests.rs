@@ -4,21 +4,16 @@ use ppu::write_latch::LatchState;
 use rom::NesRom;
 
 #[test]
-#[ignore] // FIXME
 fn write_address() {
     let vram = vram_fixture();
     assert_eq!(0, vram.address.get());
     assert_eq!(0, vram.address.get());
 
     vram.write_ppu_addr(LatchState::FirstWrite(0x10));
-    assert_eq!(0x1000, vram.address.get());
-
     vram.write_ppu_addr(LatchState::SecondWrite(0x11));
     assert_eq!(0x1011, vram.address.get());
 
     vram.write_ppu_addr(LatchState::FirstWrite(0x12));
-    assert_eq!(0x1211, vram.address.get());
-
     vram.write_ppu_addr(LatchState::SecondWrite(0x13));
     assert_eq!(0x1213, vram.address.get());
 }
@@ -63,7 +58,6 @@ fn write_mapping() {
 
 
 #[test]
-#[ignore] // FIXME
 fn ppu_addr_mirroring() {
     let vram = vram_fixture();
 
@@ -118,8 +112,43 @@ fn palette_read_mapping() {
 }
 
 #[test]
+fn addr_first_write() {
+    // Verify correct temporary VRAM address changes during first address register write:
+    // t: ..FEDCBA ........ = d: ..FEDCBA
+    // t: .X...... ........ = 0
+
+    let vram = vram_fixture();
+    vram.t.set(0b0100_0000_0000_0000);
+    vram.write_ppu_addr(LatchState::FirstWrite(0b1111_1111));
+    assert_eq!(0b0011_1111_0000_0000, vram.t.get());
+
+    vram.t.set(0b1100_0000_1111_1111);
+    vram.write_ppu_addr(LatchState::FirstWrite(0b0011_0101));
+    assert_eq!(0b1011_0101_1111_1111, vram.t.get());
+}
+
+#[test]
+fn addr_second_write() {
+    // Verify correct temporary VRAM address changes during second address register write:
+    // t: ....... HGFEDCBA = d: HGFEDCBA
+    // v                   = t
+
+    let vram = vram_fixture();
+    vram.t.set(0);
+    vram.write_ppu_addr(LatchState::SecondWrite(0b1111_1111));
+    assert_eq!(0b0000_0000_1111_1111, vram.t.get());
+    assert_eq!(vram.t.get(), vram.address.get());
+
+    vram.t.set(0b1111_1111_0000_0000);
+    vram.write_ppu_addr(LatchState::SecondWrite(0b1010_1010));
+    assert_eq!(0b0111_1111_1010_1010, vram.t.get());
+    assert_eq!(vram.t.get(), vram.address.get());
+
+}
+
+#[test]
 fn scroll_first_write() {
-    // Verify correct temporary VRAM changes during first scroll register writes:
+    // Verify correct temporary VRAM address changes during first scroll register writes:
     // t: ....... ...HGFED = d: HGFED...
 
     let vram = vram_fixture();
@@ -138,7 +167,7 @@ fn scroll_first_write() {
 
 #[test]
 fn scroll_second_write() {
-    // Verify correct temporary VRAM changes during second scroll register writes:
+    // Verify correct temporary VRAM address changes during second scroll register writes:
     // t: CBA..HG FED..... = d: HGFEDCBA
 
     let vram = vram_fixture();
@@ -158,7 +187,7 @@ fn scroll_second_write() {
 
 #[test]
 fn control_write() {
-    // Verify correct temporary VRAM changes during control register writes:
+    // Verify correct temporary VRAM address changes during control register writes:
     // t: ...BA.. ........ = d: ......BA
     let vram = vram_fixture();
 
@@ -180,7 +209,6 @@ fn control_write() {
 }
 
 #[test]
-#[ignore] // FIXME
 fn palette_write_mapping() {
     // Verifying the following:
     // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C for reads and writes
