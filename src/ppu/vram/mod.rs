@@ -222,9 +222,8 @@ impl Vram for VramBase {
         // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits related to
         // horizontal position from t to v:
         // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
-        let mask = 0b1111_1011_1110_0000;
-        let v = self.address.get() & mask;
-        self.address.set((self.t.get() & !mask) | v)
+        let v = self.address.get() & 0b0111_1011_1110_0000;
+        self.address.set((self.t.get() & 0b0000_0100_0001_1111) | v)
     }
 
     fn copy_vertical_pos_to_addr(&self) {
@@ -233,8 +232,7 @@ impl Vram for VramBase {
         // at dot 257, the PPU will repeatedly copy the vertical bits from t to v from dots 280 to
         // 304, completing the full initialization of v from t:
         // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
-        let mask = 0b1000_0100_0001_1111;
-        let v = self.address.get() & mask;
-        self.address.set((self.t.get() & !mask) | v)
+        let v = self.address.get() & 0b0000_0100_0001_1111;
+        self.address.set((self.t.get() & 0b0111_1011_1110_0000) | v)
     }
 }
