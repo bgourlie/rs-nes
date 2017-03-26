@@ -322,7 +322,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 // and 336, and will continue through the next scanline at 8, 16, 24... 240, 248,
                 // 256 (every 8 dots across the scanline until 256). The effective X scroll
                 // coordinate is incremented, which will wrap to the next nametable appropriately.
-                self.vram.horizontal_increment();
+                self.vram.coarse_x_increment();
             }
 
             if x == 256 {
@@ -330,7 +330,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 // overflowing to coarse Y, and finally adjusted to wrap among the nametables
                 // vertically. Bits 12-14 are fine Y. Bits 5-9 are coarse Y. Bit 11 selects the
                 // vertical nametable.
-                self.vram.vertical_increment();
+                self.vram.fine_y_increment();
             } else if x == 257 {
                 // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits
                 // related to horizontal position from t to v:

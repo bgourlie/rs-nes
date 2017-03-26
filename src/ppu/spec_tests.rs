@@ -428,9 +428,9 @@ mod mocks {
         fn scroll_write(&self, _: LatchState) {}
         fn control_write(&self, _: u8) {}
 
-        fn horizontal_increment(&self) {}
+        fn coarse_x_increment(&self) {}
 
-        fn vertical_increment(&self) {}
+        fn fine_y_increment(&self) {}
 
         fn copy_horizontal_pos_to_addr(&self) {}
         fn copy_vertical_pos_to_addr(&self) {}

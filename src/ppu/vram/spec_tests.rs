@@ -239,6 +239,55 @@ fn palette_write_mapping() {
     assert_eq!(0x1c, vram.palette[0xc]);
 }
 
+#[test]
+fn coarse_x_increment() {
+    // The coarse X component of v needs to be incremented when the next tile is reached. Bits 0-4
+    // are incremented, with overflow toggling bit 10. This means that bits 0-4 count from 0 to 31
+    // across a single nametable, and bit 10 selects the current nametable horizontally.
+
+    let vram = vram_fixture();
+    vram.address.set(0);
+
+    for _ in 0..2 {
+        for expected_nametable_select in 0..2 {
+            let actual_nametable_select = (vram.address.get() & 0b0100_0000_0000) >> 10;
+            assert_eq!(expected_nametable_select, actual_nametable_select);
+
+            for expected_coarse_x in 0..32 {
+                let actual_coarse_x = vram.address.get() & 0b11111;
+                assert_eq!(expected_coarse_x, actual_coarse_x);
+                vram.coarse_x_increment();
+            }
+        }
+    }
+}
+
+#[test]
+fn fine_y_increment() {
+    // If rendering is enabled, fine Y is incremented at dot 256 of each scanline, overflowing to
+    // coarse Y, and finally adjusted to wrap among the nametables vertically. Bits 12-14 are fine
+    // Y. Bits 5-9 are coarse Y. Bit 11 selects the vertical nametable.
+
+    let vram = vram_fixture();
+    vram.address.set(0);
+
+    for _ in 0..2 {
+        for expected_nametable_select in 0..2 {
+            let actual_nametable_select = (vram.address.get() & 0b1000_0000_0000) >> 11;
+            assert_eq!(expected_nametable_select, actual_nametable_select);
+            for expected_coarse_y in 0..30 {
+                let actual_coarse_y = (vram.address.get() >> 5) & 0b11111;
+                assert_eq!(expected_coarse_y, actual_coarse_y);
+                for expected_fine_y in 0..8 {
+                    let actual_fine_y = (vram.address.get() >> 12) & 0b111;
+                    assert_eq!(expected_fine_y, actual_fine_y);
+                    vram.fine_y_increment();
+                }
+            }
+        }
+    }
+}
+
 fn vram_fixture() -> VramBase {
     let mut rom = NesRom::default();
     rom.chr = vec![0; 0x2000];

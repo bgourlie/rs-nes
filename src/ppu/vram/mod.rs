@@ -17,8 +17,8 @@ pub trait Vram {
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
-    fn horizontal_increment(&self);
-    fn vertical_increment(&self);
+    fn coarse_x_increment(&self);
+    fn fine_y_increment(&self);
     fn copy_horizontal_pos_to_addr(&self);
     fn copy_vertical_pos_to_addr(&self);
 }
@@ -166,24 +166,24 @@ impl Vram for VramBase {
         self.t.set(new_t);
     }
 
-    // TODO test
-    fn horizontal_increment(&self) {
+    fn coarse_x_increment(&self) {
         let v = self.address.get();
 
         // The coarse X component of v needs to be incremented when the next tile is reached. Bits
         // 0-4 are incremented, with overflow toggling bit 10. This means that bits 0-4 count from 0
         // to 31 across a single nametable, and bit 10 selects the current nametable horizontally.
         let v = if v & 0x001F == 31 {
-            (v & !0x001F) ^ 0x0400 // set coarse X = 0 and switch horizontal nametable
+            // set coarse X = 0 and switch horizontal nametable
+            (v & !0x001F) ^ 0x0400
         } else {
-            v + 1 // increment coarse X
+            // increment coarse X
+            v + 1
         };
 
         self.address.set(v);
     }
 
-    // TODO test
-    fn vertical_increment(&self) {
+    fn fine_y_increment(&self) {
         let v = self.address.get();
 
         let v = if v & 0x7000 != 0x7000 {
