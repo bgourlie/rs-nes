@@ -153,10 +153,19 @@ fn copy_horizontal_pos_to_addr() {
     let vram = vram_fixture();
     vram.t.set(0xffff);
     vram.address.set(0);
-
     vram.copy_horizontal_pos_to_addr();
-
     assert_eq!(0b0000_0100_0001_1111, vram.address.get())
+}
+
+#[test]
+fn copy_vertical_pos_to_addr() {
+    // Test scanline cycle 280-304 behavior
+    // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
+    let vram = vram_fixture();
+    vram.t.set(0xffff);
+    vram.address.set(0);
+    vram.copy_vertical_pos_to_addr();
+    assert_eq!(0b0111_1011_1110_0000, vram.address.get())
 }
 
 #[test]
@@ -287,6 +296,7 @@ fn fine_y_increment() {
         }
     }
 }
+
 
 fn vram_fixture() -> VramBase {
     let mut rom = NesRom::default();
