@@ -181,11 +181,18 @@ fn copy_vertical_pos_to_addr() {
 #[test]
 fn scroll_first_write() {
     // Verify correct temporary VRAM address changes during first scroll register writes:
+    //x:              CBA = d: .....CBA
     // t: ....... ...HGFED = d: HGFED...
 
     let vram = vram_fixture();
+    vram.scroll_write(LatchState::FirstWrite(0b1111_1111));
+    assert_eq!(0b111, vram.fine_x.get());
+
+    vram.scroll_write(LatchState::FirstWrite(0b1001_1010));
+    assert_eq!(0b10, vram.fine_x.get());
+
     vram.t.set(0);
-    vram.scroll_write(LatchState::FirstWrite(0b1111_1000));
+    vram.scroll_write(LatchState::FirstWrite(0b1111_1101));
     assert_eq!(0b0000_0000_0001_1111, vram.t.get());
 
     vram.t.set(0b0111_1111_1110_0000);

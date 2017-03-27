@@ -178,8 +178,6 @@ fn increment_coarse_x_called() {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step().unwrap();
-        // TODO: Clarify what it means for rendering to be enabled
-        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
         if (scanline < 240 || scanline == 261) && ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
             assert_eq!(true, ppu.vram.coarse_x_increment_called.get())
         } else {
@@ -209,8 +207,6 @@ fn copy_horizontal_pos_to_addr_called() {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step().unwrap();
-        // TODO: Clarify what it means for rendering to be enabled
-        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
         if (scanline < 240 || scanline == 261) && x == 257 {
             assert_eq!(true, ppu.vram.copy_horizontal_pos_to_addr_called.get())
         } else {
@@ -240,8 +236,6 @@ fn copy_vertical_pos_to_addr_called() {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step().unwrap();
-        // TODO: Clarify what it means for rendering to be enabled
-        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
         if scanline == 261 && x >= 280 && x <= 304 {
             assert_eq!(true, ppu.vram.copy_vertical_pos_to_addr_called.get())
         } else {
@@ -270,8 +264,6 @@ fn increment_fine_y_called() {
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step().unwrap();
-        // TODO: Clarify what it means for rendering to be enabled
-        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
         if (scanline < 240 || scanline == 261) && x == 256 {
             assert_eq!(true, ppu.vram.fine_y_increment_called.get())
         } else {
@@ -334,7 +326,7 @@ fn vblank_clear_after_status_read() {
 fn oam_read_non_blanking_increments_addr() {
     let mut ppu = mocks::mock_ppu();
     ppu.status.clear_in_vblank();
-    ppu.mask.write(1);
+    ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004).unwrap();
     assert_eq!(true, ppu.oam.read_data_increment_addr_called.get());
     assert_eq!(false, ppu.oam.read_data_called.get());
@@ -344,7 +336,7 @@ fn oam_read_non_blanking_increments_addr() {
 fn oam_read_v_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::mock_ppu();
     ppu.status.set_in_vblank();
-    ppu.mask.write(1);
+    ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004).unwrap();
     assert_eq!(false, ppu.oam.read_data_increment_addr_called.get());
     assert_eq!(true, ppu.oam.read_data_called.get());
@@ -358,6 +350,52 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
     ppu.read(0x2004).unwrap();
     assert_eq!(false, ppu.oam.read_data_increment_addr_called.get());
     assert_eq!(true, ppu.oam.read_data_called.get());
+}
+
+#[test]
+fn odd_frame_cycle_skip() {
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00001000); // Enable background rendering
+    while ppu.cycles < super::CYCLES_PER_FRAME * 10 {
+        let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+        let x = frame_cycle % super::CYCLES_PER_SCANLINE;
+        let frame_number = ppu.cycles / super::CYCLES_PER_FRAME;
+        let was_odd_frame = frame_number % 2 == 1;
+        ppu.step().unwrap();
+
+        if scanline == 261 && x == 339 {
+            let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+            let new_scanline = frame_cycle / CYCLES_PER_SCANLINE;
+            let new_x = frame_cycle % super::CYCLES_PER_SCANLINE;
+            if was_odd_frame {
+                assert_eq!(0, new_scanline);
+                assert_eq!(0, new_x);
+            } else {
+                assert_eq!(261, new_scanline);
+                assert_eq!(340, new_x);
+            }
+        }
+    }
+
+    // Verify no skipped frame if background rendering is disabled
+    // TODO: Verify that this is the correct behavior
+    let mut ppu = mocks::mock_ppu();
+    ppu.mask.write(0b00000000); // Disable rendering
+    while ppu.cycles < super::CYCLES_PER_FRAME * 10 {
+        let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+        let scanline = frame_cycle / CYCLES_PER_SCANLINE;
+        let x = frame_cycle % super::CYCLES_PER_SCANLINE;
+        ppu.step().unwrap();
+
+        if scanline == 261 && x == 339 {
+            let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
+            let new_scanline = frame_cycle / CYCLES_PER_SCANLINE;
+            let new_x = frame_cycle % super::CYCLES_PER_SCANLINE;
+            assert_eq!(261, new_scanline);
+            assert_eq!(340, new_x);
+        }
+    }
 }
 
 mod mocks {
@@ -398,7 +436,6 @@ mod mocks {
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            fine_x: 0,
         }
     }
 
@@ -550,6 +587,9 @@ mod mocks {
         }
         fn copy_vertical_pos_to_addr(&self) {
             self.copy_vertical_pos_to_addr_called.set(true)
+        }
+        fn fine_x(&self) -> u8 {
+            0
         }
     }
 }

@@ -71,8 +71,4 @@ impl MaskRegister {
     pub fn rendering_enabled(&self) -> bool {
         self.show_background() || self.show_sprites()
     }
-
-    pub fn forced_blank(&self) -> bool {
-        self.reg == 0
-    }
 }

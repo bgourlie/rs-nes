@@ -21,6 +21,7 @@ pub trait Vram {
     fn fine_y_increment(&self);
     fn copy_horizontal_pos_to_addr(&self);
     fn copy_vertical_pos_to_addr(&self);
+    fn fine_x(&self) -> u8;
 }
 
 pub struct VramBase {
@@ -30,6 +31,7 @@ pub struct VramBase {
     rom: NesRom, // TODO: mapper
     ppu_data_buffer: Cell<u8>,
     t: Cell<u16>,
+    fine_x: Cell<u8>,
 }
 
 impl Vram for VramBase {
@@ -41,6 +43,7 @@ impl Vram for VramBase {
             rom: rom,
             ppu_data_buffer: Cell::new(0),
             t: Cell::new(0),
+            fine_x: Cell::new(0),
         }
     }
 
@@ -149,6 +152,9 @@ impl Vram for VramBase {
                 // t: ....... ...HGFED = d: HGFED...
                 let t = self.t.get() & 0b1111_1111_1110_0000;
                 self.t.set(((val as u16 & 0b1111_1000) >> 3) | t);
+
+                //x:              CBA = d: .....CBA
+                self.fine_x.set(val & 0b0000_0111);
             }
             LatchState::SecondWrite(val) => {
                 // t: CBA..HG FED..... = d: HGFEDCBA
@@ -234,5 +240,9 @@ impl Vram for VramBase {
         // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
         let v = self.address.get() & 0b0000_0100_0001_1111;
         self.address.set((self.t.get() & 0b0111_1011_1110_0000) | v)
+    }
+
+    fn fine_x(&self) -> u8 {
+        self.fine_x.get()
     }
 }

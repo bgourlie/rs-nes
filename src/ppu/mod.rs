@@ -35,6 +35,7 @@ use std::rc::Rc;
 const SCANLINES: u64 = 262;
 const CYCLES_PER_SCANLINE: u64 = 341;
 const CYCLES_PER_FRAME: u64 = SCANLINES * CYCLES_PER_SCANLINE;
+const TWO_FRAMES: u64 = CYCLES_PER_FRAME * 2;
 const VBLANK_SCANLINE: u64 = 241;
 const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
@@ -132,53 +133,52 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     bg_palettes: [Palette; 4],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
-    fine_x: u8,
 }
 
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        if x < 256 && scanline < 240 {
-            let bg_pixel =
-                BackgroundPattern::new(self.control.bg_pattern_table(), self.fine_x, &self.vram)?;
-            let (bg_palette_index, bg_color_index) = {
-                (bg_pixel.palette_index(&self.vram)?, bg_pixel.color_index(&self.vram)?)
-            };
+        let bg_pixel = BackgroundPattern::new(self.control.bg_pattern_table(),
+                                              self.vram.fine_x(),
+                                              &self.vram)?;
 
-            // draw sprites
-            let sprite_pixel = {
-                let mut ret = None;
-                for i in 0..8 {
-                    if let Some(ref sprite) = self.sprite_buffer[i] {
-                        if let Some(sprite_color_index) = sprite.pixel_at(x) {
-                            ret = Some((sprite.palette(), sprite_color_index));
-                            if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
-                               self.mask.show_background() &&
-                               !((!self.mask.sprites_render_leftmost_8_px() ||
-                                  !self.mask.background_render_leftmost_8_px()) &&
-                                 x < 8) && x != 255 &&
-                               !self.status.sprite_zero_hit() {
-                                self.status.set_sprite_zero_hit();
-                            }
-                            break;
+        let (bg_palette_index, bg_color_index) = {
+            (bg_pixel.palette_index(&self.vram)?, bg_pixel.color_index(&self.vram)?)
+        };
+
+        // draw sprites
+        let sprite_pixel = {
+            let mut ret = None;
+            for i in 0..8 {
+                if let Some(ref sprite) = self.sprite_buffer[i] {
+                    if let Some(sprite_color_index) = sprite.pixel_at(x) {
+                        ret = Some((sprite.palette(), sprite_color_index));
+                        if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
+                           self.mask.show_background() &&
+                           !((!self.mask.sprites_render_leftmost_8_px() ||
+                              !self.mask.background_render_leftmost_8_px()) &&
+                             x < 8) && x != 255 &&
+                           !self.status.sprite_zero_hit() {
+                            self.status.set_sprite_zero_hit();
                         }
-                    } else {
                         break;
                     }
-                }
-                ret
-            };
-
-            let pixel_color = {
-                if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
-                    self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
                 } else {
-                    self.bg_palettes[bg_palette_index as usize][bg_color_index as usize]
+                    break;
                 }
-            };
+            }
+            ret
+        };
 
-            self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
-        }
+        let pixel_color = {
+            if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
+                self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
+            } else {
+                self.bg_palettes[bg_palette_index as usize][bg_color_index as usize]
+            }
+        };
+
+        self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
         Ok(())
     }
 
@@ -297,7 +297,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             bg_palettes: [empty, empty, empty, empty],
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            fine_x: 0,
         }
     }
 
@@ -306,6 +305,28 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
         let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
+        // Cycle-specific behavior
+        let result = match frame_cycle {
+            VBLANK_SET_CYCLE => {
+                self.status.set_in_vblank();
+                if self.control.nmi_on_vblank_start() {
+                    Interrupt::Nmi
+                } else {
+                    Interrupt::None
+                }
+            }
+            VBLANK_CLEAR_CYCLE => {
+                // Reading palettes here isn't accurate, but should suffice for now
+                self.bg_palettes = self.background_palettes()?;
+                self.sprite_palettes = self.sprite_palettes()?;
+
+                self.status.clear_in_vblank();
+                self.status.clear_sprite_zero_hit();
+                Interrupt::None
+            }
+            _ => Interrupt::None,
+        };
+
         // Fill OAM buffer just before the scanline begins to render.
         // This is not hardware accurate behavior but should produce correct results for most games.
         if scanline < 240 && x == 0 {
@@ -313,10 +334,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         }
 
         // VRAM position increments and copies occur when rendering is enabled
-        // TODO: Clarify what it means for rendering to be enabled
-        // https://forums.nesdev.com/viewtopic.php?f=3&t=15708
-        if self.mask.rendering_enabled() && !self.mask.forced_blank() &&
-           (scanline < 240 || scanline == 261) {
+        if self.mask.rendering_enabled() && (scanline < 240 || scanline == 261) {
 
             if ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
                 // At dot 256 of each scanline, if rendering is enabled, the PPU increments the
@@ -345,32 +363,26 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 // v from dots 280 to 304.
                 self.vram.copy_vertical_pos_to_addr();
             }
+
+            if x < 256 && scanline < 240 {
+                self.draw_pixel(x, scanline)?
+            }
         }
 
-        // Cycle-specific behavior
-        let result = match frame_cycle {
-            VBLANK_SET_CYCLE => {
-                self.status.set_in_vblank();
-                if self.control.nmi_on_vblank_start() {
-                    Interrupt::Nmi
-                } else {
-                    Interrupt::None
-                }
-            }
-            VBLANK_CLEAR_CYCLE => {
-                // Reading palettes here isn't accurate, but should suffice for now
-                self.bg_palettes = self.background_palettes()?;
-                self.sprite_palettes = self.sprite_palettes()?;
+        // For odd frames, the cycle at the end of the scanline is skipped (this is done
+        // internally by jumping directly from (339,261) to (0,0), replacing the idle tick at
+        // the beginning of the first visible scanline with the last tick of the last dummy
+        // nametable fetch). For even frames, the last cycle occurs normally.
+        //
+        // The PPU timing diagram seems to imply that the skipped cycle only occurs when
+        // background rendering is enabled, although I haven't found anything that states that
+        // outright.
+        if self.cycles % TWO_FRAMES == (TWO_FRAMES - 2) && self.mask.show_background() {
+            self.cycles += 2;
+        } else {
+            self.cycles += 1;
+        }
 
-                self.status.clear_in_vblank();
-                self.status.clear_sprite_zero_hit();
-                Interrupt::None
-            }
-            _ => Interrupt::None,
-        };
-
-        self.draw_pixel(x, scanline)?;
-        self.cycles += 1;
         Ok(result)
     }
 
@@ -394,14 +406,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x4 => self.oam.write_data(val),
             0x5 => {
                 let latch_state = self.write_latch.write(val);
-                match latch_state {
-                    write_latch::LatchState::FirstWrite(_) => {
-                        // x:              CBA = d: .....CBA
-                        let fine_x = self.fine_x & 0b1111_1000;
-                        self.fine_x = (val & 0b0000_0111) | fine_x;
-                    }
-                    _ => {}
-                }
                 self.vram.scroll_write(latch_state);
                 self.scroll.write(latch_state);
             }
@@ -432,8 +436,9 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 status
             }
             0x4 => {
-                if self.status.in_vblank() || self.mask.forced_blank() {
-                    self.oam.read_data() // No OAM addr increment during vblank or forced blank
+                if self.status.in_vblank() || !self.mask.rendering_enabled() {
+                    // No OAM addr increment during vblank or forced blank
+                    self.oam.read_data()
                 } else {
                     self.oam.read_data_increment_addr()
                 }
