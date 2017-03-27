@@ -146,6 +146,7 @@ impl Vram for VramBase {
     fn addr(&self) -> u16 {
         self.address.get()
     }
+
     fn scroll_write(&self, latch_state: LatchState) {
         match latch_state {
             LatchState::FirstWrite(val) => {

@@ -21,6 +21,12 @@ pub enum IncrementAmount {
     ThirtyTwo,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PatternTableSelect {
+    Left,
+    Right,
+}
+
 /// $2000, Write Only
 /// Various flags controlling PPU operation
 #[derive(Default)]
@@ -40,20 +46,20 @@ impl ControlRegister {
     }
 
     /// Sprite pattern table address for 8x8 sprites (0: $0000; 1: $1000; ignored in 8x16 mode)
-    pub fn sprite_pattern_table(&self) -> u16 {
+    pub fn sprite_pattern_table(&self) -> PatternTableSelect {
         if self.reg & 0b00001000 == 0 {
-            0x0
+            PatternTableSelect::Left
         } else {
-            0x1000
+            PatternTableSelect::Right
         }
     }
 
     /// Background pattern table address (0: $0000; 1: $1000)
-    pub fn bg_pattern_table(&self) -> u16 {
+    pub fn bg_pattern_table(&self) -> PatternTableSelect {
         if self.reg & 0b00010000 == 0 {
-            0x0
+            PatternTableSelect::Left
         } else {
-            0x1000
+            PatternTableSelect::Right
         }
     }
 

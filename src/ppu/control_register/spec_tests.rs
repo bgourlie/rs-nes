@@ -12,19 +12,19 @@ fn vram_addr_increment() {
 #[test]
 fn sprite_pattern_table_addr() {
     let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0, ppu_ctrl.sprite_pattern_table());
+    assert_eq!(PatternTableSelect::Left, ppu_ctrl.sprite_pattern_table());
 
     let ppu_ctrl = new_control_register(0b00001000);
-    assert_eq!(0x1000, ppu_ctrl.sprite_pattern_table());
+    assert_eq!(PatternTableSelect::Right, ppu_ctrl.sprite_pattern_table());
 }
 
 #[test]
 fn background_pattern_table_addr() {
     let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0, ppu_ctrl.bg_pattern_table());
+    assert_eq!(PatternTableSelect::Left, ppu_ctrl.bg_pattern_table());
 
     let ppu_ctrl = new_control_register(0b00010000);
-    assert_eq!(0x1000, ppu_ctrl.bg_pattern_table());
+    assert_eq!(PatternTableSelect::Right, ppu_ctrl.bg_pattern_table());
 }
 
 #[test]
