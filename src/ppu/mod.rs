@@ -108,8 +108,6 @@ static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
 
 pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
 
-type Palette = [Color; 4];
-
 pub trait Ppu {
     type Scr: Screen;
 
@@ -129,8 +127,8 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     vram: V,
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
-    sprite_palettes: [Palette; 4],
-    bg_palettes: [Palette; 4],
+    sprite_palettes: [Color; 16],
+    bg_palettes: [Color; 16],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
     background_rendering: BackgroundRendering,
@@ -166,13 +164,9 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         };
 
         let pixel_color = if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
-            self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
+            self.sprite_palettes[(sprite_palette_index as usize) << 2 | sprite_color_index as usize]
         } else {
-            if bg_pixel > 0 {
-                Color(128, 128, 128)
-            } else {
-                Color(0, 0, 0)
-            }
+            self.bg_palettes[self.background_rendering.current_pixel() as usize]
         };
 
         self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
@@ -222,58 +216,44 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         scanline >= sprite.y && scanline < sprite.y + height
     }
 
-    fn background_palettes(&self) -> Result<[Palette; 4]> {
+    fn background_palettes(&self) -> Result<[Color; 16]> {
         let bg = self.vram.read(0x3f00)? as usize;
-        let bg = PALETTE[bg];
-
-        let color0 = self.vram.read(0x3f01)? as usize;
-        let color1 = self.vram.read(0x3f02)? as usize;
-        let color2 = self.vram.read(0x3f03)? as usize;
-        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f05)? as usize;
-        let color1 = self.vram.read(0x3f06)? as usize;
-        let color2 = self.vram.read(0x3f07)? as usize;
-        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f09)? as usize;
-        let color1 = self.vram.read(0x3f0a)? as usize;
-        let color2 = self.vram.read(0x3f0b)? as usize;
-        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f0d)? as usize;
-        let color1 = self.vram.read(0x3f0e)? as usize;
-        let color2 = self.vram.read(0x3f0f)? as usize;
-        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        Ok([palette0, palette1, palette2, palette3])
+        Ok([PALETTE[bg],
+            PALETTE[self.vram.read(0x3f01)? as usize],
+            PALETTE[self.vram.read(0x3f02)? as usize],
+            PALETTE[self.vram.read(0x3f03)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f05)? as usize],
+            PALETTE[self.vram.read(0x3f06)? as usize],
+            PALETTE[self.vram.read(0x3f07)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f09)? as usize],
+            PALETTE[self.vram.read(0x3f0a)? as usize],
+            PALETTE[self.vram.read(0x3f0b)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f0d)? as usize],
+            PALETTE[self.vram.read(0x3f0e)? as usize],
+            PALETTE[self.vram.read(0x3f0f)? as usize]])
     }
 
-    fn sprite_palettes(&self) -> Result<[Palette; 4]> {
+    fn sprite_palettes(&self) -> Result<[Color; 16]> {
         let bg = self.vram.read(0x3f00)? as usize;
-        let bg = PALETTE[bg];
-
-        let color0 = self.vram.read(0x3f11)? as usize;
-        let color1 = self.vram.read(0x3f12)? as usize;
-        let color2 = self.vram.read(0x3f13)? as usize;
-        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f15)? as usize;
-        let color1 = self.vram.read(0x3f16)? as usize;
-        let color2 = self.vram.read(0x3f17)? as usize;
-        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f19)? as usize;
-        let color1 = self.vram.read(0x3f1a)? as usize;
-        let color2 = self.vram.read(0x3f1b)? as usize;
-        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f1d)? as usize;
-        let color1 = self.vram.read(0x3f1e)? as usize;
-        let color2 = self.vram.read(0x3f1f)? as usize;
-        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        Ok([palette0, palette1, palette2, palette3])
+        Ok([PALETTE[bg],
+            PALETTE[self.vram.read(0x3f11)? as usize],
+            PALETTE[self.vram.read(0x3f12)? as usize],
+            PALETTE[self.vram.read(0x3f13)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f15)? as usize],
+            PALETTE[self.vram.read(0x3f16)? as usize],
+            PALETTE[self.vram.read(0x3f17)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f19)? as usize],
+            PALETTE[self.vram.read(0x3f1a)? as usize],
+            PALETTE[self.vram.read(0x3f1b)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f1d)? as usize],
+            PALETTE[self.vram.read(0x3f1e)? as usize],
+            PALETTE[self.vram.read(0x3f1f)? as usize]])
     }
 }
 
@@ -281,10 +261,22 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
-        let empty: [Color; 4] = [Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00)];
+        let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00)];
         PpuBase {
             cycles: VBLANK_SET_CYCLE,
             control: ControlRegister::default(),
@@ -294,8 +286,8 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             vram: V::new(rom),
             oam: O::default(),
             screen: screen,
-            sprite_palettes: [empty, empty, empty, empty],
-            bg_palettes: [empty, empty, empty, empty],
+            sprite_palettes: empty,
+            bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_rendering: BackgroundRendering::default(),
@@ -346,12 +338,12 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                     0 => {
                         self.background_rendering.fill_shift_registers();
 
-                        // At dot 256 of each scanline, if rendering is enabled, the PPU increments the
-                        // horizontal position in v many times across the scanline, it begins at dots
-                        // 328 and 336, and will continue through the next scanline at 8, 16, 24... 240,
-                        // 248, 256 (every 8 dots across the scanline until 256). The effective X scroll
-                        // coordinate is incremented, which will wrap to the next nametable
-                        // appropriately.
+                        // At dot 256 of each scanline, if rendering is enabled, the PPU increments
+                        // the horizontal position in v many times across the scanline, it begins at
+                        // dots 328 and 336, and will continue through the next scanline at 8, 16,
+                        // 24... 240, 248, 256 (every 8 dots across the scanline until 256). The
+                        // effective X scroll coordinate is incremented, which will wrap to the next
+                        // nametable appropriately.
                         self.vram.coarse_x_increment();
                     }
 

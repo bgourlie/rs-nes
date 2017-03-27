@@ -419,10 +419,22 @@ mod mocks {
     pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
 
     pub fn mock_ppu() -> TestPpu {
-        let empty: [Color; 4] = [Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00)];
+        let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00)];
 
         PpuBase {
             cycles: 0,
@@ -433,8 +445,8 @@ mod mocks {
             vram: MockVram::new(NesRom::default()),
             oam: MockOam::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
-            sprite_palettes: [empty, empty, empty, empty],
-            bg_palettes: [empty, empty, empty, empty],
+            sprite_palettes: empty,
+            bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_rendering: BackgroundRendering::default(),
