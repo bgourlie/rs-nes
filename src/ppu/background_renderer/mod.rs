@@ -3,10 +3,10 @@ use ppu::control_register::PatternTableSelect;
 use ppu::vram::Vram;
 
 #[derive(Default)]
-pub struct BackgroundRendering {
+pub struct BackgroundRenderer {
     pattern_low_shift_register: u16,
     pattern_high_shift_register: u16,
-    attr_shift_register: u8,
+    attribute_shift_register: u16,
     attribute_latch: u8,
     nametable_latch: u8,
     pattern_low_latch: u8,
@@ -15,32 +15,35 @@ pub struct BackgroundRendering {
 }
 
 // TODO tests
-impl BackgroundRendering {
+impl BackgroundRenderer {
     pub fn current_pixel(&self) -> u8 {
         self.current_pixel
     }
 
-    pub fn fill_shift_registers(&mut self) {
-        self.pattern_low_shift_register = ((self.pattern_low_latch as u16) << 8) |
-                                          self.pattern_low_shift_register;
+    pub fn fill_shift_registers(&mut self, vram_addr: u16) {
+        self.pattern_low_shift_register |= self.pattern_low_latch as u16;
+        self.pattern_high_shift_register |= self.pattern_high_latch as u16;
 
-        self.pattern_high_shift_register = ((self.pattern_high_latch as u16) << 8) |
-                                           self.pattern_high_shift_register;
+        // Bit 1 of coarse x and coarse y determine which bits get loaded into the shift registers.
 
-        self.attr_shift_register = self.attribute_latch;
+        // Intentionally shift each bit one too few to effectively multiply the OR'd result by two.
+        // This will give us the amount to shift right by, placing the correct two attribute bits
+        // into the shift register
+        let x_component = (vram_addr << 1) & 0b10;
+        let y_component = (vram_addr >> 3) & 0b100;
+        let shift = (y_component | x_component) as usize;
+        self.attribute_shift_register = ((self.attribute_latch >> shift) & 0b11) as u16;
     }
 
     pub fn tick_shifters(&mut self, fine_x: u8) {
-        let pattern_low_bit = ((self.pattern_low_shift_register >> fine_x) & 1) as u8;
-        let pattern_high_bit = ((self.pattern_high_shift_register >> fine_x) & 1) as u8;
+        let pattern_low_bit = (self.pattern_low_shift_register << fine_x) & 0x8000;
+        let pattern_high_bit = (self.pattern_high_shift_register << fine_x) & 0x8000;
+        let pixel_low_nibble = (pattern_high_bit >> 14) | (pattern_low_bit >> 15);
 
-        let pixel_low_nibble = (pattern_high_bit << 1) | pattern_low_bit;
-        let pixel_high_nibble = ((self.attr_shift_register >> fine_x) & 0b11) << 2 as u8;
-
-        self.current_pixel = pixel_high_nibble | pixel_low_nibble;
-        self.pattern_low_shift_register >>= 1;
-        self.pattern_high_shift_register >>= 1;
-        self.attr_shift_register >>= 1;
+        self.current_pixel = ((self.attribute_shift_register << 2) | pixel_low_nibble) as u8;
+        self.pattern_low_shift_register <<= 1;
+        self.pattern_high_shift_register <<= 1;
+        //self.attribute_shift_register <<= 1;
     }
 
     pub fn fetch_attribute_byte<V: Vram>(&mut self, vram: &V) -> Result<()> {

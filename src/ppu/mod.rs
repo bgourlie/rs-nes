@@ -12,12 +12,12 @@ mod object_attribute_memory;
 mod vram;
 mod write_latch;
 mod pattern;
-mod background_rendering;
+mod background_renderer;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
-use ppu::background_rendering::BackgroundRendering;
+use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::{ControlRegister, PatternTableSelect, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
@@ -131,13 +131,13 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
     bg_palettes: [Color; 16],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
-    background_rendering: BackgroundRendering,
+    background_renderer: BackgroundRenderer,
 }
 
 
 impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = self.background_rendering.current_pixel();
+        let bg_pixel = self.background_renderer.current_pixel();
 
         // draw sprites
         let sprite_pixel = {
@@ -166,7 +166,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         let pixel_color = if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
             self.sprite_palettes[(sprite_palette_index as usize) << 2 | sprite_color_index as usize]
         } else {
-            self.bg_palettes[self.background_rendering.current_pixel() as usize]
+            self.bg_palettes[self.background_renderer.current_pixel() as usize]
         };
 
         self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
@@ -290,7 +290,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            background_rendering: BackgroundRendering::default(),
+            background_renderer: BackgroundRenderer::default(),
         }
     }
 
@@ -330,14 +330,20 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         // VRAM position increments and copies occur when rendering is enabled
         if self.mask.rendering_enabled() && (scanline < 240 || scanline == 261) {
 
+            if scanline == 261 && x >= 280 && x <= 304 {
+                // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
+                // is enabled, at the end of vblank, shortly after the horizontal bits are copied
+                // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
+                // v from dots 280 to 304.
+                self.vram.copy_vertical_pos_to_addr();
+            }
+
             if (x > 0 && x < 256) || x >= 321 {
                 let bg_fetch_cycle = x % 8;
 
                 // Background rendering reads
                 match bg_fetch_cycle {
                     0 => {
-                        self.background_rendering.fill_shift_registers();
-
                         // At dot 256 of each scanline, if rendering is enabled, the PPU increments
                         // the horizontal position in v many times across the scanline, it begins at
                         // dots 328 and 336, and will continue through the next scanline at 8, 16,
@@ -345,23 +351,25 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                         // effective X scroll coordinate is incremented, which will wrap to the next
                         // nametable appropriately.
                         self.vram.coarse_x_increment();
+
+                        self.background_renderer.fill_shift_registers(self.vram.addr());
                     }
 
                     // Nametable fetch
-                    1 => self.background_rendering.fetch_nametable_byte(&self.vram)?,
+                    1 => self.background_renderer.fetch_nametable_byte(&self.vram)?,
 
                     // Attribute table byte
-                    3 => self.background_rendering.fetch_attribute_byte(&self.vram)?,
+                    3 => self.background_renderer.fetch_attribute_byte(&self.vram)?,
 
                     // Tile low
                     5 => {
-                        self.background_rendering
+                        self.background_renderer
                             .fetch_pattern_low_byte(&self.vram, self.control.bg_pattern_table())?
                     }
 
                     // Tile high
                     7 => {
-                        self.background_rendering
+                        self.background_renderer
                             .fetch_pattern_high_byte(&self.vram, self.control.bg_pattern_table())?
                     }
 
@@ -380,19 +388,11 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 self.vram.copy_horizontal_pos_to_addr();
             }
 
-            if scanline == 261 && x >= 280 && x <= 304 {
-                // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
-                // is enabled, at the end of vblank, shortly after the horizontal bits are copied
-                // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
-                // v from dots 280 to 304.
-                self.vram.copy_vertical_pos_to_addr();
-            }
-
             // Tick the background rendering shifters
             // See https://forums.nesdev.com/viewtopic.php?f=3&t=10348#p116095 for explanation of
             // specific tick cycles
             if (x > 1 && x < 258) || (x > 321 && x < 338) {
-                self.background_rendering.tick_shifters(self.vram.fine_x())
+                self.background_renderer.tick_shifters(self.vram.fine_x())
             }
 
             if x < 256 && scanline < 240 {

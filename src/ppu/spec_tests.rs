@@ -402,7 +402,7 @@ mod mocks {
     use super::object_attribute_memory::SpriteAttributes;
     use errors::*;
     use ppu::PpuBase;
-    use ppu::background_rendering::BackgroundRendering;
+    use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
     use ppu::object_attribute_memory::ObjectAttributeMemory;
@@ -449,7 +449,7 @@ mod mocks {
             bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
-            background_rendering: BackgroundRendering::default(),
+            background_renderer: BackgroundRenderer::default(),
         }
     }
 
