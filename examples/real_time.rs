@@ -92,7 +92,7 @@ fn update_screen(display: &Display, screen: &Rc<RefCell<NesScreen>>) {
     let target = display.draw();
 
     // Write screen buffer
-    let borrowed_scr: NesScreen = screen.borrow().to_owned();
+    let borrowed_scr = screen.borrow();
     let mut buf = vec![0_u8; 256 * 240 * 3];
     buf.clone_from_slice(&borrowed_scr.screen_buffer[..]);
     let screen = RawImage2d::from_raw_rgb_reversed(buf, SCREEN_DIMENSIONS);
