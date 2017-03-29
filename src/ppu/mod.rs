@@ -7,7 +7,6 @@ mod spec_tests;
 mod control_register;
 mod mask_register;
 mod status_register;
-mod scroll_register;
 mod object_attribute_memory;
 mod vram;
 mod write_latch;
@@ -23,7 +22,6 @@ use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
                                    SpriteAttributes};
 use ppu::pattern::Sprite;
-use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -106,7 +104,7 @@ static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
                                Color(0x00, 0x00, 0x00),
                                Color(0x00, 0x00, 0x00)];
 
-pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
+pub type PpuImpl = PpuBase<VramBase, ObjectAttributeMemoryBase>;
 
 pub trait Ppu {
     type Scr: Screen;
@@ -118,12 +116,11 @@ pub trait Ppu {
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
-pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
+pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
-    scroll: S,
     vram: V,
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
@@ -135,7 +132,7 @@ pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
 }
 
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
+impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         let bg_pixel = self.background_renderer.current_pixel();
 
@@ -257,7 +254,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
     }
 }
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
+impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
@@ -282,7 +279,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
-            scroll: S::default(),
             vram: V::new(rom),
             oam: O::default(),
             screen: screen,
@@ -438,7 +434,6 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x5 => {
                 let latch_state = self.write_latch.write(val);
                 self.vram.scroll_write(latch_state);
-                self.scroll.write(latch_state);
             }
             0x6 => {
                 let latch_state = self.write_latch.write(val);

@@ -24,7 +24,8 @@ fn write() {
 
     // Writes to 0x2005 write the scroll register
     ppu.write(0x2005, 0x5).unwrap();
-    assert_eq!(0x5, ppu.scroll.value());
+    assert_eq!(true, ppu.vram.scroll_write_called.get());
+    ppu.vram.reset_mock();
 
     // Writes to 0x2006 write the vram addr register
     ppu.write(0x2006, 0x20).unwrap();
@@ -49,7 +50,8 @@ fn write() {
     assert_eq!(0xb, ppu.oam.mock_data.get());
 
     ppu.write(0x200d, 0xc).unwrap();
-    assert_eq!(0xc, ppu.scroll.value());
+    assert_eq!(true, ppu.vram.scroll_write_called.get());
+    ppu.vram.reset_mock();
 
     ppu.write(0x200e, 0x01).unwrap();
     assert_eq!(0x01, ppu.vram.mock_addr.get());
@@ -72,7 +74,8 @@ fn write() {
     assert_eq!(0x12, ppu.oam.mock_data.get());
 
     ppu.write(0x3ffd, 0x13).unwrap();
-    assert_eq!(0x13, ppu.scroll.value());
+    assert_eq!(true, ppu.vram.scroll_write_called.get());
+    ppu.vram.reset_mock();
 
     ppu.write(0x3ffe, 0x02).unwrap();
     assert_eq!(0x02, ppu.vram.mock_addr.get());
@@ -100,7 +103,6 @@ fn memory_mapped_register_read() {
     ppu.oam.mock_data.set(0xf4);
     assert_eq!(0xf4, ppu.read(0x2004).unwrap());
 
-    ppu.scroll.write(LatchState::FirstWrite(0xf5));
     assert_eq!(0x0, ppu.read(0x2005).unwrap()); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xf6);
@@ -126,7 +128,6 @@ fn memory_mapped_register_read() {
     ppu.oam.mock_data.set(0xe4);
     assert_eq!(0xe4, ppu.read(0x200c).unwrap());
 
-    ppu.scroll.write(LatchState::FirstWrite(0xe5));
     assert_eq!(0x0, ppu.read(0x200d).unwrap()); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xe6);
@@ -152,7 +153,6 @@ fn memory_mapped_register_read() {
     ppu.oam.mock_data.set(0xd4);
     assert_eq!(0xd4, ppu.read(0x3ffc).unwrap());
 
-    ppu.scroll.write(LatchState::FirstWrite(0xd5));
     assert_eq!(0x0, ppu.read(0x3ffd).unwrap()); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xd6);
@@ -406,7 +406,6 @@ mod mocks {
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
     use ppu::object_attribute_memory::ObjectAttributeMemory;
-    use ppu::scroll_register::ScrollRegister;
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
@@ -416,7 +415,7 @@ mod mocks {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub type TestPpu = PpuBase<MockVram, MockScrollRegister, MockOam>;
+    pub type TestPpu = PpuBase<MockVram, MockOam>;
 
     pub fn mock_ppu() -> TestPpu {
         let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
@@ -441,7 +440,6 @@ mod mocks {
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
-            scroll: MockScrollRegister::default(),
             vram: MockVram::new(NesRom::default()),
             oam: MockOam::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
@@ -450,40 +448,6 @@ mod mocks {
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
-        }
-    }
-
-    #[derive(Default)]
-    pub struct MockScrollRegister {
-        mock_value: u8,
-    }
-
-    impl MockScrollRegister {
-        pub fn value(&self) -> u8 {
-            self.mock_value
-        }
-
-        pub fn set_value(&mut self, val: u8) {
-            self.mock_value = val
-        }
-    }
-
-    impl ScrollRegister for MockScrollRegister {
-        fn write(&mut self, latch_state: LatchState) {
-            let val = match latch_state {
-                LatchState::FirstWrite(val) => val,
-                LatchState::SecondWrite(val) => val,
-            };
-
-            self.set_value(val)
-        }
-
-        fn x(&self) -> u16 {
-            0
-        }
-
-        fn y(&self) -> u16 {
-            0
         }
     }
 
