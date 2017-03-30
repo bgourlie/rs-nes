@@ -1,6 +1,5 @@
 use super::*;
 use super::status_register::StatusRegister;
-use super::write_latch::LatchState;
 
 #[test]
 fn write() {
