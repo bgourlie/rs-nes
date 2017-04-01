@@ -1,3 +1,5 @@
+// TODO: Could we leverage SIMD here??
+
 #[cfg(test)]
 mod spec_tests;
 
@@ -48,23 +50,26 @@ impl BackgroundRenderer {
         ((palette_nibble & 1) * 255, ((palette_nibble >> 1) & 1) * 255)
     }
 
-    //TODO: TEST THIS
     pub fn tick_shifters(&mut self, fine_x: u8) {
-        let pattern_low_bit = (self.pattern_low_shift_register << fine_x) & 0x8000;
-        let pattern_high_bit = (self.pattern_high_shift_register << fine_x) & 0x8000;
-        let pixel_low_nibble = (pattern_high_bit >> 14) | (pattern_low_bit >> 15);
-
-        let palette_low_bit = (self.palette_low_bit_shift_register << fine_x) & 0x8000;
-        let palette_high_bit = (self.palette_high_bit_shift_register << fine_x) & 0x8000;
-        let pixel_high_nibble = ((palette_high_bit >> 12) | (palette_low_bit >> 13)) & 0b1100;
-
-        self.current_pixel = (pixel_high_nibble | pixel_low_nibble) as u8;
+        let palette_low = self.palette_low_bit_shift_register << fine_x;
+        let palette_high = self.palette_high_bit_shift_register << fine_x;
+        let pattern_low = self.pattern_low_shift_register << fine_x;
+        let pattern_high = self.pattern_high_shift_register << fine_x;
+        self.current_pixel = Self::pixel_mux(palette_high, palette_low, pattern_high, pattern_low);
         self.pattern_low_shift_register <<= 1;
         self.pattern_high_shift_register <<= 1;
         self.palette_low_bit_shift_register <<= 1;
         self.palette_high_bit_shift_register <<= 1;
     }
 
+    fn pixel_mux(palette_high: u16, palette_low: u16, pattern_high: u16, pattern_low: u16) -> u8 {
+        let mask = 0x8000;
+        let pixel_low = (((pattern_high & mask) >> 14) | ((pattern_low & mask) >> 15)) & 0b11;
+        let pixel_high = (((palette_high & mask) >> 12) | ((palette_low & mask) >> 13)) & 0b1100;
+        (pixel_high | pixel_low) as u8
+    }
+
+    // TODO: Tests
     pub fn fetch_attribute_byte<V: Vram>(&mut self, vram: &V) -> Result<()> {
         let v = vram.addr();
         let attribute_address = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
@@ -72,12 +77,14 @@ impl BackgroundRenderer {
         Ok(())
     }
 
+    // TODO: Tests
     pub fn fetch_nametable_byte<V: Vram>(&mut self, vram: &V) -> Result<()> {
         let nametable_address = 0x2000 | (vram.addr() & 0x0FFF);
         self.nametable_latch = vram.read(nametable_address)?;
         Ok(())
     }
 
+    // TODO: Tests
     pub fn fetch_pattern_low_byte<V: Vram>(&mut self,
                                            vram: &V,
                                            table_select: PatternTableSelect)
@@ -86,6 +93,7 @@ impl BackgroundRenderer {
         Ok(())
     }
 
+    // TODO: Tests
     pub fn fetch_pattern_high_byte<V: Vram>(&mut self,
                                             vram: &V,
                                             table_select: PatternTableSelect)
@@ -94,6 +102,7 @@ impl BackgroundRenderer {
         Ok(())
     }
 
+    // TODO: Tests
     fn fetch_pattern_plane<V: Vram>(&self,
                                     vram: &V,
                                     table_select: PatternTableSelect,
