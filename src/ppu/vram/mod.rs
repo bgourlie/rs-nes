@@ -234,7 +234,8 @@ impl Vram for VramBase {
         // horizontal position from t to v:
         // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
         let v = self.address.get() & 0b0111_1011_1110_0000;
-        self.address.set((self.t.get() & 0b0000_0100_0001_1111) | v)
+        self.address
+            .set((self.t.get() & 0b0000_0100_0001_1111) | v)
     }
 
     fn copy_vertical_pos_to_addr(&self) {
@@ -244,7 +245,8 @@ impl Vram for VramBase {
         // 304, completing the full initialization of v from t:
         // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
         let v = self.address.get() & 0b0000_0100_0001_1111;
-        self.address.set((self.t.get() & 0b0111_1011_1110_0000) | v)
+        self.address
+            .set((self.t.get() & 0b0111_1011_1110_0000) | v)
     }
 
     fn fine_x(&self) -> u8 {

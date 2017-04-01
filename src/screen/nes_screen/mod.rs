@@ -42,7 +42,9 @@ impl Serialize for NesScreen {
         let mut img_buf = Vec::<u8>::new();
         {
             let mut encoder = png::Encoder::new(&mut img_buf, width as _, height as _);
-            encoder.set(png::ColorType::RGB).set(png::BitDepth::Eight);
+            encoder
+                .set(png::ColorType::RGB)
+                .set(png::BitDepth::Eight);
             let mut writer = encoder.write_header().unwrap();
             writer.write_image_data(&self.screen_buffer).unwrap();
         }

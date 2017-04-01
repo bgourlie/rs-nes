@@ -76,11 +76,7 @@ fn write_mapping() {
         vram.write_ppu_data(2, IncrementAmount::One).unwrap()
     }
 
-    assert_eq!(true,
-               vram.rom
-                   .chr
-                   .into_iter()
-                   .all(|val| val == 1));
+    assert_eq!(true, vram.rom.chr.into_iter().all(|val| val == 1));
     assert_eq!(true, vram.name_tables.into_iter().all(|val| *val == 2));
 }
 

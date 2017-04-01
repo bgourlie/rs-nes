@@ -86,7 +86,9 @@ impl ToggleBreakpointHandler {
 impl Handler for ToggleBreakpointHandler {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
         debug!("Toggle breakpoint request received!");
-        if let Some(addr) = get_router(req).find("addr").and_then(|a| a.parse::<u16>().ok()) {
+        if let Some(addr) = get_router(req)
+               .find("addr")
+               .and_then(|a| a.parse::<u16>().ok()) {
             let mut breakpoints = &mut (*self.breakpoints.lock().unwrap());
             let is_set = breakpoints.toggle(addr);
             let resp_model = ToggleBreakpointResponse::new(addr, is_set);
@@ -149,7 +151,8 @@ impl ContinueHandler {
 impl Handler for ContinueHandler {
     fn handle(&self, _: &mut Request) -> IronResult<Response> {
         debug!("Continue request received!");
-        self.cpu_paused.compare_and_swap(true, false, Ordering::Relaxed);
+        self.cpu_paused
+            .compare_and_swap(true, false, Ordering::Relaxed);
         self.cpu_thread_handle.unpark();
         let resp = ContinueResponse { continued: true };
         let json = serde_json::to_string(&resp).unwrap();

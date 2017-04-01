@@ -7,7 +7,9 @@ fn reset() {
     let mut cpu = TestCpu::new_test();
     let (addr_low, addr_high) = lo_hi(0xdead);
     cpu.memory.write(RESET_VECTOR, addr_low, 0).unwrap();
-    cpu.memory.write(RESET_VECTOR + 1, addr_high, 0).unwrap();
+    cpu.memory
+        .write(RESET_VECTOR + 1, addr_high, 0)
+        .unwrap();
     cpu.reset().unwrap();
     assert_eq!(cpu.registers.pc, 0xdead);
 }
@@ -49,7 +51,8 @@ fn pop_stack() {
     let mut cpu = TestCpu::new_test();
     cpu.registers.sp = 0xfe;
     let sp = cpu.registers.sp;
-    cpu.write_memory(STACK_LOC + sp as u16 + 1, 0xf0).unwrap();
+    cpu.write_memory(STACK_LOC + sp as u16 + 1, 0xf0)
+        .unwrap();
     let val = cpu.pop_stack().unwrap();
     assert_eq!(0xff, cpu.registers.sp);
     assert_eq!(0xf0, val);
@@ -61,8 +64,10 @@ fn pop_stack16() {
     cpu.registers.sp = 0xfd;
     let sp = cpu.registers.sp;
     let (val_low, val_high) = lo_hi(0xf00d);
-    cpu.write_memory(STACK_LOC + sp as u16 + 1, val_low).unwrap();
-    cpu.write_memory(STACK_LOC + sp as u16 + 2, val_high).unwrap();
+    cpu.write_memory(STACK_LOC + sp as u16 + 1, val_low)
+        .unwrap();
+    cpu.write_memory(STACK_LOC + sp as u16 + 2, val_high)
+        .unwrap();
     let val = cpu.pop_stack16().unwrap();
     assert_eq!(0xff, cpu.registers.sp);
     assert_eq!(0xf00d, val);

@@ -78,7 +78,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     pub fn step(&mut self) -> Result<Interrupt> {
         if let Some(break_reason) = self.break_reason() {
             let snapshot = self.cpu_snapshot();
-            self.ws_tx.send(DebuggerCommand::Break(break_reason, snapshot));
+            self.ws_tx
+                .send(DebuggerCommand::Break(break_reason, snapshot));
             thread::park();
         }
         self.last_pc = self.cpu.registers.pc;
@@ -86,7 +87,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
 
         if let Err(Error(ErrorKind::Crash(ref reason), _)) = result {
             let snapshot = self.cpu_snapshot();
-            self.ws_tx.send(DebuggerCommand::Crash(reason.clone(), snapshot));
+            self.ws_tx
+                .send(DebuggerCommand::Crash(reason.clone(), snapshot));
 
             // Give the web socket thread enough time to send the Crash message
             thread::sleep(Duration::from_millis(1000));
@@ -99,7 +101,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         if self.interrupt_handler() == InterruptHandler::Nmi &&
            self.break_on_nmi.load(Ordering::Relaxed) {
             debug!("Break on NMI. CPU thread paused.");
-            self.cpu_paused.compare_and_swap(false, true, Ordering::Relaxed);
+            self.cpu_paused
+                .compare_and_swap(false, true, Ordering::Relaxed);
             Some(BreakReason::Nmi)
         } else if self.last_pc == self.cpu.registers.pc &&
                   self.break_on_trap.load(Ordering::Relaxed) {
@@ -199,7 +202,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     fn at_breakpoint(&self, pc: u16) -> bool {
         let breakpoints = &(*self.breakpoints.lock().unwrap());
         if breakpoints.is_set(pc) {
-            self.cpu_paused.compare_and_swap(false, true, Ordering::Relaxed);
+            self.cpu_paused
+                .compare_and_swap(false, true, Ordering::Relaxed);
             true
         } else {
             false
@@ -217,14 +221,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     }
 
     fn peek_mem(&self, addr: u16) -> u16 {
-        let low_byte = self.cpu
-            .memory
-            .read(addr)
-            .unwrap();
-        let high_byte = self.cpu
-            .memory
-            .read(addr + 1)
-            .unwrap();
+        let low_byte = self.cpu.memory.read(addr).unwrap();
+        let high_byte = self.cpu.memory.read(addr + 1).unwrap();
         from_lo_hi(low_byte, high_byte)
     }
 }

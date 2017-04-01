@@ -35,7 +35,10 @@ fn main() {
     cpu.reset().unwrap();
 
     // building the display, ie. the main object
-    let display = glutin::WindowBuilder::new().with_vsync().build_glium().unwrap();
+    let display = glutin::WindowBuilder::new()
+        .with_vsync()
+        .build_glium()
+        .unwrap();
 
     start_loop(cpu, screen, &display, || {
         for event in display.poll_events() {

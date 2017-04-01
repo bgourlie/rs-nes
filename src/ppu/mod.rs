@@ -166,7 +166,9 @@ impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
             self.bg_palettes[self.background_renderer.current_pixel() as usize]
         };
 
-        self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
+        self.screen
+            .borrow_mut()
+            .put_pixel(x as _, scanline as _, pixel_color);
         Ok(())
     }
 
@@ -345,23 +347,32 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                         // nametable appropriately.
                         self.vram.coarse_x_increment();
 
-                        self.background_renderer.fill_shift_registers(self.vram.addr());
+                        self.background_renderer
+                            .fill_shift_registers(self.vram.addr());
                     }
 
                     // Nametable fetch
-                    1 => self.background_renderer.fetch_nametable_byte(&self.vram)?,
+                    1 => {
+                        self.background_renderer
+                            .fetch_nametable_byte(&self.vram)?
+                    }
 
                     // Attribute table byte
-                    3 => self.background_renderer.fetch_attribute_byte(&self.vram)?,
+                    3 => {
+                        self.background_renderer
+                            .fetch_attribute_byte(&self.vram)?
+                    }
 
                     // Tile low
                     5 => {
-                        self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?
+                        self.background_renderer
+                            .fetch_pattern_low_byte(&self.vram, *self.control)?
                     }
 
                     // Tile high
                     7 => {
-                        self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?
+                        self.background_renderer
+                            .fetch_pattern_high_byte(&self.vram, *self.control)?
                     }
 
                     _ => (),
@@ -383,7 +394,8 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             // See https://forums.nesdev.com/viewtopic.php?f=3&t=10348#p116095 for explanation of
             // specific tick cycles
             if (x > 1 && x < 258) || (x > 321 && x < 338) {
-                self.background_renderer.tick_shifters(self.vram.fine_x())
+                self.background_renderer
+                    .tick_shifters(self.vram.fine_x())
             }
 
             if x < 256 && scanline < 240 {
