@@ -21,10 +21,18 @@ pub enum IncrementAmount {
     ThirtyTwo,
 }
 
-#[derive(Debug, PartialEq)]
+// TODO delete Copy, Clone
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PatternTableSelect {
     Left,
     Right,
+}
+
+//TODO delete this
+impl Default for PatternTableSelect {
+    fn default() -> Self {
+        PatternTableSelect::Left
+    }
 }
 
 /// $2000, Write Only

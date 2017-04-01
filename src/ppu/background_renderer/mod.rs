@@ -4,6 +4,7 @@ mod spec_tests;
 use errors::*;
 use ppu::control_register::PatternTableSelect;
 use ppu::vram::Vram;
+use std::cell::Cell;
 
 #[derive(Default)]
 pub struct BackgroundRenderer {
@@ -16,6 +17,7 @@ pub struct BackgroundRenderer {
     pattern_low_latch: u8,
     pattern_high_latch: u8,
     current_pixel: u8,
+    pattern_table_select: Cell<PatternTableSelect>, // TODO: Remove this
 }
 
 // TODO tests
@@ -46,6 +48,7 @@ impl BackgroundRenderer {
         ((palette_nibble & 1) * 255, ((palette_nibble >> 1) & 1) * 255)
     }
 
+    //TODO: TEST THIS
     pub fn tick_shifters(&mut self, fine_x: u8) {
         let pattern_low_bit = (self.pattern_low_shift_register << fine_x) & 0x8000;
         let pattern_high_bit = (self.pattern_high_shift_register << fine_x) & 0x8000;
@@ -106,6 +109,13 @@ impl BackgroundRenderer {
             PatternTableSelect::Left => 0,
             PatternTableSelect::Right => 0b0001_0000_0000_0000,
         };
+
+        if self.pattern_table_select.get() != table_select {
+            println!("pattern table select changed from {:?} to {:?}",
+                     self.pattern_table_select,
+                     table_select);
+            self.pattern_table_select.set(table_select);
+        }
 
         let plane_row_addr = pattern_table | column_and_row | plane | fine_y;
         vram.read(plane_row_addr)
