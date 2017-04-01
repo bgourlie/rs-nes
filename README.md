@@ -19,7 +19,7 @@ The examples folder contains the actual entrypoint files that I use to run and t
 
 ### Current Status
 
-The CPU is fully-implemented and tested. The PPU is very much a work-in-progress but able to render simple, non-scrolling games. There is no sound or input yet, so it's not playable. It can only run games using mapper 0, or NROM, so only early games (Mario Bros., Super Mario Bros., Excite Bike, etc) will run.
+The CPU is fully-implemented and tested. The PPU is very much a work-in-progress but able to render games, albeit not perfectly. There is no sound or input yet, so it's not playable. It can only run games using mapper 0, or NROM, so only early games (Mario Bros., Super Mario Bros., Excite Bike, etc) will run.
 
 ### Testing
 
