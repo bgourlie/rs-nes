@@ -145,3 +145,5 @@ fn pixel_mux() {
     assert_eq!(0b0000, result); // 0
 }
 
+#[test]
+fn pattern_address() {}

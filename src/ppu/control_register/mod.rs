@@ -3,6 +3,9 @@ mod spec_tests;
 
 use std::ops::Deref;
 
+pub const BG_PATTERN_SELECT: u8 = 0b00010000;
+pub const SPRITE_PATTERN_SELECT: u8 = 0b00001000;
+
 #[derive(Debug, PartialEq)]
 pub enum SpriteSize {
     X8, // 8x8
@@ -21,20 +24,6 @@ pub enum IncrementAmount {
     ThirtyTwo,
 }
 
-// TODO delete Copy, Clone
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum PatternTableSelect {
-    Left,
-    Right,
-}
-
-//TODO delete this
-impl Default for PatternTableSelect {
-    fn default() -> Self {
-        PatternTableSelect::Left
-    }
-}
-
 /// $2000, Write Only
 /// Various flags controlling PPU operation
 #[derive(Default)]
@@ -50,24 +39,6 @@ impl ControlRegister {
             IncrementAmount::One
         } else {
             IncrementAmount::ThirtyTwo
-        }
-    }
-
-    /// Sprite pattern table address for 8x8 sprites (0: $0000; 1: $1000; ignored in 8x16 mode)
-    pub fn sprite_pattern_table(&self) -> PatternTableSelect {
-        if self.reg & 0b00001000 == 0 {
-            PatternTableSelect::Left
-        } else {
-            PatternTableSelect::Right
-        }
-    }
-
-    /// Background pattern table address (0: $0000; 1: $1000)
-    pub fn bg_pattern_table(&self) -> PatternTableSelect {
-        if self.reg & 0b00010000 == 0 {
-            PatternTableSelect::Left
-        } else {
-            PatternTableSelect::Right
         }
     }
 

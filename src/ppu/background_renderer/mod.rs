@@ -4,9 +4,7 @@
 mod spec_tests;
 
 use errors::*;
-use ppu::control_register::PatternTableSelect;
 use ppu::vram::Vram;
-use std::cell::Cell;
 
 #[derive(Default)]
 pub struct BackgroundRenderer {
@@ -19,10 +17,8 @@ pub struct BackgroundRenderer {
     pattern_low_latch: u8,
     pattern_high_latch: u8,
     current_pixel: u8,
-    pattern_table_select: Cell<PatternTableSelect>, // TODO: Remove this
 }
 
-// TODO tests
 impl BackgroundRenderer {
     pub fn current_pixel(&self) -> u8 {
         self.current_pixel
@@ -85,48 +81,27 @@ impl BackgroundRenderer {
     }
 
     // TODO: Tests
-    pub fn fetch_pattern_low_byte<V: Vram>(&mut self,
-                                           vram: &V,
-                                           table_select: PatternTableSelect)
-                                           -> Result<()> {
-        self.pattern_low_latch = self.fetch_pattern_plane(vram, table_select, true)?;
-        Ok(())
-    }
-
-    // TODO: Tests
-    pub fn fetch_pattern_high_byte<V: Vram>(&mut self,
-                                            vram: &V,
-                                            table_select: PatternTableSelect)
-                                            -> Result<()> {
-        self.pattern_high_latch = self.fetch_pattern_plane(vram, table_select, false)?;
-        Ok(())
-    }
-
-    // TODO: Tests
-    fn fetch_pattern_plane<V: Vram>(&self,
-                                    vram: &V,
-                                    table_select: PatternTableSelect,
-                                    is_lower_plane: bool)
-                                    -> Result<u8> {
+    pub fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()> {
         let v = vram.addr();
+        let pattern_addr = Self::pattern_address(v, self.nametable_latch, control_reg, true);
+        self.pattern_low_latch = vram.read(pattern_addr)?;
+        Ok(())
+    }
+
+    // TODO: Tests
+    pub fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()> {
+        let v = vram.addr();
+        let pattern_addr = Self::pattern_address(v, self.nametable_latch, control_reg, false);
+        self.pattern_high_latch = vram.read(pattern_addr)?;
+        Ok(())
+    }
+
+    // TODO: Tests
+    fn pattern_address(v: u16, nametable_byte: u8, control_reg: u8, is_lower_plane: bool) -> u16 {
         let fine_y = (v >> 12) & 0b111;
-
         let plane = if is_lower_plane { 0 } else { 0b1000 };
-
-        let column_and_row = (self.nametable_latch as u16) << 4;
-        let pattern_table = match table_select {
-            PatternTableSelect::Left => 0,
-            PatternTableSelect::Right => 0b0001_0000_0000_0000,
-        };
-
-        if self.pattern_table_select.get() != table_select {
-            println!("pattern table select changed from {:?} to {:?}",
-                     self.pattern_table_select,
-                     table_select);
-            self.pattern_table_select.set(table_select);
-        }
-
-        let plane_row_addr = pattern_table | column_and_row | plane | fine_y;
-        vram.read(plane_row_addr)
+        let column_and_row = (nametable_byte as u16) << 4;
+        let pattern_table_select = ((control_reg as u16) << 8) & 0x1000;
+        pattern_table_select | column_and_row | plane | fine_y
     }
 }

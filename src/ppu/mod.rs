@@ -17,7 +17,7 @@ use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
 use ppu::background_renderer::BackgroundRenderer;
-use ppu::control_register::{ControlRegister, PatternTableSelect, SpriteSize};
+use ppu::control_register::{ControlRegister, SPRITE_PATTERN_SELECT, SpriteSize};
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
                                    SpriteAttributes};
@@ -171,10 +171,7 @@ impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
     }
 
     fn fill_secondary_oam(&mut self, scanline: u8) -> Result<()> {
-        let pattern_table_base = match self.control.sprite_pattern_table() {
-            PatternTableSelect::Left => 0x0,
-            PatternTableSelect::Right => 0x1000,
-        };
+        let pattern_table_base = ((*self.control & SPRITE_PATTERN_SELECT) as u16) << 8;
 
         let mut sprites_on_scanline = 0;
         for i in 0..64 {
@@ -359,14 +356,12 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
 
                     // Tile low
                     5 => {
-                        self.background_renderer
-                            .fetch_pattern_low_byte(&self.vram, self.control.bg_pattern_table())?
+                        self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?
                     }
 
                     // Tile high
                     7 => {
-                        self.background_renderer
-                            .fetch_pattern_high_byte(&self.vram, self.control.bg_pattern_table())?
+                        self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?
                     }
 
                     _ => (),
