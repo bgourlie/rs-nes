@@ -79,7 +79,11 @@ impl Vram for VramBase {
         let addr = self.address.get();
         let val = self.read(addr)?;
 
-        // TODO: Tests for this buffering behavior
+        // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
+        // the read will return the contents of an internal read buffer. This internal buffer is
+        // updated only when reading PPUDATA, and so is preserved across frames. After the CPU reads
+        // and gets the contents of the internal buffer, the PPU will immediately update the
+        // internal buffer with the byte at the current VRAM address
         if addr < 0x3f00 {
             let buffered_val = self.ppu_data_buffer.get();
             self.ppu_data_buffer.set(val);

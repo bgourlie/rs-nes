@@ -19,18 +19,46 @@ fn write_address() {
 }
 
 #[test]
-#[ignore] // TODO: This is failing due to new ppu data buffering
 fn internal_memory_mapping_read() {
     let mut vram = vram_fixture();
     vram.rom.chr = vec![1; 0x2000];
     vram.name_tables = [2; 0x1000];
 
+    vram.ppu_data_buffer.set(1);
     for _ in 0..0x2000 {
         assert_eq!(1, vram.read_ppu_data(IncrementAmount::One).unwrap())
     }
 
+    vram.ppu_data_buffer.set(2);
     for _ in 0x2000..0x3f00 {
         assert_eq!(2, vram.read_ppu_data(IncrementAmount::One).unwrap())
+    }
+}
+
+#[test]
+fn vram_read_buffering_behavior() {
+    // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes), the
+    // read will return the contents of an internal read buffer. This internal buffer is updated
+    // only when reading PPUDATA, and so is preserved across frames. After the CPU reads and gets
+    // the contents of the internal buffer, the PPU will immediately update the internal buffer with
+    // the byte at the current VRAM address
+    let mut vram = vram_fixture();
+
+    vram.address.set(0);
+
+    // Read buffered value when address < 0x3f00
+    for i in 0..0x3f00 as u16 {
+        let i = i as u8;
+        vram.ppu_data_buffer.set(i);
+        assert_eq!(i, vram.read_ppu_data(IncrementAmount::One).unwrap())
+    }
+
+    // Do not read from buffer when address >= 0x3f00
+    vram.palette = [0xcc; 0x20];
+    for i in 0x3f00..0x4000 as u16 {
+        let i = i as u8;
+        vram.ppu_data_buffer.set(i);
+        assert_eq!(0xcc, vram.read_ppu_data(IncrementAmount::One).unwrap())
     }
 }
 
