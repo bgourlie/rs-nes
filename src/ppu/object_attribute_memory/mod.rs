@@ -108,9 +108,3 @@ pub struct SpriteAttributes {
     pub horizontal_flip: bool,
     pub vertical_flip: bool,
 }
-
-impl SpriteAttributes {
-    pub fn is_on_scanline(&self, scanline: u8) -> bool {
-        scanline >= self.y && scanline < self.y + 8
-    }
-}

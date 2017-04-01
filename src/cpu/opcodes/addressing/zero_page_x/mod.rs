@@ -21,10 +21,10 @@ impl ZeroPageX {
         let val = cpu.read_memory(target_addr)?;
 
         Ok(ZeroPageX {
-            addr: target_addr,
-            value: val,
-            is_store: false,
-        })
+               addr: target_addr,
+               value: val,
+               is_store: false,
+           })
     }
 
     pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
@@ -34,10 +34,10 @@ impl ZeroPageX {
         let val = cpu.read_memory(target_addr)?;
 
         Ok(ZeroPageX {
-            addr: target_addr,
-            value: val,
-            is_store: true,
-        })
+               addr: target_addr,
+               value: val,
+               is_store: true,
+           })
     }
 }
 

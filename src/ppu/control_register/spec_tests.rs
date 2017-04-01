@@ -1,45 +1,12 @@
 use super::*;
 
 #[test]
-fn base_nametable_addr() {
-    let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0x2000, ppu_ctrl.base_name_table_addr());
-
-    let ppu_ctrl = new_control_register(0b00000001);
-    assert_eq!(0x2400, ppu_ctrl.base_name_table_addr());
-
-    let ppu_ctrl = new_control_register(0b00000010);
-    assert_eq!(0x2800, ppu_ctrl.base_name_table_addr());
-
-    let ppu_ctrl = new_control_register(0b00000011);
-    assert_eq!(0x2C00, ppu_ctrl.base_name_table_addr());
-}
-
-#[test]
 fn vram_addr_increment() {
     let ppu_ctrl = new_control_register(0b00000000);
     assert_eq!(IncrementAmount::One, ppu_ctrl.vram_addr_increment());
 
     let ppu_ctrl = new_control_register(0b00000100);
     assert_eq!(IncrementAmount::ThirtyTwo, ppu_ctrl.vram_addr_increment());
-}
-
-#[test]
-fn sprite_pattern_table_addr() {
-    let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0, ppu_ctrl.sprite_pattern_table());
-
-    let ppu_ctrl = new_control_register(0b00001000);
-    assert_eq!(0x1000, ppu_ctrl.sprite_pattern_table());
-}
-
-#[test]
-fn background_pattern_table_addr() {
-    let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(0, ppu_ctrl.bg_pattern_table());
-
-    let ppu_ctrl = new_control_register(0b00010000);
-    assert_eq!(0x1000, ppu_ctrl.bg_pattern_table());
 }
 
 #[test]

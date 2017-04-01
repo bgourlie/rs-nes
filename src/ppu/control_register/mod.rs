@@ -3,6 +3,9 @@ mod spec_tests;
 
 use std::ops::Deref;
 
+pub const BG_PATTERN_SELECT: u8 = 0b00010000;
+pub const SPRITE_PATTERN_SELECT: u8 = 0b00001000;
+
 #[derive(Debug, PartialEq)]
 pub enum SpriteSize {
     X8, // 8x8
@@ -29,16 +32,6 @@ pub struct ControlRegister {
 }
 
 impl ControlRegister {
-    /// Base nametable address (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
-    fn base_name_table_addr(&self) -> u16 {
-        match self.reg & 0b00000011 {
-            0 => 0x2000,
-            1 => 0x2400,
-            2 => 0x2800,
-            _ => 0x2C00,
-        }
-    }
-
     /// VRAM address increment per CPU read/write of PPUDATA
     /// (0: add 1, going across; 1: add 32, going down)
     pub fn vram_addr_increment(&self) -> IncrementAmount {
@@ -46,24 +39,6 @@ impl ControlRegister {
             IncrementAmount::One
         } else {
             IncrementAmount::ThirtyTwo
-        }
-    }
-
-    /// Sprite pattern table address for 8x8 sprites (0: $0000; 1: $1000; ignored in 8x16 mode)
-    pub fn sprite_pattern_table(&self) -> u16 {
-        if self.reg & 0b00001000 == 0 {
-            0x0
-        } else {
-            0x1000
-        }
-    }
-
-    /// Background pattern table address (0: $0000; 1: $1000)
-    pub fn bg_pattern_table(&self) -> u16 {
-        if self.reg & 0b00010000 == 0 {
-            0x0
-        } else {
-            0x1000
         }
     }
 

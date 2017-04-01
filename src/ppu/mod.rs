@@ -7,22 +7,21 @@ mod spec_tests;
 mod control_register;
 mod mask_register;
 mod status_register;
-mod scroll_register;
 mod object_attribute_memory;
 mod vram;
-mod pixel;
 mod write_latch;
 mod pattern;
+mod background_renderer;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
-use ppu::control_register::{ControlRegister, SpriteSize};
+use ppu::background_renderer::BackgroundRenderer;
+use ppu::control_register::{ControlRegister, SPRITE_PATTERN_SELECT, SpriteSize};
 use ppu::mask_register::MaskRegister;
-use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase};
+use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
+                                   SpriteAttributes};
 use ppu::pattern::Sprite;
-use ppu::pixel::{BackgroundPixel, Pixel};
-use ppu::scroll_register::{ScrollRegister, ScrollRegisterBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -34,6 +33,7 @@ use std::rc::Rc;
 const SCANLINES: u64 = 262;
 const CYCLES_PER_SCANLINE: u64 = 341;
 const CYCLES_PER_FRAME: u64 = SCANLINES * CYCLES_PER_SCANLINE;
+const TWO_FRAMES: u64 = CYCLES_PER_FRAME * 2;
 const VBLANK_SCANLINE: u64 = 241;
 const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
@@ -104,9 +104,7 @@ static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
                                Color(0x00, 0x00, 0x00),
                                Color(0x00, 0x00, 0x00)];
 
-pub type PpuImpl = PpuBase<VramBase, ScrollRegisterBase, ObjectAttributeMemoryBase>;
-
-type Palette = [Color; 4];
+pub type PpuImpl = PpuBase<VramBase, ObjectAttributeMemoryBase>;
 
 pub trait Ppu {
     type Scr: Screen;
@@ -118,89 +116,76 @@ pub trait Ppu {
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
-pub struct PpuBase<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> {
+pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
-    scroll: S,
     vram: V,
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
-    sprite_palettes: [Palette; 4],
-    bg_palettes: [Palette; 4],
+    sprite_palettes: [Color; 16],
+    bg_palettes: [Color; 16],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
+    background_renderer: BackgroundRenderer,
 }
 
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
+impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = BackgroundPixel::new(x as _, scanline as _, self.control.bg_pattern_table());
-        if bg_pixel.is_visible() {
-            let (bg_palette_index, bg_color_index) = {
-                let tile_index = self.vram.read(bg_pixel.name_table_offset)?;
-                let attribute_table_entry = self.vram.read(bg_pixel.attribute_table_offset)?;
-                let pattern_offset = bg_pixel.pattern_offset(tile_index as u16);
-                let pattern_lower = self.vram.read(pattern_offset)?;
-                let pattern_upper = self.vram.read(pattern_offset + 8)?;
-                let color_index = bg_pixel.color_index(pattern_lower, pattern_upper) as usize;
-                let palette_index = bg_pixel.palette(attribute_table_entry) as usize;
-                (palette_index, color_index)
-            };
+        let bg_pixel = self.background_renderer.current_pixel();
 
-            // draw sprites
-            let sprite_pixel = {
-                let mut ret = None;
-                for i in 0..8 {
-                    if let Some(ref sprite) = self.sprite_buffer[i] {
-                        if let Some(sprite_color_index) = sprite.pixel_at(x) {
-                            if sprite_color_index > 0 {
-                                ret = Some((sprite.palette(), sprite_color_index));
-                                if i == 0 && bg_color_index != 0 && self.mask.show_sprites() &&
-                                   self.mask.show_background() &&
-                                   !((!self.mask.sprites_render_leftmost_8_px() ||
-                                      !self.mask.background_render_leftmost_8_px()) &&
-                                     x < 8) && x != 255 &&
-                                   !self.status.sprite_zero_hit() {
-                                    self.status.set_sprite_zero_hit();
-                                }
-                                break;
-                            }
+        // draw sprites
+        let sprite_pixel = {
+            let mut ret = None;
+            for i in 0..8 {
+                if let Some(ref sprite) = self.sprite_buffer[i] {
+                    if let Some(sprite_color_index) = sprite.pixel_at(x) {
+                        ret = Some((sprite.palette(), sprite_color_index));
+                        if i == 0 && bg_pixel != 0 && self.mask.show_sprites() &&
+                           self.mask.show_background() &&
+                           !((!self.mask.sprites_render_leftmost_8_px() ||
+                              !self.mask.background_render_leftmost_8_px()) &&
+                             x < 8) && x != 255 &&
+                           !self.status.sprite_zero_hit() {
+                            self.status.set_sprite_zero_hit();
                         }
-                    } else {
                         break;
                     }
-                }
-                ret
-            };
-
-            let pixel_color = {
-                if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
-                    self.sprite_palettes[sprite_palette_index as usize][sprite_color_index as usize]
                 } else {
-                    self.bg_palettes[bg_palette_index as usize][bg_color_index as usize]
+                    break;
                 }
-            };
+            }
+            ret
+        };
 
-            self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
-        }
+        let pixel_color = if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
+            self.sprite_palettes[(sprite_palette_index as usize) << 2 | sprite_color_index as usize]
+        } else {
+            self.bg_palettes[self.background_renderer.current_pixel() as usize]
+        };
+
+        self.screen.borrow_mut().put_pixel(x as _, scanline as _, pixel_color);
         Ok(())
     }
 
     fn fill_secondary_oam(&mut self, scanline: u8) -> Result<()> {
-        let pattern_table_base = self.control.sprite_pattern_table();
+        let pattern_table_base = ((*self.control & SPRITE_PATTERN_SELECT) as u16) << 8;
+
         let mut sprites_on_scanline = 0;
         for i in 0..64 {
             let sprite_attributes = self.oam.sprite_attributes(i);
-            if sprite_attributes.is_on_scanline(scanline) {
+            if self.is_on_scanline(&sprite_attributes, scanline) {
                 let sprite = pattern::Sprite::read(scanline,
                                                    sprite_attributes,
                                                    pattern_table_base,
                                                    &self.vram)?;
-                self.sprite_buffer[sprites_on_scanline] = Some(sprite);
-                sprites_on_scanline += 1;
-                if sprites_on_scanline == 8 {
+
+                if sprites_on_scanline < 8 {
+                    self.sprite_buffer[sprites_on_scanline] = Some(sprite);
+                    sprites_on_scanline += 1;
+                } else {
                     if !self.status.sprite_overflow() {
                         self.status.set_sprite_overflow();
                     }
@@ -217,82 +202,88 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> PpuBase<V, S, O> {
         Ok(())
     }
 
-    fn background_palettes(&self) -> Result<[Palette; 4]> {
-        let bg = self.vram.read(0x3f00)? as usize;
-        let bg = PALETTE[bg];
-
-        let color0 = self.vram.read(0x3f01)? as usize;
-        let color1 = self.vram.read(0x3f02)? as usize;
-        let color2 = self.vram.read(0x3f03)? as usize;
-        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f05)? as usize;
-        let color1 = self.vram.read(0x3f06)? as usize;
-        let color2 = self.vram.read(0x3f07)? as usize;
-        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f09)? as usize;
-        let color1 = self.vram.read(0x3f0a)? as usize;
-        let color2 = self.vram.read(0x3f0b)? as usize;
-        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f0d)? as usize;
-        let color1 = self.vram.read(0x3f0e)? as usize;
-        let color2 = self.vram.read(0x3f0f)? as usize;
-        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        Ok([palette0, palette1, palette2, palette3])
+    fn is_on_scanline(&self, sprite: &SpriteAttributes, scanline: u8) -> bool {
+        let height = match self.control.sprite_size() {
+            SpriteSize::X8 => 8,
+            SpriteSize::X16 => 16,
+        };
+        scanline >= sprite.y && scanline < sprite.y + height
     }
 
-    fn sprite_palettes(&self) -> Result<[Palette; 4]> {
+    fn background_palettes(&self) -> Result<[Color; 16]> {
         let bg = self.vram.read(0x3f00)? as usize;
-        let bg = PALETTE[bg];
+        Ok([PALETTE[bg],
+            PALETTE[self.vram.read(0x3f01)? as usize],
+            PALETTE[self.vram.read(0x3f02)? as usize],
+            PALETTE[self.vram.read(0x3f03)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f05)? as usize],
+            PALETTE[self.vram.read(0x3f06)? as usize],
+            PALETTE[self.vram.read(0x3f07)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f09)? as usize],
+            PALETTE[self.vram.read(0x3f0a)? as usize],
+            PALETTE[self.vram.read(0x3f0b)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f0d)? as usize],
+            PALETTE[self.vram.read(0x3f0e)? as usize],
+            PALETTE[self.vram.read(0x3f0f)? as usize]])
+    }
 
-        let color0 = self.vram.read(0x3f11)? as usize;
-        let color1 = self.vram.read(0x3f12)? as usize;
-        let color2 = self.vram.read(0x3f13)? as usize;
-        let palette0: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f15)? as usize;
-        let color1 = self.vram.read(0x3f16)? as usize;
-        let color2 = self.vram.read(0x3f17)? as usize;
-        let palette1: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f19)? as usize;
-        let color1 = self.vram.read(0x3f1a)? as usize;
-        let color2 = self.vram.read(0x3f1b)? as usize;
-        let palette2: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        let color0 = self.vram.read(0x3f1d)? as usize;
-        let color1 = self.vram.read(0x3f1e)? as usize;
-        let color2 = self.vram.read(0x3f1f)? as usize;
-        let palette3: [Color; 4] = [bg, PALETTE[color0], PALETTE[color1], PALETTE[color2]];
-
-        Ok([palette0, palette1, palette2, palette3])
+    fn sprite_palettes(&self) -> Result<[Color; 16]> {
+        let bg = self.vram.read(0x3f00)? as usize;
+        Ok([PALETTE[bg],
+            PALETTE[self.vram.read(0x3f11)? as usize],
+            PALETTE[self.vram.read(0x3f12)? as usize],
+            PALETTE[self.vram.read(0x3f13)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f15)? as usize],
+            PALETTE[self.vram.read(0x3f16)? as usize],
+            PALETTE[self.vram.read(0x3f17)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f19)? as usize],
+            PALETTE[self.vram.read(0x3f1a)? as usize],
+            PALETTE[self.vram.read(0x3f1b)? as usize],
+            PALETTE[bg],
+            PALETTE[self.vram.read(0x3f1d)? as usize],
+            PALETTE[self.vram.read(0x3f1e)? as usize],
+            PALETTE[self.vram.read(0x3f1f)? as usize]])
     }
 }
 
-impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S, O> {
+impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
-        let empty: [Color; 4] = [Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00),
-                                 Color(0x00, 0x00, 0x00)];
+        let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00),
+                                  Color(0x00, 0x00, 0x00)];
         PpuBase {
             cycles: VBLANK_SET_CYCLE,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
-            scroll: S::default(),
             vram: V::new(rom),
             oam: O::default(),
             screen: screen,
-            sprite_palettes: [empty, empty, empty, empty],
-            bg_palettes: [empty, empty, empty, empty],
+            sprite_palettes: empty,
+            bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
+            background_renderer: BackgroundRenderer::default(),
         }
     }
 
@@ -301,12 +292,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
         let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
-        // Fill OAM buffer just before the scanline begins to render.
-        // This is not hardware accurate behavior but should produce correct results for most games.
-        if scanline < 240 && x == 0 {
-            self.fill_secondary_oam(scanline as u8)?;
-        }
-
+        // Cycle-specific behavior
         let result = match frame_cycle {
             VBLANK_SET_CYCLE => {
                 self.status.set_in_vblank();
@@ -328,8 +314,97 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             _ => Interrupt::None,
         };
 
-        self.draw_pixel(x, scanline)?;
-        self.cycles += 1;
+        // Fill OAM buffer just before the scanline begins to render.
+        // This is not hardware accurate behavior but should produce correct results for most games.
+        if scanline < 240 && x == 0 {
+            self.fill_secondary_oam(scanline as u8)?;
+        }
+
+        // VRAM position increments and copies occur when rendering is enabled
+        if self.mask.rendering_enabled() && (scanline < 240 || scanline == 261) {
+
+            if scanline == 261 && x >= 280 && x <= 304 {
+                // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
+                // is enabled, at the end of vblank, shortly after the horizontal bits are copied
+                // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
+                // v from dots 280 to 304.
+                self.vram.copy_vertical_pos_to_addr();
+            }
+
+            if (x > 0 && x < 256) || x >= 321 {
+                let bg_fetch_cycle = x % 8;
+
+                // Background rendering reads
+                match bg_fetch_cycle {
+                    0 => {
+                        // At dot 256 of each scanline, if rendering is enabled, the PPU increments
+                        // the horizontal position in v many times across the scanline, it begins at
+                        // dots 328 and 336, and will continue through the next scanline at 8, 16,
+                        // 24... 240, 248, 256 (every 8 dots across the scanline until 256). The
+                        // effective X scroll coordinate is incremented, which will wrap to the next
+                        // nametable appropriately.
+                        self.vram.coarse_x_increment();
+
+                        self.background_renderer.fill_shift_registers(self.vram.addr());
+                    }
+
+                    // Nametable fetch
+                    1 => self.background_renderer.fetch_nametable_byte(&self.vram)?,
+
+                    // Attribute table byte
+                    3 => self.background_renderer.fetch_attribute_byte(&self.vram)?,
+
+                    // Tile low
+                    5 => {
+                        self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?
+                    }
+
+                    // Tile high
+                    7 => {
+                        self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?
+                    }
+
+                    _ => (),
+                }
+            }
+
+            if x == 256 {
+                // If rendering is enabled, fine Y is incremented at dot 256 of each scanline,
+                // overflowing to coarse Y, and finally adjusted to wrap among the nametables
+                // vertically.
+                self.vram.fine_y_increment();
+            } else if x == 257 {
+                // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits
+                // related to horizontal position from t to v.
+                self.vram.copy_horizontal_pos_to_addr();
+            }
+
+            // Tick the background rendering shifters
+            // See https://forums.nesdev.com/viewtopic.php?f=3&t=10348#p116095 for explanation of
+            // specific tick cycles
+            if (x > 1 && x < 258) || (x > 321 && x < 338) {
+                self.background_renderer.tick_shifters(self.vram.fine_x())
+            }
+
+            if x < 256 && scanline < 240 {
+                self.draw_pixel(x, scanline)?
+            }
+        }
+
+        // For odd frames, the cycle at the end of the scanline is skipped (this is done
+        // internally by jumping directly from (339,261) to (0,0), replacing the idle tick at
+        // the beginning of the first visible scanline with the last tick of the last dummy
+        // nametable fetch). For even frames, the last cycle occurs normally.
+        //
+        // The PPU timing diagram seems to imply that the skipped cycle only occurs when
+        // background rendering is enabled, although I haven't found anything that states that
+        // outright.
+        if self.cycles % TWO_FRAMES == (TWO_FRAMES - 2) && self.mask.show_background() {
+            self.cycles += 2;
+        } else {
+            self.cycles += 1;
+        }
+
         Ok(result)
     }
 
@@ -341,6 +416,7 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
         match addr & 7 {
             0x0 => {
                 self.control.write(val);
+                self.vram.control_write(val);
                 if self.control.sprite_size() == SpriteSize::X16 {
                     let msg = "8X16 sprites".to_owned();
                     bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)));
@@ -350,8 +426,14 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
             0x2 => (), // readonly
             0x3 => self.oam.write_address(val),
             0x4 => self.oam.write_data(val),
-            0x5 => self.scroll.write(self.write_latch.write(val)),
-            0x6 => self.vram.write_ppu_addr(self.write_latch.write(val)),
+            0x5 => {
+                let latch_state = self.write_latch.write(val);
+                self.vram.scroll_write(latch_state);
+            }
+            0x6 => {
+                let latch_state = self.write_latch.write(val);
+                self.vram.write_ppu_addr(latch_state);
+            }
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();
                 self.vram.write_ppu_data(val, inc_amount)?
@@ -375,8 +457,9 @@ impl<V: Vram, S: ScrollRegister, O: ObjectAttributeMemory> Ppu for PpuBase<V, S,
                 status
             }
             0x4 => {
-                if self.status.in_vblank() || self.mask.rendering_disabled() {
-                    self.oam.read_data() // No OAM addr increment during vblank or forced blank
+                if self.status.in_vblank() || !self.mask.rendering_enabled() {
+                    // No OAM addr increment during vblank or forced blank
+                    self.oam.read_data()
                 } else {
                     self.oam.read_data_increment_addr()
                 }

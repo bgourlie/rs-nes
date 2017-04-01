@@ -68,7 +68,7 @@ impl MaskRegister {
         self.reg = val;
     }
 
-    pub fn rendering_disabled(&self) -> bool {
-        self.reg == 0
+    pub fn rendering_enabled(&self) -> bool {
+        self.show_background() || self.show_sprites()
     }
 }
