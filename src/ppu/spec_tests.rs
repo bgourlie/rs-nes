@@ -392,7 +392,6 @@ fn odd_frame_cycle_skip() {
     }
 
     // Verify no skipped frame if background rendering is disabled
-    // TODO: Verify that this is the correct behavior
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 10 {

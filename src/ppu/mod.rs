@@ -583,22 +583,20 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 Ok(Interrupt::None)
             }
             23 => {
-                // ODD_FRAME_INC
+                // ODD_FRAME_SKIP_CYCLE
                 // This is the last cycle for odd frames
                 // The additional cycle increment puts us to pixel 0,0
-                if self.odd_frame {
+                if self.odd_frame && self.mask.show_background() {
+                    self.cycles += 1;
                     self.odd_frame = false;
-                    if self.mask.show_background() {
-                        self.cycles += 1;
-                    }
                 }
 
                 Ok(Interrupt::None)
             }
             24 => {
-                // EVEN_FRAME_INC
-                // This is the last cycle for even frames
-                self.odd_frame = true;
+                // FRAME_INC
+                // This is the last cycle for even frames and when rendering disabled
+                self.odd_frame = !self.odd_frame;
 
                 Ok(Interrupt::None)
             }

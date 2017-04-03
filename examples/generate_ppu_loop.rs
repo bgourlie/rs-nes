@@ -14,8 +14,8 @@ const HORI_V_EQ_HORI_T: u16 = 1 << 10;
 const SET_VBLANK: u16 = 1 << 11;
 const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u16 = 1 << 12;
 const VERT_V_EQ_VERT_T: u16 = 1 << 13;
-const ODD_FRAME_INC: u16 = 1 << 14;
-const EVEN_FRAME_INC: u16 = 1 << 15;
+const ODD_FRAME_SKIP_CYCLE: u16 = 1 << 14;
+const FRAME_INC: u16 = 1 << 15;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -43,8 +43,8 @@ fn main() {
             match (x, scanline) {
                 (1, VBLANK_SCANLINE) => flags |= SET_VBLANK,
                 (1, LAST_SCANLINE) => flags |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
-                (339, LAST_SCANLINE) => flags |= ODD_FRAME_INC,
-                (340, LAST_SCANLINE) => flags |= EVEN_FRAME_INC,
+                (339, LAST_SCANLINE) => flags |= ODD_FRAME_SKIP_CYCLE,
+                (340, LAST_SCANLINE) => flags |= FRAME_INC,
                 (_, _) => (),
             }
 
@@ -406,23 +406,22 @@ fn actions(cycle_type: u16) -> Vec<Action> {
         lines.push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;".to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines, 0))
     }
-    if cycle_type & ODD_FRAME_INC > 0 {
+    if cycle_type & ODD_FRAME_SKIP_CYCLE > 0 {
         let mut lines = Vec::new();
         lines.push("    // This is the last cycle for odd frames".to_owned());
         lines.push("    // The additional cycle increment puts us to pixel 0,0".to_owned());
-        lines.push("    if self.odd_frame {".to_owned());
+        lines.push("    if self.odd_frame && self.mask.show_background() {".to_owned());
+        lines.push("        self.cycles += 1;".to_owned());
         lines.push("        self.odd_frame = false;".to_owned());
-        lines.push("        if self.mask.show_background() {".to_owned());
-        lines.push("            self.cycles += 1;".to_owned());
-        lines.push("        }".to_owned());
         lines.push("    }".to_owned());
-        actions.push(Action::NoReturnExpression("ODD_FRAME_INC".to_owned(), lines))
+        actions.push(Action::NoReturnExpression("ODD_FRAME_SKIP_CYCLE".to_owned(), lines))
     }
-    if cycle_type & EVEN_FRAME_INC > 0 {
+    if cycle_type & FRAME_INC > 0 {
         let mut lines = Vec::new();
-        lines.push("    // This is the last cycle for even frames".to_owned());
-        lines.push("    self.odd_frame = true;".to_owned());
-        actions.push(Action::NoReturnExpression("EVEN_FRAME_INC".to_owned(), lines))
+        lines.push("    // This is the last cycle for even frames and when rendering disabled"
+                       .to_owned());
+        lines.push("    self.odd_frame = !self.odd_frame;".to_owned());
+        actions.push(Action::NoReturnExpression("FRAME_INC".to_owned(), lines))
     }
     if cycle_type & SHIFT_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
