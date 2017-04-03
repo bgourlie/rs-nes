@@ -134,7 +134,6 @@ pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     odd_frame: bool,
 }
 
-
 impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         let bg_pixel = self.background_renderer.current_pixel();

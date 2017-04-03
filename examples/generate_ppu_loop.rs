@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
 // Bit flags indicating what occurs on a particular cycle
@@ -37,7 +38,7 @@ enum Action {
 }
 
 fn main() {
-    let mut cycle_map: CycleTable = [[0_u32; CYCLES_PER_SCANLINE]; SCANLINES];
+    let mut cycle_table: CycleTable = [[0_u32; CYCLES_PER_SCANLINE]; SCANLINES];
 
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
@@ -112,11 +113,16 @@ fn main() {
                 flags |= FETCH_SPRITE_HIGH
             }
 
-            cycle_map[scanline][x] = flags;
+            cycle_table[scanline][x] = flags;
         }
     }
 
-    output(&cycle_map)
+    let type_map = unique_cycles(&cycle_table);
+    print_loop(&type_map);
+    println!();
+    print_legend(&type_map);
+    println!();
+    print_array(&cycle_table, &type_map);
 }
 
 fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
@@ -188,21 +194,6 @@ fn draw_pixel(scanline: usize, x: usize) -> bool {
     x < 256 && scanline < 240
 }
 
-fn output(cycle_table: &CycleTable) {
-    let type_map = unique_cycles(cycle_table);
-    print_loop(&type_map);
-    print_legend(&type_map);
-    for x in 0..341 {
-        let cycle_type = cycle_table[0][x];
-        let alias = type_map[&cycle_type];
-        print!("{}", cycle_symbol(alias))
-    }
-    println!();
-
-    print_array(cycle_table, &type_map)
-}
-
-
 fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
     let mut cur_type = 0;
     let mut types_map = HashMap::new();
@@ -223,10 +214,10 @@ fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
              CYCLES_PER_SCANLINE,
              SCANLINES);
     for y in 0..SCANLINES {
-        print!("[");
+        print!("    [");
         for x in 0..CYCLES_PER_SCANLINE {
             let alias = type_map.get(&cycle_table[y][x]).unwrap();
-            print!("{},", alias)
+            print!("{:0>2},", alias)
         }
         println!("],");
     }
@@ -234,6 +225,10 @@ fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
 }
 
 fn print_legend(type_map: &HashMap<u32, u8>) {
+    println!("#![cfg_attr(rustfmt, rustfmt_skip)]");
+    println!();
+    println!("// **** CYCLE LEGEND ****");
+    println!("//");
     let mut types_vec: Vec<(u32, u8)> = type_map
         .iter()
         .map(|(cycle_type, alias)| (*cycle_type, *alias))
@@ -251,8 +246,8 @@ fn print_legend(type_map: &HashMap<u32, u8>) {
                      &Action::ReturnExpression(ref action_name, _) => action_name.clone(),
                  })
             .collect();
-        let actions = actions.join(",");
-        println!("{}:{} = {}", alias, cycle_symbol(alias), actions)
+        let actions = actions.join(", ");
+        println!("// {:2>}: {}", alias, actions)
     }
 }
 
@@ -498,34 +493,30 @@ fn actions(cycle_type: u32) -> Vec<Action> {
                        .to_owned());
         actions.push(Action::WhenRenderingEnabled("FILL_BG_REGISTERS".to_owned(), lines, 0))
     }
+    actions.sort_by(cmp_action);
     actions
 }
 
-fn cycle_symbol(val: u8) -> String {
-    match val {
-        0 => ".".to_owned(),
-        1...15 => format!("{:0>X}", val),
-        16 => "G".to_owned(),
-        17 => "H".to_owned(),
-        18 => "I".to_owned(),
-        19 => "J".to_owned(),
-        20 => "K".to_owned(),
-        21 => "L".to_owned(),
-        22 => "M".to_owned(),
-        23 => "N".to_owned(),
-        24 => "O".to_owned(),
-        25 => "P".to_owned(),
-        26 => "Q".to_owned(),
-        27 => "R".to_owned(),
-        28 => "S".to_owned(),
-        29 => "T".to_owned(),
-        30 => "U".to_owned(),
-        31 => "V".to_owned(),
-        32 => "W".to_owned(),
-        33 => "X".to_owned(),
-        34 => "Y".to_owned(),
-        35 => "Z".to_owned(),
-        36 => "!".to_owned(),
-        _ => "UNKNOWN CYCLE TYPE".to_owned(),
+fn cmp_action(a: &Action, b: &Action) -> Ordering {
+    match a {
+        &Action::NoReturnExpression(_, _) => {
+            match b {
+                &Action::NoReturnExpression(_, _) => Ordering::Equal,
+                _ => Ordering::Less,
+            }
+        }
+        &Action::ReturnExpression(_, _) => {
+            match b {
+                &Action::ReturnExpression(_, _) => Ordering::Equal,
+                _ => Ordering::Greater,
+            }
+        }
+        &Action::WhenRenderingEnabled(_, _, order_a) => {
+            match b {
+                &Action::WhenRenderingEnabled(_, _, order_b) => order_a.cmp(&order_b),
+                &Action::NoReturnExpression(_, _) => Ordering::Greater,
+                &Action::ReturnExpression(_, _) => Ordering::Less,
+            }
+        }
     }
 }
