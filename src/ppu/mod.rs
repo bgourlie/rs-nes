@@ -317,6 +317,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             1 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
@@ -328,6 +331,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             2 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
@@ -339,6 +345,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             3 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // FETCH_AT
                     self.background_renderer
                         .fetch_attribute_byte(&self.vram)?;
@@ -354,6 +363,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             4 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // FETCH_BG_LOW
                     self.background_renderer
                         .fetch_pattern_low_byte(&self.vram, *self.control)?;
@@ -369,6 +381,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             5 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // FETCH_BG_HIGH
                     self.background_renderer
                         .fetch_pattern_high_byte(&self.vram, *self.control)?;
@@ -384,6 +399,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             6 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
 
@@ -398,6 +416,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             7 => {
                 if self.mask.rendering_enabled() {
+                    // INIT_SECONDARY_OAM
+                    // TODO
+
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
@@ -417,6 +438,116 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             8 => {
                 if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // FETCH_NT
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // FILL_BG_REGISTERS
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            9 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            10 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // FETCH_AT
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            11 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // FETCH_BG_LOW
+                    self.background_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            12 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // FETCH_BG_HIGH
+                    self.background_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            13 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
+                    // INC_COARSE_X
+                    self.vram.coarse_x_increment();
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+                }
+                Ok(Interrupt::None)
+            }
+            14 => {
+                if self.mask.rendering_enabled() {
+                    // SPRITE_EVALUATION
+                    // TODO
+
                     // INC_FINE_Y
                     self.vram.fine_y_increment();
 
@@ -426,7 +557,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            9 => {
+            15 => {
                 if self.mask.rendering_enabled() {
                     // HORI_V_EQ_HORI_T
                     self.vram.copy_horizontal_pos_to_addr();
@@ -445,12 +576,26 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            10 => {
+            16 => {
                 // NOP
 
                 Ok(Interrupt::None)
             }
-            11 => {
+            17 => {
+                if self.mask.rendering_enabled() {
+                    // FETCH_SPRITE_LOW
+                    // TODO
+                }
+                Ok(Interrupt::None)
+            }
+            18 => {
+                if self.mask.rendering_enabled() {
+                    // FETCH_SPRITE_HIGH
+                    // TODO
+                }
+                Ok(Interrupt::None)
+            }
+            19 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
@@ -458,7 +603,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            12 => {
+            20 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -466,7 +611,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            13 => {
+            21 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
@@ -478,7 +623,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            14 => {
+            22 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_LOW
                     self.background_renderer
@@ -490,7 +635,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            15 => {
+            23 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_HIGH
                     self.background_renderer
@@ -502,7 +647,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            16 => {
+            24 => {
                 if self.mask.rendering_enabled() {
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
@@ -513,7 +658,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            17 => {
+            25 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
@@ -529,7 +674,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            18 => {
+            26 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
@@ -537,7 +682,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            19 => {
+            27 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -549,7 +694,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            20 => {
+            28 => {
                 // SET_VBLANK
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
@@ -558,7 +703,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     Ok(Interrupt::None)
                 }
             }
-            21 => {
+            29 => {
                 // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
 
                 // Reading palettes here isn't accurate, but should suffice for now
@@ -575,14 +720,45 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
                 Ok(Interrupt::None)
             }
-            22 => {
+            30 => {
+                if self.mask.rendering_enabled() {
+                    // INC_FINE_Y
+                    self.vram.fine_y_increment();
+
+                    // SHIFT_BG_REGISTERS
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
+                }
+                Ok(Interrupt::None)
+            }
+            31 => {
                 if self.mask.rendering_enabled() {
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
                 }
                 Ok(Interrupt::None)
             }
-            23 => {
+            32 => {
+                if self.mask.rendering_enabled() {
+                    // FETCH_SPRITE_LOW
+                    // TODO
+
+                    // VERT_V_EQ_VERT_T
+                    self.vram.copy_vertical_pos_to_addr();
+                }
+                Ok(Interrupt::None)
+            }
+            33 => {
+                if self.mask.rendering_enabled() {
+                    // FETCH_SPRITE_HIGH
+                    // TODO
+
+                    // VERT_V_EQ_VERT_T
+                    self.vram.copy_vertical_pos_to_addr();
+                }
+                Ok(Interrupt::None)
+            }
+            34 => {
                 // ODD_FRAME_SKIP_CYCLE
                 // This is the last cycle for odd frames
                 // The additional cycle increment puts us to pixel 0,0
@@ -593,7 +769,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
 
                 Ok(Interrupt::None)
             }
-            24 => {
+            35 => {
                 // FRAME_INC
                 // This is the last cycle for even frames and when rendering disabled
                 self.odd_frame = !self.odd_frame;

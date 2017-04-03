@@ -1,21 +1,25 @@
 use std::collections::HashMap;
 
 // Bit flags indicating what occurs on a particular cycle
-const DRAW_PIXEL: u16 = 1 << 1;
-const SHIFT_BG_REGISTERS: u16 = 1 << 2;
-const FETCH_NT: u16 = 1 << 3;
-const FETCH_AT: u16 = 1 << 4;
-const FETCH_BG_LOW: u16 = 1 << 5;
-const FETCH_BG_HIGH: u16 = 1 << 6;
-const FILL_BG_REGISTERS: u16 = 1 << 7;
-const INC_COARSE_X: u16 = 1 << 8;
-const INC_FINE_Y: u16 = 1 << 9;
-const HORI_V_EQ_HORI_T: u16 = 1 << 10;
-const SET_VBLANK: u16 = 1 << 11;
-const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u16 = 1 << 12;
-const VERT_V_EQ_VERT_T: u16 = 1 << 13;
-const ODD_FRAME_SKIP_CYCLE: u16 = 1 << 14;
-const FRAME_INC: u16 = 1 << 15;
+const DRAW_PIXEL: u32 = 1 << 1;
+const SHIFT_BG_REGISTERS: u32 = 1 << 2;
+const FETCH_NT: u32 = 1 << 3;
+const FETCH_AT: u32 = 1 << 4;
+const FETCH_BG_LOW: u32 = 1 << 5;
+const FETCH_BG_HIGH: u32 = 1 << 6;
+const FILL_BG_REGISTERS: u32 = 1 << 7;
+const INC_COARSE_X: u32 = 1 << 8;
+const INC_FINE_Y: u32 = 1 << 9;
+const HORI_V_EQ_HORI_T: u32 = 1 << 10;
+const SET_VBLANK: u32 = 1 << 11;
+const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u32 = 1 << 12;
+const VERT_V_EQ_VERT_T: u32 = 1 << 13;
+const ODD_FRAME_SKIP_CYCLE: u32 = 1 << 14;
+const FRAME_INC: u32 = 1 << 15;
+const INIT_SECONDARY_OAM: u32 = 1 << 16;
+const SPRITE_EVALUATION: u32 = 1 << 17;
+const FETCH_SPRITE_LOW: u32 = 1 << 18;
+const FETCH_SPRITE_HIGH: u32 = 1 << 19;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -23,7 +27,7 @@ const CYCLES_PER_SCANLINE: usize = 341;
 const VBLANK_SCANLINE: usize = 241;
 const LAST_SCANLINE: usize = 261;
 
-type CycleTable = [[u16; CYCLES_PER_SCANLINE]; SCANLINES];
+type CycleTable = [[u32; CYCLES_PER_SCANLINE]; SCANLINES];
 
 #[derive(Clone)]
 enum Action {
@@ -33,7 +37,7 @@ enum Action {
 }
 
 fn main() {
-    let mut cycle_map: CycleTable = [[0_u16; CYCLES_PER_SCANLINE]; SCANLINES];
+    let mut cycle_map: CycleTable = [[0_u32; CYCLES_PER_SCANLINE]; SCANLINES];
 
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
@@ -92,6 +96,22 @@ fn main() {
                 flags |= DRAW_PIXEL
             }
 
+            if init_secondary_oam(scanline, x) {
+                flags |= INIT_SECONDARY_OAM
+            }
+
+            if sprite_evaluation(scanline, x) {
+                flags |= SPRITE_EVALUATION
+            }
+
+            if fetch_sprite_low(scanline, x) {
+                flags |= FETCH_SPRITE_LOW
+            }
+
+            if fetch_sprite_high(scanline, x) {
+                flags |= FETCH_SPRITE_HIGH
+            }
+
             cycle_map[scanline][x] = flags;
         }
     }
@@ -99,6 +119,21 @@ fn main() {
     output(&cycle_map)
 }
 
+fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
+    (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 5)
+}
+
+fn fetch_sprite_high(scanline: usize, x: usize) -> bool {
+    (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 7)
+}
+
+fn init_secondary_oam(scanline: usize, x: usize) -> bool {
+    scanline < 240 && x > 0 && x <= 64
+}
+
+fn sprite_evaluation(scanline: usize, x: usize) -> bool {
+    scanline < 240 && x > 64 && x <= 256
+}
 
 fn nt_fetch_cycle(scanline: usize, x: usize) -> bool {
     bg_rendering_cycle(scanline, x) && !(scanline == LAST_SCANLINE && x > 336) && x % 8 == 1
@@ -168,7 +203,7 @@ fn output(cycle_table: &CycleTable) {
 }
 
 
-fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u16, u8> {
+fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
     let mut cur_type = 0;
     let mut types_map = HashMap::new();
     for y in 0..SCANLINES {
@@ -183,8 +218,8 @@ fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u16, u8> {
     types_map
 }
 
-fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u16, u8>) {
-    println!("pub static CYCLE_TABLE: [[u16; {}]; {}] = [",
+fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
+    println!("pub static CYCLE_TABLE: [[u8; {}]; {}] = [",
              CYCLES_PER_SCANLINE,
              SCANLINES);
     for y in 0..SCANLINES {
@@ -198,8 +233,8 @@ fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u16, u8>) {
     println!("];");
 }
 
-fn print_legend(type_map: &HashMap<u16, u8>) {
-    let mut types_vec: Vec<(u16, u8)> = type_map
+fn print_legend(type_map: &HashMap<u32, u8>) {
+    let mut types_vec: Vec<(u32, u8)> = type_map
         .iter()
         .map(|(cycle_type, alias)| (*cycle_type, *alias))
         .collect();
@@ -221,8 +256,8 @@ fn print_legend(type_map: &HashMap<u16, u8>) {
     }
 }
 
-fn print_loop(type_map: &HashMap<u16, u8>) {
-    let mut types_vec: Vec<(u16, u8)> = type_map
+fn print_loop(type_map: &HashMap<u32, u8>) {
+    let mut types_vec: Vec<(u32, u8)> = type_map
         .iter()
         .map(|(cycle_type, alias)| (*cycle_type, *alias))
         .collect();
@@ -332,12 +367,36 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
     lines
 }
 
-fn actions(cycle_type: u16) -> Vec<Action> {
+fn actions(cycle_type: u32) -> Vec<Action> {
     let mut actions = Vec::new();
 
     if cycle_type == 0 {
         let lines = Vec::new();
         actions.push(Action::NoReturnExpression("NOP".to_owned(), lines))
+    }
+
+    if cycle_type & FETCH_SPRITE_LOW > 0 {
+        let mut lines = Vec::new();
+        lines.push("    // TODO".to_owned());
+        actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_LOW".to_owned(), lines, 0))
+    }
+
+    if cycle_type & FETCH_SPRITE_HIGH > 0 {
+        let mut lines = Vec::new();
+        lines.push("    // TODO".to_owned());
+        actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_HIGH".to_owned(), lines, 0))
+    }
+
+    if cycle_type & SPRITE_EVALUATION > 0 {
+        let mut lines = Vec::new();
+        lines.push("    // TODO".to_owned());
+        actions.push(Action::WhenRenderingEnabled("SPRITE_EVALUATION".to_owned(), lines, 0))
+    }
+
+    if cycle_type & INIT_SECONDARY_OAM > 0 {
+        let mut lines = Vec::new();
+        lines.push("    // TODO".to_owned());
+        actions.push(Action::WhenRenderingEnabled("INIT_SECONDARY_OAM".to_owned(), lines, 0))
     }
 
     if cycle_type & DRAW_PIXEL > 0 {
@@ -455,6 +514,18 @@ fn cycle_symbol(val: u8) -> String {
         22 => "M".to_owned(),
         23 => "N".to_owned(),
         24 => "O".to_owned(),
+        25 => "P".to_owned(),
+        26 => "Q".to_owned(),
+        27 => "R".to_owned(),
+        28 => "S".to_owned(),
+        29 => "T".to_owned(),
+        30 => "U".to_owned(),
+        31 => "V".to_owned(),
+        32 => "W".to_owned(),
+        33 => "X".to_owned(),
+        34 => "Y".to_owned(),
+        35 => "Z".to_owned(),
+        36 => "!".to_owned(),
         _ => "UNKNOWN CYCLE TYPE".to_owned(),
     }
 }
