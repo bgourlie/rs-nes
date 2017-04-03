@@ -369,6 +369,12 @@ fn odd_frame_cycle_skip() {
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         let frame_number = ppu.cycles / super::CYCLES_PER_FRAME;
         let was_odd_frame = frame_number % 2 == 1;
+        assert_eq!(ppu.odd_frame,
+                   was_odd_frame,
+                   "frame_number = {} ({},{})",
+                   frame_number,
+                   x,
+                   scanline);
         ppu.step().unwrap();
 
         if scanline == 261 && x == 339 {
@@ -455,7 +461,7 @@ mod mocks {
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
-            even_cycle: false,
+            odd_frame: false,
         }
     }
 

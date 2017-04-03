@@ -131,7 +131,7 @@ pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
     background_renderer: BackgroundRenderer,
-    even_cycle: bool,
+    odd_frame: bool,
 }
 
 
@@ -289,17 +289,15 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
-            even_cycle: false,
+            odd_frame: false,
         }
     }
 
     fn step(&mut self) -> Result<Interrupt> {
-        self.even_cycle = !self.even_cycle;
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
         let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
-        // TODO: Remove this once "real" sprite rendering is implemented.
         // Fill OAM buffer just before the scanline begins to render.
         // This is not hardware accurate behavior but should produce correct results for most games.
         if scanline < 240 && x == 0 {
@@ -325,7 +323,6 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
                 }
-
                 Ok(Interrupt::None)
             }
             3 => {
@@ -376,8 +373,8 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 Ok(Interrupt::None)
             }
             7 => {
-                // FETCH_NT
                 if self.mask.rendering_enabled() {
+                    // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
 
@@ -407,6 +404,10 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     // HORI_V_EQ_HORI_T
                     self.vram.copy_horizontal_pos_to_addr();
 
+                    // FETCH_NT
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
+
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
@@ -418,13 +419,12 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 Ok(Interrupt::None)
             }
             10 => {
+                // FETCH_AT
                 if self.mask.rendering_enabled() {
-                    // FETCH_AT
                     self.background_renderer
                         .fetch_attribute_byte(&self.vram)?;
                 }
                 Ok(Interrupt::None)
-
             }
             11 => {
                 if self.mask.rendering_enabled() {
@@ -448,19 +448,20 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 }
             }
             13 => {
+                // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
+
                 // Reading palettes here isn't accurate, but should suffice for now
                 self.bg_palettes = self.background_palettes()?;
                 self.sprite_palettes = self.sprite_palettes()?;
 
+                self.status.clear_in_vblank();
+                self.status.clear_sprite_zero_hit();
+
+                // FETCH_NT
                 if self.mask.rendering_enabled() {
-                    // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
                 }
-
-                // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
-                self.status.clear_in_vblank();
-                self.status.clear_sprite_zero_hit();
                 Ok(Interrupt::None)
             }
             14 => {
@@ -477,9 +478,22 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                         .fetch_attribute_byte(&self.vram)?;
                 }
 
-                // ODD_FRAME_SKIP
-                if !self.even_cycle && self.mask.show_background() {
-                    self.cycles += 1;
+                // ODD_FRAME_INC
+                // This is the last cycle for odd frames
+                // The additional cycle increment puts us to pixel 0,0
+                if self.odd_frame {
+                    self.odd_frame = false;
+                    if self.mask.show_background() {
+                        self.cycles += 1;
+                    }
+                }
+                Ok(Interrupt::None)
+            }
+            16 => {
+                // EVEN_FRAME_INC
+                // This is the last cycle for even frames
+                if !self.odd_frame {
+                    self.odd_frame = true;
                 }
                 Ok(Interrupt::None)
             }
@@ -487,7 +501,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
         };
 
         if x < 256 && scanline < 240 {
-            self.draw_pixel(x, scanline)?
+            self.draw_pixel(x, scanline)?;
         }
 
         self.cycles += 1;

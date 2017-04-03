@@ -10,10 +10,11 @@ const FETCH_AT: u16 = 1 << 6;
 const FETCH_NT: u16 = 1 << 7;
 const FETCH_BG_LOW: u16 = 1 << 8;
 const FETCH_BG_HIGH: u16 = 1 << 9;
-const ODD_FRAME_SKIP: u16 = 1 << 10;
-const SHIFT_BG_REGISTERS: u16 = 1 << 11;
-const VERT_V_EQ_VERT_T: u16 = 1 << 12;
-const FILL_BG_REGISTERS: u16 = 1 << 13;
+const ODD_FRAME_INC: u16 = 1 << 10;
+const EVEN_FRAME_INC: u16 = 1 << 11;
+const SHIFT_BG_REGISTERS: u16 = 1 << 12;
+const VERT_V_EQ_VERT_T: u16 = 1 << 13;
+const FILL_BG_REGISTERS: u16 = 1 << 14;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -34,7 +35,8 @@ fn main() {
             match (x, scanline) {
                 (1, VBLANK_SCANLINE) => flags |= SET_VBLANK,
                 (1, LAST_SCANLINE) => flags |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
-                (339, LAST_SCANLINE) => flags |= ODD_FRAME_SKIP,
+                (339, LAST_SCANLINE) => flags |= ODD_FRAME_INC,
+                (340, LAST_SCANLINE) => flags |= EVEN_FRAME_INC,
                 (_, _) => (),
             }
 
@@ -206,6 +208,13 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
     println!("    let frame_cycle = self.cycles % CYCLES_PER_FRAME;");
     println!("    let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;");
     println!("    let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;");
+    println!();
+    println!("    // Fill OAM buffer just before the scanline begins to render.");
+    println!("    // This is not hardware accurate behavior but should produce correct results for most games.");
+    println!("    if scanline < 240 && x == 0 {{");
+    println!("        self.fill_secondary_oam(scanline as u8)?;");
+    println!("    }}");
+    println!();
     println!("    let res = match CYCLE_TABLE[scanline as usize][x as usize] {{");
 
     for (cycle_type, _) in types_vec {
@@ -216,7 +225,7 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
             println!("            // {}", action);
 
             match action.as_ref() {
-                "NOP" => println!("            Ok(Interrupt::None)"),
+                "NOP" => (),
                 "SET_VBLANK" => {
                     println!("            self.status.set_in_vblank();");
                     println!("            if self.control.nmi_on_vblank_start() {{");
@@ -269,9 +278,20 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
                     println!("                self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;");
                     println!("            }}");
                 }
-                "ODD_FRAME_SKIP" => {
-                    println!("            if !self.even_cycle && self.mask.show_background() {{");
-                    println!("                self.cycles += 1;");
+                "ODD_FRAME_INC" => {
+                    println!("            // This is the last cycle for odd frames");
+                    println!("            // The additional cycle increment puts us to pixel 0,0");
+                    println!("            if self.odd_frame {{");
+                    println!("                self.odd_frame = false;");
+                    println!("                if self.mask.show_background() {{");
+                    println!("                    self.cycles += 1;");
+                    println!("                }}");
+                    println!("            }}");
+                }
+                "EVEN_FRAME_INC" => {
+                    println!("            // This is the last cycle for even frames");
+                    println!("            if !self.odd_frame {{");
+                    println!("                self.odd_frame = true;");
                     println!("            }}");
                 }
                 "SHIFT_BG_REGISTERS" => {
@@ -280,7 +300,9 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
                     println!("            }}");
                 }
                 "VERT_V_EQ_VERT_T" => {
-                    println!("            self.vram.copy_vertical_pos_to_addr();");
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.vram.copy_vertical_pos_to_addr();");
+                    println!("            }}");
                 }
                 "FILL_BG_REGISTERS" => {
                     println!("            if self.mask.rendering_enabled() {{");
@@ -292,6 +314,7 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
             println!();
         }
 
+        println!("            Ok(Interrupt::None)");
         println!("         }},");
     }
 
@@ -299,7 +322,7 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
     println!("    }};");
     println!();
     println!("    if x < 256 && scanline < 240 {{");
-    println!("        self.draw_pixel(x, scanline)?;)");
+    println!("        self.draw_pixel(x, scanline)?;");
     println!("    }}");
     println!();
     println!("    self.cycles += 1;");
@@ -351,8 +374,12 @@ fn actions(cycle_type: u16) -> Vec<String> {
         actions.push("FETCH_BG_HIGH".to_owned());
     }
 
-    if cycle_type & ODD_FRAME_SKIP > 0 {
-        actions.push("ODD_FRAME_SKIP".to_owned());
+    if cycle_type & ODD_FRAME_INC > 0 {
+        actions.push("ODD_FRAME_INC".to_owned());
+    }
+
+    if cycle_type & EVEN_FRAME_INC > 0 {
+        actions.push("EVEN_FRAME_INC".to_owned());
     }
 
     if cycle_type & SHIFT_BG_REGISTERS > 0 {
