@@ -1,12 +1,13 @@
 extern crate handlebars;
 extern crate rustc_serialize;
 
-use handlebars::Handlebars;
+use handlebars::{Helper, Handlebars, RenderContext, RenderError};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
+use rustc_serialize::json::{ToJson, Json};
 
 // Bit flags indicating what occurs on a particular cycle
 const DRAW_PIXEL: u32 = 1 << 1;
@@ -131,7 +132,7 @@ fn main() {
     println!();
     print_array(&cycle_table, &type_map);
     println!();
-    diagram(&cycle_table, &type_map);
+    diagram(&cycle_table);
 
 }
 
@@ -533,6 +534,7 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
 
 #[derive(RustcEncodable)]
 struct Cycle {
+    value: u32,
     nop: bool,
     draw_pixel: bool,
     shift_bg_registers: bool,
@@ -555,9 +557,38 @@ struct Cycle {
     fetch_sprite_high: bool,
 }
 
+impl ToJson for Cycle {
+    fn to_json(&self) -> Json {
+        let mut props = BTreeMap::new();
+        props.insert("value".to_owned(), Json::U64(self.value as _));
+        props.insert("nop".to_owned(), Json::Boolean(self.nop));
+        props.insert("draw_pixel".to_owned(), Json::Boolean(self.draw_pixel));
+        props.insert("shift_bg_registers".to_owned(), Json::Boolean(self.shift_bg_registers));
+        props.insert("fetch_nt".to_owned(), Json::Boolean(self.fetch_nt));
+        props.insert("fetch_at".to_owned(), Json::Boolean(self.fetch_at));
+        props.insert("fetch_bg_low".to_owned(), Json::Boolean(self.fetch_bg_low));
+        props.insert("fetch_bg_high".to_owned(), Json::Boolean(self.fetch_bg_high));
+        props.insert("fill_bg_registers".to_owned(), Json::Boolean(self.fill_bg_registers));
+        props.insert("inc_coarse_x".to_owned(), Json::Boolean(self.inc_coarse_x));
+        props.insert("inc_fine_y".to_owned(), Json::Boolean(self.inc_fine_y));
+        props.insert("hori_v_eq_hori_t".to_owned(), Json::Boolean(self.hori_v_eq_hori_t));
+        props.insert("set_vblank".to_owned(), Json::Boolean(self.set_vblank));
+        props.insert("clear_vblank_and_sprite_zero_hit".to_owned(), Json::Boolean(self.clear_vblank_and_sprite_zero_hit));
+        props.insert("vert_v_eq_vert_t".to_owned(), Json::Boolean(self.vert_v_eq_vert_t));
+        props.insert("odd_frame_skip_cycle".to_owned(), Json::Boolean(self.odd_frame_skip_cycle));
+        props.insert("frame_inc".to_owned(), Json::Boolean(self.frame_inc));
+        props.insert("init_secondary_oam".to_owned(), Json::Boolean(self.init_secondary_oam));
+        props.insert("sprite_evaluation".to_owned(), Json::Boolean(self.sprite_evaluation));
+        props.insert("fetch_sprite_low".to_owned(), Json::Boolean(self.fetch_sprite_low));
+        props.insert("fetch_sprite_high".to_owned(), Json::Boolean(self.fetch_sprite_high));
+        Json::Object(props)
+    }
+}
+
 impl Cycle {
     fn new(cycle_type: u32) -> Self {
         Cycle {
+            value: cycle_type,
             nop: cycle_type == 0,
             fetch_sprite_low: cycle_type & FETCH_SPRITE_LOW > 0,
             fetch_sprite_high: cycle_type & FETCH_SPRITE_HIGH > 0,
@@ -582,11 +613,15 @@ impl Cycle {
     }
 }
 
-fn diagram(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
+fn diagram(cycle_table: &CycleTable) {
+    println!("generating cycle diagram...");
     let mut handlebars = Handlebars::new();
     handlebars
         .register_template_file("cycle_table", "examples/cycle_table.hbs")
         .unwrap();
+    handlebars.register_helper("class", Box::new(class_helper));
+    handlebars.register_helper("color", Box::new(color_helper));
+
     let mut data = BTreeMap::new();
     let mut scanlines = Vec::new();
     for y in 0..SCANLINES {
@@ -600,5 +635,112 @@ fn diagram(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
     let rendered = handlebars.render("cycle_table", &data).unwrap();
 
     let mut f = File::create("ppu_timing_diagram.html").unwrap();
+    println!("Writing file...");
     f.write_all(rendered.as_bytes()).unwrap();
+    println!("Done!");
+}
+
+fn class_helper (h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+    let mut classes = Vec::new();
+    if let &Json::Object(ref map) = h.param(0).unwrap().value() {
+        if let Json::Boolean(true) = map["nop"]  {
+            classes.push("nop".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_sprite_low"]  {
+            classes.push("fetch_sprite_low".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_sprite_high"]  {
+            classes.push("fetch_sprite_high".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["sprite_evaluation"]  {
+            classes.push("sprite_evaluation".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["init_secondary_oam"]  {
+            classes.push("init_secondary_oam".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["draw_pixel"]  {
+            classes.push("draw_pixel".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["set_vblank"]  {
+            classes.push("set_vblank".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["clear_vblank_and_sprite_zero_hit"]  {
+            classes.push("clear_vblank_and_sprite_zero_hit".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["inc_coarse_x"]  {
+            classes.push("inc_coarse_x".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["inc_fine_y"]  {
+            classes.push("inc_fine_y".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["hori_v_eq_hori_t"]  {
+            classes.push("hori_v_eq_hori_t".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_at"]  {
+            classes.push("fetch_at".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_nt"]  {
+            classes.push("fetch_nt".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_bg_low"]  {
+            classes.push("fetch_bg_low".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fetch_bg_high"]  {
+            classes.push("fetch_bg_high".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["odd_frame_skip_cycle"]  {
+            classes.push("odd_frame_skip_cycle".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["frame_inc"]  {
+            classes.push("frame_inc".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["shift_bg_registers"]  {
+            classes.push("shift_bg_registers".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["vert_v_eq_vert_t"]  {
+            classes.push("vert_v_eq_vert_t".to_owned());
+        }
+
+        if let Json::Boolean(true) = map["fill_bg_registers"]  {
+            classes.push("fill_bg_registers".to_owned());
+        }
+    } else {
+        panic!("Only object expected");
+    }
+    let rendered = classes.join(" ");
+    rc.writer.write(rendered.into_bytes().as_ref())?;
+    Ok(())
+}
+
+fn color_helper (h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+    let color = if let &Json::Object(ref map) = h.param(0).unwrap().value() {
+        if let Json::U64(val) = map["value"] {
+            val
+        } else {
+            panic!("Only u64 expected");
+        }
+    } else {
+        panic!("Only object expected");
+    };
+    let rendered = format!("#{:0>6X}", color);
+    rc.writer.write(rendered.into_bytes().as_ref())?;
+    Ok(())
 }
