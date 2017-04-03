@@ -12,12 +12,14 @@ mod vram;
 mod write_latch;
 mod pattern;
 mod background_renderer;
+mod cycle_table;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::{ControlRegister, SPRITE_PATTERN_SELECT, SpriteSize};
+use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
 use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
                                    SpriteAttributes};
@@ -293,131 +295,95 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
         let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
-
-        // Cycle-specific behavior
-        let result = match frame_cycle {
-            VBLANK_SET_CYCLE => {
+        match CYCLE_TABLE[scanline as usize][x as usize] {
+            0 => Ok(Interrupt::None), // NOP
+            1 => {
+                // FETCH_NT
+                Ok(Interrupt::None)
+            }
+            2 => {
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            3 => {
+                // FETCH_AT
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            4 => {
+                // FETCH_BG_LOW
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            5 => {
+                // FETCH_BG_HIGH
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            6 => {
+                // INC_COARSE_X
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            7 => {
+                // FETCH_NT
+                // SHIFT_BG_REGISTERS
+                // FILL_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            8 => {
+                // INC_COARSE_X
+                // INC_FINE_Y
+                // SHIFT_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            9 => {
+                // HORI_V_EQ_HORI_T
+                // SHIFT_BG_REGISTERS
+                // FILL_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            10 => {
+                // FETCH_NT
+                Ok(Interrupt::None)
+            }
+            11 => {
+                // FETCH_AT
+                Ok(Interrupt::None)
+            }
+            12 => {
+                // SHIFT_BG_REGISTERS
+                // FILL_BG_REGISTERS
+                Ok(Interrupt::None)
+            }
+            13 => {
+                // SET_VBLANK
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
-                    Interrupt::Nmi
+                    Ok(Interrupt::Nmi)
                 } else {
-                    Interrupt::None
+                    Ok(Interrupt::None)
                 }
             }
-            VBLANK_CLEAR_CYCLE => {
-                // Reading palettes here isn't accurate, but should suffice for now
-                self.bg_palettes = self.background_palettes()?;
-                self.sprite_palettes = self.sprite_palettes()?;
-
-                self.status.clear_in_vblank();
-                self.status.clear_sprite_zero_hit();
-                Interrupt::None
+            14 => {
+                // CLEAR_VBLANK
+                // FETCH_NT
+                // FILL_BG_REGISTERS
+                Ok(Interrupt::None)
             }
-            _ => Interrupt::None,
-        };
+            15 => {
+                // VERT_V_EQ_VERT_T
+                Ok(Interrupt::None)
+            }
+            16 => {
+                // FETCH_AT
+                // ODD_FRAME_SKIP
+                Ok(Interrupt::None)
+            }
 
-        // Fill OAM buffer just before the scanline begins to render.
-        // This is not hardware accurate behavior but should produce correct results for most games.
-        if scanline < 240 && x == 0 {
-            self.fill_secondary_oam(scanline as u8)?;
+            _ => unreachable!(),
         }
 
-        // VRAM position increments and copies occur when rendering is enabled
-        if self.mask.rendering_enabled() && (scanline < 240 || scanline == 261) {
-
-            if scanline == 261 && x >= 280 && x <= 304 {
-                // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering
-                // is enabled, at the end of vblank, shortly after the horizontal bits are copied
-                // from t to v at dot 257, the PPU will repeatedly copy the vertical bits from t to
-                // v from dots 280 to 304.
-                self.vram.copy_vertical_pos_to_addr();
-            }
-
-            if (x > 0 && x < 256) || x >= 321 {
-                let bg_fetch_cycle = x % 8;
-
-                // Background rendering reads
-                match bg_fetch_cycle {
-                    0 => {
-                        // At dot 256 of each scanline, if rendering is enabled, the PPU increments
-                        // the horizontal position in v many times across the scanline, it begins at
-                        // dots 328 and 336, and will continue through the next scanline at 8, 16,
-                        // 24... 240, 248, 256 (every 8 dots across the scanline until 256). The
-                        // effective X scroll coordinate is incremented, which will wrap to the next
-                        // nametable appropriately.
-                        self.vram.coarse_x_increment();
-
-                        self.background_renderer
-                            .fill_shift_registers(self.vram.addr());
-                    }
-
-                    // Nametable fetch
-                    1 => {
-                        self.background_renderer
-                            .fetch_nametable_byte(&self.vram)?
-                    }
-
-                    // Attribute table byte
-                    3 => {
-                        self.background_renderer
-                            .fetch_attribute_byte(&self.vram)?
-                    }
-
-                    // Tile low
-                    5 => {
-                        self.background_renderer
-                            .fetch_pattern_low_byte(&self.vram, *self.control)?
-                    }
-
-                    // Tile high
-                    7 => {
-                        self.background_renderer
-                            .fetch_pattern_high_byte(&self.vram, *self.control)?
-                    }
-
-                    _ => (),
-                }
-            }
-
-            if x == 256 {
-                // If rendering is enabled, fine Y is incremented at dot 256 of each scanline,
-                // overflowing to coarse Y, and finally adjusted to wrap among the nametables
-                // vertically.
-                self.vram.fine_y_increment();
-            } else if x == 257 {
-                // At dot 257 of each scanline, if rendering is enabled, the PPU copies all bits
-                // related to horizontal position from t to v.
-                self.vram.copy_horizontal_pos_to_addr();
-            }
-
-            // Tick the background rendering shifters
-            // See https://forums.nesdev.com/viewtopic.php?f=3&t=10348#p116095 for explanation of
-            // specific tick cycles
-            if (x > 1 && x < 258) || (x > 321 && x < 338) {
-                self.background_renderer
-                    .tick_shifters(self.vram.fine_x())
-            }
-
-            if x < 256 && scanline < 240 {
-                self.draw_pixel(x, scanline)?
-            }
-        }
-
-        // For odd frames, the cycle at the end of the scanline is skipped (this is done
-        // internally by jumping directly from (339,261) to (0,0), replacing the idle tick at
-        // the beginning of the first visible scanline with the last tick of the last dummy
-        // nametable fetch). For even frames, the last cycle occurs normally.
-        //
-        // The PPU timing diagram seems to imply that the skipped cycle only occurs when
-        // background rendering is enabled, although I haven't found anything that states that
-        // outright.
-        if self.cycles % TWO_FRAMES == (TWO_FRAMES - 2) && self.mask.show_background() {
-            self.cycles += 2;
-        } else {
-            self.cycles += 1;
-        }
-
-        Ok(result)
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
