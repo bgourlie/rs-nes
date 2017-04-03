@@ -8,10 +8,9 @@ mod palette;
 mod control_register;
 mod mask_register;
 mod status_register;
-mod object_attribute_memory;
+mod sprite_renderer;
 mod vram;
 mod write_latch;
-mod pattern;
 mod background_renderer;
 mod cycle_table;
 
@@ -19,12 +18,10 @@ use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
 use ppu::background_renderer::BackgroundRenderer;
-use ppu::control_register::{ControlRegister, SPRITE_PATTERN_SELECT, SpriteSize};
+use ppu::control_register::{ControlRegister, SpriteSize};
 use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
-use ppu::object_attribute_memory::{ObjectAttributeMemory, ObjectAttributeMemoryBase,
-                                   SpriteAttributes};
-use ppu::pattern::Sprite;
+use ppu::sprite_renderer::{SpriteRenderer, SpriteRendererBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -42,7 +39,7 @@ const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
 
-pub type PpuImpl = PpuBase<VramBase, ObjectAttributeMemoryBase>;
+pub type PpuImpl = PpuBase<VramBase, SpriteRendererBase>;
 
 pub trait Ppu {
     type Scr: Screen;
@@ -54,7 +51,7 @@ pub trait Ppu {
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
-pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
+pub struct PpuBase<V: Vram, O: SpriteRenderer> {
     cycles: u64,
     control: ControlRegister,
     mask: MaskRegister,
@@ -63,94 +60,21 @@ pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
     write_latch: WriteLatch,
-    sprite_buffer: [Option<Sprite>; 8],
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
 }
 
-impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
+impl<V: Vram, O: SpriteRenderer> PpuBase<V, O> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = self.background_renderer.current_pixel();
-
-        // draw sprites
-        let sprite_pixel = {
-            let mut ret = None;
-            for i in 0..8 {
-                if let Some(ref sprite) = self.sprite_buffer[i] {
-                    if let Some(sprite_color_index) = sprite.pixel_at(x) {
-                        ret = Some((sprite.palette(), sprite_color_index));
-                        if i == 0 && bg_pixel != 0 && self.mask.show_sprites() &&
-                           self.mask.show_background() &&
-                           !((!self.mask.sprites_render_leftmost_8_px() ||
-                              !self.mask.background_render_leftmost_8_px()) &&
-                             x < 8) && x != 255 &&
-                           !self.status.sprite_zero_hit() {
-                            self.status.set_sprite_zero_hit();
-                        }
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            }
-            ret
-        };
-
-        let pixel_color = if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
-            self.oam
-                .pixel_color(sprite_palette_index << 2 | sprite_color_index)
-        } else {
-            self.background_renderer.pixel_color()
-        };
-
+        let bg_pixel = self.background_renderer.pixel_color();
         self.screen
             .borrow_mut()
-            .put_pixel(x as _, scanline as _, pixel_color);
+            .put_pixel(x as _, scanline as _, bg_pixel);
         Ok(())
-    }
-
-    fn fill_secondary_oam(&mut self, scanline: u8) -> Result<()> {
-        let pattern_table_base = ((*self.control & SPRITE_PATTERN_SELECT) as u16) << 8;
-
-        let mut sprites_on_scanline = 0;
-        for i in 0..64 {
-            let sprite_attributes = self.oam.sprite_attributes(i);
-            if self.is_on_scanline(&sprite_attributes, scanline) {
-                let sprite = pattern::Sprite::read(scanline,
-                                                   sprite_attributes,
-                                                   pattern_table_base,
-                                                   &self.vram)?;
-
-                if sprites_on_scanline < 8 {
-                    self.sprite_buffer[sprites_on_scanline] = Some(sprite);
-                    sprites_on_scanline += 1;
-                } else {
-                    if !self.status.sprite_overflow() {
-                        self.status.set_sprite_overflow();
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Clear any remaining sprites from last scanline
-        for i in sprites_on_scanline..8 {
-            self.sprite_buffer[i] = None;
-        }
-
-        Ok(())
-    }
-
-    fn is_on_scanline(&self, sprite: &SpriteAttributes, scanline: u8) -> bool {
-        let height = match self.control.sprite_size() {
-            SpriteSize::X8 => 8,
-            SpriteSize::X16 => 16,
-        };
-        scanline >= sprite.y && scanline < sprite.y + height
     }
 }
 
-impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
+impl<V: Vram, O: SpriteRenderer> Ppu for PpuBase<V, O> {
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
@@ -163,7 +87,6 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             oam: O::default(),
             screen: screen,
             write_latch: WriteLatch::default(),
-            sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
         }
@@ -177,10 +100,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
         // Don't rely on self.cycles after the following line
         self.cycles += 1;
 
-        // Fill OAM buffer just before the scanline begins to render.
-        // This is not hardware accurate behavior but should produce correct results for most games.
-        if scanline < 240 && x == 0 {
-            self.fill_secondary_oam(scanline as u8)?;
+        // FIXME: TEMP HACK
+        if frame_cycle == 4 {
+            self.status.set_sprite_zero_hit()
         }
 
         match CYCLE_TABLE[scanline as usize][x as usize] {

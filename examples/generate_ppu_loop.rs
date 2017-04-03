@@ -277,12 +277,6 @@ fn print_loop(type_map: &HashMap<u32, u8>) {
     println!("    // Don't rely on self.cycles after the following line");
     println!("    self.cycles += 1;");
     println!();
-    println!("    // Fill OAM buffer just before the scanline begins to render.");
-    println!("    // This is not hardware accurate behavior but should produce correct results for most games.");
-    println!("    if scanline < 240 && x == 0 {{");
-    println!("        self.fill_secondary_oam(scanline as u8)?;");
-    println!("    }}");
-    println!();
     println!("    match CYCLE_TABLE[scanline as usize][x as usize] {{");
 
     for (cycle_type, _) in types_vec {

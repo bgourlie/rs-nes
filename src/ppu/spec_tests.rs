@@ -411,13 +411,12 @@ fn odd_frame_cycle_skip() {
 }
 
 mod mocks {
-    use super::object_attribute_memory::SpriteAttributes;
     use errors::*;
     use ppu::PpuBase;
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
-    use ppu::object_attribute_memory::ObjectAttributeMemory;
+    use ppu::sprite_renderer::SpriteRenderer;
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
@@ -427,7 +426,7 @@ mod mocks {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    pub type TestPpu = PpuBase<MockVram, MockOam>;
+    pub type TestPpu = PpuBase<MockVram, MockSpriteRenderer>;
 
     pub fn mock_ppu() -> TestPpu {
         PpuBase {
@@ -436,24 +435,23 @@ mod mocks {
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
             vram: MockVram::new(NesRom::default()),
-            oam: MockOam::default(),
+            oam: MockSpriteRenderer::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
             write_latch: WriteLatch::default(),
-            sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
         }
     }
 
     #[derive(Default)]
-    pub struct MockOam {
+    pub struct MockSpriteRenderer {
         pub read_data_called: Cell<bool>,
         pub read_data_increment_addr_called: Cell<bool>,
         pub mock_addr: Cell<u8>,
         pub mock_data: Cell<u8>,
     }
 
-    impl ObjectAttributeMemory for MockOam {
+    impl SpriteRenderer for MockSpriteRenderer {
         fn read_data(&self) -> u8 {
             self.read_data_called.set(true);
             self.mock_data.get()
@@ -470,10 +468,6 @@ mod mocks {
 
         fn write_data(&mut self, val: u8) {
             self.mock_data.set(val)
-        }
-
-        fn sprite_attributes(&self, _: u8) -> SpriteAttributes {
-            SpriteAttributes::default()
         }
 
         fn update_palettes<V: Vram>(&mut self, _: &V) -> Result<()> {
