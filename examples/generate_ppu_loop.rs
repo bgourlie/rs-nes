@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 // Bit flags indicating what occurs on a particular cycle
-const NOP: u16 = 1 << 0;
 const SET_VBLANK: u16 = 1 << 1;
-const CLEAR_VBLANK: u16 = 1 << 2;
+const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u16 = 1 << 2;
 const INC_COARSE_X: u16 = 1 << 3;
 const INC_FINE_Y: u16 = 1 << 4;
 const HORI_V_EQ_HORI_T: u16 = 1 << 5;
@@ -34,7 +33,7 @@ fn main() {
             // Check for specific cycle actions
             match (x, scanline) {
                 (1, VBLANK_SCANLINE) => flags |= SET_VBLANK,
-                (1, LAST_SCANLINE) => flags |= CLEAR_VBLANK,
+                (1, LAST_SCANLINE) => flags |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
                 (339, LAST_SCANLINE) => flags |= ODD_FRAME_SKIP,
                 (_, _) => (),
             }
@@ -104,8 +103,7 @@ fn bg_high_fetch_cycle(scanline: usize, x: usize) -> bool {
 }
 
 fn background_rendering_cycle(scanline: usize, x: usize) -> bool {
-    background_rendering_scanline(scanline) && ((x > 0 && x < 258) || x > 320) &&
-    ((x > 0 && x < 257) || x >= 321)
+    background_rendering_scanline(scanline) && ((x > 0 && x < 258) || x > 320)
 }
 
 fn background_rendering_scanline(scanline: usize) -> bool {
@@ -113,7 +111,7 @@ fn background_rendering_scanline(scanline: usize) -> bool {
 }
 
 fn inc_hori_v_cycle(scanline: usize, x: usize) -> bool {
-    background_rendering_cycle(scanline, x) && x < 256 && x % 8 == 0
+    background_rendering_cycle(scanline, x) && (x < 256 || x > 320) && x % 8 == 0
 }
 
 fn inc_vert_v_cycle(scanline: usize, x: usize) -> bool {
@@ -140,6 +138,7 @@ fn fill_bg_shift_registers(scanline: usize, x: usize) -> bool {
 fn output(cycle_table: &CycleTable) {
     let type_map = unique_cycles(cycle_table);
     print_legend(&type_map);
+    print_loop(&type_map);
     for x in 0..341 {
         let cycle_type = cycle_table[0][x];
         let alias = type_map[&cycle_type];
@@ -190,69 +189,185 @@ fn print_legend(type_map: &HashMap<u16, u8>) {
 
     for (cycle_type, alias) in types_vec {
         let cycle_type = cycle_type;
-        let mut actions = Vec::new();
-
-
-        if cycle_type == 0 {
-            actions.push("NOP".to_owned());
-        }
-
-        if cycle_type & SET_VBLANK > 0 {
-            actions.push("SET_VBLANK".to_owned());
-        }
-
-        if cycle_type & CLEAR_VBLANK > 0 {
-            actions.push("CLEAR_VBLANK".to_owned());
-        }
-
-        if cycle_type & INC_COARSE_X > 0 {
-            actions.push("INC_COARSE_X".to_owned());
-        }
-
-        if cycle_type & INC_FINE_Y > 0 {
-            actions.push("INC_FINE_Y".to_owned());
-        }
-
-        if cycle_type & HORI_V_EQ_HORI_T > 0 {
-            actions.push("HORI_V_EQ_HORI_T".to_owned());
-        }
-
-        if cycle_type & FETCH_AT > 0 {
-            actions.push("FETCH_AT".to_owned());
-        }
-
-        if cycle_type & FETCH_NT > 0 {
-            actions.push("FETCH_NT".to_owned());
-        }
-
-        if cycle_type & FETCH_BG_LOW > 0 {
-            actions.push("FETCH_BG_LOW".to_owned());
-        }
-
-        if cycle_type & FETCH_BG_HIGH > 0 {
-            actions.push("FETCH_BG_HIGH".to_owned());
-        }
-
-        if cycle_type & ODD_FRAME_SKIP > 0 {
-            actions.push("ODD_FRAME_SKIP".to_owned());
-        }
-
-        if cycle_type & SHIFT_BG_REGISTERS > 0 {
-            actions.push("SHIFT_BG_REGISTERS".to_owned());
-        }
-
-        if cycle_type & VERT_V_EQ_VERT_T > 0 {
-            actions.push("VERT_V_EQ_VERT_T".to_owned());
-        }
-
-        if cycle_type & FILL_BG_REGISTERS > 0 {
-            actions.push("FILL_BG_REGISTERS".to_owned());
-        }
-
+        let actions = actions(cycle_type);
         let actions = actions.join(",");
-
         println!("{}:{} = {}", alias, cycle_symbol(alias), actions)
     }
+}
+
+fn print_loop(type_map: &HashMap<u16, u8>) {
+    let mut types_vec: Vec<(u16, u8)> = type_map
+        .iter()
+        .map(|(cycle_type, alias)| (*cycle_type, *alias))
+        .collect();
+    types_vec.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
+
+    println!("fn step(&mut self) -> Result<Interrupt> {{");
+    println!("    let frame_cycle = self.cycles % CYCLES_PER_FRAME;");
+    println!("    let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;");
+    println!("    let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;");
+    println!("    let res = match CYCLE_TABLE[scanline as usize][x as usize] {{");
+
+    for (cycle_type, _) in types_vec {
+        let actions = actions(cycle_type);
+        println!("        {} => {{", type_map.get(&cycle_type).unwrap());
+
+        for action in actions {
+            println!("            // {}", action);
+
+            match action.as_ref() {
+                "NOP" => println!("            Ok(Interrupt::None)"),
+                "SET_VBLANK" => {
+                    println!("            self.status.set_in_vblank();");
+                    println!("            if self.control.nmi_on_vblank_start() {{");
+                    println!("                Ok(Interrupt::Nmi)");
+                    println!("            }} else {{");
+                    println!("                Ok(Interrupt::None)");
+                    println!("            }}");
+                }
+                "CLEAR_VBLANK_AND_SPRITE_ZERO_HIT" => {
+                    println!();
+                    println!("            // Reading palettes here isn't accurate, but should suffice for now");
+                    println!("            self.bg_palettes = self.background_palettes()?;");
+                    println!("            self.sprite_palettes = self.sprite_palettes()?;");
+                    println!();
+                    println!("            self.status.clear_in_vblank();");
+                    println!("            self.status.clear_sprite_zero_hit();");
+                }
+                "INC_COARSE_X" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.vram.coarse_x_increment();");
+                    println!("            }}");
+                }
+                "INC_FINE_Y" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.vram.fine_y_increment();");
+                    println!("            }}");
+                }
+                "HORI_V_EQ_HORI_T" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.vram.copy_horizontal_pos_to_addr();");
+                    println!("            }}");
+                }
+                "FETCH_AT" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.fetch_attribute_byte(&self.vram)?;");
+                    println!("            }}");
+                }
+                "FETCH_NT" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.fetch_nametable_byte(&self.vram)?;");
+                    println!("            }}");
+                }
+                "FETCH_BG_LOW" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;");
+                    println!("            }}");
+                }
+                "FETCH_BG_HIGH" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;");
+                    println!("            }}");
+                }
+                "ODD_FRAME_SKIP" => {
+                    println!("            if !self.even_cycle && self.mask.show_background() {{");
+                    println!("                self.cycles += 1;");
+                    println!("            }}");
+                }
+                "SHIFT_BG_REGISTERS" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.tick_shifters(self.vram.fine_x());");
+                    println!("            }}");
+                }
+                "VERT_V_EQ_VERT_T" => {
+                    println!("            self.vram.copy_vertical_pos_to_addr();");
+                }
+                "FILL_BG_REGISTERS" => {
+                    println!("            if self.mask.rendering_enabled() {{");
+                    println!("                self.background_renderer.fill_shift_registers(self.vram.addr());");
+                    println!("            }}");
+                }
+                _ => println!("            unimplemented!()"),
+            }
+            println!();
+        }
+
+        println!("         }},");
+    }
+
+    println!("        _ => unreachable!(),");
+    println!("    }};");
+    println!();
+    println!("    if x < 256 && scanline < 240 {{");
+    println!("        self.draw_pixel(x, scanline)?;)");
+    println!("    }}");
+    println!();
+    println!("    self.cycles += 1;");
+    println!("    res");
+
+    println!("}}");
+}
+
+fn actions(cycle_type: u16) -> Vec<String> {
+    let mut actions = Vec::new();
+
+    if cycle_type == 0 {
+        actions.push("NOP".to_owned());
+    }
+
+    if cycle_type & SET_VBLANK > 0 {
+        actions.push("SET_VBLANK".to_owned());
+    }
+
+    if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
+        actions.push("CLEAR_VBLANK_AND_SPRITE_ZERO_HIT".to_owned());
+    }
+
+    if cycle_type & INC_COARSE_X > 0 {
+        actions.push("INC_COARSE_X".to_owned());
+    }
+
+    if cycle_type & INC_FINE_Y > 0 {
+        actions.push("INC_FINE_Y".to_owned());
+    }
+
+    if cycle_type & HORI_V_EQ_HORI_T > 0 {
+        actions.push("HORI_V_EQ_HORI_T".to_owned());
+    }
+
+    if cycle_type & FETCH_AT > 0 {
+        actions.push("FETCH_AT".to_owned());
+    }
+
+    if cycle_type & FETCH_NT > 0 {
+        actions.push("FETCH_NT".to_owned());
+    }
+
+    if cycle_type & FETCH_BG_LOW > 0 {
+        actions.push("FETCH_BG_LOW".to_owned());
+    }
+
+    if cycle_type & FETCH_BG_HIGH > 0 {
+        actions.push("FETCH_BG_HIGH".to_owned());
+    }
+
+    if cycle_type & ODD_FRAME_SKIP > 0 {
+        actions.push("ODD_FRAME_SKIP".to_owned());
+    }
+
+    if cycle_type & SHIFT_BG_REGISTERS > 0 {
+        actions.push("SHIFT_BG_REGISTERS".to_owned());
+    }
+
+    if cycle_type & VERT_V_EQ_VERT_T > 0 {
+        actions.push("VERT_V_EQ_VERT_T".to_owned());
+    }
+
+    if cycle_type & FILL_BG_REGISTERS > 0 {
+        actions.push("FILL_BG_REGISTERS".to_owned());
+    }
+
+    actions
 }
 
 fn cycle_symbol(val: u8) -> String {

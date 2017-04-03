@@ -178,9 +178,17 @@ fn increment_coarse_x_called() {
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step().unwrap();
         if (scanline < 240 || scanline == 261) && ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
-            assert_eq!(true, ppu.vram.coarse_x_increment_called.get())
+            assert_eq!(true,
+                       ppu.vram.coarse_x_increment_called.get(),
+                       "scanline = {} x = {}",
+                       scanline,
+                       x)
         } else {
-            assert_eq!(false, ppu.vram.coarse_x_increment_called.get())
+            assert_eq!(false,
+                       ppu.vram.coarse_x_increment_called.get(),
+                       "scanline = {} x = {}",
+                       scanline,
+                       x)
         }
         ppu.vram.reset_mock();
     }
@@ -447,6 +455,7 @@ mod mocks {
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
+            even_cycle: false,
         }
     }
 
