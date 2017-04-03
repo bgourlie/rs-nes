@@ -233,13 +233,16 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
     println!("    let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;");
     println!("    let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;");
     println!();
+    println!("    // Don't rely on self.cycles after the following line");
+    println!("    self.cycles += 1;");
+    println!();
     println!("    // Fill OAM buffer just before the scanline begins to render.");
     println!("    // This is not hardware accurate behavior but should produce correct results for most games.");
     println!("    if scanline < 240 && x == 0 {{");
     println!("        self.fill_secondary_oam(scanline as u8)?;");
     println!("    }}");
     println!();
-    println!("    let res = match CYCLE_TABLE[scanline as usize][x as usize] {{");
+    println!("    match CYCLE_TABLE[scanline as usize][x as usize] {{");
 
     for (cycle_type, _) in types_vec {
         let actions = actions(cycle_type);
@@ -253,10 +256,7 @@ fn print_loop(type_map: &HashMap<u16, u8>) {
     }
 
     println!("        _ => unreachable!(),");
-    println!("    }};");
-    println!();
-    println!("    self.cycles += 1;");
-    println!("    res");
+    println!("    }}");
 
     println!("}}");
 }

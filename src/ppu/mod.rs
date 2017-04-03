@@ -298,13 +298,16 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
         let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
+        // Don't rely on self.cycles after the following line
+        self.cycles += 1;
+
         // Fill OAM buffer just before the scanline begins to render.
         // This is not hardware accurate behavior but should produce correct results for most games.
         if scanline < 240 && x == 0 {
             self.fill_secondary_oam(scanline as u8)?;
         }
 
-        let res = match CYCLE_TABLE[scanline as usize][x as usize] {
+        match CYCLE_TABLE[scanline as usize][x as usize] {
             0 => {
                 if self.mask.rendering_enabled() {
                     // DRAW_PIXEL
@@ -600,10 +603,7 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 Ok(Interrupt::None)
             }
             _ => unreachable!(),
-        };
-
-        self.cycles += 1;
-        res
+        }
     }
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
