@@ -32,6 +32,8 @@ glium = "*"
 asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
+handlebars = "*"
+rustc-serialize = "*"
 
 [profile.release]
 opt-level = 3

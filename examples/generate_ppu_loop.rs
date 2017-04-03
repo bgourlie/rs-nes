@@ -1,5 +1,12 @@
+extern crate handlebars;
+extern crate rustc_serialize;
+
+use handlebars::Handlebars;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
 
 // Bit flags indicating what occurs on a particular cycle
 const DRAW_PIXEL: u32 = 1 << 1;
@@ -123,6 +130,9 @@ fn main() {
     print_legend(&type_map);
     println!();
     print_array(&cycle_table, &type_map);
+    println!();
+    diagram(&cycle_table, &type_map);
+
 }
 
 fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
@@ -519,4 +529,76 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
             }
         }
     }
+}
+
+#[derive(RustcEncodable)]
+struct Cycle {
+    nop: bool,
+    draw_pixel: bool,
+    shift_bg_registers: bool,
+    fetch_nt: bool,
+    fetch_at: bool,
+    fetch_bg_low: bool,
+    fetch_bg_high: bool,
+    fill_bg_registers: bool,
+    inc_coarse_x: bool,
+    inc_fine_y: bool,
+    hori_v_eq_hori_t: bool,
+    set_vblank: bool,
+    clear_vblank_and_sprite_zero_hit: bool,
+    vert_v_eq_vert_t: bool,
+    odd_frame_skip_cycle: bool,
+    frame_inc: bool,
+    init_secondary_oam: bool,
+    sprite_evaluation: bool,
+    fetch_sprite_low: bool,
+    fetch_sprite_high: bool,
+}
+
+impl Cycle {
+    fn new(cycle_type: u32) -> Self {
+        Cycle {
+            nop: cycle_type == 0,
+            fetch_sprite_low: cycle_type & FETCH_SPRITE_LOW > 0,
+            fetch_sprite_high: cycle_type & FETCH_SPRITE_HIGH > 0,
+            sprite_evaluation: cycle_type & SPRITE_EVALUATION > 0,
+            init_secondary_oam: cycle_type & INIT_SECONDARY_OAM > 0,
+            draw_pixel: cycle_type & DRAW_PIXEL > 0,
+            set_vblank: cycle_type & SET_VBLANK > 0,
+            clear_vblank_and_sprite_zero_hit: cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0,
+            inc_coarse_x: cycle_type & INC_COARSE_X > 0,
+            inc_fine_y: cycle_type & INC_FINE_Y > 0,
+            hori_v_eq_hori_t: HORI_V_EQ_HORI_T > 0,
+            fetch_at: cycle_type & FETCH_AT > 0,
+            fetch_nt: cycle_type & FETCH_NT > 0,
+            fetch_bg_low: cycle_type & FETCH_BG_LOW > 0,
+            fetch_bg_high: cycle_type & FETCH_BG_HIGH > 0,
+            odd_frame_skip_cycle: cycle_type & ODD_FRAME_SKIP_CYCLE > 0,
+            frame_inc: cycle_type & FRAME_INC > 0,
+            shift_bg_registers: cycle_type & SHIFT_BG_REGISTERS > 0,
+            vert_v_eq_vert_t: cycle_type & VERT_V_EQ_VERT_T > 0,
+            fill_bg_registers: cycle_type & FILL_BG_REGISTERS > 0,
+        }
+    }
+}
+
+fn diagram(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_file("cycle_table", "examples/cycle_table.hbs")
+        .unwrap();
+    let mut data = BTreeMap::new();
+    let mut scanlines = Vec::new();
+    for y in 0..SCANLINES {
+        let mut scanline = Vec::new();
+        for x in 0..CYCLES_PER_SCANLINE {
+            scanline.push(Cycle::new(cycle_table[y][x]))
+        }
+        scanlines.push(scanline);
+    }
+    data.insert("scanlines".to_owned(), scanlines);
+    let rendered = handlebars.render("cycle_table", &data).unwrap();
+
+    let mut f = File::create("ppu_timing_diagram.html").unwrap();
+    f.write_all(rendered.as_bytes()).unwrap();
 }
