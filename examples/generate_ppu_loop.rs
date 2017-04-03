@@ -1,13 +1,13 @@
 extern crate handlebars;
 extern crate rustc_serialize;
 
-use handlebars::{Helper, Handlebars, RenderContext, RenderError};
+use handlebars::{Handlebars, Helper, RenderContext, RenderError};
+use rustc_serialize::json::{Json, ToJson};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use rustc_serialize::json::{ToJson, Json};
 
 // Bit flags indicating what occurs on a particular cycle
 const DRAW_PIXEL: u32 = 1 << 1;
@@ -426,8 +426,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         lines.push("".to_owned());
         lines.push("    // Reading palettes here isn't accurate, but should suffice for now"
                        .to_owned());
-        lines.push("    self.bg_palettes = self.background_palettes()?;".to_owned());
-        lines.push("    self.sprite_palettes = self.sprite_palettes()?;".to_owned());
+        lines.push("    self.background_renderer.update_palettes(&self.vram)?;".to_owned());
+        lines.push("    self.oam.update_palettes(&self.vram)?;".to_owned());
         lines.push("".to_owned());
         lines.push("    self.status.clear_in_vblank();".to_owned());
         lines.push("    self.status.clear_sprite_zero_hit();".to_owned());
@@ -563,24 +563,35 @@ impl ToJson for Cycle {
         props.insert("value".to_owned(), Json::U64(self.value as _));
         props.insert("nop".to_owned(), Json::Boolean(self.nop));
         props.insert("draw_pixel".to_owned(), Json::Boolean(self.draw_pixel));
-        props.insert("shift_bg_registers".to_owned(), Json::Boolean(self.shift_bg_registers));
+        props.insert("shift_bg_registers".to_owned(),
+                     Json::Boolean(self.shift_bg_registers));
         props.insert("fetch_nt".to_owned(), Json::Boolean(self.fetch_nt));
         props.insert("fetch_at".to_owned(), Json::Boolean(self.fetch_at));
         props.insert("fetch_bg_low".to_owned(), Json::Boolean(self.fetch_bg_low));
-        props.insert("fetch_bg_high".to_owned(), Json::Boolean(self.fetch_bg_high));
-        props.insert("fill_bg_registers".to_owned(), Json::Boolean(self.fill_bg_registers));
+        props.insert("fetch_bg_high".to_owned(),
+                     Json::Boolean(self.fetch_bg_high));
+        props.insert("fill_bg_registers".to_owned(),
+                     Json::Boolean(self.fill_bg_registers));
         props.insert("inc_coarse_x".to_owned(), Json::Boolean(self.inc_coarse_x));
         props.insert("inc_fine_y".to_owned(), Json::Boolean(self.inc_fine_y));
-        props.insert("hori_v_eq_hori_t".to_owned(), Json::Boolean(self.hori_v_eq_hori_t));
+        props.insert("hori_v_eq_hori_t".to_owned(),
+                     Json::Boolean(self.hori_v_eq_hori_t));
         props.insert("set_vblank".to_owned(), Json::Boolean(self.set_vblank));
-        props.insert("clear_vblank_and_sprite_zero_hit".to_owned(), Json::Boolean(self.clear_vblank_and_sprite_zero_hit));
-        props.insert("vert_v_eq_vert_t".to_owned(), Json::Boolean(self.vert_v_eq_vert_t));
-        props.insert("odd_frame_skip_cycle".to_owned(), Json::Boolean(self.odd_frame_skip_cycle));
+        props.insert("clear_vblank_and_sprite_zero_hit".to_owned(),
+                     Json::Boolean(self.clear_vblank_and_sprite_zero_hit));
+        props.insert("vert_v_eq_vert_t".to_owned(),
+                     Json::Boolean(self.vert_v_eq_vert_t));
+        props.insert("odd_frame_skip_cycle".to_owned(),
+                     Json::Boolean(self.odd_frame_skip_cycle));
         props.insert("frame_inc".to_owned(), Json::Boolean(self.frame_inc));
-        props.insert("init_secondary_oam".to_owned(), Json::Boolean(self.init_secondary_oam));
-        props.insert("sprite_evaluation".to_owned(), Json::Boolean(self.sprite_evaluation));
-        props.insert("fetch_sprite_low".to_owned(), Json::Boolean(self.fetch_sprite_low));
-        props.insert("fetch_sprite_high".to_owned(), Json::Boolean(self.fetch_sprite_high));
+        props.insert("init_secondary_oam".to_owned(),
+                     Json::Boolean(self.init_secondary_oam));
+        props.insert("sprite_evaluation".to_owned(),
+                     Json::Boolean(self.sprite_evaluation));
+        props.insert("fetch_sprite_low".to_owned(),
+                     Json::Boolean(self.fetch_sprite_low));
+        props.insert("fetch_sprite_high".to_owned(),
+                     Json::Boolean(self.fetch_sprite_high));
         Json::Object(props)
     }
 }
@@ -640,86 +651,86 @@ fn diagram(cycle_table: &CycleTable) {
     println!("Done!");
 }
 
-fn class_helper (h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+fn class_helper(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
     let mut classes = Vec::new();
     if let &Json::Object(ref map) = h.param(0).unwrap().value() {
-        if let Json::Boolean(true) = map["nop"]  {
+        if let Json::Boolean(true) = map["nop"] {
             classes.push("nop".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_sprite_low"]  {
+        if let Json::Boolean(true) = map["fetch_sprite_low"] {
             classes.push("fetch_sprite_low".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_sprite_high"]  {
+        if let Json::Boolean(true) = map["fetch_sprite_high"] {
             classes.push("fetch_sprite_high".to_owned());
         }
 
-        if let Json::Boolean(true) = map["sprite_evaluation"]  {
+        if let Json::Boolean(true) = map["sprite_evaluation"] {
             classes.push("sprite_evaluation".to_owned());
         }
 
-        if let Json::Boolean(true) = map["init_secondary_oam"]  {
+        if let Json::Boolean(true) = map["init_secondary_oam"] {
             classes.push("init_secondary_oam".to_owned());
         }
 
-        if let Json::Boolean(true) = map["draw_pixel"]  {
+        if let Json::Boolean(true) = map["draw_pixel"] {
             classes.push("draw_pixel".to_owned());
         }
 
-        if let Json::Boolean(true) = map["set_vblank"]  {
+        if let Json::Boolean(true) = map["set_vblank"] {
             classes.push("set_vblank".to_owned());
         }
 
-        if let Json::Boolean(true) = map["clear_vblank_and_sprite_zero_hit"]  {
+        if let Json::Boolean(true) = map["clear_vblank_and_sprite_zero_hit"] {
             classes.push("clear_vblank_and_sprite_zero_hit".to_owned());
         }
 
-        if let Json::Boolean(true) = map["inc_coarse_x"]  {
+        if let Json::Boolean(true) = map["inc_coarse_x"] {
             classes.push("inc_coarse_x".to_owned());
         }
 
-        if let Json::Boolean(true) = map["inc_fine_y"]  {
+        if let Json::Boolean(true) = map["inc_fine_y"] {
             classes.push("inc_fine_y".to_owned());
         }
 
-        if let Json::Boolean(true) = map["hori_v_eq_hori_t"]  {
+        if let Json::Boolean(true) = map["hori_v_eq_hori_t"] {
             classes.push("hori_v_eq_hori_t".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_at"]  {
+        if let Json::Boolean(true) = map["fetch_at"] {
             classes.push("fetch_at".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_nt"]  {
+        if let Json::Boolean(true) = map["fetch_nt"] {
             classes.push("fetch_nt".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_bg_low"]  {
+        if let Json::Boolean(true) = map["fetch_bg_low"] {
             classes.push("fetch_bg_low".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fetch_bg_high"]  {
+        if let Json::Boolean(true) = map["fetch_bg_high"] {
             classes.push("fetch_bg_high".to_owned());
         }
 
-        if let Json::Boolean(true) = map["odd_frame_skip_cycle"]  {
+        if let Json::Boolean(true) = map["odd_frame_skip_cycle"] {
             classes.push("odd_frame_skip_cycle".to_owned());
         }
 
-        if let Json::Boolean(true) = map["frame_inc"]  {
+        if let Json::Boolean(true) = map["frame_inc"] {
             classes.push("frame_inc".to_owned());
         }
 
-        if let Json::Boolean(true) = map["shift_bg_registers"]  {
+        if let Json::Boolean(true) = map["shift_bg_registers"] {
             classes.push("shift_bg_registers".to_owned());
         }
 
-        if let Json::Boolean(true) = map["vert_v_eq_vert_t"]  {
+        if let Json::Boolean(true) = map["vert_v_eq_vert_t"] {
             classes.push("vert_v_eq_vert_t".to_owned());
         }
 
-        if let Json::Boolean(true) = map["fill_bg_registers"]  {
+        if let Json::Boolean(true) = map["fill_bg_registers"] {
             classes.push("fill_bg_registers".to_owned());
         }
     } else {
@@ -730,7 +741,7 @@ fn class_helper (h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(
     Ok(())
 }
 
-fn color_helper (h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
+fn color_helper(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
     let color = if let &Json::Object(ref map) = h.param(0).unwrap().value() {
         if let Json::U64(val) = map["value"] {
             val

@@ -1,3 +1,6 @@
+use errors::*;
+use ppu::palette::{self, Color, PALETTE};
+use ppu::vram::Vram;
 use std::cell::Cell;
 use std::num::Wrapping;
 
@@ -22,11 +25,14 @@ pub trait ObjectAttributeMemory: Default {
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
     fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes;
+    fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()>;
+    fn pixel_color(&self, pixel: u8) -> Color;
 }
 
 pub struct ObjectAttributeMemoryBase {
     memory: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
+    palettes: [Color; 16],
 }
 
 impl Default for ObjectAttributeMemoryBase {
@@ -34,6 +40,7 @@ impl Default for ObjectAttributeMemoryBase {
         ObjectAttributeMemoryBase {
             memory: [0; 0x100],
             address: Cell::new(0),
+            palettes: palette::EMPTY,
         }
     }
 }
@@ -95,6 +102,30 @@ impl ObjectAttributeMemory for ObjectAttributeMemoryBase {
             vertical_flip: vertical_flip,
             tile_index: tile_index,
         }
+    }
+    fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()> {
+        let bg = vram.read(0x3f00)? as usize;
+        self.palettes = [PALETTE[bg],
+                         PALETTE[vram.read(0x3f11)? as usize],
+                         PALETTE[vram.read(0x3f12)? as usize],
+                         PALETTE[vram.read(0x3f13)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f15)? as usize],
+                         PALETTE[vram.read(0x3f16)? as usize],
+                         PALETTE[vram.read(0x3f17)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f19)? as usize],
+                         PALETTE[vram.read(0x3f1a)? as usize],
+                         PALETTE[vram.read(0x3f1b)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f1d)? as usize],
+                         PALETTE[vram.read(0x3f1e)? as usize],
+                         PALETTE[vram.read(0x3f1f)? as usize]];
+        Ok(())
+    }
+
+    fn pixel_color(&self, pixel: u8) -> Color {
+        self.palettes[pixel as usize]
     }
 }
 

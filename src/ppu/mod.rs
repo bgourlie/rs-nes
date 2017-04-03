@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod spec_tests;
 
+mod palette;
 mod control_register;
 mod mask_register;
 mod status_register;
@@ -27,7 +28,7 @@ use ppu::pattern::Sprite;
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
-use screen::{Color, NesScreen, Screen};
+use screen::{NesScreen, Screen};
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
@@ -40,71 +41,6 @@ const VBLANK_SCANLINE: u64 = 241;
 const LAST_SCANLINE: u64 = 261;
 const VBLANK_SET_CYCLE: u64 = VBLANK_SCANLINE * CYCLES_PER_SCANLINE + 1;
 const VBLANK_CLEAR_CYCLE: u64 = LAST_SCANLINE * CYCLES_PER_SCANLINE + 1;
-
-static PALETTE: [Color; 64] = [Color(0x7C, 0x7C, 0x7C),
-                               Color(0x00, 0x00, 0xFC),
-                               Color(0x00, 0x00, 0xBC),
-                               Color(0x44, 0x28, 0xBC),
-                               Color(0x94, 0x00, 0x84),
-                               Color(0xA8, 0x00, 0x20),
-                               Color(0xA8, 0x10, 0x00),
-                               Color(0x88, 0x14, 0x00),
-                               Color(0x50, 0x30, 0x00),
-                               Color(0x00, 0x78, 0x00),
-                               Color(0x00, 0x68, 0x00),
-                               Color(0x00, 0x58, 0x00),
-                               Color(0x00, 0x40, 0x58),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0xBC, 0xBC, 0xBC),
-                               Color(0x00, 0x78, 0xF8),
-                               Color(0x00, 0x58, 0xF8),
-                               Color(0x68, 0x44, 0xFC),
-                               Color(0xD8, 0x00, 0xCC),
-                               Color(0xE4, 0x00, 0x58),
-                               Color(0xF8, 0x38, 0x00),
-                               Color(0xE4, 0x5C, 0x10),
-                               Color(0xAC, 0x7C, 0x00),
-                               Color(0x00, 0xB8, 0x00),
-                               Color(0x00, 0xA8, 0x00),
-                               Color(0x00, 0xA8, 0x44),
-                               Color(0x00, 0x88, 0x88),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0xF8, 0xF8, 0xF8),
-                               Color(0x3C, 0xBC, 0xFC),
-                               Color(0x68, 0x88, 0xFC),
-                               Color(0x98, 0x78, 0xF8),
-                               Color(0xF8, 0x78, 0xF8),
-                               Color(0xF8, 0x58, 0x98),
-                               Color(0xF8, 0x78, 0x58),
-                               Color(0xFC, 0xA0, 0x44),
-                               Color(0xF8, 0xB8, 0x00),
-                               Color(0xB8, 0xF8, 0x18),
-                               Color(0x58, 0xD8, 0x54),
-                               Color(0x58, 0xF8, 0x98),
-                               Color(0x00, 0xE8, 0xD8),
-                               Color(0x78, 0x78, 0x78),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0xFC, 0xFC, 0xFC),
-                               Color(0xA4, 0xE4, 0xFC),
-                               Color(0xB8, 0xB8, 0xF8),
-                               Color(0xD8, 0xB8, 0xF8),
-                               Color(0xF8, 0xB8, 0xF8),
-                               Color(0xF8, 0xA4, 0xC0),
-                               Color(0xF0, 0xD0, 0xB0),
-                               Color(0xFC, 0xE0, 0xA8),
-                               Color(0xF8, 0xD8, 0x78),
-                               Color(0xD8, 0xF8, 0x78),
-                               Color(0xB8, 0xF8, 0xB8),
-                               Color(0xB8, 0xF8, 0xD8),
-                               Color(0x00, 0xFC, 0xFC),
-                               Color(0xF8, 0xD8, 0xF8),
-                               Color(0x00, 0x00, 0x00),
-                               Color(0x00, 0x00, 0x00)];
 
 pub type PpuImpl = PpuBase<VramBase, ObjectAttributeMemoryBase>;
 
@@ -126,8 +62,6 @@ pub struct PpuBase<V: Vram, O: ObjectAttributeMemory> {
     vram: V,
     oam: O,
     screen: Rc<RefCell<NesScreen>>,
-    sprite_palettes: [Color; 16],
-    bg_palettes: [Color; 16],
     write_latch: WriteLatch,
     sprite_buffer: [Option<Sprite>; 8],
     background_renderer: BackgroundRenderer,
@@ -163,9 +97,10 @@ impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
         };
 
         let pixel_color = if let Some((sprite_palette_index, sprite_color_index)) = sprite_pixel {
-            self.sprite_palettes[(sprite_palette_index as usize) << 2 | sprite_color_index as usize]
+            self.oam
+                .pixel_color(sprite_palette_index << 2 | sprite_color_index)
         } else {
-            self.bg_palettes[self.background_renderer.current_pixel() as usize]
+            self.background_renderer.pixel_color()
         };
 
         self.screen
@@ -213,68 +148,12 @@ impl<V: Vram, O: ObjectAttributeMemory> PpuBase<V, O> {
         };
         scanline >= sprite.y && scanline < sprite.y + height
     }
-
-    fn background_palettes(&self) -> Result<[Color; 16]> {
-        let bg = self.vram.read(0x3f00)? as usize;
-        Ok([PALETTE[bg],
-            PALETTE[self.vram.read(0x3f01)? as usize],
-            PALETTE[self.vram.read(0x3f02)? as usize],
-            PALETTE[self.vram.read(0x3f03)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f05)? as usize],
-            PALETTE[self.vram.read(0x3f06)? as usize],
-            PALETTE[self.vram.read(0x3f07)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f09)? as usize],
-            PALETTE[self.vram.read(0x3f0a)? as usize],
-            PALETTE[self.vram.read(0x3f0b)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f0d)? as usize],
-            PALETTE[self.vram.read(0x3f0e)? as usize],
-            PALETTE[self.vram.read(0x3f0f)? as usize]])
-    }
-
-    fn sprite_palettes(&self) -> Result<[Color; 16]> {
-        let bg = self.vram.read(0x3f00)? as usize;
-        Ok([PALETTE[bg],
-            PALETTE[self.vram.read(0x3f11)? as usize],
-            PALETTE[self.vram.read(0x3f12)? as usize],
-            PALETTE[self.vram.read(0x3f13)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f15)? as usize],
-            PALETTE[self.vram.read(0x3f16)? as usize],
-            PALETTE[self.vram.read(0x3f17)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f19)? as usize],
-            PALETTE[self.vram.read(0x3f1a)? as usize],
-            PALETTE[self.vram.read(0x3f1b)? as usize],
-            PALETTE[bg],
-            PALETTE[self.vram.read(0x3f1d)? as usize],
-            PALETTE[self.vram.read(0x3f1e)? as usize],
-            PALETTE[self.vram.read(0x3f1f)? as usize]])
-    }
 }
 
 impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
     type Scr = NesScreen;
 
     fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
-        let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00)];
         PpuBase {
             cycles: VBLANK_SET_CYCLE,
             control: ControlRegister::default(),
@@ -283,8 +162,6 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             vram: V::new(rom),
             oam: O::default(),
             screen: screen,
-            sprite_palettes: empty,
-            bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
@@ -706,8 +583,8 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                 // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
 
                 // Reading palettes here isn't accurate, but should suffice for now
-                self.bg_palettes = self.background_palettes()?;
-                self.sprite_palettes = self.sprite_palettes()?;
+                self.background_renderer.update_palettes(&self.vram)?;
+                self.oam.update_palettes(&self.vram)?;
 
                 self.status.clear_in_vblank();
                 self.status.clear_sprite_zero_hit();

@@ -1,4 +1,5 @@
 use super::*;
+use ppu::palette::EMPTY;
 
 #[test]
 fn sprite_attributes_x_pos() {
@@ -126,5 +127,6 @@ fn oam_fixture(initial_values: &[u8]) -> ObjectAttributeMemoryBase {
     ObjectAttributeMemoryBase {
         memory: mem,
         address: Cell::new(0),
+        palettes: EMPTY,
     }
 }

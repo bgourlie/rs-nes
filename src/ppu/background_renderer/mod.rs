@@ -4,10 +4,12 @@
 mod spec_tests;
 
 use errors::*;
+use ppu::palette::{Color, PALETTE};
 use ppu::vram::Vram;
 
 #[derive(Default)]
 pub struct BackgroundRenderer {
+    palettes: [Color; 16],
     pattern_low_shift_register: u16,
     pattern_high_shift_register: u16,
     palette_low_bit_shift_register: u16,
@@ -20,8 +22,33 @@ pub struct BackgroundRenderer {
 }
 
 impl BackgroundRenderer {
+    pub fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()> {
+        let bg = vram.read(0x3f00)? as usize;
+        self.palettes = [PALETTE[bg],
+                         PALETTE[vram.read(0x3f01)? as usize],
+                         PALETTE[vram.read(0x3f02)? as usize],
+                         PALETTE[vram.read(0x3f03)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f05)? as usize],
+                         PALETTE[vram.read(0x3f06)? as usize],
+                         PALETTE[vram.read(0x3f07)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f09)? as usize],
+                         PALETTE[vram.read(0x3f0a)? as usize],
+                         PALETTE[vram.read(0x3f0b)? as usize],
+                         PALETTE[bg],
+                         PALETTE[vram.read(0x3f0d)? as usize],
+                         PALETTE[vram.read(0x3f0e)? as usize],
+                         PALETTE[vram.read(0x3f0f)? as usize]];
+        Ok(())
+    }
+
     pub fn current_pixel(&self) -> u8 {
         self.current_pixel
+    }
+
+    pub fn pixel_color(&self) -> Color {
+        self.palettes[self.current_pixel as usize]
     }
 
     pub fn fill_shift_registers(&mut self, vram_addr: u16) {

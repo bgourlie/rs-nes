@@ -430,23 +430,6 @@ mod mocks {
     pub type TestPpu = PpuBase<MockVram, MockOam>;
 
     pub fn mock_ppu() -> TestPpu {
-        let empty: [Color; 16] = [Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00),
-                                  Color(0x00, 0x00, 0x00)];
-
         PpuBase {
             cycles: 0,
             control: ControlRegister::default(),
@@ -455,8 +438,6 @@ mod mocks {
             vram: MockVram::new(NesRom::default()),
             oam: MockOam::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
-            sprite_palettes: empty,
-            bg_palettes: empty,
             write_latch: WriteLatch::default(),
             sprite_buffer: [None, None, None, None, None, None, None, None],
             background_renderer: BackgroundRenderer::default(),
@@ -493,6 +474,14 @@ mod mocks {
 
         fn sprite_attributes(&self, _: u8) -> SpriteAttributes {
             SpriteAttributes::default()
+        }
+
+        fn update_palettes<V: Vram>(&mut self, _: &V) -> Result<()> {
+            Ok(())
+        }
+
+        fn pixel_color(&self, _: u8) -> Color {
+            Color(0, 0, 0)
         }
     }
 
