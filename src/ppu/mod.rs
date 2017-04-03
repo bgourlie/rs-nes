@@ -314,31 +314,28 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
             }
             1 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             2 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             3 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // FETCH_AT
                     self.background_renderer
                         .fetch_attribute_byte(&self.vram)?;
@@ -346,14 +343,14 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             4 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // FETCH_BG_LOW
                     self.background_renderer
                         .fetch_pattern_low_byte(&self.vram, *self.control)?;
@@ -361,14 +358,14 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             5 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // FETCH_BG_HIGH
                     self.background_renderer
                         .fetch_pattern_high_byte(&self.vram, *self.control)?;
@@ -376,28 +373,28 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             6 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
                         .tick_shifters(self.vram.fine_x());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             7 => {
                 if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
@@ -409,6 +406,9 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                     // FILL_BG_REGISTERS
                     self.background_renderer
                         .fill_shift_registers(self.vram.addr());
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
@@ -589,12 +589,14 @@ impl<V: Vram, O: ObjectAttributeMemory> Ppu for PpuBase<V, O> {
                         self.cycles += 1;
                     }
                 }
+
                 Ok(Interrupt::None)
             }
             24 => {
                 // EVEN_FRAME_INC
                 // This is the last cycle for even frames
                 self.odd_frame = true;
+
                 Ok(Interrupt::None)
             }
             _ => unreachable!(),

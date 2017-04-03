@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
 // Bit flags indicating what occurs on a particular cycle
-const SET_VBLANK: u16 = 1 << 1;
-const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u16 = 1 << 2;
-const INC_COARSE_X: u16 = 1 << 3;
-const INC_FINE_Y: u16 = 1 << 4;
-const HORI_V_EQ_HORI_T: u16 = 1 << 5;
-const FETCH_AT: u16 = 1 << 6;
-const FETCH_NT: u16 = 1 << 7;
-const FETCH_BG_LOW: u16 = 1 << 8;
-const FETCH_BG_HIGH: u16 = 1 << 9;
-const ODD_FRAME_INC: u16 = 1 << 10;
-const EVEN_FRAME_INC: u16 = 1 << 11;
-const SHIFT_BG_REGISTERS: u16 = 1 << 12;
+const DRAW_PIXEL: u16 = 1 << 1;
+const SHIFT_BG_REGISTERS: u16 = 1 << 2;
+const FETCH_NT: u16 = 1 << 3;
+const FETCH_AT: u16 = 1 << 4;
+const FETCH_BG_LOW: u16 = 1 << 5;
+const FETCH_BG_HIGH: u16 = 1 << 6;
+const FILL_BG_REGISTERS: u16 = 1 << 7;
+const INC_COARSE_X: u16 = 1 << 8;
+const INC_FINE_Y: u16 = 1 << 9;
+const HORI_V_EQ_HORI_T: u16 = 1 << 10;
+const SET_VBLANK: u16 = 1 << 11;
+const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u16 = 1 << 12;
 const VERT_V_EQ_VERT_T: u16 = 1 << 13;
-const FILL_BG_REGISTERS: u16 = 1 << 14;
-const DRAW_PIXEL: u16 = 1 << 15;
+const ODD_FRAME_INC: u16 = 1 << 14;
+const EVEN_FRAME_INC: u16 = 1 << 15;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -27,9 +27,9 @@ type CycleTable = [[u16; CYCLES_PER_SCANLINE]; SCANLINES];
 
 #[derive(Clone)]
 enum Action {
-    WhenRenderingEnabled(String, Vec<String>),
-    ReturnExpression(String, Vec<String>),
+    WhenRenderingEnabled(String, Vec<String>, usize),
     NoReturnExpression(String, Vec<String>),
+    ReturnExpression(String, Vec<String>),
 }
 
 fn main() {
@@ -212,7 +212,7 @@ fn print_legend(type_map: &HashMap<u16, u8>) {
             .iter()
             .map(|a: &Action| match a {
                      &Action::NoReturnExpression(ref action_name, _) |
-                     &Action::WhenRenderingEnabled(ref action_name, _) |
+                     &Action::WhenRenderingEnabled(ref action_name, _, _) |
                      &Action::ReturnExpression(ref action_name, _) => action_name.clone(),
                  })
             .collect();
@@ -275,7 +275,7 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
                     returns = Some(action.clone());
                 }
             }
-            Action::WhenRenderingEnabled(_, _) => when_rendering_enabled.push(action.clone()),
+            Action::WhenRenderingEnabled(_, _, _) => when_rendering_enabled.push(action.clone()),
             Action::NoReturnExpression(_, _) => no_return.push(action.clone()),
         }
     }
@@ -292,9 +292,22 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
     }
 
     if when_rendering_enabled.len() > 0 {
+        when_rendering_enabled.sort_by(|a, b| {
+            let a = match a {
+                &Action::WhenRenderingEnabled(_, _, order) => order,
+                _ => 0,
+            };
+
+            let b = match b {
+                &Action::WhenRenderingEnabled(_, _, order) => order,
+                _ => 0,
+            };
+
+            a.cmp(&b)
+        });
         lines.push("if self.mask.rendering_enabled() {".to_owned());
         for action in when_rendering_enabled {
-            if let Action::WhenRenderingEnabled(action_name, mut action_lines) = action {
+            if let Action::WhenRenderingEnabled(action_name, mut action_lines, _) = action {
                 lines.push(format!("    // {}", action_name));
                 lines.append(&mut action_lines);
                 lines.push("".to_owned());
@@ -330,7 +343,7 @@ fn actions(cycle_type: u16) -> Vec<Action> {
     if cycle_type & DRAW_PIXEL > 0 {
         let mut lines = Vec::new();
         lines.push("    self.draw_pixel(x, scanline)?;".to_owned());
-        actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines, 10000))
     }
 
     if cycle_type & SET_VBLANK > 0 {
@@ -359,39 +372,39 @@ fn actions(cycle_type: u16) -> Vec<Action> {
     if cycle_type & INC_COARSE_X > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.coarse_x_increment();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("INC_COARSE_X".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("INC_COARSE_X".to_owned(), lines, 0))
     }
     if cycle_type & INC_FINE_Y > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.fine_y_increment();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("INC_FINE_Y".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("INC_FINE_Y".to_owned(), lines, 0))
     }
     if cycle_type & HORI_V_EQ_HORI_T > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.copy_horizontal_pos_to_addr();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("HORI_V_EQ_HORI_T".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("HORI_V_EQ_HORI_T".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_AT > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fetch_attribute_byte(&self.vram)?;".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_AT".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("FETCH_AT".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_NT > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fetch_nametable_byte(&self.vram)?;".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_NT".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("FETCH_NT".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let mut lines = Vec::new();
         lines
             .push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;"
                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_BG_LOW".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("FETCH_BG_LOW".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines, 0))
     }
     if cycle_type & ODD_FRAME_INC > 0 {
         let mut lines = Vec::new();
@@ -414,18 +427,18 @@ fn actions(cycle_type: u16) -> Vec<Action> {
     if cycle_type & SHIFT_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.tick_shifters(self.vram.fine_x());".to_owned());
-        actions.push(Action::WhenRenderingEnabled("SHIFT_BG_REGISTERS".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("SHIFT_BG_REGISTERS".to_owned(), lines, 0))
     }
     if cycle_type & VERT_V_EQ_VERT_T > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.copy_vertical_pos_to_addr();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("VERT_V_EQ_VERT_T".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("VERT_V_EQ_VERT_T".to_owned(), lines, 0))
     }
     if cycle_type & FILL_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fill_shift_registers(self.vram.addr());"
                        .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FILL_BG_REGISTERS".to_owned(), lines))
+        actions.push(Action::WhenRenderingEnabled("FILL_BG_REGISTERS".to_owned(), lines, 0))
     }
     actions
 }
