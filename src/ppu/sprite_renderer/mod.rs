@@ -1,14 +1,18 @@
 // TODO: Explore SIMD
 // TODO: Tests
 
-use errors::*;
-use ppu::palette::{self, Color, PALETTE};
-use ppu::vram::Vram;
-use std::cell::Cell;
-use std::num::Wrapping;
+mod sprite_evaluation;
 
 #[cfg(test)]
 mod spec_tests;
+
+use errors::*;
+use ppu::palette::{self, Color, PALETTE};
+use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
+pub use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluationAction;
+use ppu::vram::Vram;
+use std::cell::Cell;
+use std::num::Wrapping;
 
 pub trait SpriteRenderer: Default {
     fn read_data(&self) -> u8;
@@ -19,11 +23,11 @@ pub trait SpriteRenderer: Default {
     fn pixel_color(&self, pixel: u8) -> Color;
     fn dec_x_counters(&mut self);
     fn start_secondary_oam_init(&mut self);
-    fn start_sprite_evaluation(&mut self);
+    fn start_sprite_evaluation(&mut self, scanline: u16);
     fn tick_secondary_oam_init(&mut self);
-    fn tick_sprite_evaluation<V: Vram>(&mut self, vram: &V) -> Result<()>;
-    fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V) -> Result<()>;
-    fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V) -> Result<()>;
+    fn tick_sprite_evaluation(&mut self) -> SpriteEvaluationAction;
+    fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()>;
+    fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()>;
 }
 
 pub struct SpriteRendererBase {
@@ -35,7 +39,8 @@ pub struct SpriteRendererBase {
     attribute_latches: [u8; 8],
     x_counters: [u8; 8],
     secondary_oam_init_cycle: u8,
-    sprite_evaluation_cycle: u8,
+    sprite_evaluation: SpriteEvaluation,
+    sprites_fetched: u8,
 }
 
 impl Default for SpriteRendererBase {
@@ -49,7 +54,8 @@ impl Default for SpriteRendererBase {
             attribute_latches: [0; 8],
             x_counters: [0; 8],
             secondary_oam_init_cycle: 0,
-            sprite_evaluation_cycle: 0,
+            sprite_evaluation: SpriteEvaluation::default(),
+            sprites_fetched: 0,
         }
     }
 }
@@ -81,37 +87,6 @@ impl SpriteRenderer for SpriteRendererBase {
         self.primary_oam[self.address.get() as usize] = val;
         self.inc_address();
     }
-
-    //    fn sprite_attributes(&self, tile_index: u8) -> SpriteAttributes {
-    //        debug_assert!(tile_index <= 64, "Tile index out of bounds: {}", tile_index);
-    //        let mem = self.primary_oam;
-    //        let index = tile_index as usize * 4;
-    //        let y = mem[index];
-    //        let tile_index = mem[index + 1];
-    //        let attributes = mem[index + 2];
-    //        let x = mem[index + 3];
-    //
-    //        let palette = attributes & 0b00000011;
-    //
-    //        let priority = if attributes & 0b00100000 == 0 {
-    //            Priority::InFrontOfBackground
-    //        } else {
-    //            Priority::BehindBackground
-    //        };
-    //
-    //        let horizontal_flip = attributes & 0b01000000 > 0;
-    //        let vertical_flip = attributes & 0b10000000 > 0;
-    //
-    //        SpriteAttributes {
-    //            x: x,
-    //            y: y,
-    //            palette: palette,
-    //            priority: priority,
-    //            horizontal_flip: horizontal_flip,
-    //            vertical_flip: vertical_flip,
-    //            tile_index: tile_index,
-    //        }
-    //    }
 
     fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()> {
         let bg = vram.read(0x3f00)? as usize;
@@ -157,56 +132,37 @@ impl SpriteRenderer for SpriteRendererBase {
         self.secondary_oam_init_cycle += 1;
     }
 
-    fn tick_sprite_evaluation<V: Vram>(&mut self, vram: &V) -> Result<()> {
-        //  Cycles 65-256: Sprite evaluation
-        //  On odd cycles, data is read from (primary) OAM
-        //  On even cycles, data is written to secondary OAM (unless secondary OAM is full, in which
-        //  case it will read the value in secondary OAM instead)
-        //
-        //  1.  Starting at n = 0, read a sprite's Y-coordinate (OAM[n][0], copying it to the next
-        //      open slot in secondary OAM (unless 8 sprites have been found, in which case the write is ignored).
-        //
-        //    1a. If Y-coordinate is in range, copy remaining bytes of sprite data (OAM[n][1] thru
-        //      OAM[n][3]) into secondary OAM.
-        //
-        //  2.  Increment n
-        //    2a. If n has overflowed back to zero (all 64 sprites evaluated), go to 4
-        //
-        //    2b. If less than 8 sprites have been found, go to 1
-        //
-        //    2c. If exactly 8 sprites have been found, disable writes to secondary OAM because it
-        //        is full. This causes sprites in back to drop out.
-        //
-        //  3.  Starting at m = 0, evaluate OAM[n][m] as a Y-coordinate.
-        //
-        //    3a. If the value is in range, set the sprite overflow flag in $2002 and read the next
-        //        3 entries of OAM (incrementing 'm' after each byte and incrementing 'n' when 'm'
-        //        overflows); if m = 3, increment n
-        //
-        //    3b. If the value is not in range, increment n and m (without carry). If n overflows
-        //        to 0, go to 4; otherwise go to 3
-        //
-        //        - The m increment is a hardware bug - if only n was incremented, the overflow
-        //          flag would be set whenever more than 8 sprites were present on the same
-        //          scanline, as expected.
-        //
-        //  4.  Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM, and
-        //      increment n (repeat until HBLANK is reached)
-        unimplemented!()
+    fn tick_sprite_evaluation(&mut self) -> SpriteEvaluationAction {
+        self.sprite_evaluation
+            .tick(&self.primary_oam, &mut self.secondary_oam)
     }
-    fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
-        unimplemented!()
+    fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()> {
+        let tile_index = self.secondary_oam[self.sprites_fetched as usize * 4 + 1] as u16;
+        let table_select = ((control_reg as u16) << 9) & 0x1000;
+        let tile_offset = table_select | tile_index;
+        let pattern_low = vram.read(tile_offset)?;
+        self.pattern_shift_registers[self.sprites_fetched as usize * 2] |= pattern_low;
+        Ok(())
     }
 
-    fn fetch_pattern_high_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
-        unimplemented!()
+    fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()> {
+        let tile_index = self.secondary_oam[self.sprites_fetched as usize * 4 + 1] as u16;
+        let table_select = ((control_reg as u16) << 9) & 0x1000;
+        let tile_offset = table_select | tile_index;
+        let pattern_high = vram.read(tile_offset + 8)?;
+        self.pattern_shift_registers[self.sprites_fetched as usize * 2 + 1] |= pattern_high;
+        self.sprites_fetched += 1;
+        Ok(())
     }
 
     fn start_secondary_oam_init(&mut self) {
-        self.secondary_oam_init_cycle = 0
+        self.secondary_oam_init_cycle = 0;
+        self.sprites_fetched = 0;
     }
 
-    fn start_sprite_evaluation(&mut self) {
-        self.sprite_evaluation_cycle = 0
+    fn start_sprite_evaluation(&mut self, scanline: u16) {
+        // Current scanline is passed in, we evaluate the sprites for the next scanline
+        let scanline = if scanline == 261 { 0 } else { scanline + 1 };
+        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8);
     }
 }

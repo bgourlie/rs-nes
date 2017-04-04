@@ -414,7 +414,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & START_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.start_sprite_evaluation();".to_owned());
+        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline);".to_owned());
         actions.push(Action::WhenRenderingEnabled("START_SPRITE_EVALUATION".to_owned(), lines, 10))
     }
 
@@ -426,19 +426,21 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & FETCH_SPRITE_LOW > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.fetch_pattern_low_byte(&self.vram)?;".to_owned());
+        lines.push("    self.sprite_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;"
+                       .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_LOW".to_owned(), lines, 0))
     }
 
     if cycle_type & FETCH_SPRITE_HIGH > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.fetch_pattern_high_byte(&self.vram)?;".to_owned());
+        lines.push("    self.sprite_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;"
+                       .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_HIGH".to_owned(), lines, 0))
     }
 
     if cycle_type & TICK_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;".to_owned());
+        lines.push("    self.sprite_renderer.tick_sprite_evaluation();".to_owned());
         actions.push(Action::WhenRenderingEnabled("TICK_SPRITE_EVALUATION".to_owned(), lines, 100))
     }
 

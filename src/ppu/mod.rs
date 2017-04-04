@@ -268,10 +268,10 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fill_shift_registers(self.vram.addr());
 
                     // START_SPRITE_EVALUATION
-                    self.sprite_renderer.start_sprite_evaluation();
+                    self.sprite_renderer.start_sprite_evaluation(scanline);
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -288,7 +288,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -309,7 +309,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -330,7 +330,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -351,7 +351,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -371,7 +371,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -396,7 +396,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fill_shift_registers(self.vram.addr());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -416,7 +416,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;
+                    self.sprite_renderer.tick_sprite_evaluation();
                 }
                 Ok(Interrupt::None)
             }
@@ -447,7 +447,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             18 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_LOW
-                    self.sprite_renderer.fetch_pattern_low_byte(&self.vram)?;
+                    self.sprite_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
                 }
                 Ok(Interrupt::None)
             }
@@ -455,7 +456,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_HIGH
                     self.sprite_renderer
-                        .fetch_pattern_high_byte(&self.vram)?;
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
                 }
                 Ok(Interrupt::None)
             }
@@ -700,7 +701,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             39 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_LOW
-                    self.sprite_renderer.fetch_pattern_low_byte(&self.vram)?;
+                    self.sprite_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
@@ -711,7 +713,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_HIGH
                     self.sprite_renderer
-                        .fetch_pattern_high_byte(&self.vram)?;
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();

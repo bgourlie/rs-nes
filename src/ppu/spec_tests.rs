@@ -425,6 +425,7 @@ mod mocks {
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
+    use ppu::sprite_renderer::SpriteEvaluationAction;
     use ppu::sprite_renderer::SpriteRenderer;
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
@@ -491,20 +492,20 @@ mod mocks {
 
         fn tick_secondary_oam_init(&mut self) {}
 
-        fn tick_sprite_evaluation<V: Vram>(&mut self, _: &V) -> Result<()> {
+        fn tick_sprite_evaluation(&mut self) -> SpriteEvaluationAction {
+            SpriteEvaluationAction::None
+        }
+
+        fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V, _: u8) -> Result<()> {
             Ok(())
         }
 
-        fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
-            Ok(())
-        }
-
-        fn fetch_pattern_high_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
+        fn fetch_pattern_high_byte<V: Vram>(&mut self, _: &V, _: u8) -> Result<()> {
             Ok(())
         }
         fn start_secondary_oam_init(&mut self) {}
 
-        fn start_sprite_evaluation(&mut self) {}
+        fn start_sprite_evaluation(&mut self, scanline: u16) {}
     }
 
     #[derive(Default)]
