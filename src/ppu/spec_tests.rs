@@ -15,11 +15,11 @@ fn write() {
 
     // Writes to 0x2003 write the oam addr register
     ppu.write(0x2003, 0x3).unwrap();
-    assert_eq!(0x3, ppu.oam.mock_addr.get());
+    assert_eq!(0x3, ppu.sprite_renderer.mock_addr.get());
 
     // Writes to 0x2004 write the oam data register
     ppu.write(0x2004, 0x4).unwrap();
-    assert_eq!(0x4, ppu.oam.mock_data.get());
+    assert_eq!(0x4, ppu.sprite_renderer.mock_data.get());
 
     // Writes to 0x2005 write the scroll register
     ppu.write(0x2005, 0x5).unwrap();
@@ -43,10 +43,10 @@ fn write() {
     assert_eq!(0x9, *ppu.mask);
 
     ppu.write(0x200b, 0xa).unwrap();
-    assert_eq!(0xa, ppu.oam.mock_addr.get());
+    assert_eq!(0xa, ppu.sprite_renderer.mock_addr.get());
 
     ppu.write(0x200c, 0xb).unwrap();
-    assert_eq!(0xb, ppu.oam.mock_data.get());
+    assert_eq!(0xb, ppu.sprite_renderer.mock_data.get());
 
     ppu.write(0x200d, 0xc).unwrap();
     assert_eq!(true, ppu.vram.scroll_write_called.get());
@@ -67,10 +67,10 @@ fn write() {
     assert_eq!(0x10, *ppu.mask);
 
     ppu.write(0x3ffb, 0x11).unwrap();
-    assert_eq!(0x11, ppu.oam.mock_addr.get());
+    assert_eq!(0x11, ppu.sprite_renderer.mock_addr.get());
 
     ppu.write(0x3ffc, 0x12).unwrap();
-    assert_eq!(0x12, ppu.oam.mock_data.get());
+    assert_eq!(0x12, ppu.sprite_renderer.mock_data.get());
 
     ppu.write(0x3ffd, 0x13).unwrap();
     assert_eq!(true, ppu.vram.scroll_write_called.get());
@@ -96,10 +96,10 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xf2);
     assert_eq!(0xf2, ppu.read(0x2002).unwrap());
 
-    ppu.oam.mock_addr.set(0xf3);
+    ppu.sprite_renderer.mock_addr.set(0xf3);
     assert_eq!(0, ppu.read(0x2003).unwrap()); // write-only, should always read 0
 
-    ppu.oam.mock_data.set(0xf4);
+    ppu.sprite_renderer.mock_data.set(0xf4);
     assert_eq!(0xf4, ppu.read(0x2004).unwrap());
 
     assert_eq!(0x0, ppu.read(0x2005).unwrap()); // write-only, should always read 0
@@ -121,10 +121,10 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xe2);
     assert_eq!(0xe2, ppu.read(0x200a).unwrap());
 
-    ppu.oam.mock_addr.set(0xe3);
+    ppu.sprite_renderer.mock_addr.set(0xe3);
     assert_eq!(0, ppu.read(0x200b).unwrap()); // write-only, should always read 0
 
-    ppu.oam.mock_data.set(0xe4);
+    ppu.sprite_renderer.mock_data.set(0xe4);
     assert_eq!(0xe4, ppu.read(0x200c).unwrap());
 
     assert_eq!(0x0, ppu.read(0x200d).unwrap()); // write-only, should always read 0
@@ -146,10 +146,10 @@ fn memory_mapped_register_read() {
     ppu.status = StatusRegister::new(0xd2);
     assert_eq!(0xd2, ppu.read(0x3ffa).unwrap());
 
-    ppu.oam.mock_addr.set(0xd3);
+    ppu.sprite_renderer.mock_addr.set(0xd3);
     assert_eq!(0, ppu.read(0x3ffb).unwrap()); // write-only, should always read 0
 
-    ppu.oam.mock_data.set(0xd4);
+    ppu.sprite_renderer.mock_data.set(0xd4);
     assert_eq!(0xd4, ppu.read(0x3ffc).unwrap());
 
     assert_eq!(0x0, ppu.read(0x3ffd).unwrap()); // write-only, should always read 0
@@ -335,8 +335,11 @@ fn oam_read_non_blanking_increments_addr() {
     ppu.status.clear_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004).unwrap();
-    assert_eq!(true, ppu.oam.read_data_increment_addr_called.get());
-    assert_eq!(false, ppu.oam.read_data_called.get());
+    assert_eq!(true,
+               ppu.sprite_renderer
+                   .read_data_increment_addr_called
+                   .get());
+    assert_eq!(false, ppu.sprite_renderer.read_data_called.get());
 }
 
 #[test]
@@ -345,8 +348,11 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
     ppu.status.set_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004).unwrap();
-    assert_eq!(false, ppu.oam.read_data_increment_addr_called.get());
-    assert_eq!(true, ppu.oam.read_data_called.get());
+    assert_eq!(false,
+               ppu.sprite_renderer
+                   .read_data_increment_addr_called
+                   .get());
+    assert_eq!(true, ppu.sprite_renderer.read_data_called.get());
 }
 
 #[test]
@@ -355,8 +361,11 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
     ppu.read(0x2004).unwrap();
-    assert_eq!(false, ppu.oam.read_data_increment_addr_called.get());
-    assert_eq!(true, ppu.oam.read_data_called.get());
+    assert_eq!(false,
+               ppu.sprite_renderer
+                   .read_data_increment_addr_called
+                   .get());
+    assert_eq!(true, ppu.sprite_renderer.read_data_called.get());
 }
 
 #[test]
@@ -435,7 +444,7 @@ mod mocks {
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
             vram: MockVram::new(NesRom::default()),
-            oam: MockSpriteRenderer::default(),
+            sprite_renderer: MockSpriteRenderer::default(),
             screen: Rc::new(RefCell::new(NesScreen::default())),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
@@ -477,6 +486,25 @@ mod mocks {
         fn pixel_color(&self, _: u8) -> Color {
             Color(0, 0, 0)
         }
+
+        fn dec_x_counters(&mut self) {}
+
+        fn tick_secondary_oam_init(&mut self) {}
+
+        fn tick_sprite_evaluation<V: Vram>(&mut self, _: &V) -> Result<()> {
+            Ok(())
+        }
+
+        fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
+            Ok(())
+        }
+
+        fn fetch_pattern_high_byte<V: Vram>(&mut self, _: &V) -> Result<()> {
+            Ok(())
+        }
+        fn start_secondary_oam_init(&mut self) {}
+
+        fn start_sprite_evaluation(&mut self) {}
     }
 
     #[derive(Default)]

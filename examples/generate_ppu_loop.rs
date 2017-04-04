@@ -10,7 +10,8 @@ use std::fs::File;
 use std::io::prelude::*;
 
 // Bit flags indicating what occurs on a particular cycle
-const DRAW_PIXEL: u32 = 1 << 1;
+const DRAW_PIXEL: u32 = 1;
+const SPRITE_DEC_X: u32 = 1 << 1;
 const SHIFT_BG_REGISTERS: u32 = 1 << 2;
 const FETCH_NT: u32 = 1 << 3;
 const FETCH_AT: u32 = 1 << 4;
@@ -25,10 +26,12 @@ const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u32 = 1 << 12;
 const VERT_V_EQ_VERT_T: u32 = 1 << 13;
 const ODD_FRAME_SKIP_CYCLE: u32 = 1 << 14;
 const FRAME_INC: u32 = 1 << 15;
-const INIT_SECONDARY_OAM: u32 = 1 << 16;
-const SPRITE_EVALUATION: u32 = 1 << 17;
-const FETCH_SPRITE_LOW: u32 = 1 << 18;
-const FETCH_SPRITE_HIGH: u32 = 1 << 19;
+const START_SECONDARY_OAM_INIT: u32 = 1 << 16;
+const TICK_SECONDARY_OAM_INIT: u32 = 1 << 17;
+const START_SPRITE_EVALUATION: u32 = 1 << 18;
+const TICK_SPRITE_EVALUATION: u32 = 1 << 19;
+const FETCH_SPRITE_LOW: u32 = 1 << 20;
+const FETCH_SPRITE_HIGH: u32 = 1 << 21;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -105,12 +108,12 @@ fn main() {
                 flags |= DRAW_PIXEL
             }
 
-            if init_secondary_oam(scanline, x) {
-                flags |= INIT_SECONDARY_OAM
+            if tick_secondary_oam_init(scanline, x) {
+                flags |= TICK_SECONDARY_OAM_INIT
             }
 
-            if sprite_evaluation(scanline, x) {
-                flags |= SPRITE_EVALUATION
+            if tick_sprite_evaluation(scanline, x) {
+                flags |= TICK_SPRITE_EVALUATION
             }
 
             if fetch_sprite_low(scanline, x) {
@@ -119,6 +122,18 @@ fn main() {
 
             if fetch_sprite_high(scanline, x) {
                 flags |= FETCH_SPRITE_HIGH
+            }
+
+            if sprite_dec_x(scanline, x) {
+                flags |= SPRITE_DEC_X
+            }
+
+            if start_secondary_oam_init(scanline, x) {
+                flags |= START_SECONDARY_OAM_INIT
+            }
+
+            if start_sprite_evaluation(scanline, x) {
+                flags |= START_SPRITE_EVALUATION
             }
 
             cycle_table[scanline][x] = flags;
@@ -136,6 +151,10 @@ fn main() {
 
 }
 
+fn sprite_dec_x(scanline: usize, x: usize) -> bool {
+    (scanline < 240 || scanline == LAST_SCANLINE) && x > 0 && x <= 256
+}
+
 fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
     (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 5)
 }
@@ -144,11 +163,19 @@ fn fetch_sprite_high(scanline: usize, x: usize) -> bool {
     (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 7)
 }
 
-fn init_secondary_oam(scanline: usize, x: usize) -> bool {
+fn start_secondary_oam_init(scanline: usize, x: usize) -> bool {
+    scanline < 240 && x == 1
+}
+
+fn tick_secondary_oam_init(scanline: usize, x: usize) -> bool {
     scanline < 240 && x > 0 && x <= 64
 }
 
-fn sprite_evaluation(scanline: usize, x: usize) -> bool {
+fn start_sprite_evaluation(scanline: usize, x: usize) -> bool {
+    scanline < 240 && x == 65
+}
+
+fn tick_sprite_evaluation(scanline: usize, x: usize) -> bool {
     scanline < 240 && x > 64 && x <= 256
 }
 
@@ -277,6 +304,11 @@ fn print_loop(type_map: &HashMap<u32, u8>) {
     println!("    // Don't rely on self.cycles after the following line");
     println!("    self.cycles += 1;");
     println!();
+    println!("    // FIXME: TEMP HACK");
+    println!("    if frame_cycle == 4 {{");
+    println!("        self.status.set_sprite_zero_hit()");
+    println!("    }}");
+    println!();
     println!("    match CYCLE_TABLE[scanline as usize][x as usize] {{");
 
     for (cycle_type, _) in types_vec {
@@ -292,7 +324,6 @@ fn print_loop(type_map: &HashMap<u32, u8>) {
 
     println!("        _ => unreachable!(),");
     println!("    }}");
-
     println!("}}");
 }
 
@@ -375,28 +406,46 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         actions.push(Action::NoReturnExpression("NOP".to_owned(), lines))
     }
 
+    if cycle_type & START_SECONDARY_OAM_INIT > 0 {
+        let mut lines = Vec::new();
+        lines.push("    self.sprite_renderer.start_secondary_oam_init();".to_owned());
+        actions.push(Action::WhenRenderingEnabled("START_SECONDARY_OAM_INIT".to_owned(), lines, 10))
+    }
+
+    if cycle_type & START_SPRITE_EVALUATION > 0 {
+        let mut lines = Vec::new();
+        lines.push("    self.sprite_renderer.start_sprite_evaluation();".to_owned());
+        actions.push(Action::WhenRenderingEnabled("START_SPRITE_EVALUATION".to_owned(), lines, 10))
+    }
+
+    if cycle_type & SPRITE_DEC_X > 0 {
+        let mut lines = Vec::new();
+        lines.push("    self.sprite_renderer.dec_x_counters();".to_owned());
+        actions.push(Action::WhenRenderingEnabled("SPRITE_DEC_X".to_owned(), lines, 0))
+    }
+
     if cycle_type & FETCH_SPRITE_LOW > 0 {
         let mut lines = Vec::new();
-        lines.push("    // TODO".to_owned());
+        lines.push("    self.sprite_renderer.fetch_pattern_low_byte(&self.vram)?;".to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_LOW".to_owned(), lines, 0))
     }
 
     if cycle_type & FETCH_SPRITE_HIGH > 0 {
         let mut lines = Vec::new();
-        lines.push("    // TODO".to_owned());
+        lines.push("    self.sprite_renderer.fetch_pattern_high_byte(&self.vram)?;".to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_HIGH".to_owned(), lines, 0))
     }
 
-    if cycle_type & SPRITE_EVALUATION > 0 {
+    if cycle_type & TICK_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    // TODO".to_owned());
-        actions.push(Action::WhenRenderingEnabled("SPRITE_EVALUATION".to_owned(), lines, 0))
+        lines.push("    self.sprite_renderer.tick_sprite_evaluation(&self.vram)?;".to_owned());
+        actions.push(Action::WhenRenderingEnabled("TICK_SPRITE_EVALUATION".to_owned(), lines, 100))
     }
 
-    if cycle_type & INIT_SECONDARY_OAM > 0 {
+    if cycle_type & TICK_SECONDARY_OAM_INIT > 0 {
         let mut lines = Vec::new();
-        lines.push("    // TODO".to_owned());
-        actions.push(Action::WhenRenderingEnabled("INIT_SECONDARY_OAM".to_owned(), lines, 0))
+        lines.push("    self.sprite_renderer.tick_secondary_oam_init();".to_owned());
+        actions.push(Action::WhenRenderingEnabled("TICK_SECONDARY_OAM_INIT".to_owned(), lines, 100))
     }
 
     if cycle_type & DRAW_PIXEL > 0 {
@@ -421,7 +470,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         lines.push("    // Reading palettes here isn't accurate, but should suffice for now"
                        .to_owned());
         lines.push("    self.background_renderer.update_palettes(&self.vram)?;".to_owned());
-        lines.push("    self.oam.update_palettes(&self.vram)?;".to_owned());
+        lines.push("    self.sprite_renderer.update_palettes(&self.vram)?;".to_owned());
         lines.push("".to_owned());
         lines.push("    self.status.clear_in_vblank();".to_owned());
         lines.push("    self.status.clear_sprite_zero_hit();".to_owned());
@@ -545,10 +594,11 @@ struct Cycle {
     vert_v_eq_vert_t: bool,
     odd_frame_skip_cycle: bool,
     frame_inc: bool,
-    init_secondary_oam: bool,
-    sprite_evaluation: bool,
+    tick_secondary_oam_init: bool,
+    tick_sprite_evaluation: bool,
     fetch_sprite_low: bool,
     fetch_sprite_high: bool,
+    sprite_dec_x: bool,
 }
 
 impl ToJson for Cycle {
@@ -578,14 +628,15 @@ impl ToJson for Cycle {
         props.insert("odd_frame_skip_cycle".to_owned(),
                      Json::Boolean(self.odd_frame_skip_cycle));
         props.insert("frame_inc".to_owned(), Json::Boolean(self.frame_inc));
-        props.insert("init_secondary_oam".to_owned(),
-                     Json::Boolean(self.init_secondary_oam));
-        props.insert("sprite_evaluation".to_owned(),
-                     Json::Boolean(self.sprite_evaluation));
+        props.insert("tick_secondary_oam_init".to_owned(),
+                     Json::Boolean(self.tick_secondary_oam_init));
+        props.insert("tick_sprite_evaluation".to_owned(),
+                     Json::Boolean(self.tick_sprite_evaluation));
         props.insert("fetch_sprite_low".to_owned(),
                      Json::Boolean(self.fetch_sprite_low));
         props.insert("fetch_sprite_high".to_owned(),
                      Json::Boolean(self.fetch_sprite_high));
+        props.insert("sprite_dec_x".to_owned(), Json::Boolean(self.sprite_dec_x));
         Json::Object(props)
     }
 }
@@ -597,8 +648,8 @@ impl Cycle {
             nop: cycle_type == 0,
             fetch_sprite_low: cycle_type & FETCH_SPRITE_LOW > 0,
             fetch_sprite_high: cycle_type & FETCH_SPRITE_HIGH > 0,
-            sprite_evaluation: cycle_type & SPRITE_EVALUATION > 0,
-            init_secondary_oam: cycle_type & INIT_SECONDARY_OAM > 0,
+            tick_sprite_evaluation: cycle_type & TICK_SPRITE_EVALUATION > 0,
+            tick_secondary_oam_init: cycle_type & TICK_SECONDARY_OAM_INIT > 0,
             draw_pixel: cycle_type & DRAW_PIXEL > 0,
             set_vblank: cycle_type & SET_VBLANK > 0,
             clear_vblank_and_sprite_zero_hit: cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0,
@@ -614,6 +665,7 @@ impl Cycle {
             shift_bg_registers: cycle_type & SHIFT_BG_REGISTERS > 0,
             vert_v_eq_vert_t: cycle_type & VERT_V_EQ_VERT_T > 0,
             fill_bg_registers: cycle_type & FILL_BG_REGISTERS > 0,
+            sprite_dec_x: cycle_type & SPRITE_DEC_X > 0,
         }
     }
 }

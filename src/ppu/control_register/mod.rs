@@ -3,19 +3,10 @@ mod spec_tests;
 
 use std::ops::Deref;
 
-pub const BG_PATTERN_SELECT: u8 = 0b00010000;
-pub const SPRITE_PATTERN_SELECT: u8 = 0b00001000;
-
 #[derive(Debug, PartialEq)]
 pub enum SpriteSize {
     X8, // 8x8
     X16, // 8x16
-}
-
-#[derive(Debug, PartialEq)]
-pub enum PpuMode {
-    Master,
-    Slave,
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,18 +39,6 @@ impl ControlRegister {
             SpriteSize::X8
         } else {
             SpriteSize::X16
-        }
-    }
-
-    /// PPU master/slave select (0: read backdrop from EXT pins; 1: output color on EXT pins)
-    ///
-    /// *Note:* I don't think this is necessary for emulation since the NES never set the PPU
-    /// slave bit. Apparently, it could actually harm the NES hardware if it were set.
-    fn ppu_mode(&self) -> PpuMode {
-        if self.reg & 0b01000000 == 0 {
-            PpuMode::Master
-        } else {
-            PpuMode::Slave
         }
     }
 

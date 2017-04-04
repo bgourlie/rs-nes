@@ -1,13 +1,4 @@
-use ppu::mask_register::{ColorMode, MaskRegister};
-
-#[test]
-fn color_mode() {
-    let reg = new_mask_register(0b00000000);
-    assert_eq!(ColorMode::Normal, reg.color_mode());
-
-    let reg = new_mask_register(0b00000001);
-    assert_eq!(ColorMode::Greyscale, reg.color_mode());
-}
+use ppu::mask_register::MaskRegister;
 
 #[test]
 fn background_render_leftmost_8_px() {
