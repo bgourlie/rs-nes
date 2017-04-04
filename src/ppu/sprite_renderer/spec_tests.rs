@@ -42,5 +42,7 @@ fn oam_fixture(initial_values: &[u8]) -> SpriteRendererBase {
         pattern_shift_registers: [0_u8; 16],
         attribute_latches: [0_u8; 8],
         x_counters: [0_u8; 8],
+        secondary_oam_init_cycle: 0,
+        sprite_evaluation_cycle: 0,
     }
 }
