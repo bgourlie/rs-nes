@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod spec_tests;
+
 #[derive(Default)]
 pub struct SpriteEvaluation {
     cur_cycle: u8, // 0-191
@@ -138,6 +141,6 @@ impl SpriteEvaluation {
     }
 
     fn is_sprite_on_scanline(&self, y: u8) -> bool {
-        (y >= self.scanline) && (y + 8) < self.scanline
+        y >= self.scanline && y - self.scanline < 8
     }
 }
