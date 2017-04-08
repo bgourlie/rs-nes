@@ -414,7 +414,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & START_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline);".to_owned());
+        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline, self.control.sprite_size());".to_owned());
         actions.push(Action::WhenRenderingEnabled("START_SPRITE_EVALUATION".to_owned(), lines, 10))
     }
 

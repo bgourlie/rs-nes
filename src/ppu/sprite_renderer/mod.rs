@@ -9,6 +9,7 @@ mod sprite_evaluation;
 mod spec_tests;
 
 use errors::*;
+use ppu::SpriteSize;
 use ppu::palette::{self, Color, PALETTE};
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
 pub use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluationAction;
@@ -25,7 +26,7 @@ pub trait SpriteRenderer: Default {
     fn pixel_color(&self, pixel: u8) -> Color;
     fn dec_x_counters(&mut self);
     fn start_secondary_oam_init(&mut self);
-    fn start_sprite_evaluation(&mut self, scanline: u16);
+    fn start_sprite_evaluation(&mut self, scanline: u16, sprite_size: SpriteSize);
     fn tick_secondary_oam_init(&mut self);
     fn tick_sprite_evaluation(&mut self) -> SpriteEvaluationAction;
     fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()>;
@@ -161,9 +162,9 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprites_fetched = 0;
     }
 
-    fn start_sprite_evaluation(&mut self, scanline: u16) {
+    fn start_sprite_evaluation(&mut self, scanline: u16, sprite_size: SpriteSize) {
         // Current scanline is passed in, we evaluate the sprites for the next scanline
         let scanline = if scanline == 261 { 0 } else { scanline + 1 };
-        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8);
+        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, sprite_size);
     }
 }

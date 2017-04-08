@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod spec_tests;
 
+use ppu::SpriteSize;
+
 #[derive(Default)]
 pub struct SpriteEvaluation {
     scanline: u8,
@@ -10,6 +12,8 @@ pub struct SpriteEvaluation {
     n: u8,
     m: u8,
     state: State,
+    // TODO: Is it safe to assume sprite size *never* changes during evaluation?
+    sprite_size: SpriteSize,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -20,33 +24,34 @@ pub enum SpriteEvaluationAction {
 
 #[derive(Debug, Eq, PartialEq)]
 enum State {
-    ReadOamY,
-    WriteSecondaryOamY(u8),
-    ReadOamTile,
-    WriteSecondaryOamTile(u8),
-    ReadOamAttributes,
-    WriteSecondaryOamAttributes(u8),
-    ReadOamX,
-    WriteSecondaryOamX(u8),
-    SpriteOverflowEvaluationRead(u8),
-    SpriteOverflowEvaluationWrite(u8, u8),
+    FirstRead,
+    FirstWrite(u8),
+    SecondRead,
+    SecondWrite(u8),
+    ThirdRead,
+    ThirdWrite(u8),
+    FourthRead,
+    FourthWrite(u8),
+    SpriteOverflowEvaluationRead,
+    SpriteOverflowEvaluationWrite(u8),
     Done,
 }
 
 impl Default for State {
     fn default() -> Self {
-        State::ReadOamY
+        State::FirstRead
     }
 }
 
 impl SpriteEvaluation {
-    pub fn new(scanline: u8) -> Self {
+    pub fn new(scanline: u8, sprite_size: SpriteSize) -> Self {
         SpriteEvaluation {
             scanline: scanline,
             sprites_found: 0,
             n: 0,
             m: 0,
             state: State::default(),
+            sprite_size: sprite_size,
         }
     }
 
@@ -57,67 +62,63 @@ impl SpriteEvaluation {
     pub fn tick(&mut self, primary_oam: &[u8]) -> SpriteEvaluationAction {
         let primary_oam_addr = (self.n as usize) * 4;
         match self.state {
-            State::ReadOamY => {
-                self.state = State::WriteSecondaryOamY(primary_oam[primary_oam_addr]);
+            State::FirstRead => {
+                self.state = State::FirstWrite(primary_oam[primary_oam_addr]);
                 SpriteEvaluationAction::None
             }
-            State::WriteSecondaryOamY(y) => {
+            State::FirstWrite(y) => {
                 if self.is_sprite_on_scanline(y) {
-                    println!("checking if sprite with y = {} is on scanline {}",
-                             y,
-                             self.scanline);
+                    println!("sprite @ y = {} hits scanline {}", y, self.scanline);
                     self.sprites_found += 1;
-                    self.state = State::ReadOamTile
+                    self.state = State::SecondRead
                 } else {
                     self.n += 1;
                     if self.n >= 64 {
                         self.state = State::Done
                     } else {
-                        self.state = State::ReadOamY;
+                        self.state = State::FirstRead;
                     }
                 }
                 SpriteEvaluationAction::None
             }
-            State::ReadOamTile => {
-                self.state = State::WriteSecondaryOamTile(primary_oam[primary_oam_addr + 1]);
+            State::SecondRead => {
+                self.state = State::SecondWrite(primary_oam[primary_oam_addr + 1]);
                 SpriteEvaluationAction::None
             }
-            State::WriteSecondaryOamTile(_) => {
-                self.state = State::ReadOamAttributes;
+            State::SecondWrite(_) => {
+                self.state = State::ThirdRead;
                 SpriteEvaluationAction::None
             }
-            State::ReadOamAttributes => {
-                self.state = State::WriteSecondaryOamAttributes(primary_oam[primary_oam_addr + 2]);
+            State::ThirdRead => {
+                self.state = State::ThirdWrite(primary_oam[primary_oam_addr + 2]);
                 SpriteEvaluationAction::None
             }
-            State::WriteSecondaryOamAttributes(_) => {
-                self.state = State::ReadOamX;
+            State::ThirdWrite(_) => {
+                self.state = State::FourthRead;
                 SpriteEvaluationAction::None
             }
-            State::ReadOamX => {
-                self.state = State::WriteSecondaryOamX(primary_oam[primary_oam_addr + 3]);
+            State::FourthRead => {
+                self.state = State::FourthWrite(primary_oam[primary_oam_addr + 3]);
                 SpriteEvaluationAction::None
             }
-            State::WriteSecondaryOamX(_) => {
-                // secondary_oam[(self.sprites_found as usize) * 4 + 3] = x;
+            State::FourthWrite(_) => {
                 self.n += 1;
                 if self.n >= 64 {
                     self.state = State::Done
                 } else if self.sprites_found < 8 {
-                    self.state = State::ReadOamY
+                    self.state = State::FirstRead;
                 } else {
-                    self.state = State::SpriteOverflowEvaluationRead(0)
+                    self.state = State::SpriteOverflowEvaluationRead
                 }
                 SpriteEvaluationAction::None
             }
-            State::SpriteOverflowEvaluationRead(m) => {
-                self.state = State::SpriteOverflowEvaluationWrite(m,
-                                                                  primary_oam[primary_oam_addr +
-                                                                  m as usize]);
+            State::SpriteOverflowEvaluationRead => {
+                let y = primary_oam[primary_oam_addr + self.m as usize];
+                self.state = State::SpriteOverflowEvaluationWrite(y);
                 SpriteEvaluationAction::None
             }
-            State::SpriteOverflowEvaluationWrite(m, y) => {
-                if m == 0 && self.is_sprite_on_scanline(y) {
+            State::SpriteOverflowEvaluationWrite(y) => {
+                if self.m == 0 && self.is_sprite_on_scanline(y) {
                     // There are some additional reads after setting sprite over flow flag but I
                     // don't think they matter
                     self.state = State::Done;
@@ -127,7 +128,7 @@ impl SpriteEvaluation {
                     if self.n >= 64 {
                         self.state = State::Done;
                     } else {
-                        self.state = State::SpriteOverflowEvaluationRead(m + 1)
+                        self.state = State::SpriteOverflowEvaluationRead
                     }
                     SpriteEvaluationAction::None
                 }
@@ -140,6 +141,9 @@ impl SpriteEvaluation {
     }
 
     fn is_sprite_on_scanline(&self, y: u8) -> bool {
-        y >= self.scanline && y - self.scanline < 8
+        match self.sprite_size {
+            SpriteSize::X8 => y <= self.scanline && self.scanline - y < 8,
+            SpriteSize::X16 => y <= self.scanline && self.scanline - y < 16,
+        }
     }
 }

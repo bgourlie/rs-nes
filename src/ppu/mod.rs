@@ -49,6 +49,12 @@ pub enum SpriteSize {
     X16, // 8x16
 }
 
+impl Default for SpriteSize {
+    fn default() -> Self {
+        SpriteSize::X8
+    }
+}
+
 pub struct PpuBase<V: Vram, S: SpriteRenderer> {
     cycles: u64,
     control: ControlRegister,
@@ -274,7 +280,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fill_shift_registers(self.vram.addr());
 
                     // START_SPRITE_EVALUATION
-                    self.sprite_renderer.start_sprite_evaluation(scanline);
+                    self.sprite_renderer
+                        .start_sprite_evaluation(scanline, self.control.sprite_size());
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();

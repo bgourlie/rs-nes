@@ -426,6 +426,7 @@ fn odd_frame_cycle_skip() {
 mod mocks {
     use errors::*;
     use ppu::PpuBase;
+    use ppu::SpriteSize;
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
@@ -509,7 +510,7 @@ mod mocks {
         }
         fn start_secondary_oam_init(&mut self) {}
 
-        fn start_sprite_evaluation(&mut self, scanline: u16) {}
+        fn start_sprite_evaluation(&mut self, _: u16, _: SpriteSize) {}
     }
 
     #[derive(Default)]
