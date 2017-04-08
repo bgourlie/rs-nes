@@ -26,12 +26,10 @@ const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u32 = 1 << 12;
 const VERT_V_EQ_VERT_T: u32 = 1 << 13;
 const ODD_FRAME_SKIP_CYCLE: u32 = 1 << 14;
 const FRAME_INC: u32 = 1 << 15;
-const START_SECONDARY_OAM_INIT: u32 = 1 << 16;
-const TICK_SECONDARY_OAM_INIT: u32 = 1 << 17;
-const START_SPRITE_EVALUATION: u32 = 1 << 18;
-const TICK_SPRITE_EVALUATION: u32 = 1 << 19;
-const FETCH_SPRITE_LOW: u32 = 1 << 20;
-const FETCH_SPRITE_HIGH: u32 = 1 << 21;
+const START_SPRITE_EVALUATION: u32 = 1 << 16;
+const TICK_SPRITE_EVALUATION: u32 = 1 << 17;
+const FETCH_SPRITE_LOW: u32 = 1 << 18;
+const FETCH_SPRITE_HIGH: u32 = 1 << 19;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -108,10 +106,6 @@ fn main() {
                 flags |= DRAW_PIXEL
             }
 
-            if tick_secondary_oam_init(scanline, x) {
-                flags |= TICK_SECONDARY_OAM_INIT
-            }
-
             if tick_sprite_evaluation(scanline, x) {
                 flags |= TICK_SPRITE_EVALUATION
             }
@@ -126,10 +120,6 @@ fn main() {
 
             if sprite_dec_x(scanline, x) {
                 flags |= SPRITE_DEC_X
-            }
-
-            if start_secondary_oam_init(scanline, x) {
-                flags |= START_SECONDARY_OAM_INIT
             }
 
             if start_sprite_evaluation(scanline, x) {
@@ -161,14 +151,6 @@ fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
 
 fn fetch_sprite_high(scanline: usize, x: usize) -> bool {
     (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 7)
-}
-
-fn start_secondary_oam_init(scanline: usize, x: usize) -> bool {
-    scanline < 240 && x == 1
-}
-
-fn tick_secondary_oam_init(scanline: usize, x: usize) -> bool {
-    scanline < 240 && x > 0 && x <= 64
 }
 
 fn start_sprite_evaluation(scanline: usize, x: usize) -> bool {
@@ -406,12 +388,6 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         actions.push(Action::NoReturnExpression("NOP".to_owned(), lines))
     }
 
-    if cycle_type & START_SECONDARY_OAM_INIT > 0 {
-        let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.start_secondary_oam_init();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("START_SECONDARY_OAM_INIT".to_owned(), lines, 10))
-    }
-
     if cycle_type & START_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
         lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline, self.control.sprite_size());".to_owned());
@@ -440,14 +416,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & TICK_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.tick_sprite_evaluation();".to_owned());
+        lines.push("    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);".to_owned());
         actions.push(Action::WhenRenderingEnabled("TICK_SPRITE_EVALUATION".to_owned(), lines, 100))
-    }
-
-    if cycle_type & TICK_SECONDARY_OAM_INIT > 0 {
-        let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.tick_secondary_oam_init();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("TICK_SECONDARY_OAM_INIT".to_owned(), lines, 100))
     }
 
     if cycle_type & DRAW_PIXEL > 0 {
@@ -596,7 +566,6 @@ struct Cycle {
     vert_v_eq_vert_t: bool,
     odd_frame_skip_cycle: bool,
     frame_inc: bool,
-    tick_secondary_oam_init: bool,
     tick_sprite_evaluation: bool,
     fetch_sprite_low: bool,
     fetch_sprite_high: bool,
@@ -630,8 +599,6 @@ impl ToJson for Cycle {
         props.insert("odd_frame_skip_cycle".to_owned(),
                      Json::Boolean(self.odd_frame_skip_cycle));
         props.insert("frame_inc".to_owned(), Json::Boolean(self.frame_inc));
-        props.insert("tick_secondary_oam_init".to_owned(),
-                     Json::Boolean(self.tick_secondary_oam_init));
         props.insert("tick_sprite_evaluation".to_owned(),
                      Json::Boolean(self.tick_sprite_evaluation));
         props.insert("fetch_sprite_low".to_owned(),
@@ -651,7 +618,6 @@ impl Cycle {
             fetch_sprite_low: cycle_type & FETCH_SPRITE_LOW > 0,
             fetch_sprite_high: cycle_type & FETCH_SPRITE_HIGH > 0,
             tick_sprite_evaluation: cycle_type & TICK_SPRITE_EVALUATION > 0,
-            tick_secondary_oam_init: cycle_type & TICK_SECONDARY_OAM_INIT > 0,
             draw_pixel: cycle_type & DRAW_PIXEL > 0,
             set_vblank: cycle_type & SET_VBLANK > 0,
             clear_vblank_and_sprite_zero_hit: cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0,

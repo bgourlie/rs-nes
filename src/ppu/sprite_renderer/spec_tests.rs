@@ -36,13 +36,11 @@ fn oam_fixture(initial_values: &[u8]) -> SpriteRendererBase {
 
     SpriteRendererBase {
         primary_oam: mem,
-        secondary_oam: [0_u8; 0x20],
         address: Cell::new(0),
         palettes: EMPTY,
         pattern_shift_registers: [0_u8; 16],
         attribute_latches: [0_u8; 8],
         x_counters: [0_u8; 8],
-        secondary_oam_init_cycle: 0,
         sprite_evaluation: SpriteEvaluation::default(),
         sprites_fetched: 0,
     }

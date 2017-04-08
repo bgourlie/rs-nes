@@ -9,38 +9,15 @@ use ppu::SpriteSize;
 pub struct SpriteEvaluation {
     scanline: u8,
     sprites_found: u8,
+    secondary_oam: [u8; 0x20],
     n: u8,
     m: u8,
-    state: State,
-    // TODO: Is it safe to assume sprite size *never* changes during evaluation?
     sprite_size: SpriteSize,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SpriteEvaluationAction {
-    None,
-    SetSpriteOverflowFlag,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-enum State {
-    FirstRead,
-    FirstWrite(u8),
-    SecondRead,
-    SecondWrite(u8),
-    ThirdRead,
-    ThirdWrite(u8),
-    FourthRead,
-    FourthWrite(u8),
-    SpriteOverflowEvaluationRead,
-    SpriteOverflowEvaluationWrite(u8),
-    Done,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        State::FirstRead
-    }
+    read_buffer: u8,
+    first_sprite_overflow_check_occurred: bool,
+    sprite_overflow_read_cycle: u8,
+    sprite_overflow_read: bool,
+    overflow: bool
 }
 
 impl SpriteEvaluation {
@@ -48,96 +25,119 @@ impl SpriteEvaluation {
         SpriteEvaluation {
             scanline: scanline,
             sprites_found: 0,
+            secondary_oam: [0xff; 0x20],
+            read_buffer: 0,
+            first_sprite_overflow_check_occurred: false,
             n: 0,
             m: 0,
-            state: State::default(),
             sprite_size: sprite_size,
+            sprite_overflow_read: false,
+            sprite_overflow_read_cycle: 0,
+            overflow: false,
         }
     }
 
-    pub fn sprites_found(&self) -> u8 {
-        self.sprites_found
+    pub fn tick(&mut self, primary_oam: &[u8], cycle: u64) {
+        debug_assert!(cycle >= 65 && cycle <= 256);
+        debug_assert!(self.m < 4);
+        if self.n >= 64 {
+            // If we've evaluated all sprints, do nothing
+            println!("Evaluated all sprites, doing nothing");
+        } else {
+            let oam_addr = (self.n as usize) * 4 + self.m as usize;
+
+            if cycle % 2 == 1 { // Read Cycles
+                self.read_buffer = primary_oam[oam_addr];
+                println!();
+                println!("CYCLE {} (READ): Read value = {}", cycle, self.read_buffer);
+            } else { // Write Cycles
+                println!("CYCLE {} (WRITE): ", cycle);
+                if self.sprites_found < 8 { // Standard sprite evaluation
+                    println!("    Fewer than 8 sprites on scanline so far.");
+
+                    if self.m == 0 { // We're evaluating y, check if sprite is on scanline
+                        let y = self.read_buffer;
+                        println!("        Evaluating Sprite (y = {}). ", y);
+                        self.secondary_oam[self.sprites_found as usize * 4] = y;
+                        if !self.is_sprite_on_scanline(self.read_buffer) {
+                            // Sprite not on scanline, increment n to move on to next sprite.
+                            println!("            Sprite not on scanline, incrementing n to {}.", self.n + 1);
+                            self.increment_n();
+                        } else {
+                            println!("            Sprite on scanline, increment m to {}.", self.m + 1);
+                            self.increment_m()
+                        }
+                    } else { // Copy remaining bytes of the sprite to secondary oam
+                        println!("    Copying remaining bytes for sprite {} of 8 (n = {}, m = {}). ", self.sprites_found + 1, self.n, self.m);
+                        self.secondary_oam[self.sprites_found as usize * 4 + self.m as usize] = self.read_buffer;
+                        self.increment_m();
+
+                        if self.m == 0 { // m overflowed, we copied the last byte for the sprite
+                            println!("        Finished copying bytes for sprite {} of 8. Incrementing sprites_found and n, resetting m. ", self.sprites_found + 1);
+                            self.sprites_found += 1;
+                        }
+                    }
+                } else { // Overflow sprite evaluation
+                    println!("    In sprite overflow evaluation.");
+
+                    if self.sprite_overflow_read {
+                        println!("        Sprite overflow dummy read.");
+                        self.sprite_overflow_read_cycle = if self.sprite_overflow_read_cycle >= 3 {
+                            self.sprite_overflow_read = false;
+                            0
+                        } else {
+                            self.sprite_overflow_read_cycle + 1
+                        };
+                    } else {
+                        // The first sprite overflow evaluation correctly reads the y value of the next
+                        // sprite in OAM. After that, it reads the Y value of the first sprite in
+                        // secondary OAM. This contributes to the sprite overflow bug behavior.
+                        let y = if !self.first_sprite_overflow_check_occurred {
+                            println!("        First sprite overflow check");
+                            self.first_sprite_overflow_check_occurred = true;
+                            self.read_buffer
+                        } else {
+                            println!("        Not first sprite overflow check, incorrectly evaluating y");
+                            self.secondary_oam[0]
+                        };
+
+                        if self.is_sprite_on_scanline(y) {
+                            println!("        Sprite is on scanline. Mock byte writes. ");
+                            self.increment_m();
+                            self.sprite_overflow_read = true;
+                            self.overflow = true;
+                        } else {
+                            println!("        No sprite overflow, Incrementing n and m per hardware bug. ");
+                            self.increment_n_hardware_bug();
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    pub fn tick(&mut self, primary_oam: &[u8]) -> SpriteEvaluationAction {
-        let primary_oam_addr = (self.n as usize) * 4;
-        match self.state {
-            State::FirstRead => {
-                self.state = State::FirstWrite(primary_oam[primary_oam_addr]);
-                SpriteEvaluationAction::None
-            }
-            State::FirstWrite(y) => {
-                if self.is_sprite_on_scanline(y) {
-                    println!("sprite @ y = {} hits scanline {}", y, self.scanline);
-                    self.sprites_found += 1;
-                    self.state = State::SecondRead
-                } else {
-                    self.n += 1;
-                    if self.n >= 64 {
-                        self.state = State::Done
-                    } else {
-                        self.state = State::FirstRead;
-                    }
-                }
-                SpriteEvaluationAction::None
-            }
-            State::SecondRead => {
-                self.state = State::SecondWrite(primary_oam[primary_oam_addr + 1]);
-                SpriteEvaluationAction::None
-            }
-            State::SecondWrite(_) => {
-                self.state = State::ThirdRead;
-                SpriteEvaluationAction::None
-            }
-            State::ThirdRead => {
-                self.state = State::ThirdWrite(primary_oam[primary_oam_addr + 2]);
-                SpriteEvaluationAction::None
-            }
-            State::ThirdWrite(_) => {
-                self.state = State::FourthRead;
-                SpriteEvaluationAction::None
-            }
-            State::FourthRead => {
-                self.state = State::FourthWrite(primary_oam[primary_oam_addr + 3]);
-                SpriteEvaluationAction::None
-            }
-            State::FourthWrite(_) => {
-                self.n += 1;
-                if self.n >= 64 {
-                    self.state = State::Done
-                } else if self.sprites_found < 8 {
-                    self.state = State::FirstRead;
-                } else {
-                    self.state = State::SpriteOverflowEvaluationRead
-                }
-                SpriteEvaluationAction::None
-            }
-            State::SpriteOverflowEvaluationRead => {
-                let y = primary_oam[primary_oam_addr + self.m as usize];
-                self.state = State::SpriteOverflowEvaluationWrite(y);
-                SpriteEvaluationAction::None
-            }
-            State::SpriteOverflowEvaluationWrite(y) => {
-                if self.m == 0 && self.is_sprite_on_scanline(y) {
-                    // There are some additional reads after setting sprite over flow flag but I
-                    // don't think they matter
-                    self.state = State::Done;
-                    SpriteEvaluationAction::SetSpriteOverflowFlag
-                } else {
-                    self.n += 1;
-                    if self.n >= 64 {
-                        self.state = State::Done;
-                    } else {
-                        self.state = State::SpriteOverflowEvaluationRead
-                    }
-                    SpriteEvaluationAction::None
-                }
-            }
+    fn increment_m(&mut self) {
+        if self.m >= 3 {
+            //print!("m overflowed; Incrementing n to {}, resetting m ", self.n + 1);
+            self.n += 1;
+            self.m = 0;
+        } else {
+            //print!("Incrementing m to {} ", self.m + 1);
+            self.m += 1
+        };
+    }
 
-            // Reads and writes happen here, but not emulating them for now since they're
-            // probably inconsequential
-            State::Done => SpriteEvaluationAction::None,
-        }
+    fn increment_n(&mut self) {
+        //print!("incrementing n to {}, resetting m ", self.n + 1);
+        self.n += 1;
+        self.m = 0;
+    }
+
+    /// Emulates the m increment bug during sprite overflow evaluation
+    fn increment_n_hardware_bug(&mut self) {
+        //print!("incrementing n to {} and m (hardware bug) to {} (will overflow to 0 if 4) ", self.n + 1, self.m + 1);
+        self.n += 1;
+        self.m = if self.m >= 3 { 0 } else { self.m + 1 };
     }
 
     fn is_sprite_on_scanline(&self, y: u8) -> bool {
