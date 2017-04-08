@@ -15,7 +15,7 @@ use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use errors::*;
 use ppu::background_renderer::BackgroundRenderer;
-use ppu::control_register::{ControlRegister, SpriteSize};
+use ppu::control_register::ControlRegister;
 use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
 use ppu::sprite_renderer::{SpriteRenderer, SpriteRendererBase};
@@ -41,6 +41,12 @@ pub trait Ppu {
     fn read(&self, addr: u16) -> Result<u8>;
     fn step(&mut self) -> Result<Interrupt>;
     fn dump_registers<T: Write>(&self, writer: &mut T);
+}
+
+#[derive(Debug, PartialEq)]
+pub enum SpriteSize {
+    X8, // 8x8
+    X16, // 8x16
 }
 
 pub struct PpuBase<V: Vram, S: SpriteRenderer> {

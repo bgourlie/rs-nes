@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 // TODO: Explore SIMD
 // TODO: Tests
 
@@ -133,8 +135,7 @@ impl SpriteRenderer for SpriteRendererBase {
     }
 
     fn tick_sprite_evaluation(&mut self) -> SpriteEvaluationAction {
-        self.sprite_evaluation
-            .tick(&self.primary_oam, &mut self.secondary_oam)
+        self.sprite_evaluation.tick(&self.primary_oam)
     }
     fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control_reg: u8) -> Result<()> {
         let tile_index = self.secondary_oam[self.sprites_fetched as usize * 4 + 1] as u16;

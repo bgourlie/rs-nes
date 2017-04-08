@@ -1,13 +1,8 @@
 #[cfg(test)]
 mod spec_tests;
 
+use ppu::SpriteSize;
 use std::ops::Deref;
-
-#[derive(Debug, PartialEq)]
-pub enum SpriteSize {
-    X8, // 8x8
-    X16, // 8x16
-}
 
 #[derive(Debug, PartialEq)]
 pub enum IncrementAmount {
