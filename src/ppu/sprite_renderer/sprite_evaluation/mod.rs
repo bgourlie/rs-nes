@@ -33,6 +33,10 @@ impl SpriteEvaluation {
         }
     }
 
+    pub fn read_secondary_oam(&self, index: u8) -> u8 {
+        self.secondary_oam[index as usize]
+    }
+
     pub fn tick(&mut self, primary_oam: &[u8]) {
         debug_assert!(self.cycle <= 191);
         debug_assert!(self.m < 4);

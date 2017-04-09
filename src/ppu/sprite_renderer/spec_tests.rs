@@ -38,10 +38,10 @@ fn oam_fixture(initial_values: &[u8]) -> SpriteRendererBase {
         primary_oam: mem,
         address: Cell::new(0),
         palettes: EMPTY,
-        pattern_shift_registers: [0_u8; 16],
+        pattern_low_shift_registers: [0_u8; 8],
+        pattern_high_shift_registers: [0_u8; 8],
         attribute_latches: [0_u8; 8],
         x_counters: [0_u8; 8],
         sprite_evaluation: SpriteEvaluation::default(),
-        sprites_fetched: 0,
     }
 }

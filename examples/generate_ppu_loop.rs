@@ -1,13 +1,5 @@
-extern crate handlebars;
-extern crate rustc_serialize;
-
-use handlebars::{Handlebars, Helper, RenderContext, RenderError};
-use rustc_serialize::json::{Json, ToJson};
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::prelude::*;
 
 // Bit flags indicating what occurs on a particular cycle
 const DRAW_PIXEL: u32 = 1;
@@ -28,8 +20,7 @@ const ODD_FRAME_SKIP_CYCLE: u32 = 1 << 14;
 const FRAME_INC: u32 = 1 << 15;
 const START_SPRITE_EVALUATION: u32 = 1 << 16;
 const TICK_SPRITE_EVALUATION: u32 = 1 << 17;
-const FETCH_SPRITE_LOW: u32 = 1 << 18;
-const FETCH_SPRITE_HIGH: u32 = 1 << 19;
+const FILL_SPRITE_REGISTERS: u32 = 1 << 18;
 
 // Timing
 const SCANLINES: usize = 262;
@@ -110,12 +101,9 @@ fn main() {
                 flags |= TICK_SPRITE_EVALUATION
             }
 
-            if fetch_sprite_low(scanline, x) {
-                flags |= FETCH_SPRITE_LOW
-            }
 
-            if fetch_sprite_high(scanline, x) {
-                flags |= FETCH_SPRITE_HIGH
+            if fill_sprite_evaluation_registers(scanline, x) {
+                flags |= FILL_SPRITE_REGISTERS
             }
 
             if sprite_dec_x(scanline, x) {
@@ -136,21 +124,15 @@ fn main() {
     print_legend(&type_map);
     println!();
     print_array(&cycle_table, &type_map);
-    println!();
-    diagram(&cycle_table);
-
 }
 
 fn sprite_dec_x(scanline: usize, x: usize) -> bool {
     (scanline < 240 || scanline == LAST_SCANLINE) && x > 0 && x <= 256
 }
 
-fn fetch_sprite_low(scanline: usize, x: usize) -> bool {
-    (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 5)
-}
-
-fn fetch_sprite_high(scanline: usize, x: usize) -> bool {
-    (scanline < 240 || scanline == LAST_SCANLINE) && x > 256 && x <= 320 && (x % 8 == 7)
+// This is an approximation, skipping all individual sprite pattern fetches
+fn fill_sprite_evaluation_registers(scanline: usize, x: usize) -> bool {
+    (scanline < 240 || scanline == LAST_SCANLINE) && x == 320
 }
 
 fn start_sprite_evaluation(scanline: usize, x: usize) -> bool {
@@ -390,7 +372,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & START_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline, self.control.sprite_size());".to_owned());
+        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline, self.control);"
+                       .to_owned());
         actions.push(Action::WhenRenderingEnabled("START_SPRITE_EVALUATION".to_owned(), lines, 10))
     }
 
@@ -400,18 +383,11 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         actions.push(Action::WhenRenderingEnabled("SPRITE_DEC_X".to_owned(), lines, 0))
     }
 
-    if cycle_type & FETCH_SPRITE_LOW > 0 {
+    if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;"
+        lines.push("    self.sprite_renderer.fill_registers(&self.vram, self.control)?;"
                        .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_LOW".to_owned(), lines, 0))
-    }
-
-    if cycle_type & FETCH_SPRITE_HIGH > 0 {
-        let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;"
-                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_SPRITE_HIGH".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled("FILL_SPRITE_REGISTERS".to_owned(), lines, 0))
     }
 
     if cycle_type & TICK_SPRITE_EVALUATION > 0 {
@@ -545,227 +521,4 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
             }
         }
     }
-}
-
-#[derive(RustcEncodable)]
-struct Cycle {
-    value: u32,
-    nop: bool,
-    draw_pixel: bool,
-    shift_bg_registers: bool,
-    fetch_nt: bool,
-    fetch_at: bool,
-    fetch_bg_low: bool,
-    fetch_bg_high: bool,
-    fill_bg_registers: bool,
-    inc_coarse_x: bool,
-    inc_fine_y: bool,
-    hori_v_eq_hori_t: bool,
-    set_vblank: bool,
-    clear_vblank_and_sprite_zero_hit: bool,
-    vert_v_eq_vert_t: bool,
-    odd_frame_skip_cycle: bool,
-    frame_inc: bool,
-    tick_sprite_evaluation: bool,
-    fetch_sprite_low: bool,
-    fetch_sprite_high: bool,
-    sprite_dec_x: bool,
-}
-
-impl ToJson for Cycle {
-    fn to_json(&self) -> Json {
-        let mut props = BTreeMap::new();
-        props.insert("value".to_owned(), Json::U64(self.value as _));
-        props.insert("nop".to_owned(), Json::Boolean(self.nop));
-        props.insert("draw_pixel".to_owned(), Json::Boolean(self.draw_pixel));
-        props.insert("shift_bg_registers".to_owned(),
-                     Json::Boolean(self.shift_bg_registers));
-        props.insert("fetch_nt".to_owned(), Json::Boolean(self.fetch_nt));
-        props.insert("fetch_at".to_owned(), Json::Boolean(self.fetch_at));
-        props.insert("fetch_bg_low".to_owned(), Json::Boolean(self.fetch_bg_low));
-        props.insert("fetch_bg_high".to_owned(),
-                     Json::Boolean(self.fetch_bg_high));
-        props.insert("fill_bg_registers".to_owned(),
-                     Json::Boolean(self.fill_bg_registers));
-        props.insert("inc_coarse_x".to_owned(), Json::Boolean(self.inc_coarse_x));
-        props.insert("inc_fine_y".to_owned(), Json::Boolean(self.inc_fine_y));
-        props.insert("hori_v_eq_hori_t".to_owned(),
-                     Json::Boolean(self.hori_v_eq_hori_t));
-        props.insert("set_vblank".to_owned(), Json::Boolean(self.set_vblank));
-        props.insert("clear_vblank_and_sprite_zero_hit".to_owned(),
-                     Json::Boolean(self.clear_vblank_and_sprite_zero_hit));
-        props.insert("vert_v_eq_vert_t".to_owned(),
-                     Json::Boolean(self.vert_v_eq_vert_t));
-        props.insert("odd_frame_skip_cycle".to_owned(),
-                     Json::Boolean(self.odd_frame_skip_cycle));
-        props.insert("frame_inc".to_owned(), Json::Boolean(self.frame_inc));
-        props.insert("tick_sprite_evaluation".to_owned(),
-                     Json::Boolean(self.tick_sprite_evaluation));
-        props.insert("fetch_sprite_low".to_owned(),
-                     Json::Boolean(self.fetch_sprite_low));
-        props.insert("fetch_sprite_high".to_owned(),
-                     Json::Boolean(self.fetch_sprite_high));
-        props.insert("sprite_dec_x".to_owned(), Json::Boolean(self.sprite_dec_x));
-        Json::Object(props)
-    }
-}
-
-impl Cycle {
-    fn new(cycle_type: u32) -> Self {
-        Cycle {
-            value: cycle_type,
-            nop: cycle_type == 0,
-            fetch_sprite_low: cycle_type & FETCH_SPRITE_LOW > 0,
-            fetch_sprite_high: cycle_type & FETCH_SPRITE_HIGH > 0,
-            tick_sprite_evaluation: cycle_type & TICK_SPRITE_EVALUATION > 0,
-            draw_pixel: cycle_type & DRAW_PIXEL > 0,
-            set_vblank: cycle_type & SET_VBLANK > 0,
-            clear_vblank_and_sprite_zero_hit: cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0,
-            inc_coarse_x: cycle_type & INC_COARSE_X > 0,
-            inc_fine_y: cycle_type & INC_FINE_Y > 0,
-            hori_v_eq_hori_t: HORI_V_EQ_HORI_T > 0,
-            fetch_at: cycle_type & FETCH_AT > 0,
-            fetch_nt: cycle_type & FETCH_NT > 0,
-            fetch_bg_low: cycle_type & FETCH_BG_LOW > 0,
-            fetch_bg_high: cycle_type & FETCH_BG_HIGH > 0,
-            odd_frame_skip_cycle: cycle_type & ODD_FRAME_SKIP_CYCLE > 0,
-            frame_inc: cycle_type & FRAME_INC > 0,
-            shift_bg_registers: cycle_type & SHIFT_BG_REGISTERS > 0,
-            vert_v_eq_vert_t: cycle_type & VERT_V_EQ_VERT_T > 0,
-            fill_bg_registers: cycle_type & FILL_BG_REGISTERS > 0,
-            sprite_dec_x: cycle_type & SPRITE_DEC_X > 0,
-        }
-    }
-}
-
-fn diagram(cycle_table: &CycleTable) {
-    println!("generating cycle diagram...");
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_file("cycle_table", "examples/cycle_table.hbs")
-        .unwrap();
-    handlebars.register_helper("class", Box::new(class_helper));
-    handlebars.register_helper("color", Box::new(color_helper));
-
-    let mut data = BTreeMap::new();
-    let mut scanlines = Vec::new();
-    for y in 0..SCANLINES {
-        let mut scanline = Vec::new();
-        for x in 0..CYCLES_PER_SCANLINE {
-            scanline.push(Cycle::new(cycle_table[y][x]))
-        }
-        scanlines.push(scanline);
-    }
-    data.insert("scanlines".to_owned(), scanlines);
-    let rendered = handlebars.render("cycle_table", &data).unwrap();
-
-    let mut f = File::create("ppu_timing_diagram.html").unwrap();
-    println!("Writing file...");
-    f.write_all(rendered.as_bytes()).unwrap();
-    println!("Done!");
-}
-
-fn class_helper(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let mut classes = Vec::new();
-    if let &Json::Object(ref map) = h.param(0).unwrap().value() {
-        if let Json::Boolean(true) = map["nop"] {
-            classes.push("nop".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_sprite_low"] {
-            classes.push("fetch_sprite_low".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_sprite_high"] {
-            classes.push("fetch_sprite_high".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["sprite_evaluation"] {
-            classes.push("sprite_evaluation".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["init_secondary_oam"] {
-            classes.push("init_secondary_oam".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["draw_pixel"] {
-            classes.push("draw_pixel".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["set_vblank"] {
-            classes.push("set_vblank".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["clear_vblank_and_sprite_zero_hit"] {
-            classes.push("clear_vblank_and_sprite_zero_hit".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["inc_coarse_x"] {
-            classes.push("inc_coarse_x".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["inc_fine_y"] {
-            classes.push("inc_fine_y".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["hori_v_eq_hori_t"] {
-            classes.push("hori_v_eq_hori_t".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_at"] {
-            classes.push("fetch_at".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_nt"] {
-            classes.push("fetch_nt".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_bg_low"] {
-            classes.push("fetch_bg_low".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fetch_bg_high"] {
-            classes.push("fetch_bg_high".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["odd_frame_skip_cycle"] {
-            classes.push("odd_frame_skip_cycle".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["frame_inc"] {
-            classes.push("frame_inc".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["shift_bg_registers"] {
-            classes.push("shift_bg_registers".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["vert_v_eq_vert_t"] {
-            classes.push("vert_v_eq_vert_t".to_owned());
-        }
-
-        if let Json::Boolean(true) = map["fill_bg_registers"] {
-            classes.push("fill_bg_registers".to_owned());
-        }
-    } else {
-        panic!("Only object expected");
-    }
-    let rendered = classes.join(" ");
-    rc.writer.write(rendered.into_bytes().as_ref())?;
-    Ok(())
-}
-
-fn color_helper(h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError> {
-    let color = if let &Json::Object(ref map) = h.param(0).unwrap().value() {
-        if let Json::U64(val) = map["value"] {
-            val
-        } else {
-            panic!("Only u64 expected");
-        }
-    } else {
-        panic!("Only object expected");
-    };
-    let rendered = format!("#{:0>6X}", color);
-    rc.writer.write(rendered.into_bytes().as_ref())?;
-    Ok(())
 }

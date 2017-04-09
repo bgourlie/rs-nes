@@ -257,7 +257,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // START_SPRITE_EVALUATION
                     self.sprite_renderer
-                        .start_sprite_evaluation(scanline, self.control.sprite_size());
+                        .start_sprite_evaluation(scanline, self.control);
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -435,21 +435,13 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             }
             18 => {
                 if self.mask.rendering_enabled() {
-                    // FETCH_SPRITE_LOW
+                    // FILL_SPRITE_REGISTERS
                     self.sprite_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+                        .fill_registers(&self.vram, self.control)?;
                 }
                 Ok(Interrupt::None)
             }
             19 => {
-                if self.mask.rendering_enabled() {
-                    // FETCH_SPRITE_HIGH
-                    self.sprite_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
-                }
-                Ok(Interrupt::None)
-            }
-            20 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
@@ -457,7 +449,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            21 => {
+            20 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -465,7 +457,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            22 => {
+            21 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
@@ -477,7 +469,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            23 => {
+            22 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_LOW
                     self.background_renderer
@@ -489,7 +481,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            24 => {
+            23 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_HIGH
                     self.background_renderer
@@ -501,7 +493,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            25 => {
+            24 => {
                 if self.mask.rendering_enabled() {
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
@@ -512,7 +504,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            26 => {
+            25 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
@@ -528,7 +520,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            27 => {
+            26 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
@@ -536,7 +528,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            28 => {
+            27 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -548,7 +540,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            29 => {
+            28 => {
                 // SET_VBLANK
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
@@ -557,7 +549,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     Ok(Interrupt::None)
                 }
             }
-            30 => {
+            29 => {
                 // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
 
                 // Reading palettes here isn't accurate, but should suffice for now
@@ -577,7 +569,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            31 => {
+            30 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -588,7 +580,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            32 => {
+            31 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -603,7 +595,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            33 => {
+            32 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -618,7 +610,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            34 => {
+            33 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -633,7 +625,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            35 => {
+            34 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -647,7 +639,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            36 => {
+            35 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -666,7 +658,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            37 => {
+            36 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -680,36 +672,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
+            37 => {
+                if self.mask.rendering_enabled() {
+                    // VERT_V_EQ_VERT_T
+                    self.vram.copy_vertical_pos_to_addr();
+                }
+                Ok(Interrupt::None)
+            }
             38 => {
-                if self.mask.rendering_enabled() {
-                    // VERT_V_EQ_VERT_T
-                    self.vram.copy_vertical_pos_to_addr();
-                }
-                Ok(Interrupt::None)
-            }
-            39 => {
-                if self.mask.rendering_enabled() {
-                    // FETCH_SPRITE_LOW
-                    self.sprite_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
-
-                    // VERT_V_EQ_VERT_T
-                    self.vram.copy_vertical_pos_to_addr();
-                }
-                Ok(Interrupt::None)
-            }
-            40 => {
-                if self.mask.rendering_enabled() {
-                    // FETCH_SPRITE_HIGH
-                    self.sprite_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
-
-                    // VERT_V_EQ_VERT_T
-                    self.vram.copy_vertical_pos_to_addr();
-                }
-                Ok(Interrupt::None)
-            }
-            41 => {
                 // ODD_FRAME_SKIP_CYCLE
                 // This is the last cycle for odd frames
                 // The additional cycle increment puts us to pixel 0,0
@@ -720,7 +690,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                 Ok(Interrupt::None)
             }
-            42 => {
+            39 => {
                 // FRAME_INC
                 // This is the last cycle for even frames and when rendering disabled
                 self.odd_frame = !self.odd_frame;

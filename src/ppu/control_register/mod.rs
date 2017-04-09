@@ -12,7 +12,7 @@ pub enum IncrementAmount {
 
 /// $2000, Write Only
 /// Various flags controlling PPU operation
-#[derive(Default)]
+#[derive(Copy, Clone, Default)]
 pub struct ControlRegister {
     reg: u8,
 }

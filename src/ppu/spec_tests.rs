@@ -426,7 +426,6 @@ fn odd_frame_cycle_skip() {
 mod mocks {
     use errors::*;
     use ppu::PpuBase;
-    use ppu::SpriteSize;
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
@@ -496,15 +495,10 @@ mod mocks {
 
         fn tick_sprite_evaluation(&mut self) {}
 
-        fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V, _: u8) -> Result<()> {
+        fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
+        fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) -> Result<()> {
             Ok(())
         }
-
-        fn fetch_pattern_high_byte<V: Vram>(&mut self, _: &V, _: u8) -> Result<()> {
-            Ok(())
-        }
-
-        fn start_sprite_evaluation(&mut self, _: u16, _: SpriteSize) {}
     }
 
     #[derive(Default)]
