@@ -14,10 +14,8 @@ pub struct SpriteEvaluation {
     m: u8,
     sprite_size: SpriteSize,
     read_buffer: u8,
-    first_sprite_overflow_check_occurred: bool,
-    sprite_overflow_read_cycle: u8,
-    sprite_overflow_read: bool,
-    overflow: bool
+    sprite_overflow: bool,
+    cycle: u8,
 }
 
 impl SpriteEvaluation {
@@ -27,93 +25,62 @@ impl SpriteEvaluation {
             sprites_found: 0,
             secondary_oam: [0xff; 0x20],
             read_buffer: 0,
-            first_sprite_overflow_check_occurred: false,
             n: 0,
             m: 0,
             sprite_size: sprite_size,
-            sprite_overflow_read: false,
-            sprite_overflow_read_cycle: 0,
-            overflow: false,
+            sprite_overflow: false,
+            cycle: 0,
         }
     }
 
-    pub fn tick(&mut self, primary_oam: &[u8], cycle: u64) {
-        debug_assert!(cycle >= 65 && cycle <= 256);
+    pub fn tick(&mut self, primary_oam: &[u8]) {
+        debug_assert!(self.cycle <= 191);
         debug_assert!(self.m < 4);
-        if self.n >= 64 {
-            // If we've evaluated all sprints, do nothing
-            println!("Evaluated all sprites, doing nothing");
-        } else {
-            let oam_addr = (self.n as usize) * 4 + self.m as usize;
-
-            if cycle % 2 == 1 { // Read Cycles
+        if !self.sprite_overflow && self.n < 64 {
+            if self.cycle % 2 == 0 {
+                // Read Cycles
+                let oam_addr = (self.n as usize) * 4 + self.m as usize;
                 self.read_buffer = primary_oam[oam_addr];
-                println!();
-                println!("CYCLE {} (READ): Read value = {}", cycle, self.read_buffer);
-            } else { // Write Cycles
-                println!("CYCLE {} (WRITE): ", cycle);
-                if self.sprites_found < 8 { // Standard sprite evaluation
-                    println!("    Fewer than 8 sprites on scanline so far.");
-
-                    if self.m == 0 { // We're evaluating y, check if sprite is on scanline
+            } else {
+                // Write Cycles
+                if self.sprites_found < 8 {
+                    // Standard sprite evaluation
+                    if self.m == 0 {
+                        // We're evaluating y, check if sprite is on scanline
                         let y = self.read_buffer;
-                        println!("        Evaluating Sprite (y = {}). ", y);
                         self.secondary_oam[self.sprites_found as usize * 4] = y;
                         if !self.is_sprite_on_scanline(self.read_buffer) {
                             // Sprite not on scanline, increment n to move on to next sprite.
-                            println!("            Sprite not on scanline, incrementing n to {}.", self.n + 1);
                             self.increment_n();
                         } else {
-                            println!("            Sprite on scanline, increment m to {}.", self.m + 1);
                             self.increment_m()
                         }
-                    } else { // Copy remaining bytes of the sprite to secondary oam
-                        println!("    Copying remaining bytes for sprite {} of 8 (n = {}, m = {}). ", self.sprites_found + 1, self.n, self.m);
-                        self.secondary_oam[self.sprites_found as usize * 4 + self.m as usize] = self.read_buffer;
+                    } else {
+                        // Copy remaining bytes of the sprite to secondary oam
+                        self.secondary_oam[self.sprites_found as usize * 4 + self.m as usize] =
+                            self.read_buffer;
                         self.increment_m();
 
-                        if self.m == 0 { // m overflowed, we copied the last byte for the sprite
-                            println!("        Finished copying bytes for sprite {} of 8. Incrementing sprites_found and n, resetting m. ", self.sprites_found + 1);
+                        if self.m == 0 {
+                            // m overflowed, we copied the last byte for the sprite
                             self.sprites_found += 1;
                         }
                     }
-                } else { // Overflow sprite evaluation
-                    println!("    In sprite overflow evaluation.");
-
-                    if self.sprite_overflow_read {
-                        println!("        Sprite overflow dummy read.");
-                        self.sprite_overflow_read_cycle = if self.sprite_overflow_read_cycle >= 3 {
-                            self.sprite_overflow_read = false;
-                            0
-                        } else {
-                            self.sprite_overflow_read_cycle + 1
-                        };
+                } else {
+                    // Overflow sprite evaluation
+                    // The first sprite overflow evaluation correctly reads the y value of the next
+                    // sprite in OAM. After that, it reads the Y value of the first sprite in
+                    // secondary OAM. This contributes to the sprite overflow bug behavior.
+                    let y = self.read_buffer;
+                    if self.is_sprite_on_scanline(y) {
+                        self.sprite_overflow = true;
                     } else {
-                        // The first sprite overflow evaluation correctly reads the y value of the next
-                        // sprite in OAM. After that, it reads the Y value of the first sprite in
-                        // secondary OAM. This contributes to the sprite overflow bug behavior.
-                        let y = if !self.first_sprite_overflow_check_occurred {
-                            println!("        First sprite overflow check");
-                            self.first_sprite_overflow_check_occurred = true;
-                            self.read_buffer
-                        } else {
-                            println!("        Not first sprite overflow check, incorrectly evaluating y");
-                            self.secondary_oam[0]
-                        };
-
-                        if self.is_sprite_on_scanline(y) {
-                            println!("        Sprite is on scanline. Mock byte writes. ");
-                            self.increment_m();
-                            self.sprite_overflow_read = true;
-                            self.overflow = true;
-                        } else {
-                            println!("        No sprite overflow, Incrementing n and m per hardware bug. ");
-                            self.increment_n_hardware_bug();
-                        }
+                        self.increment_n_hardware_bug();
                     }
                 }
             }
         }
+        self.cycle += 1;
     }
 
     fn increment_m(&mut self) {

@@ -116,81 +116,89 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             1 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             2 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             3 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_AT
-                    self.background_renderer.fetch_attribute_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             4 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_LOW
-                    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             5 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_HIGH
-                    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             6 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
@@ -200,130 +208,145 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             7 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             8 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
 
                     // START_SPRITE_EVALUATION
-                    self.sprite_renderer.start_sprite_evaluation(scanline, self.control.sprite_size());
+                    self.sprite_renderer
+                        .start_sprite_evaluation(scanline, self.control.sprite_size());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             9 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             10 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_AT
-                    self.background_renderer.fetch_attribute_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             11 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_LOW
-                    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             12 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_HIGH
-                    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             13 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
@@ -333,38 +356,42 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             14 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             15 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
@@ -374,132 +401,153 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.fine_y_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // TICK_SPRITE_EVALUATION
-                    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);
+                    self.sprite_renderer.tick_sprite_evaluation();
                 }
                 Ok(Interrupt::None)
-            },
+            }
             16 => {
                 if self.mask.rendering_enabled() {
                     // HORI_V_EQ_HORI_T
                     self.vram.copy_horizontal_pos_to_addr();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             17 => {
                 // NOP
 
                 Ok(Interrupt::None)
-            },
+            }
             18 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_LOW
-                    self.sprite_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.sprite_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             19 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_HIGH
-                    self.sprite_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.sprite_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             20 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             21 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             22 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
-                    self.background_renderer.fetch_attribute_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             23 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_LOW
-                    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             24 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_HIGH
-                    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             25 => {
                 if self.mask.rendering_enabled() {
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             26 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             27 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
-                    self.background_renderer.fetch_attribute_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             28 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             29 => {
                 // SET_VBLANK
                 self.status.set_in_vblank();
@@ -508,7 +556,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 } else {
                     Ok(Interrupt::None)
                 }
-            },
+            }
             30 => {
                 // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
 
@@ -524,59 +572,67 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
                 }
                 Ok(Interrupt::None)
-            },
+            }
             31 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             32 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_AT
-                    self.background_renderer.fetch_attribute_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             33 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_LOW
-                    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             34 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_BG_HIGH
-                    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.background_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             35 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
@@ -586,26 +642,30 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             36 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
-                    self.background_renderer.fetch_nametable_byte(&self.vram)?;
+                    self.background_renderer
+                        .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
 
                     // FILL_BG_REGISTERS
-                    self.background_renderer.fill_shift_registers(self.vram.addr());
+                    self.background_renderer
+                        .fill_shift_registers(self.vram.addr());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             37 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
@@ -615,37 +675,40 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.fine_y_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer.tick_shifters(self.vram.fine_x());
+                    self.background_renderer
+                        .tick_shifters(self.vram.fine_x());
                 }
                 Ok(Interrupt::None)
-            },
+            }
             38 => {
                 if self.mask.rendering_enabled() {
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
                 }
                 Ok(Interrupt::None)
-            },
+            }
             39 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_LOW
-                    self.sprite_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;
+                    self.sprite_renderer
+                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
 
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
                 }
                 Ok(Interrupt::None)
-            },
+            }
             40 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_SPRITE_HIGH
-                    self.sprite_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;
+                    self.sprite_renderer
+                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
 
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
                 }
                 Ok(Interrupt::None)
-            },
+            }
             41 => {
                 // ODD_FRAME_SKIP_CYCLE
                 // This is the last cycle for odd frames
@@ -656,14 +719,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
 
                 Ok(Interrupt::None)
-            },
+            }
             42 => {
                 // FRAME_INC
                 // This is the last cycle for even frames and when rendering disabled
                 self.odd_frame = !self.odd_frame;
 
                 Ok(Interrupt::None)
-            },
+            }
             _ => unreachable!(),
         }
     }

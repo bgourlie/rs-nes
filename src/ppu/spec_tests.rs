@@ -494,8 +494,7 @@ mod mocks {
 
         fn dec_x_counters(&mut self) {}
 
-        fn tick_sprite_evaluation(&mut self, _: u64) {
-        }
+        fn tick_sprite_evaluation(&mut self) {}
 
         fn fetch_pattern_low_byte<V: Vram>(&mut self, _: &V, _: u8) -> Result<()> {
             Ok(())

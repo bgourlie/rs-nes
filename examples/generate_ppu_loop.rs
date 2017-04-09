@@ -416,7 +416,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & TICK_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.tick_sprite_evaluation(frame_cycle);".to_owned());
+        lines.push("    self.sprite_renderer.tick_sprite_evaluation();".to_owned());
         actions.push(Action::WhenRenderingEnabled("TICK_SPRITE_EVALUATION".to_owned(), lines, 100))
     }
 
