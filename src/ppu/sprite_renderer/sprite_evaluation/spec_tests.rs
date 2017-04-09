@@ -5,7 +5,7 @@ use ppu::SpriteSize;
 
 #[test]
 fn sprite_overflow_triggered() {
-    // Put 8 sprites on a scanline, assert that overflow occurs
+    // Put 8 sprites on a scanline, assert that sprite over flows (The rare non-buggy behavior)
 
     let oam_fixture = oam_fixture(&[
         10, 01, 02, 03,
@@ -35,7 +35,7 @@ fn sprite_overflow_triggered() {
 
 #[test]
 fn sprite_overflow_triggered_via_hardware_bug() {
-    // Put 8 sprites on a scanline, assert that overflow occurs
+    // Put 8 sprites on a scanline, assert buggy sprite overflow behavior
 
     let oam_fixture = oam_fixture(&[
         10, 01, 02, 03,
@@ -47,8 +47,8 @@ fn sprite_overflow_triggered_via_hardware_bug() {
         04, 19, 20, 21,
         03, 22, 23, 24,
         02, 25, 26, 27,
-        10, 03, 29, 30, // Due to hardware bug, sprite overflow evaluation will interpret the tile
-                        // byte (second byte) of this tile as "Y"
+        10, 03, 29, 30, // Due to hardware bug, sprite overflow evaluation will interpret the second
+                        // byte of this tile as "Y"
     ]);
 
     let mut eval = SpriteEvaluation::new(10, SpriteSize::X8);
@@ -56,7 +56,11 @@ fn sprite_overflow_triggered_via_hardware_bug() {
     // Evaluate 8 sprites all on same scanline
     for frame_cycle in 65..256 {
         eval.tick(&oam_fixture, frame_cycle);
-        assert_eq!(false, eval.overflow, "frame_cycle = {}", frame_cycle);
+        if frame_cycle >= 132 {
+            assert_eq!(true, eval.overflow, "frame_cycle = {}", frame_cycle);
+        } else {
+            assert_eq!(false, eval.overflow, "frame_cycle = {}", frame_cycle);
+        }
     }
 }
 
