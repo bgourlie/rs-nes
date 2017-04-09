@@ -18,7 +18,7 @@ use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
-use ppu::sprite_renderer::{SpriteRenderer, SpriteRendererBase};
+use ppu::sprite_renderer::{SpritePriority, SpriteRenderer, SpriteRendererBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -70,10 +70,25 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
 
 impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = self.background_renderer.pixel_color();
+        let bg_pixel = self.background_renderer.current_pixel();
+        let sprite_pixel = self.sprite_renderer.current_pixel();
+
+        let color = match (bg_pixel, sprite_pixel) {
+            (0, 0) => self.background_renderer.pixel_color(),
+            (0, _) => self.sprite_renderer.pixel_color(),
+            (_, 0) => self.background_renderer.pixel_color(),
+            (_, _) => {
+                if self.sprite_renderer.pixel_priority() == SpritePriority::OnTopOfBackground {
+                    self.sprite_renderer.pixel_color()
+                } else {
+                    self.background_renderer.pixel_color()
+                }
+            }
+        };
+
         self.screen
             .borrow_mut()
-            .put_pixel(x as _, scanline as _, bg_pixel);
+            .put_pixel(x as _, scanline as _, color);
         Ok(())
     }
 }
@@ -170,7 +185,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_LOW
                     self.background_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -188,7 +203,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_HIGH
                     self.background_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -312,7 +327,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_LOW
                     self.background_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -333,7 +348,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_HIGH
                     self.background_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -473,7 +488,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_LOW
                     self.background_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -485,7 +500,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_HIGH
                     self.background_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -602,7 +617,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_LOW
                     self.background_renderer
-                        .fetch_pattern_low_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer
@@ -617,7 +632,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // FETCH_BG_HIGH
                     self.background_renderer
-                        .fetch_pattern_high_byte(&self.vram, *self.control)?;
+                        .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer

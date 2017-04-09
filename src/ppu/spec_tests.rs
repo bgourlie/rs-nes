@@ -429,12 +429,13 @@ mod mocks {
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
-    use ppu::sprite_renderer::SpriteRenderer;
+    use ppu::palette::Color;
+    use ppu::sprite_renderer::{SpritePriority, SpriteRenderer};
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
     use rom::NesRom;
-    use screen::{Color, NesScreen};
+    use screen::NesScreen;
     use std::cell::Cell;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -487,10 +488,6 @@ mod mocks {
             Ok(())
         }
 
-        fn pixel_color(&self, _: u8) -> Color {
-            Color(0, 0, 0)
-        }
-
         fn dec_x_counters(&mut self) {}
 
         fn tick_sprite_evaluation(&mut self) {}
@@ -498,6 +495,18 @@ mod mocks {
         fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
         fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) -> Result<()> {
             Ok(())
+        }
+
+        fn current_pixel(&self) -> u8 {
+            0
+        }
+
+        fn pixel_color(&self) -> Color {
+            Color(0, 0, 0)
+        }
+
+        fn pixel_priority(&self) -> SpritePriority {
+            SpritePriority::OnTopOfBackground
         }
     }
 

@@ -37,6 +37,14 @@ impl ControlRegister {
         }
     }
 
+    pub fn background_pattern_table_base(&self) -> u16 {
+        ((self.reg as u16) << 8) & 0x1000
+    }
+
+    pub fn sprite_pattern_table_base(&self) -> u16 {
+        ((self.reg as u16) << 9) & 0x1000
+    }
+
     /// Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)
     pub fn nmi_on_vblank_start(&self) -> bool {
         !(self.reg & 0b10000000 == 0)

@@ -1,5 +1,4 @@
 use super::*;
-use ppu::palette::EMPTY;
 
 #[test]
 fn oam_write_and_read() {
@@ -33,15 +32,7 @@ fn oam_fixture(initial_values: &[u8]) -> SpriteRendererBase {
     for (i, byte) in initial_values.iter().enumerate() {
         mem[i] = *byte;
     }
-
-    SpriteRendererBase {
-        primary_oam: mem,
-        address: Cell::new(0),
-        palettes: EMPTY,
-        pattern_low_shift_registers: [0_u8; 8],
-        pattern_high_shift_registers: [0_u8; 8],
-        attribute_latches: [0_u8; 8],
-        x_counters: [0_u8; 8],
-        sprite_evaluation: SpriteEvaluation::default(),
-    }
+    let mut fixture = SpriteRendererBase::default();
+    fixture.primary_oam = mem;
+    fixture
 }

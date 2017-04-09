@@ -452,14 +452,15 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let mut lines = Vec::new();
-        lines
-            .push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, *self.control)?;"
-                      .to_owned());
+        lines.push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control)?;"
+                       .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_BG_LOW".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, *self.control)?;".to_owned());
+        lines
+            .push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control)?;"
+                      .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines, 0))
     }
     if cycle_type & ODD_FRAME_SKIP_CYCLE > 0 {
