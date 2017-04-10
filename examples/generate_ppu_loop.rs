@@ -32,7 +32,7 @@ type CycleTable = [[u32; CYCLES_PER_SCANLINE]; SCANLINES];
 
 #[derive(Clone)]
 enum Action {
-    WhenRenderingEnabled(String, Vec<String>, usize),
+    WhenRenderingEnabled(String, Vec<String>, isize),
     NoReturnExpression(String, Vec<String>),
     ReturnExpression(String, Vec<String>),
 }
@@ -399,7 +399,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     if cycle_type & DRAW_PIXEL > 0 {
         let mut lines = Vec::new();
         lines.push("    self.draw_pixel(x, scanline)?;".to_owned());
-        actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines, 10000))
+        actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines, -10000))
     }
 
     if cycle_type & SET_VBLANK > 0 {

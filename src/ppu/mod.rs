@@ -134,33 +134,36 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             }
             1 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             2 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer.tick_shifters();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             3 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -170,14 +173,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer.tick_shifters();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             4 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -187,14 +190,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer.tick_shifters();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             5 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -204,14 +207,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer.tick_shifters();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             6 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -220,14 +223,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // SHIFT_BG_REGISTERS
                     self.background_renderer.tick_shifters();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             7 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -241,14 +244,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     // FILL_BG_REGISTERS
                     self.background_renderer
                         .fill_shift_registers(self.vram.addr());
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             8 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -269,14 +272,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             9 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -285,14 +288,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             10 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -305,14 +308,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             11 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -325,14 +328,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             12 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -345,14 +348,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             13 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -364,14 +367,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             14 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -388,14 +391,14 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
             15 => {
                 if self.mask.rendering_enabled() {
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
+
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
@@ -407,9 +410,6 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
-
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
