@@ -312,10 +312,8 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
 
     let mut lines = Vec::<String>::new();
     for action in no_return {
-        if let Action::NoReturnExpression(action_name, mut action_lines) = action {
-            lines.push(format!("    // {}", action_name));
+        if let Action::NoReturnExpression(_, mut action_lines) = action {
             lines.append(&mut action_lines);
-            lines.push("".to_owned());
         } else {
             panic!("only no return items should be in here")
         }
@@ -337,21 +335,17 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
         });
         lines.push("if self.mask.rendering_enabled() {".to_owned());
         for action in when_rendering_enabled {
-            if let Action::WhenRenderingEnabled(action_name, mut action_lines, _) = action {
-                lines.push(format!("    // {}", action_name));
+            if let Action::WhenRenderingEnabled(_, mut action_lines, _) = action {
                 lines.append(&mut action_lines);
-                lines.push("".to_owned());
             } else {
                 panic!("only no return items should be in here")
             }
         }
-        lines.pop();
         lines.push("}".to_owned());
     }
 
     if let Some(action) = returns {
-        if let Action::ReturnExpression(action_name, mut action_lines) = action {
-            lines.push(format!("    // {}", action_name));
+        if let Action::ReturnExpression(_, mut action_lines) = action {
             lines.append(&mut action_lines);
         } else {
             panic!("only no return items should be in here")
@@ -414,12 +408,10 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let mut lines = Vec::new();
-        lines.push("".to_owned());
-        lines.push("    // Reading palettes here isn't accurate, but should suffice for now"
+        lines.push("    // Updating palettes here isn't accurate, but should suffice for now"
                        .to_owned());
         lines.push("    self.background_renderer.update_palettes(&self.vram)?;".to_owned());
         lines.push("    self.sprite_renderer.update_palettes(&self.vram)?;".to_owned());
-        lines.push("".to_owned());
         lines.push("    self.status.clear_in_vblank();".to_owned());
         lines.push("    self.status.clear_sprite_zero_hit();".to_owned());
         actions.push(Action::NoReturnExpression("CLEAR_VBLANK_AND_SPRITE_ZERO_HIT".to_owned(),

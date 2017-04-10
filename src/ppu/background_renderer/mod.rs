@@ -58,10 +58,10 @@ impl BackgroundRenderer {
         self.palettes[palette_index]
     }
 
-    pub fn fill_shift_registers(&mut self, vram_addr: u16) {
+    pub fn fill_shift_registers(&mut self, v: u16) {
         self.pattern_low_shift_register |= self.pattern_low_latch as u16;
         self.pattern_high_shift_register |= self.pattern_high_latch as u16;
-        let (palette_low, palette_high) = Self::palette_shift_bytes(vram_addr, self.attr_latch);
+        let (palette_low, palette_high) = Self::palette_shift_bytes(v, self.attr_latch);
         self.palette_low_bit_shift_register |= palette_low as u16;
         self.palette_high_bit_shift_register |= palette_high as u16;
     }
@@ -77,7 +77,7 @@ impl BackgroundRenderer {
         let palette_nibble = (attr_byte >> shift) & 0b11;
 
         // Return (low bits, high bits)
-        ((palette_nibble & 1) * 255, ((palette_nibble >> 1) & 1) * 255)
+        ((palette_nibble & 1) * 255, (palette_nibble >> 1) * 255)
     }
 
     pub fn tick_shifters(&mut self) {
