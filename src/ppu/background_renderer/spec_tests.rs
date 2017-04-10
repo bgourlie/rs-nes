@@ -52,41 +52,41 @@ fn pattern_shift_values() {
     assert_eq!((0, 0), result);
 
     // Coarse X and Y bits are (1, 0), so top right palette should be chosen
-    let result = BackgroundRenderer::palette_shift_bytes(1, 0b0000_11_00);
+    let result = BackgroundRenderer::palette_shift_bytes(0b10, 0b0000_11_00);
     assert_eq!((0xff, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(1, 0b1111_01_11);
+    let result = BackgroundRenderer::palette_shift_bytes(0b10, 0b1111_01_11);
     assert_eq!((0xff, 0), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(1, 0b1111_10_11);
+    let result = BackgroundRenderer::palette_shift_bytes(0b10, 0b1111_10_11);
     assert_eq!((0, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(1, 0b1111_00_11);
+    let result = BackgroundRenderer::palette_shift_bytes(0b10, 0b1111_00_11);
     assert_eq!((0, 0), result);
 
     // Coarse X and Y bits are (0, 1), so bottom left palette should be chosen
-    let result = BackgroundRenderer::palette_shift_bytes(0b100000, 0b00_11_0000);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000000, 0b00_11_0000);
     assert_eq!((0xff, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100000, 0b11_01_1111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000000, 0b11_01_1111);
     assert_eq!((0xff, 0), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100000, 0b11_10_1111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000000, 0b11_10_1111);
     assert_eq!((0, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100000, 0b11_00_1111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000000, 0b11_00_1111);
     assert_eq!((0, 0), result);
 
     // Coarse X and Y bits are (1, 1), so bottom right palette should be chosen
-    let result = BackgroundRenderer::palette_shift_bytes(0b100001, 0b_11_000000);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000010, 0b_11_000000);
     assert_eq!((0xff, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100001, 0b_01_111111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000010, 0b_01_111111);
     assert_eq!((0xff, 0), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100001, 0b_10_111111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000010, 0b_10_111111);
     assert_eq!((0, 0xff), result);
 
-    let result = BackgroundRenderer::palette_shift_bytes(0b100001, 0b_00_111111);
+    let result = BackgroundRenderer::palette_shift_bytes(0b1000010, 0b_00_111111);
     assert_eq!((0, 0), result);
 }

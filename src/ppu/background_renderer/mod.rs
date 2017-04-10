@@ -52,8 +52,7 @@ impl BackgroundRenderer {
     pub fn pixel_color(&self, fine_x: u8) -> Color {
         let palette_low = self.palette_low_bit_shift_register << fine_x;
         let palette_high = self.palette_high_bit_shift_register << fine_x;
-        let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8 &
-                      0b1100;
+        let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
         let palette_index = (palette | self.current_pixel(fine_x)) as usize;
         self.palettes[palette_index]
     }
@@ -67,12 +66,13 @@ impl BackgroundRenderer {
     }
 
     fn palette_shift_bytes(v: u16, attr_byte: u8) -> (u8, u8) {
-        // Bit 1 of coarse x and coarse y determine which bits get loaded into the shift registers.
+        // Second bit of coarse x and coarse y determine which bits get loaded into the shift
+        // registers.
 
         // Intentionally shift each bit one too few to effectively multiply the OR'd result by two.
         // This will give us the amount to shift right by, selecting the correct two attribute bits.
-        let x_component = (v << 1) & 0b10;
-        let y_component = (v >> 3) & 0b100;
+        let x_component = v & 0b10;
+        let y_component = (v >> 4) & 0b100;
         let shift = (y_component | x_component) as usize;
         let palette_nibble = (attr_byte >> shift) & 0b11;
 
