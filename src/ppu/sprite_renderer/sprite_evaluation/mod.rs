@@ -9,7 +9,7 @@ use ppu::SpriteSize;
 pub struct SpriteEvaluation {
     scanline: u8,
     sprites_found: u8,
-    secondary_oam: [u8; 0x20],
+    secondary_oam: [u8; 32],
     n: u8,
     m: u8,
     sprite_size: SpriteSize,
@@ -23,7 +23,7 @@ impl SpriteEvaluation {
         SpriteEvaluation {
             scanline: scanline,
             sprites_found: 0,
-            secondary_oam: [0xff; 0x20],
+            secondary_oam: [0xff; 32],
             read_buffer: 0,
             n: 0,
             m: 0,
@@ -35,6 +35,10 @@ impl SpriteEvaluation {
 
     pub fn read_secondary_oam(&self, index: u8) -> u8 {
         self.secondary_oam[index as usize]
+    }
+
+    pub fn scanline(&self) -> u8 {
+        self.scanline
     }
 
     pub fn tick(&mut self, primary_oam: &[u8]) {

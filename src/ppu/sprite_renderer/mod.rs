@@ -46,6 +46,8 @@ pub enum SpritePriority {
 #[derive(Copy, Clone)]
 struct SpriteAttributes(u8);
 
+pub struct SpritePixel(pub u8, pub SpritePriority, pub Color);
+
 impl SpriteAttributes {
     fn palette(&self) -> u8 {
         let SpriteAttributes(val) = *self;
@@ -88,9 +90,7 @@ pub trait SpriteRenderer: Default {
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
     fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) -> Result<()>;
-    fn current_pixel(&self) -> u8;
-    fn pixel_color(&self) -> Color;
-    fn pixel_priority(&self) -> SpritePriority;
+    fn current_pixel(&self) -> SpritePixel;
 }
 
 pub struct SpriteRendererBase {
@@ -102,8 +102,6 @@ pub struct SpriteRendererBase {
     attribute_latches: [SpriteAttributes; 8],
     x_counters: [u8; 8],
     sprite_evaluation: SpriteEvaluation,
-    current_pixel: u8,
-    current_pixel_attributes: SpriteAttributes,
 }
 
 impl Default for SpriteRendererBase {
@@ -117,8 +115,6 @@ impl Default for SpriteRendererBase {
             attribute_latches: [SpriteAttributes::default(); 8],
             x_counters: [0; 8],
             sprite_evaluation: SpriteEvaluation::default(),
-            current_pixel: 0,
-            current_pixel_attributes: SpriteAttributes::default(),
         }
     }
 }
@@ -173,25 +169,14 @@ impl SpriteRenderer for SpriteRendererBase {
     }
 
     fn dec_x_counters(&mut self) {
-        let mut pixel = 0;
-        let mut attributes = SpriteAttributes::default();
-
         for i in 0..8 {
             if self.x_counters[i] > 0 {
                 self.x_counters[i] -= 1;
             } else {
                 self.pattern_low_shift_registers[i] <<= 1;
                 self.pattern_high_shift_registers[i] <<= 1;
-                if pixel == 0 {
-                    let high_bit = self.pattern_high_shift_registers[i] >> 6;
-                    let low_bit = self.pattern_low_shift_registers[i] >> 7;
-                    pixel = (high_bit | low_bit) & 0b11;
-                    attributes = self.attribute_latches[i];
-                }
             }
         }
-        self.current_pixel = pixel;
-        self.current_pixel_attributes = attributes;
     }
 
     fn tick_sprite_evaluation(&mut self) {
@@ -199,23 +184,35 @@ impl SpriteRenderer for SpriteRendererBase {
     }
 
     fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) -> Result<()> {
-        // TODO: Implement vertical flip
         for sprites_fetched in 0..8 {
             let sprite_base = sprites_fetched * 4;
+
+            let tile_y = self.sprite_evaluation.read_secondary_oam(sprite_base);
+
             let tile_index = self.sprite_evaluation
                 .read_secondary_oam(sprite_base + 1);
 
-            let tile_offset = match control.sprite_size() {
-                SpriteSize::X8 => control.sprite_pattern_table_base() | tile_index as u16,
-                SpriteSize::X16 => {
-                    let actual_tile_index = tile_index & !1;
-                    let sprite_table_select = (tile_index as u16 & 1) << 12;
-                    sprite_table_select | actual_tile_index as u16
-                }
+            let attribute_byte = self.sprite_evaluation
+                .read_secondary_oam(sprite_base + 2);
+
+            let attribute = SpriteAttributes(attribute_byte);
+
+            let fine_y = if attribute.flip_vertically() {
+                7 - (self.sprite_evaluation.scanline() - tile_y)
+            } else {
+                self.sprite_evaluation.scanline() - tile_y
             };
 
-            let attribute = SpriteAttributes(self.sprite_evaluation
-                                                 .read_secondary_oam(sprite_base + 2));
+            let tile_offset = match control.sprite_size() {
+                SpriteSize::X8 => control.sprite_pattern_table_base() | ((tile_index as u16) << 4),
+                SpriteSize::X16 => {
+                    //                    let actual_tile_index = tile_index & !1;
+                    //                    let sprite_table_select = (tile_index as u16 & 1) << 12;
+                    //                    sprite_table_select | actual_tile_index as u16
+                    unimplemented!()
+                }
+            } + fine_y as u16;
+
 
             let pattern_low = vram.read(tile_offset)?;
             let pattern_high = vram.read(tile_offset + 8)?;
@@ -243,16 +240,20 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
     }
 
-    fn current_pixel(&self) -> u8 {
-        self.current_pixel
-    }
+    fn current_pixel(&self) -> SpritePixel {
+        let mut pixel = 0;
+        let mut attributes = SpriteAttributes::default();
 
-    fn pixel_color(&self) -> Color {
-        let palette = self.current_pixel_attributes.palette() << 2;
-        let palette_index = (palette | self.current_pixel) as usize;
-        self.palettes[palette_index]
-    }
-    fn pixel_priority(&self) -> SpritePriority {
-        self.current_pixel_attributes.priority()
+        for i in 0..8 {
+            if self.x_counters[i] == 0 && pixel == 0 {
+                let high_bit = self.pattern_high_shift_registers[i] >> 6;
+                let low_bit = self.pattern_low_shift_registers[i] >> 7;
+                pixel = (high_bit | low_bit) & 0b11;
+                attributes = self.attribute_latches[i];
+            }
+        }
+        let palette = attributes.palette() << 2;
+        let palette_index = (palette | pixel) as usize;
+        SpritePixel(pixel, attributes.priority(), self.palettes[palette_index])
     }
 }

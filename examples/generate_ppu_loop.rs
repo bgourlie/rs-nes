@@ -193,7 +193,7 @@ fn fill_bg_shift_registers(scanline: usize, x: usize) -> bool {
 }
 
 fn draw_pixel(scanline: usize, x: usize) -> bool {
-    x < 256 && scanline < 240
+    x > 0 && x <= 256 && scanline < 240
 }
 
 fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
@@ -482,7 +482,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & SHIFT_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.tick_shifters(self.vram.fine_x());".to_owned());
+        lines.push("    self.background_renderer.tick_shifters();".to_owned());
         actions.push(Action::WhenRenderingEnabled("SHIFT_BG_REGISTERS".to_owned(), lines, 0))
     }
     if cycle_type & VERT_V_EQ_VERT_T > 0 {

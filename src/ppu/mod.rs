@@ -18,7 +18,7 @@ use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
-use ppu::sprite_renderer::{SpritePriority, SpriteRenderer, SpriteRendererBase};
+use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer, SpriteRendererBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -70,25 +70,27 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
 
 impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
-        let bg_pixel = self.background_renderer.current_pixel();
-        let sprite_pixel = self.sprite_renderer.current_pixel();
+        let fine_x = self.vram.fine_x();
+        let bg_pixel = self.background_renderer.current_pixel(fine_x);
+        let SpritePixel(sprite_pixel, sprite_priority, sprite_color) = self.sprite_renderer
+            .current_pixel();
 
         let color = match (bg_pixel, sprite_pixel) {
-            (0, 0) => self.background_renderer.pixel_color(),
-            (0, _) => self.sprite_renderer.pixel_color(),
-            (_, 0) => self.background_renderer.pixel_color(),
+            (0, 0) => self.background_renderer.pixel_color(fine_x),
+            (0, _) => sprite_color,
+            (_, 0) => self.background_renderer.pixel_color(fine_x),
             (_, _) => {
-                if self.sprite_renderer.pixel_priority() == SpritePriority::OnTopOfBackground {
-                    self.sprite_renderer.pixel_color()
+                if sprite_priority == SpritePriority::OnTopOfBackground {
+                    sprite_color
                 } else {
-                    self.background_renderer.pixel_color()
+                    self.background_renderer.pixel_color(fine_x)
                 }
             }
         };
 
         self.screen
             .borrow_mut()
-            .put_pixel(x as _, scanline as _, color);
+            .put_pixel((x - 1) as _, scanline as _, color);
         Ok(())
     }
 }
@@ -126,10 +128,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
         match CYCLE_TABLE[scanline as usize][x as usize] {
             0 => {
-                if self.mask.rendering_enabled() {
-                    // DRAW_PIXEL
-                    self.draw_pixel(x, scanline)?;
-                }
+                // NOP
+
                 Ok(Interrupt::None)
             }
             1 => {
@@ -152,8 +152,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -170,8 +169,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -188,8 +186,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -206,8 +203,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -223,8 +219,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // DRAW_PIXEL
                     self.draw_pixel(x, scanline)?;
@@ -241,8 +236,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -263,8 +257,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -288,8 +281,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -309,8 +301,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -330,8 +321,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -351,8 +341,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -371,8 +360,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
@@ -392,8 +380,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -416,11 +403,13 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.fine_y_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // TICK_SPRITE_EVALUATION
                     self.sprite_renderer.tick_sprite_evaluation();
+
+                    // DRAW_PIXEL
+                    self.draw_pixel(x, scanline)?;
                 }
                 Ok(Interrupt::None)
             }
@@ -434,8 +423,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -444,11 +432,6 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 Ok(Interrupt::None)
             }
             17 => {
-                // NOP
-
-                Ok(Interrupt::None)
-            }
-            18 => {
                 if self.mask.rendering_enabled() {
                     // FILL_SPRITE_REGISTERS
                     self.sprite_renderer
@@ -456,7 +439,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            19 => {
+            18 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
@@ -464,70 +447,64 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            20 => {
+            19 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            21 => {
+            20 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
                         .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            22 => {
+            21 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_LOW
                     self.background_renderer
                         .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            23 => {
+            22 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_BG_HIGH
                     self.background_renderer
                         .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            24 => {
+            23 => {
                 if self.mask.rendering_enabled() {
                     // INC_COARSE_X
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            25 => {
+            24 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_NT
                     self.background_renderer
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -535,7 +512,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            26 => {
+            25 => {
                 if self.mask.rendering_enabled() {
                     // FETCH_AT
                     self.background_renderer
@@ -543,11 +520,10 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            27 => {
+            26 => {
                 if self.mask.rendering_enabled() {
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -555,7 +531,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            28 => {
+            27 => {
                 // SET_VBLANK
                 self.status.set_in_vblank();
                 if self.control.nmi_on_vblank_start() {
@@ -564,7 +540,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     Ok(Interrupt::None)
                 }
             }
-            29 => {
+            28 => {
                 // CLEAR_VBLANK_AND_SPRITE_ZERO_HIT
 
                 // Reading palettes here isn't accurate, but should suffice for now
@@ -584,18 +560,17 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            30 => {
+            29 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            31 => {
+            30 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -605,12 +580,11 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_attribute_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            32 => {
+            31 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -620,12 +594,11 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_low_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            33 => {
+            32 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -635,12 +608,11 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_pattern_high_byte(&self.vram, self.control)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            34 => {
+            33 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -649,12 +621,11 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.coarse_x_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            35 => {
+            34 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -664,8 +635,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                         .fetch_nametable_byte(&self.vram)?;
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
 
                     // FILL_BG_REGISTERS
                     self.background_renderer
@@ -673,7 +643,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                 }
                 Ok(Interrupt::None)
             }
-            36 => {
+            35 => {
                 if self.mask.rendering_enabled() {
                     // SPRITE_DEC_X
                     self.sprite_renderer.dec_x_counters();
@@ -682,19 +652,18 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.vram.fine_y_increment();
 
                     // SHIFT_BG_REGISTERS
-                    self.background_renderer
-                        .tick_shifters(self.vram.fine_x());
+                    self.background_renderer.tick_shifters();
                 }
                 Ok(Interrupt::None)
             }
-            37 => {
+            36 => {
                 if self.mask.rendering_enabled() {
                     // VERT_V_EQ_VERT_T
                     self.vram.copy_vertical_pos_to_addr();
                 }
                 Ok(Interrupt::None)
             }
-            38 => {
+            37 => {
                 // ODD_FRAME_SKIP_CYCLE
                 // This is the last cycle for odd frames
                 // The additional cycle increment puts us to pixel 0,0
@@ -705,7 +674,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
                 Ok(Interrupt::None)
             }
-            39 => {
+            38 => {
                 // FRAME_INC
                 // This is the last cycle for even frames and when rendering disabled
                 self.odd_frame = !self.odd_frame;

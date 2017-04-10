@@ -20,8 +20,6 @@ pub struct BackgroundRenderer {
     nametable_latch: u8,
     pattern_low_latch: u8,
     pattern_high_latch: u8,
-    current_pixel: u8,
-    current_palette: u8,
 }
 
 impl BackgroundRenderer {
@@ -46,12 +44,18 @@ impl BackgroundRenderer {
         Ok(())
     }
 
-    pub fn current_pixel(&self) -> u8 {
-        self.current_pixel
+    pub fn current_pixel(&self, fine_x: u8) -> u8 {
+        let pattern_low = self.pattern_low_shift_register << fine_x;
+        let pattern_high = self.pattern_high_shift_register << fine_x;
+        (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11
     }
 
-    pub fn pixel_color(&self) -> Color {
-        let palette_index = (self.current_palette | self.current_pixel) as usize;
+    pub fn pixel_color(&self, fine_x: u8) -> Color {
+        let palette_low = self.palette_low_bit_shift_register << fine_x;
+        let palette_high = self.palette_high_bit_shift_register << fine_x;
+        let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8 &
+                      0b1100;
+        let palette_index = (palette | self.current_pixel(fine_x)) as usize;
         self.palettes[palette_index]
     }
 
@@ -77,16 +81,7 @@ impl BackgroundRenderer {
         ((palette_nibble & 1) * 255, ((palette_nibble >> 1) & 1) * 255)
     }
 
-    pub fn tick_shifters(&mut self, fine_x: u8) {
-        let mask = 0x8000;
-        let palette_low = self.palette_low_bit_shift_register << fine_x;
-        let palette_high = self.palette_high_bit_shift_register << fine_x;
-        let pattern_low = self.pattern_low_shift_register << fine_x;
-        let pattern_high = self.pattern_high_shift_register << fine_x;
-        self.current_pixel = (((pattern_high & mask) >> 14) | ((pattern_low & mask) >> 15)) as
-                             u8 & 0b11;
-        self.current_palette = (((palette_high & mask) >> 12) | ((palette_low & mask) >> 13)) as
-                               u8 & 0b1100;
+    pub fn tick_shifters(&mut self) {
         self.pattern_low_shift_register <<= 1;
         self.pattern_high_shift_register <<= 1;
         self.palette_low_bit_shift_register <<= 1;
