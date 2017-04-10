@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 // TODO: Could we leverage SIMD here??
 
 #[cfg(test)]

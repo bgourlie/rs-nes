@@ -32,7 +32,6 @@ glium = "*"
 asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
-rustc-serialize = "*"
 
 [profile.release]
 opt-level = 3

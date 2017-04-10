@@ -430,7 +430,7 @@ mod mocks {
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
     use ppu::palette::Color;
-    use ppu::sprite_renderer::{SpritePriority, SpriteRenderer};
+    use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer};
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
@@ -496,17 +496,8 @@ mod mocks {
         fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) -> Result<()> {
             Ok(())
         }
-
-        fn current_pixel(&self) -> u8 {
-            0
-        }
-
-        fn pixel_color(&self) -> Color {
-            Color(0, 0, 0)
-        }
-
-        fn pixel_priority(&self) -> SpritePriority {
-            SpritePriority::OnTopOfBackground
+        fn current_pixel(&self) -> SpritePixel {
+            SpritePixel(0, SpritePriority::OnTopOfBackground, Color(0, 0, 0))
         }
     }
 
