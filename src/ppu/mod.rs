@@ -490,10 +490,6 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             0x0 => {
                 self.control.write(val);
                 self.vram.control_write(val);
-                if self.control.sprite_size() == SpriteSize::X16 {
-                    let msg = "8X16 sprites".to_owned();
-                    bail!(ErrorKind::Crash(CrashReason::UnimplementedOperation(msg)));
-                }
             }
             0x1 => self.mask.write(val),
             0x2 => (), // readonly

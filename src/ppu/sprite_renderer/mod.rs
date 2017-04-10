@@ -236,7 +236,6 @@ impl SpriteRenderer for SpriteRendererBase {
 
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {
         // Current scanline is passed in, we evaluate the sprites for the next scanline
-        let scanline = if scanline == 261 { 0 } else { scanline };
         self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
     }
 
