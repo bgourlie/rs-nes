@@ -246,9 +246,9 @@ impl SpriteRenderer for SpriteRendererBase {
 
         for i in 0..8 {
             if self.x_counters[i] == 0 && pixel == 0 {
-                let high_bit = self.pattern_high_shift_registers[i] >> 6;
+                let high_bit = self.pattern_high_shift_registers[i] >> 7;
                 let low_bit = self.pattern_low_shift_registers[i] >> 7;
-                pixel = (high_bit | low_bit) & 0b11;
+                pixel = (high_bit << 1) | low_bit;
                 attributes = self.attribute_latches[i];
             }
         }
