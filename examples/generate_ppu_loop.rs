@@ -101,7 +101,6 @@ fn main() {
                 flags |= TICK_SPRITE_EVALUATION
             }
 
-
             if fill_sprite_evaluation_registers(scanline, x) {
                 flags |= FILL_SPRITE_REGISTERS
             }
@@ -127,7 +126,8 @@ fn main() {
 }
 
 fn sprite_dec_x(scanline: usize, x: usize) -> bool {
-    (scanline < 240 || scanline == LAST_SCANLINE) && x > 0 && x <= 256
+    // TODO: Determine for sure which cycles the sprite x counters are decremented
+    (scanline < 240 || scanline == LAST_SCANLINE) && x >= 2 && x <= 256
 }
 
 // This is an approximation, skipping all individual sprite pattern fetches
@@ -193,7 +193,7 @@ fn fill_bg_shift_registers(scanline: usize, x: usize) -> bool {
 }
 
 fn draw_pixel(scanline: usize, x: usize) -> bool {
-    x > 0 && x <= 256 && scanline < 240
+    x >= 2 && x <= 257 && scanline < 240
 }
 
 fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
