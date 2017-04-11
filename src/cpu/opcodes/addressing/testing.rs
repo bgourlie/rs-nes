@@ -1,6 +1,5 @@
 use cpu::{TestCpu, TestMemory};
 use cpu::opcodes::addressing::AddressingMode;
-use errors::*;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -11,9 +10,8 @@ impl AddressingMode<TestMemory> for u8 {
         *self
     }
 
-    fn write(&self, cpu: &mut TestCpu, value: u8) -> Result<()> {
+    fn write(&self, cpu: &mut TestCpu, value: u8) {
         cpu.registers.acc = value;
-        Ok(())
     }
 }
 
@@ -24,7 +22,7 @@ impl AddressingMode<TestMemory> for i8 {
         *self
     }
 
-    fn write(&self, _: &mut TestCpu, _: u8) -> Result<()> {
+    fn write(&self, _: &mut TestCpu, _: u8) {
         unimplemented!()
     }
 }
@@ -60,9 +58,8 @@ impl AddressingMode<TestMemory> for WriterAddressingMode {
         self.read_value
     }
 
-    fn write(&self, _: &mut TestCpu, value: u8) -> Result<()> {
+    fn write(&self, _: &mut TestCpu, value: u8) {
         self.written.set(value);
-        Ok(())
     }
 }
 
@@ -72,7 +69,7 @@ impl AddressingMode<TestMemory> for u16 {
         *self
     }
 
-    fn write(&self, _: &mut TestCpu, _: u8) -> Result<()> {
+    fn write(&self, _: &mut TestCpu, _: u8) {
         unimplemented!()
     }
 }

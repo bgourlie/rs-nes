@@ -32,7 +32,7 @@ fn main() {
     let ppu = PpuImpl::new(rom.clone(), screen.clone());
     let mem = NesMemoryImpl::new(rom, ppu);
     let mut cpu = Cpu::new(mem);
-    cpu.reset().unwrap();
+    cpu.reset();
 
     // building the display, ie. the main object
     let display = glutin::WindowBuilder::new()
@@ -81,7 +81,7 @@ fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
             loop {
-                if cpu.step().unwrap() == Interrupt::Nmi {
+                if cpu.step() == Interrupt::Nmi {
                     update_screen(&display, &screen);
                     break;
                 }

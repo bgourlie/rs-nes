@@ -1,12 +1,10 @@
 use cpu::Cpu;
-use errors::*;
 use memory::Memory;
 
-pub fn adc_base<M: Memory>(cpu: &mut Cpu<M>, lhs: u8, rhs: u8) -> Result<()> {
+pub fn adc_base<M: Memory>(cpu: &mut Cpu<M>, lhs: u8, rhs: u8) {
 
     if cpu.registers.decimal_flag() {
-        let msg = "Attempted decimal mode arithmetic".to_owned();
-        bail!(ErrorKind::Crash(CrashReason::InvalidOperation(msg)));
+        panic!("Attempted decimal mode arithmetic");
     } else {
         // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
         let carry = if cpu.registers.carry_flag() { 1 } else { 0 };
@@ -27,6 +25,5 @@ pub fn adc_base<M: Memory>(cpu: &mut Cpu<M>, lhs: u8, rhs: u8) -> Result<()> {
         cpu.registers.set_carry_flag(has_carry);
         cpu.registers.set_overflow_flag(has_overflow);
         cpu.registers.set_acc(res);
-        Ok(())
     }
 }

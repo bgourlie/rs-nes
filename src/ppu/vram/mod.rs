@@ -1,5 +1,4 @@
 use super::control_register::IncrementAmount;
-use errors::*;
 use ppu::write_latch::LatchState;
 use rom::NesRom;
 use std::cell::Cell;
@@ -10,10 +9,10 @@ mod spec_tests;
 pub trait Vram {
     fn new(rom: NesRom) -> Self;
     fn write_ppu_addr(&self, latch_state: LatchState);
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) -> Result<()>;
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> Result<u8>;
-    fn ppu_data(&self) -> Result<u8>;
-    fn read(&self, addr: u16) -> Result<u8>;
+    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
+    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8;
+    fn ppu_data(&self) -> u8;
+    fn read(&self, addr: u16) -> u8;
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
@@ -66,18 +65,18 @@ impl Vram for VramBase {
         }
     }
 
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> Result<u8> {
-        let val = self.ppu_data()?;
+    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8 {
+        let val = self.ppu_data();
         match inc_amount {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
         }
-        Ok(val)
+        val
     }
 
-    fn ppu_data(&self) -> Result<u8> {
+    fn ppu_data(&self) -> u8 {
         let addr = self.address.get();
-        let val = self.read(addr)?;
+        let val = self.read(addr);
 
         // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
         // the read will return the contents of an internal read buffer. This internal buffer is
@@ -87,13 +86,13 @@ impl Vram for VramBase {
         if addr < 0x3f00 {
             let buffered_val = self.ppu_data_buffer.get();
             self.ppu_data_buffer.set(val);
-            Ok(buffered_val)
+            buffered_val
         } else {
-            Ok(val)
+            val
         }
     }
 
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) -> Result<()> {
+    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) {
         let addr = self.address.get();
 
         if addr < 0x2000 {
@@ -112,19 +111,18 @@ impl Vram for VramBase {
             };
             self.palette[addr] = val;
         } else {
-            let message = "Invalid write".to_owned();
-            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
+            panic!("Invalid VRAM write");
         }
 
         match inc_amount {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
         }
-        Ok(())
+
     }
 
     #[inline(always)]
-    fn read(&self, addr: u16) -> Result<u8> {
+    fn read(&self, addr: u16) -> u8 {
         let val = if addr < 0x2000 {
             self.rom.chr[addr as usize]
         } else if addr < 0x3f00 {
@@ -141,10 +139,9 @@ impl Vram for VramBase {
             };
             self.palette[addr]
         } else {
-            let message = "Invalid read".to_owned();
-            bail!(ErrorKind::Crash(CrashReason::InvalidVramAccess(message, addr)));
+            panic!("Invalid vram read");
         };
-        Ok(val)
+        val
     }
 
     fn addr(&self) -> u16 {

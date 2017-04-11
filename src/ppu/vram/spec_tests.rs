@@ -26,12 +26,12 @@ fn internal_memory_mapping_read() {
 
     vram.ppu_data_buffer.set(1);
     for _ in 0..0x2000 {
-        assert_eq!(1, vram.read_ppu_data(IncrementAmount::One).unwrap())
+        assert_eq!(1, vram.read_ppu_data(IncrementAmount::One))
     }
 
     vram.ppu_data_buffer.set(2);
     for _ in 0x2000..0x3f00 {
-        assert_eq!(2, vram.read_ppu_data(IncrementAmount::One).unwrap())
+        assert_eq!(2, vram.read_ppu_data(IncrementAmount::One))
     }
 }
 
@@ -50,7 +50,7 @@ fn vram_read_buffering_behavior() {
     for i in 0..0x3f00 as u16 {
         let i = i as u8;
         vram.ppu_data_buffer.set(i);
-        assert_eq!(i, vram.read_ppu_data(IncrementAmount::One).unwrap())
+        assert_eq!(i, vram.read_ppu_data(IncrementAmount::One))
     }
 
     // Do not read from buffer when address >= 0x3f00
@@ -58,7 +58,7 @@ fn vram_read_buffering_behavior() {
     for i in 0x3f00..0x4000 as u16 {
         let i = i as u8;
         vram.ppu_data_buffer.set(i);
-        assert_eq!(0xcc, vram.read_ppu_data(IncrementAmount::One).unwrap())
+        assert_eq!(0xcc, vram.read_ppu_data(IncrementAmount::One))
     }
 }
 
@@ -69,11 +69,11 @@ fn write_mapping() {
     let mut vram = vram_fixture();
 
     for _ in 0..0x2000 {
-        vram.write_ppu_data(1, IncrementAmount::One).unwrap()
+        vram.write_ppu_data(1, IncrementAmount::One)
     }
 
     for _ in 0x2000..0x3f00 {
-        vram.write_ppu_data(2, IncrementAmount::One).unwrap()
+        vram.write_ppu_data(2, IncrementAmount::One)
     }
 
     assert_eq!(true, vram.rom.chr.into_iter().all(|val| val == 1));
@@ -129,10 +129,10 @@ fn palette_read_mapping() {
         vram.palette[i] = (0x20 - i) as _;
     }
 
-    assert_eq!(0x20, vram.read(0x3f10).unwrap());
-    assert_eq!(0x1c, vram.read(0x3f14).unwrap());
-    assert_eq!(0x18, vram.read(0x3f18).unwrap());
-    assert_eq!(0x14, vram.read(0x3f1c).unwrap());
+    assert_eq!(0x20, vram.read(0x3f10));
+    assert_eq!(0x1c, vram.read(0x3f14));
+    assert_eq!(0x18, vram.read(0x3f18));
+    assert_eq!(0x14, vram.read(0x3f1c));
 }
 
 #[test]
@@ -280,7 +280,7 @@ fn palette_write_mapping() {
     vram.write_ppu_addr(LatchState::FirstWrite(0x3f));
     vram.write_ppu_addr(LatchState::SecondWrite(0x00));
     for i in 0..0x20 {
-        vram.write_ppu_data(i, IncrementAmount::One).unwrap();
+        vram.write_ppu_data(i, IncrementAmount::One);
     }
 
     assert_eq!(0x10, vram.palette[0x0]);

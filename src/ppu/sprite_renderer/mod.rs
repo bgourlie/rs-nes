@@ -8,7 +8,6 @@ mod sprite_evaluation;
 #[cfg(test)]
 mod spec_tests;
 
-use errors::*;
 use ppu::SpriteSize;
 use ppu::control_register::ControlRegister;
 use ppu::palette::{self, Color, PALETTE};
@@ -90,11 +89,11 @@ pub trait SpriteRenderer: Default {
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
-    fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()>;
+    fn update_palettes<V: Vram>(&mut self, vram: &V);
     fn dec_x_counters(&mut self);
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) -> Result<()>;
+    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister);
     fn current_pixel(&self) -> SpritePixel;
 }
 
@@ -154,25 +153,25 @@ impl SpriteRenderer for SpriteRendererBase {
         self.inc_address();
     }
 
-    fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()> {
-        let bg = vram.read(0x3f00)? as usize;
+    fn update_palettes<V: Vram>(&mut self, vram: &V) {
+        let bg = vram.read(0x3f00) as usize;
         self.palettes = [PALETTE[bg],
-                         PALETTE[vram.read(0x3f11)? as usize],
-                         PALETTE[vram.read(0x3f12)? as usize],
-                         PALETTE[vram.read(0x3f13)? as usize],
+                         PALETTE[vram.read(0x3f11) as usize],
+                         PALETTE[vram.read(0x3f12) as usize],
+                         PALETTE[vram.read(0x3f13) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f15)? as usize],
-                         PALETTE[vram.read(0x3f16)? as usize],
-                         PALETTE[vram.read(0x3f17)? as usize],
+                         PALETTE[vram.read(0x3f15) as usize],
+                         PALETTE[vram.read(0x3f16) as usize],
+                         PALETTE[vram.read(0x3f17) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f19)? as usize],
-                         PALETTE[vram.read(0x3f1a)? as usize],
-                         PALETTE[vram.read(0x3f1b)? as usize],
+                         PALETTE[vram.read(0x3f19) as usize],
+                         PALETTE[vram.read(0x3f1a) as usize],
+                         PALETTE[vram.read(0x3f1b) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f1d)? as usize],
-                         PALETTE[vram.read(0x3f1e)? as usize],
-                         PALETTE[vram.read(0x3f1f)? as usize]];
-        Ok(())
+                         PALETTE[vram.read(0x3f1d) as usize],
+                         PALETTE[vram.read(0x3f1e) as usize],
+                         PALETTE[vram.read(0x3f1f) as usize]];
+
     }
 
     fn dec_x_counters(&mut self) {
@@ -190,7 +189,7 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprite_evaluation.tick(&self.primary_oam)
     }
 
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) -> Result<()> {
+    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
         for sprites_fetched in 0..8 {
             let sprite_base = sprites_fetched * 4;
 
@@ -213,16 +212,15 @@ impl SpriteRenderer for SpriteRendererBase {
             let tile_offset = match control.sprite_size() {
                 SpriteSize::X8 => control.sprite_pattern_table_base() | ((tile_index as u16) << 4),
                 SpriteSize::X16 => {
-                    //                    let actual_tile_index = tile_index & !1;
-                    //                    let sprite_table_select = (tile_index as u16 & 1) << 12;
-                    //                    sprite_table_select | actual_tile_index as u16
-                    unimplemented!()
+                    let actual_tile_index = tile_index & !1;
+                    let sprite_table_select = (tile_index as u16 & 1) << 12;
+                    sprite_table_select | actual_tile_index as u16
                 }
             } + fine_y as u16;
 
 
-            let pattern_low = vram.read(tile_offset)?;
-            let pattern_high = vram.read(tile_offset + 8)?;
+            let pattern_low = vram.read(tile_offset);
+            let pattern_high = vram.read(tile_offset + 8);
 
             let (pattern_low, pattern_high) = if attribute.flip_horizontally() {
                 (REVERSE_LOOKUP[pattern_low as usize], REVERSE_LOOKUP[pattern_high as usize])
@@ -239,7 +237,7 @@ impl SpriteRenderer for SpriteRendererBase {
             self.x_counters[sprites_fetched as usize] = x;
         }
         self.sprite_zero_map = self.sprite_evaluation.sprite_zero_map();
-        Ok(())
+
     }
 
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {

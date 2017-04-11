@@ -8,7 +8,7 @@ fn test1() {
     inc_base_1(|ref mut cpu, val| {
                    let am = WriterAddressingMode::with_read_value(val);
                    let write_ref = am.write_ref();
-                   Inc::execute(cpu, am).unwrap();
+                   Inc::execute(cpu, am);
                    write_ref.get()
                });
 }
@@ -18,7 +18,7 @@ fn test2() {
     inc_base_2(|ref mut cpu, val| {
                    let am = WriterAddressingMode::with_read_value(val);
                    let write_ref = am.write_ref();
-                   Inc::execute(cpu, am).unwrap();
+                   Inc::execute(cpu, am);
                    write_ref.get()
                });
 }
@@ -28,7 +28,7 @@ fn test3() {
     inc_base_3(|ref mut cpu, val| {
                    let am = WriterAddressingMode::with_read_value(val);
                    let write_ref = am.write_ref();
-                   Inc::execute(cpu, am).unwrap();
+                   Inc::execute(cpu, am);
                    write_ref.get()
                });
 }

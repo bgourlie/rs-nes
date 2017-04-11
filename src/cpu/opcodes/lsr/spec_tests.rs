@@ -4,7 +4,7 @@ use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
 
 fn lsr(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
-    Lsr::execute(cpu, val).unwrap();
+    Lsr::execute(cpu, val);
     (cpu.registers.acc, false)
 }
 

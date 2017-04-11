@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod spec_tests;
 
-use errors::*;
 use ppu::control_register::ControlRegister;
 use ppu::palette::{Color, PALETTE};
 use ppu::vram::Vram;
@@ -22,25 +21,25 @@ pub struct BackgroundRenderer {
 }
 
 impl BackgroundRenderer {
-    pub fn update_palettes<V: Vram>(&mut self, vram: &V) -> Result<()> {
-        let bg = vram.read(0x3f00)? as usize;
+    pub fn update_palettes<V: Vram>(&mut self, vram: &V) {
+        let bg = vram.read(0x3f00) as usize;
         self.palettes = [PALETTE[bg],
-                         PALETTE[vram.read(0x3f01)? as usize],
-                         PALETTE[vram.read(0x3f02)? as usize],
-                         PALETTE[vram.read(0x3f03)? as usize],
+                         PALETTE[vram.read(0x3f01) as usize],
+                         PALETTE[vram.read(0x3f02) as usize],
+                         PALETTE[vram.read(0x3f03) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f05)? as usize],
-                         PALETTE[vram.read(0x3f06)? as usize],
-                         PALETTE[vram.read(0x3f07)? as usize],
+                         PALETTE[vram.read(0x3f05) as usize],
+                         PALETTE[vram.read(0x3f06) as usize],
+                         PALETTE[vram.read(0x3f07) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f09)? as usize],
-                         PALETTE[vram.read(0x3f0a)? as usize],
-                         PALETTE[vram.read(0x3f0b)? as usize],
+                         PALETTE[vram.read(0x3f09) as usize],
+                         PALETTE[vram.read(0x3f0a) as usize],
+                         PALETTE[vram.read(0x3f0b) as usize],
                          PALETTE[bg],
-                         PALETTE[vram.read(0x3f0d)? as usize],
-                         PALETTE[vram.read(0x3f0e)? as usize],
-                         PALETTE[vram.read(0x3f0f)? as usize]];
-        Ok(())
+                         PALETTE[vram.read(0x3f0d) as usize],
+                         PALETTE[vram.read(0x3f0e) as usize],
+                         PALETTE[vram.read(0x3f0f) as usize]];
+
     }
 
     pub fn current_pixel(&self, fine_x: u8) -> u8 {
@@ -88,40 +87,34 @@ impl BackgroundRenderer {
     }
 
     // TODO: Tests
-    pub fn fetch_attribute_byte<V: Vram>(&mut self, vram: &V) -> Result<()> {
+    pub fn fetch_attribute_byte<V: Vram>(&mut self, vram: &V) {
         let v = vram.addr();
         let attribute_address = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
-        self.attr_latch = vram.read(attribute_address)?;
-        Ok(())
+        self.attr_latch = vram.read(attribute_address);
+
     }
 
     // TODO: Tests
-    pub fn fetch_nametable_byte<V: Vram>(&mut self, vram: &V) -> Result<()> {
+    pub fn fetch_nametable_byte<V: Vram>(&mut self, vram: &V) {
         let nametable_address = 0x2000 | (vram.addr() & 0x0FFF);
-        self.nametable_latch = vram.read(nametable_address)?;
-        Ok(())
+        self.nametable_latch = vram.read(nametable_address);
+
     }
 
     // TODO: Tests
-    pub fn fetch_pattern_low_byte<V: Vram>(&mut self,
-                                           vram: &V,
-                                           control: ControlRegister)
-                                           -> Result<()> {
+    pub fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
         let v = vram.addr();
         let pattern_addr = Self::pattern_offset(v, self.nametable_latch, control, true);
-        self.pattern_low_latch = vram.read(pattern_addr)?;
-        Ok(())
+        self.pattern_low_latch = vram.read(pattern_addr);
+
     }
 
     // TODO: Tests
-    pub fn fetch_pattern_high_byte<V: Vram>(&mut self,
-                                            vram: &V,
-                                            control: ControlRegister)
-                                            -> Result<()> {
+    pub fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
         let v = vram.addr();
         let pattern_addr = Self::pattern_offset(v, self.nametable_latch, control, false);
-        self.pattern_high_latch = vram.read(pattern_addr)?;
-        Ok(())
+        self.pattern_high_latch = vram.read(pattern_addr);
+
     }
 
     // TODO: Tests

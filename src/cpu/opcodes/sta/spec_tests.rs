@@ -9,6 +9,6 @@ fn sta() {
     cpu.registers.acc = 0xff;
     let am = WriterAddressingMode::new();
     let write_ref = am.write_ref();
-    Sta::execute(&mut cpu, am).unwrap();
+    Sta::execute(&mut cpu, am);
     assert_eq!(0xff, write_ref.get());
 }

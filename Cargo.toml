@@ -12,7 +12,6 @@ slow_tests = []
 [dependencies]
 log = "*"
 env_logger = "*"
-error-chain = "*"
 
 # Debugger dependencies
 websocket = {version = "*", optional = true}
@@ -35,6 +34,5 @@ time = "*"
 
 [profile.release]
 opt-level = 3
-debug = true
 lto = true
 debug-assertions = false

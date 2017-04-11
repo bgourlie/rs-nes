@@ -5,7 +5,6 @@ use byte_utils::wrapping_inc;
 use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
-use errors::*;
 use memory::Memory;
 
 pub struct Iny;
@@ -13,9 +12,7 @@ pub struct Iny;
 impl OpCode for Iny {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>,
-                                                                       _: AM)
-                                                                       -> Result<()> {
+    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
         let val = wrapping_inc(cpu.registers.y);
         cpu.registers.y = val;
         cpu.registers.set_sign_and_zero_flag(val);

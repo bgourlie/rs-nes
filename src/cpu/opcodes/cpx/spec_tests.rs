@@ -6,7 +6,7 @@ use cpu::opcodes::compare_tests_base::*;
 fn equal_flag_check() {
     equal_flag_check_base(|ref mut cpu, lhs, rhs| {
                               cpu.registers.x = lhs;
-                              Cpx::execute(cpu, rhs).unwrap();
+                              Cpx::execute(cpu, rhs);
                           });
 }
 
@@ -14,7 +14,7 @@ fn equal_flag_check() {
 fn greater_than_flag_check() {
     greater_than_flag_check_base(|ref mut cpu, lhs, rhs| {
                                      cpu.registers.x = lhs;
-                                     Cpx::execute(cpu, rhs).unwrap();
+                                     Cpx::execute(cpu, rhs);
                                  });
 }
 
@@ -22,6 +22,6 @@ fn greater_than_flag_check() {
 fn less_than_flag_check() {
     less_than_flag_check_base(|ref mut cpu, lhs, rhs| {
                                   cpu.registers.x = lhs;
-                                  Cpx::execute(cpu, rhs).unwrap();
+                                  Cpx::execute(cpu, rhs);
                               });
 }

@@ -25,10 +25,10 @@ fn main() {
     mem.store_many(PC_START, &buf);
     let cpu = Cpu::new_init_pc(mem, PC_START);
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu, screen);
-    debugger.start().unwrap();
+    debugger.start();
 
     loop {
-        debugger.step().unwrap();
+        debugger.step();
     }
 }
 

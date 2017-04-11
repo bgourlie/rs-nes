@@ -10,7 +10,6 @@ use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
-use errors::*;
 use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
@@ -69,13 +68,12 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         }
     }
 
-    pub fn start(&mut self) -> Result<()> {
-        self.start_http_server_thread()?;
-        self.start_websocket_thread()?;
-        Ok(())
+    pub fn start(&mut self) {
+        self.start_http_server_thread();
+        self.start_websocket_thread();
     }
 
-    pub fn step(&mut self) -> Result<Interrupt> {
+    pub fn step(&mut self) -> Interrupt {
         if let Some(break_reason) = self.break_reason() {
             let snapshot = self.cpu_snapshot();
             self.ws_tx
@@ -83,18 +81,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             thread::park();
         }
         self.last_pc = self.cpu.registers.pc;
-        let result = self.cpu.step();
-
-        if let Err(Error(ErrorKind::Crash(ref reason), _)) = result {
-            let snapshot = self.cpu_snapshot();
-            self.ws_tx
-                .send(DebuggerCommand::Crash(reason.clone(), snapshot));
-
-            // Give the web socket thread enough time to send the Crash message
-            thread::sleep(Duration::from_millis(1000));
-        }
-
-        result
+        self.cpu.step()
     }
 
     fn break_reason(&self) -> Option<BreakReason> {
@@ -142,10 +129,9 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
                          self.cpu.cycles)
     }
 
-    fn start_websocket_thread(&mut self) -> Result<()> {
+    fn start_websocket_thread(&mut self) {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
-        let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR)
-            .map_err(|e| e.to_string())?;
+        let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).unwrap();
         info!("Waiting for debugger to attach");
         let connection = ws_server.accept();
         info!("Debugger attached!");
@@ -170,11 +156,9 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
 
                 info!("Websocket thread is terminating!")
             }).unwrap();
-
-        Ok(())
     }
 
-    fn start_http_server_thread(&self) -> Result<()> {
+    fn start_http_server_thread(&self) {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
         let cpu_thread = self.cpu_thread_handle.clone();
         let breakpoints = self.breakpoints.clone();
@@ -196,8 +180,6 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
                        "toggle_break_on_nmi");
             Iron::new(router).http(DEBUGGER_HTTP_ADDR).unwrap();
         });
-
-        Ok(())
     }
 
     fn at_breakpoint(&self, pc: u16) -> bool {
@@ -222,8 +204,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
     }
 
     fn peek_mem(&self, addr: u16) -> u16 {
-        let low_byte = self.cpu.memory.read(addr).unwrap();
-        let high_byte = self.cpu.memory.read(addr + 1).unwrap();
+        let low_byte = self.cpu.memory.read(addr);
+        let high_byte = self.cpu.memory.read(addr + 1);
         from_lo_hi(low_byte, high_byte)
     }
 }

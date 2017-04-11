@@ -28,11 +28,11 @@ fn main() {
     let ppu = PpuImpl::new(rom.clone(), screen.clone());
     let mem = NesMemoryImpl::new(rom, ppu);
     let mut cpu = Cpu::new(mem);
-    cpu.reset().unwrap();
+    cpu.reset();
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu, screen);
-    debugger.start().unwrap();
+    debugger.start();
     loop {
-        debugger.step().unwrap();
+        debugger.step();
     }
 }
 

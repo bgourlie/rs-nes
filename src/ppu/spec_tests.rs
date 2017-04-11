@@ -6,80 +6,80 @@ fn write() {
     let mut ppu = mocks::mock_ppu();
 
     // Writes to 0x2000 write the control register
-    ppu.write(0x2000, 0x1).unwrap();
+    ppu.write(0x2000, 0x1);
     assert_eq!(0x1, *ppu.control);
 
     // Writes to 0x2001 write the mask register
-    ppu.write(0x2001, 0x2).unwrap();
+    ppu.write(0x2001, 0x2);
     assert_eq!(0x2, *ppu.mask);
 
     // Writes to 0x2003 write the oam addr register
-    ppu.write(0x2003, 0x3).unwrap();
+    ppu.write(0x2003, 0x3);
     assert_eq!(0x3, ppu.sprite_renderer.mock_addr.get());
 
     // Writes to 0x2004 write the oam data register
-    ppu.write(0x2004, 0x4).unwrap();
+    ppu.write(0x2004, 0x4);
     assert_eq!(0x4, ppu.sprite_renderer.mock_data.get());
 
     // Writes to 0x2005 write the scroll register
-    ppu.write(0x2005, 0x5).unwrap();
+    ppu.write(0x2005, 0x5);
     assert_eq!(true, ppu.vram.scroll_write_called.get());
     ppu.vram.reset_mock();
 
     // Writes to 0x2006 write the vram addr register
-    ppu.write(0x2006, 0x20).unwrap();
+    ppu.write(0x2006, 0x20);
     assert_eq!(0x20, ppu.vram.mock_addr.get());
 
     // Writes to 0x2007 write the vram data register
-    ppu.write(0x2007, 0x7).unwrap();
+    ppu.write(0x2007, 0x7);
     assert_eq!(0x7, ppu.vram.mock_data.get());
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
-    ppu.write(0x2008, 0x8).unwrap();
+    ppu.write(0x2008, 0x8);
     assert_eq!(0x8, *ppu.control);
 
-    ppu.write(0x2009, 0x9).unwrap();
+    ppu.write(0x2009, 0x9);
     assert_eq!(0x9, *ppu.mask);
 
-    ppu.write(0x200b, 0xa).unwrap();
+    ppu.write(0x200b, 0xa);
     assert_eq!(0xa, ppu.sprite_renderer.mock_addr.get());
 
-    ppu.write(0x200c, 0xb).unwrap();
+    ppu.write(0x200c, 0xb);
     assert_eq!(0xb, ppu.sprite_renderer.mock_data.get());
 
-    ppu.write(0x200d, 0xc).unwrap();
+    ppu.write(0x200d, 0xc);
     assert_eq!(true, ppu.vram.scroll_write_called.get());
     ppu.vram.reset_mock();
 
-    ppu.write(0x200e, 0x01).unwrap();
+    ppu.write(0x200e, 0x01);
     assert_eq!(0x01, ppu.vram.mock_addr.get());
 
-    ppu.write(0x200f, 0x14).unwrap();
+    ppu.write(0x200f, 0x14);
     assert_eq!(0x14, ppu.vram.mock_data.get());
 
     // Test mirroring on the tail end of the valid address space
 
-    ppu.write(0x3ff8, 0xf).unwrap();
+    ppu.write(0x3ff8, 0xf);
     assert_eq!(0xf, *ppu.control);
 
-    ppu.write(0x3ff9, 0x10).unwrap();
+    ppu.write(0x3ff9, 0x10);
     assert_eq!(0x10, *ppu.mask);
 
-    ppu.write(0x3ffb, 0x11).unwrap();
+    ppu.write(0x3ffb, 0x11);
     assert_eq!(0x11, ppu.sprite_renderer.mock_addr.get());
 
-    ppu.write(0x3ffc, 0x12).unwrap();
+    ppu.write(0x3ffc, 0x12);
     assert_eq!(0x12, ppu.sprite_renderer.mock_data.get());
 
-    ppu.write(0x3ffd, 0x13).unwrap();
+    ppu.write(0x3ffd, 0x13);
     assert_eq!(true, ppu.vram.scroll_write_called.get());
     ppu.vram.reset_mock();
 
-    ppu.write(0x3ffe, 0x02).unwrap();
+    ppu.write(0x3ffe, 0x02);
     assert_eq!(0x02, ppu.vram.mock_addr.get());
 
-    ppu.write(0x3fff, 0x15).unwrap();
+    ppu.write(0x3fff, 0x15);
     assert_eq!(0x15, ppu.vram.mock_data.get());
 }
 
@@ -88,77 +88,77 @@ fn memory_mapped_register_read() {
     let mut ppu = mocks::mock_ppu();
 
     ppu.control.write(0xf0);
-    assert_eq!(0xf0, ppu.read(0x2000).unwrap());
+    assert_eq!(0xf0, ppu.read(0x2000));
 
     ppu.mask.write(0xf1);
-    assert_eq!(0xf1, ppu.read(0x2001).unwrap());
+    assert_eq!(0xf1, ppu.read(0x2001));
 
     ppu.status = StatusRegister::new(0xf2);
-    assert_eq!(0xf2, ppu.read(0x2002).unwrap());
+    assert_eq!(0xf2, ppu.read(0x2002));
 
     ppu.sprite_renderer.mock_addr.set(0xf3);
-    assert_eq!(0, ppu.read(0x2003).unwrap()); // write-only, should always read 0
+    assert_eq!(0, ppu.read(0x2003)); // write-only, should always read 0
 
     ppu.sprite_renderer.mock_data.set(0xf4);
-    assert_eq!(0xf4, ppu.read(0x2004).unwrap());
+    assert_eq!(0xf4, ppu.read(0x2004));
 
-    assert_eq!(0x0, ppu.read(0x2005).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x2005)); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xf6);
-    assert_eq!(0x0, ppu.read(0x2006).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x2006)); // write-only, should always read 0
 
     ppu.vram.mock_data.set(0xfe);
-    assert_eq!(0xfe, ppu.read(0x2007).unwrap());
+    assert_eq!(0xfe, ppu.read(0x2007));
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
     ppu.control.write(0xe0);
-    assert_eq!(0xe0, ppu.read(0x2008).unwrap());
+    assert_eq!(0xe0, ppu.read(0x2008));
 
     ppu.mask.write(0xe1);
-    assert_eq!(0xe1, ppu.read(0x2009).unwrap());
+    assert_eq!(0xe1, ppu.read(0x2009));
 
     ppu.status = StatusRegister::new(0xe2);
-    assert_eq!(0xe2, ppu.read(0x200a).unwrap());
+    assert_eq!(0xe2, ppu.read(0x200a));
 
     ppu.sprite_renderer.mock_addr.set(0xe3);
-    assert_eq!(0, ppu.read(0x200b).unwrap()); // write-only, should always read 0
+    assert_eq!(0, ppu.read(0x200b)); // write-only, should always read 0
 
     ppu.sprite_renderer.mock_data.set(0xe4);
-    assert_eq!(0xe4, ppu.read(0x200c).unwrap());
+    assert_eq!(0xe4, ppu.read(0x200c));
 
-    assert_eq!(0x0, ppu.read(0x200d).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x200d)); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xe6);
-    assert_eq!(0x0, ppu.read(0x200e).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x200e)); // write-only, should always read 0
 
     ppu.vram.mock_data.set(0xfb);
-    assert_eq!(0xfb, ppu.read(0x200f).unwrap());
+    assert_eq!(0xfb, ppu.read(0x200f));
 
     // Test mirroring on the tail end of the valid address space
 
     ppu.control.write(0xd0);
-    assert_eq!(0xd0, ppu.read(0x3ff8).unwrap());
+    assert_eq!(0xd0, ppu.read(0x3ff8));
 
     ppu.mask.write(0xd1);
-    assert_eq!(0xd1, ppu.read(0x3ff9).unwrap());
+    assert_eq!(0xd1, ppu.read(0x3ff9));
 
     ppu.status = StatusRegister::new(0xd2);
-    assert_eq!(0xd2, ppu.read(0x3ffa).unwrap());
+    assert_eq!(0xd2, ppu.read(0x3ffa));
 
     ppu.sprite_renderer.mock_addr.set(0xd3);
-    assert_eq!(0, ppu.read(0x3ffb).unwrap()); // write-only, should always read 0
+    assert_eq!(0, ppu.read(0x3ffb)); // write-only, should always read 0
 
     ppu.sprite_renderer.mock_data.set(0xd4);
-    assert_eq!(0xd4, ppu.read(0x3ffc).unwrap());
+    assert_eq!(0xd4, ppu.read(0x3ffc));
 
-    assert_eq!(0x0, ppu.read(0x3ffd).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x3ffd)); // write-only, should always read 0
 
     ppu.vram.mock_addr.set(0xd6);
-    assert_eq!(0x0, ppu.read(0x3ffe).unwrap()); // write-only, should always read 0
+    assert_eq!(0x0, ppu.read(0x3ffe)); // write-only, should always read 0
 
     ppu.vram.mock_data.set(0xfc);
-    assert_eq!(0xfc, ppu.read(0x3fff).unwrap());
+    assert_eq!(0xfc, ppu.read(0x3fff));
 }
 
 #[test]
@@ -176,7 +176,7 @@ fn increment_coarse_x_called() {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
-        ppu.step().unwrap();
+        ppu.step();
         if (scanline < 240 || scanline == 261) && ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
             assert_eq!(true,
                        ppu.vram.coarse_x_increment_called.get(),
@@ -198,7 +198,7 @@ fn increment_coarse_x_called() {
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
-        ppu.step().unwrap();
+        ppu.step();
         assert_eq!(false, ppu.vram.coarse_x_increment_called.get())
     }
 }
@@ -213,7 +213,7 @@ fn copy_horizontal_pos_to_addr_called() {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
-        ppu.step().unwrap();
+        ppu.step();
         if (scanline < 240 || scanline == 261) && x == 257 {
             assert_eq!(true, ppu.vram.copy_horizontal_pos_to_addr_called.get())
         } else {
@@ -227,7 +227,7 @@ fn copy_horizontal_pos_to_addr_called() {
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); //
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
-        ppu.step().unwrap();
+        ppu.step();
         assert_eq!(false, ppu.vram.copy_horizontal_pos_to_addr_called.get())
     }
 }
@@ -242,7 +242,7 @@ fn copy_vertical_pos_to_addr_called() {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
-        ppu.step().unwrap();
+        ppu.step();
         if scanline == 261 && x >= 280 && x <= 304 {
             assert_eq!(true, ppu.vram.copy_vertical_pos_to_addr_called.get())
         } else {
@@ -256,7 +256,7 @@ fn copy_vertical_pos_to_addr_called() {
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); //
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
-        ppu.step().unwrap();
+        ppu.step();
         assert_eq!(false, ppu.vram.copy_vertical_pos_to_addr_called.get())
     }
 }
@@ -270,7 +270,7 @@ fn increment_fine_y_called() {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
-        ppu.step().unwrap();
+        ppu.step();
         if (scanline < 240 || scanline == 261) && x == 256 {
             assert_eq!(true, ppu.vram.fine_y_increment_called.get())
         } else {
@@ -284,7 +284,7 @@ fn increment_fine_y_called() {
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
-        ppu.step().unwrap();
+        ppu.step();
         assert_eq!(false, ppu.vram.fine_y_increment_called.get())
     }
 }
@@ -320,7 +320,7 @@ fn vblank_set_and_clear_cycles() {
             VBLANK_OFF_AGAIN...super::CYCLES_PER_FRAME => assert_eq!(false, ppu.status.in_vblank()),
             _ => panic!("We should never get here"),
         }
-        ppu.step().unwrap();
+        ppu.step();
     }
 }
 
@@ -328,7 +328,7 @@ fn vblank_set_and_clear_cycles() {
 fn vblank_clear_after_status_read() {
     let ppu = mocks::mock_ppu();
     ppu.status.set_in_vblank();
-    let status = ppu.read(0x2002).unwrap();
+    let status = ppu.read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
     assert_eq!(true, ppu.status.read() & 0b10000000 == 0);
 }
@@ -338,7 +338,7 @@ fn oam_read_non_blanking_increments_addr() {
     let mut ppu = mocks::mock_ppu();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
-    ppu.read(0x2004).unwrap();
+    ppu.read(0x2004);
     assert_eq!(true,
                ppu.sprite_renderer
                    .read_data_increment_addr_called
@@ -351,7 +351,7 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::mock_ppu();
     ppu.status.set_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
-    ppu.read(0x2004).unwrap();
+    ppu.read(0x2004);
     assert_eq!(false,
                ppu.sprite_renderer
                    .read_data_increment_addr_called
@@ -364,7 +364,7 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
     let mut ppu = mocks::mock_ppu();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
-    ppu.read(0x2004).unwrap();
+    ppu.read(0x2004);
     assert_eq!(false,
                ppu.sprite_renderer
                    .read_data_increment_addr_called
@@ -388,7 +388,7 @@ fn odd_frame_cycle_skip() {
                    frame_number,
                    x,
                    scanline);
-        ppu.step().unwrap();
+        ppu.step();
 
         if scanline == 261 && x == 339 {
             let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -411,7 +411,7 @@ fn odd_frame_cycle_skip() {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
-        ppu.step().unwrap();
+        ppu.step();
 
         if scanline == 261 && x == 339 {
             let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -424,7 +424,7 @@ fn odd_frame_cycle_skip() {
 }
 
 mod mocks {
-    use errors::*;
+
     use ppu::PpuBase;
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
@@ -484,18 +484,14 @@ mod mocks {
             self.mock_data.set(val)
         }
 
-        fn update_palettes<V: Vram>(&mut self, _: &V) -> Result<()> {
-            Ok(())
-        }
+        fn update_palettes<V: Vram>(&mut self, _: &V) {}
 
         fn dec_x_counters(&mut self) {}
 
         fn tick_sprite_evaluation(&mut self) {}
 
         fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
-        fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) -> Result<()> {
-            Ok(())
-        }
+        fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) {}
         fn current_pixel(&self) -> SpritePixel {
             SpritePixel {
                 value: 0,
@@ -541,21 +537,21 @@ mod mocks {
             self.mock_addr.set(val)
         }
 
-        fn read_ppu_data(&self, _: IncrementAmount) -> Result<u8> {
-            Ok(self.mock_data.get())
+        fn read_ppu_data(&self, _: IncrementAmount) -> u8 {
+            self.mock_data.get()
         }
 
-        fn ppu_data(&self) -> Result<u8> {
-            Ok(self.mock_data.get())
+        fn ppu_data(&self) -> u8 {
+            self.mock_data.get()
         }
 
-        fn write_ppu_data(&mut self, val: u8, _: IncrementAmount) -> Result<()> {
+        fn write_ppu_data(&mut self, val: u8, _: IncrementAmount) {
             self.mock_data.set(val);;
-            Ok(())
+
         }
 
-        fn read(&self, _: u16) -> Result<u8> {
-            Ok(0)
+        fn read(&self, _: u16) -> u8 {
+            0
         }
 
         fn new(_: NesRom) -> Self {

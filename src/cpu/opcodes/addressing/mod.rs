@@ -31,13 +31,12 @@ pub use cpu::opcodes::addressing::relative::Relative;
 pub use cpu::opcodes::addressing::zero_page::ZeroPage;
 pub use cpu::opcodes::addressing::zero_page_x::ZeroPageX;
 pub use cpu::opcodes::addressing::zero_page_y::ZeroPageY;
-use errors::*;
 use memory::*;
 
 pub trait AddressingMode<M: Memory> {
     type Output;
     fn read(&self) -> Self::Output;
-    fn write(&self, _: &mut Cpu<M>, _: u8) -> Result<()> {
+    fn write(&self, _: &mut Cpu<M>, _: u8) {
         unimplemented!();
     }
 }

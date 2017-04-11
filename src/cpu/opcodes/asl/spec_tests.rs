@@ -4,7 +4,7 @@ use cpu::opcodes::OpCode;
 use cpu::opcodes::shift_tests_base::*;
 
 fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
-    Asl::execute(cpu, val).unwrap();
+    Asl::execute(cpu, val);
     (cpu.registers.acc, false)
 }
 

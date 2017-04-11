@@ -260,7 +260,7 @@ fn print_loop(type_map: &HashMap<u32, u8>) {
         .collect();
     types_vec.sort_by(|&(_, a), &(_, b)| a.cmp(&b));
 
-    println!("fn step(&mut self) -> Result<Interrupt> {{");
+    println!("fn step(&mut self) -> Interrupt {{");
     println!("    let frame_cycle = self.cycles % CYCLES_PER_FRAME;");
     println!("    let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;");
     println!("    let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;");
@@ -346,7 +346,7 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<String> {
             panic!("only no return items should be in here")
         }
     } else {
-        lines.push("Ok(Interrupt::None)".to_owned())
+        lines.push("Interrupt::None".to_owned())
     }
     lines
 }
@@ -374,8 +374,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.fill_registers(&self.vram, self.control)?;"
-                       .to_owned());
+        lines.push("    self.sprite_renderer.fill_registers(&self.vram, self.control);".to_owned());
         actions.push(Action::WhenRenderingEnabled("FILL_SPRITE_REGISTERS".to_owned(), lines, 0))
     }
 
@@ -387,7 +386,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & DRAW_PIXEL > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.draw_pixel(x, scanline)?;".to_owned());
+        lines.push("    self.draw_pixel(x, scanline);".to_owned());
         actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines, -10000))
     }
 
@@ -395,9 +394,9 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         let mut lines = Vec::new();
         lines.push("    self.status.set_in_vblank();".to_owned());
         lines.push("    if self.control.nmi_on_vblank_start() {".to_owned());
-        lines.push("        Ok(Interrupt::Nmi)".to_owned());
+        lines.push("        Interrupt::Nmi".to_owned());
         lines.push("    } else {".to_owned());
-        lines.push("        Ok(Interrupt::None)".to_owned());
+        lines.push("        Interrupt::None".to_owned());
         lines.push("    }".to_owned());
         actions.push(Action::ReturnExpression("SET_VBLANK".to_owned(), lines))
     }
@@ -405,8 +404,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         let mut lines = Vec::new();
         lines.push("    // Updating palettes here isn't accurate, but should suffice for now"
                        .to_owned());
-        lines.push("    self.background_renderer.update_palettes(&self.vram)?;".to_owned());
-        lines.push("    self.sprite_renderer.update_palettes(&self.vram)?;".to_owned());
+        lines.push("    self.background_renderer.update_palettes(&self.vram);".to_owned());
+        lines.push("    self.sprite_renderer.update_palettes(&self.vram);".to_owned());
         lines.push("    self.status.clear_in_vblank();".to_owned());
         lines.push("    self.status.clear_sprite_zero_hit();".to_owned());
         actions.push(Action::NoReturnExpression("CLEAR_VBLANK_AND_SPRITE_ZERO_HIT".to_owned(),
@@ -429,25 +428,24 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & FETCH_AT > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_attribute_byte(&self.vram)?;".to_owned());
+        lines.push("    self.background_renderer.fetch_attribute_byte(&self.vram);".to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_AT".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_NT > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_nametable_byte(&self.vram)?;".to_owned());
+        lines.push("    self.background_renderer.fetch_nametable_byte(&self.vram);".to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_NT".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control)?;"
+        lines.push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control);"
                        .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_BG_LOW".to_owned(), lines, 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let mut lines = Vec::new();
-        lines
-            .push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control)?;"
-                      .to_owned());
+        lines.push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control);"
+                       .to_owned());
         actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines, 0))
     }
     if cycle_type & ODD_FRAME_SKIP_CYCLE > 0 {

@@ -17,7 +17,7 @@ fn opcodes() {
     let mut last_pc = PC_START;
 
     loop {
-        cpu.step().unwrap();
+        cpu.step();
         // Prevent endless loop
         if cpu.cycles > MAX_CYCLES {
             assert!(false, "Took too many cycles to complete");
@@ -48,7 +48,7 @@ fn interrupts() {
     let mut previous_interrupt_probe = 0;
 
     loop {
-        let interrupt_probe = cpu.read_memory(0xbffc).unwrap();
+        let interrupt_probe = cpu.read_memory(0xbffc);
 
         if interrupt_probe != previous_interrupt_probe {
             previous_interrupt_probe = interrupt_probe;
@@ -62,7 +62,7 @@ fn interrupts() {
             cpu.pending_interrupt = Interrupt::Irq;
         }
 
-        cpu.step().unwrap();
+        cpu.step();
         // Prevent endless loop
         if cpu.cycles > MAX_CYCLES {
             assert!(false, "Took too many cycles to complete");

@@ -48,9 +48,6 @@ extern crate asm6502;
 #[cfg(test)]
 extern crate rand;
 
-#[macro_use]
-extern crate error_chain;
-
 pub mod rom;
 pub mod memory;
 pub mod cpu;
@@ -58,5 +55,4 @@ pub mod ppu;
 pub mod screen;
 mod input;
 mod apu;
-mod errors;
 mod byte_utils;

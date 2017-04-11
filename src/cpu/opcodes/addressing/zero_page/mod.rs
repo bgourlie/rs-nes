@@ -1,6 +1,5 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
-use errors::*;
 use memory::Memory;
 
 pub struct ZeroPage {
@@ -10,25 +9,25 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
-        let addr = cpu.read_pc()? as u16;
-        let val = cpu.read_memory(addr)?;
+    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc() as u16;
+        let val = cpu.read_memory(addr);
 
-        Ok(ZeroPage {
-               addr: addr,
-               value: val,
-               is_store: false,
-           })
+        ZeroPage {
+            addr: addr,
+            value: val,
+            is_store: false,
+        }
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Result<Self> {
-        let addr = cpu.read_pc()? as u16;
+    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+        let addr = cpu.read_pc() as u16;
 
-        Ok(ZeroPage {
-               addr: addr,
-               value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
-               is_store: true,
-           })
+        ZeroPage {
+            addr: addr,
+            value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
+            is_store: true,
+        }
     }
 }
 
@@ -39,10 +38,10 @@ impl<M: Memory> AddressingMode<M> for ZeroPage {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) -> Result<()> {
+    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
-            cpu.tick()?;
+            cpu.tick();
         }
         cpu.write_memory(self.addr, value)
     }
