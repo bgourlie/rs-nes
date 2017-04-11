@@ -6,7 +6,6 @@ use rs_nes::memory::Memory;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
-use rs_nes::screen::NesScreen;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
@@ -18,7 +17,6 @@ use std::time::{Duration, Instant};
 
 const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
-const SCREEN_BUFFER_SIZE: u32 = SCREEN_WIDTH * SCREEN_HEIGHT * 3;
 
 fn main() {
     // INIT NES
@@ -44,7 +42,12 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut renderer = window.renderer().build().unwrap();
+    let mut renderer = window
+        .renderer()
+        .accelerated()
+        .present_vsync()
+        .build()
+        .unwrap();
 
     let mut texture = renderer
         .create_texture_streaming(PixelFormatEnum::RGB24, SCREEN_WIDTH, SCREEN_HEIGHT)
