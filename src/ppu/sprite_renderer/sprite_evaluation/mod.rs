@@ -105,24 +105,20 @@ impl SpriteEvaluation {
 
     fn increment_m(&mut self) {
         if self.m >= 3 {
-            //print!("m overflowed; Incrementing n to {}, resetting m ", self.n + 1);
             self.n += 1;
             self.m = 0;
         } else {
-            //print!("Incrementing m to {} ", self.m + 1);
             self.m += 1
         };
     }
 
     fn increment_n(&mut self) {
-        //print!("incrementing n to {}, resetting m ", self.n + 1);
         self.n += 1;
         self.m = 0;
     }
 
     /// Emulates the m increment bug during sprite overflow evaluation
     fn increment_n_hardware_bug(&mut self) {
-        //print!("incrementing n to {} and m (hardware bug) to {} (will overflow to 0 if 4) ", self.n + 1, self.m + 1);
         self.n += 1;
         self.m = if self.m >= 3 { 0 } else { self.m + 1 };
     }
