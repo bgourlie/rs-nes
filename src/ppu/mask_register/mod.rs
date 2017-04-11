@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[cfg(test)]
 mod spec_tests;
 
@@ -18,24 +20,7 @@ impl Deref for MaskRegister {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ColorMode {
-    Normal,
-    Greyscale,
-}
-
 impl MaskRegister {
-    /// Greyscale (0: normal color, 1: produce a greyscale display)
-    fn color_mode(self) -> ColorMode {
-        let val = self.reg & 0b00000001;
-
-        if val == 0 {
-            ColorMode::Normal
-        } else {
-            ColorMode::Greyscale
-        }
-    }
-
     pub fn background_render_leftmost_8_px(&self) -> bool {
         self.reg & 0b00000010 > 0
     }

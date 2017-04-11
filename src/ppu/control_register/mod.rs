@@ -1,22 +1,8 @@
 #[cfg(test)]
 mod spec_tests;
 
+use ppu::SpriteSize;
 use std::ops::Deref;
-
-pub const BG_PATTERN_SELECT: u8 = 0b00010000;
-pub const SPRITE_PATTERN_SELECT: u8 = 0b00001000;
-
-#[derive(Debug, PartialEq)]
-pub enum SpriteSize {
-    X8, // 8x8
-    X16, // 8x16
-}
-
-#[derive(Debug, PartialEq)]
-pub enum PpuMode {
-    Master,
-    Slave,
-}
 
 #[derive(Debug, PartialEq)]
 pub enum IncrementAmount {
@@ -26,7 +12,7 @@ pub enum IncrementAmount {
 
 /// $2000, Write Only
 /// Various flags controlling PPU operation
-#[derive(Default)]
+#[derive(Copy, Clone, Default)]
 pub struct ControlRegister {
     reg: u8,
 }
@@ -51,16 +37,12 @@ impl ControlRegister {
         }
     }
 
-    /// PPU master/slave select (0: read backdrop from EXT pins; 1: output color on EXT pins)
-    ///
-    /// *Note:* I don't think this is necessary for emulation since the NES never set the PPU
-    /// slave bit. Apparently, it could actually harm the NES hardware if it were set.
-    fn ppu_mode(&self) -> PpuMode {
-        if self.reg & 0b01000000 == 0 {
-            PpuMode::Master
-        } else {
-            PpuMode::Slave
-        }
+    pub fn background_pattern_table_base(&self) -> u16 {
+        ((self.reg as u16) << 8) & 0x1000
+    }
+
+    pub fn sprite_pattern_table_base(&self) -> u16 {
+        ((self.reg as u16) << 9) & 0x1000
     }
 
     /// Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)

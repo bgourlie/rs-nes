@@ -19,15 +19,6 @@ fn sprite_size() {
 }
 
 #[test]
-fn ppu_mode() {
-    let ppu_ctrl = new_control_register(0b00000000);
-    assert_eq!(PpuMode::Master, ppu_ctrl.ppu_mode());
-
-    let ppu_ctrl = new_control_register(0b01000000);
-    assert_eq!(PpuMode::Slave, ppu_ctrl.ppu_mode());
-}
-
-#[test]
 fn nmi_on_vblank_start() {
     let ppu_ctrl = new_control_register(0b00000000);
     assert_eq!(false, ppu_ctrl.nmi_on_vblank_start());

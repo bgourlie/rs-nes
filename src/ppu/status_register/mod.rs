@@ -1,11 +1,13 @@
+#![allow(dead_code)]
+
 #[cfg(test)]
 mod spec_tests;
 
 use std::cell::Cell;
 
-const VBLANK: u8 = 0b10000000;
-const SPRITE_ZERO: u8 = 0b01000000;
-const SPRITE_OVERFLOW: u8 = 0b00100000;
+const VBLANK: u8 = 0b_1000_0000;
+const SPRITE_ZERO: u8 = 0b_0100_0000;
+const SPRITE_OVERFLOW: u8 = 0b_0010_0000;
 
 #[derive(Default)]
 pub struct StatusRegister {
@@ -18,6 +20,7 @@ impl StatusRegister {
         StatusRegister { reg: Cell::new(reg) }
     }
 
+    // TODO: How do we implement Deref over a Cell type?
     pub fn read(&self) -> u8 {
         self.reg.get()
     }
@@ -65,7 +68,7 @@ impl StatusRegister {
     /// pre-render line.
     /// See: https://github.com/christopherpow/nes-test-roms
     pub fn sprite_overflow(&self) -> bool {
-        self.reg.get() & 0b00100000 > 0
+        self.reg.get() & SPRITE_OVERFLOW > 0
     }
 
     pub fn set_sprite_overflow(&self) {

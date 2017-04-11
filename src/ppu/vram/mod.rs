@@ -155,17 +155,17 @@ impl Vram for VramBase {
         match latch_state {
             LatchState::FirstWrite(val) => {
                 // t: ....... ...HGFED = d: HGFED...
-                let t = self.t.get() & 0b1111_1111_1110_0000;
-                self.t.set(((val as u16 & 0b1111_1000) >> 3) | t);
+                let t = self.t.get() & 0b_1111_1111_1110_0000;
+                self.t.set(((val as u16 & 0b_1111_1000) >> 3) | t);
 
                 //x:              CBA = d: .....CBA
-                self.fine_x.set(val & 0b0000_0111);
+                self.fine_x.set(val & 0b_0000_0111);
             }
             LatchState::SecondWrite(val) => {
                 // t: CBA..HG FED..... = d: HGFEDCBA
-                let t = self.t.get() & 0b0000_1100_0001_1111;
-                let cba_mask = (val as u16 & 0b0000_0111) << 12;
-                let hgfed_mask = (val as u16 & 0b1111_1000) << 2;
+                let t = self.t.get() & 0b_0000_1100_0001_1111;
+                let cba_mask = (val as u16 & 0b_0000_0111) << 12;
+                let hgfed_mask = (val as u16 & 0b_1111_1000) << 2;
                 self.t.set((cba_mask | hgfed_mask) | t);
             }
         }
