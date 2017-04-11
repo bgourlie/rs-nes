@@ -2,12 +2,13 @@ use super::control_register::IncrementAmount;
 use ppu::write_latch::LatchState;
 use rom::NesRom;
 use std::cell::Cell;
+use std::rc::Rc;
 
 #[cfg(test)]
 mod spec_tests;
 
 pub trait Vram {
-    fn new(rom: NesRom) -> Self;
+    fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write_ppu_addr(&self, latch_state: LatchState);
     fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
     fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8;
@@ -27,14 +28,14 @@ pub struct VramBase {
     address: Cell<u16>,
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
-    rom: NesRom, // TODO: mapper
+    rom: Rc<Box<NesRom>>, // TODO: mapper
     ppu_data_buffer: Cell<u8>,
     t: Cell<u16>,
     fine_x: Cell<u8>,
 }
 
 impl Vram for VramBase {
-    fn new(rom: NesRom) -> Self {
+    fn new(rom: Rc<Box<NesRom>>) -> Self {
         VramBase {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
@@ -96,7 +97,7 @@ impl Vram for VramBase {
         let addr = self.address.get();
 
         if addr < 0x2000 {
-            self.rom.chr[addr as usize] = val;
+            panic!("write to cart ram not implemented")
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {

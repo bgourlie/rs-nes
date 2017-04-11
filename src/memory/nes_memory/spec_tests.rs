@@ -229,7 +229,7 @@ mod mocks {
             unimplemented!()
         }
 
-        fn new(_: NesRom, _: Rc<RefCell<Self::Scr>>) -> Self {
+        fn new(_: Rc<Box<NesRom>>) -> Self {
             unimplemented!()
         }
     }
@@ -237,22 +237,22 @@ mod mocks {
     pub type NesMemoryFixture = NesMemoryBase<PpuMock, ApuMock, InputMock>;
 
     pub fn new_fixture() -> NesMemoryFixture {
-        let rom = NesRom {
-            format: RomFormat::INes,
-            video_standard: VideoStandard::Ntsc,
-            mapper: 0,
-            mirroring: Mirroring::Horizontal,
-            prg_rom_banks: 1,
-            prg_ram_banks: 1,
-            chr_rom_banks: 1,
-            has_sram: false,
-            has_trainer: false,
-            is_pc10: false,
-            is_vs_unisystem: false,
-            trainer: Vec::new(),
-            chr: Vec::new(),
-            prg: Vec::new(),
-        };
+        let rom = Rc::new(Box::new(NesRom {
+                                       format: RomFormat::INes,
+                                       video_standard: VideoStandard::Ntsc,
+                                       mapper: 0,
+                                       mirroring: Mirroring::Horizontal,
+                                       prg_rom_banks: 1,
+                                       prg_ram_banks: 1,
+                                       chr_rom_banks: 1,
+                                       has_sram: false,
+                                       has_trainer: false,
+                                       is_pc10: false,
+                                       is_vs_unisystem: false,
+                                       trainer: Vec::new(),
+                                       chr: Vec::new(),
+                                       prg: Vec::new(),
+                                   }));
 
         NesMemoryBase {
             ram: [0_u8; 0x800],

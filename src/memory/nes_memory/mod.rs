@@ -12,6 +12,7 @@ use screen::NesScreen;
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
+use std::rc::Rc;
 
 macro_rules! dma_tick {
     ( $mem : expr ) => {
@@ -28,14 +29,14 @@ pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;
 
 pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
     ram: [u8; 0x800],
-    rom: NesRom,
+    rom: Rc<Box<NesRom>>,
     ppu: P,
     apu: A,
     input: I,
 }
 
 impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
-    pub fn new(rom: NesRom, ppu: P) -> Self {
+    pub fn new(rom: Rc<Box<NesRom>>, ppu: P) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
@@ -154,5 +155,9 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory for NesMemoryBase<P, A, I
     fn hash(&self) -> u64 {
         // Hashing just the ram will suffice for now...
         seahash::hash(&self.ram)
+    }
+
+    fn screen_buffer(&self) -> &[u8] {
+        self.ppu.screen_buffer()
     }
 }

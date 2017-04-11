@@ -448,9 +448,9 @@ mod mocks {
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
-            vram: MockVram::new(NesRom::default()),
+            vram: MockVram::new(Rc::new(Box::new(NesRom::default()))),
             sprite_renderer: MockSpriteRenderer::default(),
-            screen: Rc::new(RefCell::new(NesScreen::default())),
+            screen: Rc::new(Box::new(RefCell::new(NesScreen::default()))),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -554,7 +554,7 @@ mod mocks {
             0
         }
 
-        fn new(_: NesRom) -> Self {
+        fn new(_: Rc<Box<NesRom>>) -> Self {
             Self::default()
         }
 
