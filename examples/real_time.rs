@@ -1,6 +1,5 @@
 extern crate time;
 extern crate glium;
-extern crate log;
 extern crate rs_nes;
 
 use glium::{Display, DisplayBuild, Surface, glutin};
