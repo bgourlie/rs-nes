@@ -497,7 +497,12 @@ mod mocks {
             Ok(())
         }
         fn current_pixel(&self) -> SpritePixel {
-            SpritePixel(0, SpritePriority::OnTopOfBackground, Color(0, 0, 0))
+            SpritePixel {
+                value: 0,
+                priority: SpritePriority::OnTopOfBackground,
+                color: Color(0, 0, 0),
+                is_sprite_zero: false,
+            }
         }
     }
 

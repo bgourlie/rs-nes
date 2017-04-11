@@ -10,6 +10,7 @@ pub struct SpriteEvaluation {
     scanline: u8,
     sprites_found: u8,
     secondary_oam: [u8; 32],
+    sprite_zero_map: u8,
     n: u8,
     m: u8,
     sprite_size: SpriteSize,
@@ -24,6 +25,7 @@ impl SpriteEvaluation {
             scanline: scanline,
             sprites_found: 0,
             secondary_oam: [0xff; 32],
+            sprite_zero_map: 0,
             read_buffer: 0,
             n: 0,
             m: 0,
@@ -31,6 +33,10 @@ impl SpriteEvaluation {
             sprite_overflow: false,
             cycle: 0,
         }
+    }
+
+    pub fn sprite_zero_map(&self) -> u8 {
+        self.sprite_zero_map
     }
 
     pub fn read_secondary_oam(&self, index: u8) -> u8 {
@@ -70,7 +76,13 @@ impl SpriteEvaluation {
                         self.increment_m();
 
                         if self.m == 0 {
-                            // m overflowed, we copied the last byte for the sprite
+                            // m overflowed, meaning we copied the last byte for the sprite
+                            // We track if the sprite was sprite zero using a bit map.
+                            // It's sprite 0 if n == 1 (n will have been incremented once it gets
+                            // here)
+                            if self.n == 1 {
+                                self.sprite_zero_map = 1 << self.sprites_found;
+                            }
                             self.sprites_found += 1;
                         }
                     }

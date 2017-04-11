@@ -46,7 +46,12 @@ pub enum SpritePriority {
 #[derive(Copy, Clone)]
 struct SpriteAttributes(u8);
 
-pub struct SpritePixel(pub u8, pub SpritePriority, pub Color);
+pub struct SpritePixel {
+    pub value: u8,
+    pub priority: SpritePriority,
+    pub color: Color,
+    pub is_sprite_zero: bool,
+}
 
 impl SpriteAttributes {
     fn palette(&self) -> u8 {
@@ -102,6 +107,7 @@ pub struct SpriteRendererBase {
     attribute_latches: [SpriteAttributes; 8],
     x_counters: [u8; 8],
     sprite_evaluation: SpriteEvaluation,
+    sprite_zero_map: u8,
 }
 
 impl Default for SpriteRendererBase {
@@ -115,6 +121,7 @@ impl Default for SpriteRendererBase {
             attribute_latches: [SpriteAttributes::default(); 8],
             x_counters: [0; 8],
             sprite_evaluation: SpriteEvaluation::default(),
+            sprite_zero_map: 0,
         }
     }
 }
@@ -231,6 +238,7 @@ impl SpriteRenderer for SpriteRendererBase {
             self.attribute_latches[sprites_fetched as usize] = attribute;
             self.x_counters[sprites_fetched as usize] = x;
         }
+        self.sprite_zero_map = self.sprite_evaluation.sprite_zero_map();
         Ok(())
     }
 
@@ -242,6 +250,7 @@ impl SpriteRenderer for SpriteRendererBase {
     fn current_pixel(&self) -> SpritePixel {
         let mut pixel = 0;
         let mut attributes = SpriteAttributes::default();
+        let mut is_sprite_zero = false;
 
         for i in 0..8 {
             if self.x_counters[i] == 0 && pixel == 0 {
@@ -249,10 +258,16 @@ impl SpriteRenderer for SpriteRendererBase {
                 let low_bit = self.pattern_low_shift_registers[i] >> 7;
                 pixel = (high_bit << 1) | low_bit;
                 attributes = self.attribute_latches[i];
+                is_sprite_zero = self.sprite_zero_map & (1 << i) > 0;
             }
         }
         let palette = attributes.palette() << 2;
         let palette_index = (palette | pixel) as usize;
-        SpritePixel(pixel, attributes.priority(), self.palettes[palette_index])
+        SpritePixel {
+            value: pixel,
+            priority: attributes.priority(),
+            color: self.palettes[palette_index],
+            is_sprite_zero: is_sprite_zero,
+        }
     }
 }

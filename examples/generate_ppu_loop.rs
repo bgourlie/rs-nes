@@ -268,11 +268,6 @@ fn print_loop(type_map: &HashMap<u32, u8>) {
     println!("    // Don't rely on self.cycles after the following line");
     println!("    self.cycles += 1;");
     println!();
-    println!("    // FIXME: TEMP HACK");
-    println!("    if frame_cycle == 4 {{");
-    println!("        self.status.set_sprite_zero_hit()");
-    println!("    }}");
-    println!();
     println!("    match CYCLE_TABLE[scanline as usize][x as usize] {{");
 
     for (cycle_type, _) in types_vec {

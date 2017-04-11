@@ -72,26 +72,40 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) -> Result<()> {
         let fine_x = self.vram.fine_x();
         let bg_pixel = self.background_renderer.current_pixel(fine_x);
-        let SpritePixel(sprite_pixel, sprite_priority, sprite_color) = self.sprite_renderer
-            .current_pixel();
+        let sprite_pixel = self.sprite_renderer.current_pixel();
 
-        let color = match (bg_pixel, sprite_pixel) {
+        let color = match (bg_pixel, sprite_pixel.value) {
             (0, 0) => self.background_renderer.pixel_color(fine_x),
-            (0, _) => sprite_color,
+            (0, _) => sprite_pixel.color,
             (_, 0) => self.background_renderer.pixel_color(fine_x),
             (_, _) => {
-                if sprite_priority == SpritePriority::OnTopOfBackground {
-                    sprite_color
+                if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
+                    sprite_pixel.color
                 } else {
                     self.background_renderer.pixel_color(fine_x)
                 }
             }
         };
 
+        // TODO: Is it appropriate to evaluate sprite zero hit here considering the cycles
+        // draw_pixel() is called on?
+        if self.sprite_zero_hit(x, bg_pixel, &sprite_pixel) {
+            self.status.set_sprite_zero_hit()
+        }
+
         self.screen
             .borrow_mut()
             .put_pixel((x - 2) as _, scanline as _, color);
         Ok(())
+    }
+
+    // TODO: tests
+    fn sprite_zero_hit(&self, x: u16, bg_pixel: u8, sprite_pixel: &SpritePixel) -> bool {
+        !self.status.sprite_zero_hit() &&
+        (self.mask.show_background() && self.mask.show_sprites()) &&
+        ((self.mask.background_render_leftmost_8_px() &&
+          self.mask.sprites_render_leftmost_8_px()) || x > 7) && x != 255 &&
+        (bg_pixel > 0 && sprite_pixel.value > 0) && sprite_pixel.is_sprite_zero
     }
 }
 
@@ -120,11 +134,6 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
         // Don't rely on self.cycles after the following line
         self.cycles += 1;
-
-        // FIXME: TEMP HACK
-        if frame_cycle == 4 {
-            self.status.set_sprite_zero_hit()
-        }
 
         match CYCLE_TABLE[scanline as usize][x as usize] {
             0 => Ok(Interrupt::None),
