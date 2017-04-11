@@ -9,7 +9,6 @@ use rs_nes::rom::NesRom;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
-use sdl2::rect::Rect;
 use std::env;
 use std::rc::Rc;
 use std::thread;
@@ -52,26 +51,6 @@ fn main() {
     let mut texture = renderer
         .create_texture_streaming(PixelFormatEnum::RGB24, SCREEN_WIDTH, SCREEN_HEIGHT)
         .unwrap();
-    // Create a red-green gradient
-    texture
-        .with_lock(None,
-                   |buffer: &mut [u8], pitch: usize| for y in 0..SCREEN_HEIGHT as usize {
-                       for x in 0..SCREEN_WIDTH as usize {
-                           let offset = y * pitch + x * 3;
-                           buffer[offset + 0] = x as u8;
-                           buffer[offset + 1] = y as u8;
-                           buffer[offset + 2] = 0;
-                       }
-                   })
-        .unwrap();
-
-    renderer.clear();
-    renderer
-        .copy(&texture,
-              None,
-              Some(Rect::new(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)))
-        .unwrap();
-    renderer.present();
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut accumulator = Duration::new(0, 0);
