@@ -144,7 +144,8 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
 
     fn start_websocket_thread(&mut self) -> Result<()> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
-        let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).map_err(|e| e.to_string())?;
+        let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR)
+            .map_err(|e| e.to_string())?;
         info!("Waiting for debugger to attach");
         let connection = ws_server.accept();
         info!("Debugger attached!");

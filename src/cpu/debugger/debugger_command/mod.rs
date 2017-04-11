@@ -54,7 +54,8 @@ impl Serialize for CrashReason {
         match *self {
             CrashReason::InvalidOperation(ref description) => {
                 state.serialize_field("type", "invalidOperation")?;
-                state.serialize_field("description", &description.to_owned())?;
+                state
+                    .serialize_field("description", &description.to_owned())?;
             }
             CrashReason::InvalidVramAccess(ref description, addr) => {
                 state.serialize_field("type", "invalidVramAccess")?;
