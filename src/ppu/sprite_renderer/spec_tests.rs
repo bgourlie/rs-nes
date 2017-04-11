@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn oam_write_and_read() {
-    let mut oam = oam_fixture(&[0xa, 0xb, 0xc, 0xd]);
+fn write_and_read() {
+    let mut oam = fixture(&[0xa, 0xb, 0xc, 0xd]);
     oam.write_address(0x1);
     assert_eq!(0xb, oam.read_data());
     assert_eq!(0xb, oam.read_data());
@@ -10,14 +10,14 @@ fn oam_write_and_read() {
 }
 
 #[test]
-fn oam_write_and_read_increment() {
+fn write_and_read_increment() {
     let mut mem = [0_u8; 0x100];
 
     for i in 0..0x100 {
         mem[i] = i as u8;
     }
 
-    let mut oam = oam_fixture(&mem);
+    let mut oam = fixture(&mem);
     oam.write_address(0xfe);
     assert_eq!(0xfe, oam.read_data_increment_addr());
     assert_eq!(0xff, oam.address.get());
@@ -27,7 +27,7 @@ fn oam_write_and_read_increment() {
     assert_eq!(0x1, oam.address.get())
 }
 
-fn oam_fixture(initial_values: &[u8]) -> SpriteRendererBase {
+fn fixture(initial_values: &[u8]) -> SpriteRendererBase {
     let mut mem = [0_u8; 0x100];
     for (i, byte) in initial_values.iter().enumerate() {
         mem[i] = *byte;

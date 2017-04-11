@@ -194,38 +194,44 @@ impl SpriteRenderer for SpriteRendererBase {
             let sprite_base = sprites_fetched * 4;
 
             let tile_y = self.sprite_evaluation.read_secondary_oam(sprite_base);
-
-            let tile_index = self.sprite_evaluation
-                .read_secondary_oam(sprite_base + 1);
-
             let attribute_byte = self.sprite_evaluation
                 .read_secondary_oam(sprite_base + 2);
 
             let attribute = SpriteAttributes(attribute_byte);
 
-            let fine_y = if attribute.flip_vertically() {
-                7 - (self.sprite_evaluation.scanline() - tile_y)
+            let (pattern_low, pattern_high) = if tile_y > self.sprite_evaluation.scanline() {
+                // It's an unused tile, return all transparent pixels
+                (0, 0)
             } else {
-                self.sprite_evaluation.scanline() - tile_y
-            };
+                let tile_index = self.sprite_evaluation
+                    .read_secondary_oam(sprite_base + 1);
 
-            let tile_offset = match control.sprite_size() {
-                SpriteSize::X8 => control.sprite_pattern_table_base() | ((tile_index as u16) << 4),
-                SpriteSize::X16 => {
-                    let actual_tile_index = tile_index & !1;
-                    let sprite_table_select = (tile_index as u16 & 1) << 12;
-                    sprite_table_select | actual_tile_index as u16
+                let fine_y = if attribute.flip_vertically() {
+                    7 - (self.sprite_evaluation.scanline() - tile_y)
+                } else {
+                    self.sprite_evaluation.scanline() - tile_y
+                };
+                debug_assert!(fine_y < 8);
+
+                let tile_offset = match control.sprite_size() {
+                    SpriteSize::X8 => {
+                        control.sprite_pattern_table_base() | ((tile_index as u16) << 4)
+                    }
+                    SpriteSize::X16 => {
+                        let actual_tile_index = tile_index & !1;
+                        let sprite_table_select = (tile_index as u16 & 1) << 12;
+                        sprite_table_select | actual_tile_index as u16
+                    }
+                } + fine_y as u16;
+
+                let pattern_low = vram.read(tile_offset);
+                let pattern_high = vram.read(tile_offset + 8);
+
+                if attribute.flip_horizontally() {
+                    (REVERSE_LOOKUP[pattern_low as usize], REVERSE_LOOKUP[pattern_high as usize])
+                } else {
+                    (pattern_low, pattern_high)
                 }
-            } + fine_y as u16;
-
-
-            let pattern_low = vram.read(tile_offset);
-            let pattern_high = vram.read(tile_offset + 8);
-
-            let (pattern_low, pattern_high) = if attribute.flip_horizontally() {
-                (REVERSE_LOOKUP[pattern_low as usize], REVERSE_LOOKUP[pattern_high as usize])
-            } else {
-                (pattern_low, pattern_high)
             };
 
             let x = self.sprite_evaluation
