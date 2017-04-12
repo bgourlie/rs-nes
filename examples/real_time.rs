@@ -35,7 +35,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
-        .window("rust-sdl2 demo: Video", SCREEN_WIDTH, SCREEN_HEIGHT)
+        .window("rust-sdl2 demo: Video", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
         .position_centered()
         .opengl()
         .build()
