@@ -21,7 +21,6 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::Duration;
 use websocket::{Message as WsMessage, Server as WsServer};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
@@ -122,7 +121,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        let screen: S = (self.screen.as_ref()).borrow().clone();
+        let screen: S = self.screen.borrow().clone();
         CpuSnapshot::new(mem_snapshot,
                          self.cpu.registers.clone(),
                          screen,
@@ -133,29 +132,29 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).unwrap();
         info!("Waiting for debugger to attach");
-        let connection = ws_server.accept();
+        let connection = match ws_server.accept() {
+            Ok(conn) => conn,
+            _ => panic!("Panic on debugger accept connection"),
+        };
         info!("Debugger attached!");
         let ws_rx = self.ws_rx.clone();
         thread::Builder::new()
             .name("Websocket Server".to_owned())
-            .stack_size(4 * 1024 * 1024) // Should probably put DebuggerMessage in shared mutex
             .spawn(move || {
-                let request = connection.unwrap().read_request().unwrap();
-                request.validate().unwrap();
-                let response = request.accept();
-                let mut sender = response.send().unwrap();
+                let mut client = connection.accept().unwrap();
 
                 while let Some(debugger_msg) = ws_rx.recv() {
                     let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
-                        .unwrap());
+                                                                 .unwrap());
 
-                    if sender.send_message(&message).is_err() {
+                    if client.send_message(&message).is_err() {
                         break;
                     }
                 }
 
                 info!("Websocket thread is terminating!")
-            }).unwrap();
+            })
+            .unwrap();
     }
 
     fn start_http_server_thread(&self) {

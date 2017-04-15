@@ -117,7 +117,6 @@ mod mocks {
     use ppu::Ppu;
     use rom::*;
     use screen::NesScreen;
-    use std::cell::RefCell;
     use std::io::Write;
     use std::rc::Rc;
 
@@ -231,6 +230,10 @@ mod mocks {
 
         fn new(_: Rc<Box<NesRom>>) -> Self {
             unimplemented!()
+        }
+
+        fn screen_buffer(&self) -> &[u8] {
+            &[]
         }
     }
 

@@ -15,6 +15,16 @@ pub struct NesScreen {
     pub screen_buffer: Box<[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3]>,
 }
 
+impl Clone for NesScreen {
+    fn clone(&self) -> Self {
+        let mut scr = [0_u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3];
+        for i in 0..self.screen_buffer.len() {
+            scr[i] = self.screen_buffer[i]
+        }
+        NesScreen { screen_buffer: Box::new(scr) }
+    }
+}
+
 impl Default for NesScreen {
     fn default() -> Self {
         let mut screen =
@@ -39,7 +49,7 @@ impl Serialize for NesScreen {
                 .set(png::ColorType::RGB)
                 .set(png::BitDepth::Eight);
             let mut writer = encoder.write_header().unwrap();
-            writer.write_image_data(&self.screen_buffer).unwrap();
+            writer.write_image_data(&*self.screen_buffer).unwrap();
         }
         let img_buf = &*img_buf;
         let encoded_img = base64::encode(&img_buf);

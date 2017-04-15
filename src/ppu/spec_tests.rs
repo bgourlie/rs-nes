@@ -437,7 +437,6 @@ mod mocks {
     use rom::NesRom;
     use screen::NesScreen;
     use std::cell::Cell;
-    use std::cell::RefCell;
     use std::rc::Rc;
 
     pub type TestPpu = PpuBase<MockVram, MockSpriteRenderer>;
@@ -450,7 +449,7 @@ mod mocks {
             status: StatusRegister::default(),
             vram: MockVram::new(Rc::new(Box::new(NesRom::default()))),
             sprite_renderer: MockSpriteRenderer::default(),
-            screen: Rc::new(Box::new(RefCell::new(NesScreen::default()))),
+            screen: NesScreen::default(),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
