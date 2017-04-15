@@ -1,5 +1,5 @@
 use cpu::Cpu;
-use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::AddressingMode;
 use memory::Memory;
 use screen::Screen;
 

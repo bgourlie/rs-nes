@@ -1,4 +1,7 @@
 #[cfg(test)]
+pub mod am_test_utils;
+
+#[cfg(test)]
 pub mod branch_tests_base;
 
 #[cfg(test)]
@@ -16,7 +19,6 @@ pub mod adc_spec_tests;
 #[cfg(test)]
 pub mod sbc_spec_tests;
 
-mod addressing;
 mod branch_base;
 mod shift_base;
 mod compare_base;
@@ -75,8 +77,8 @@ mod dec;
 mod jmp;
 mod jsr;
 
+use byte_utils::{from_lo_hi, wrapping_add};
 use cpu::Cpu;
-use cpu::opcodes::addressing::*;
 use memory::Memory;
 use screen::Screen;
 
@@ -617,6 +619,549 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
             self::jsr::Jsr::execute(cpu, am)
         }
         _ => panic!("Unexpected opcode: {:0>2X}", opcode),
+    }
+}
+
+pub trait AddressingMode<S: Screen, M: Memory<S>> {
+    type Output;
+    fn read(&self) -> Self::Output;
+    fn write(&self, _: &mut Cpu<S, M>, _: u8) {
+        unimplemented!();
+    }
+}
+
+pub struct Absolute {
+    addr: u16,
+    value: u8,
+    is_store: bool,
+}
+
+impl Absolute {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let addr = cpu.read_pc16();
+        let value = cpu.read_memory(addr);
+
+        Absolute {
+            addr: addr,
+            value: value,
+            is_store: false,
+        }
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let addr = cpu.read_pc16();
+
+        Absolute {
+            addr: addr,
+            value: 0, // Stores don't use the value and can cause illegal memory access if attempted
+            is_store: true,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Absolute {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        if !self.is_store {
+            // Dummy write cycle
+            cpu.tick();
+        }
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+/// An absolute addressing mode for instructions that operate on the actually memory address, and
+/// not the value at that address.
+pub struct AbsoluteAddress {
+    addr: u16,
+}
+
+impl AbsoluteAddress {
+    pub fn init<S, M>(cpu: &mut Cpu<S, M>) -> Self
+        where S: Screen,
+              M: Memory<S>
+    {
+        AbsoluteAddress { addr: cpu.read_pc16() }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for AbsoluteAddress {
+    type Output = u16;
+
+    fn read(&self) -> Self::Output {
+        self.addr
+    }
+}
+
+pub struct AbsoluteX {
+    addr: u16,
+    value: u8,
+    is_store: bool,
+}
+
+
+#[derive(PartialEq, Eq)]
+enum Variant {
+    Standard,
+    ReadModifyWrite,
+    Store,
+}
+
+impl AbsoluteX {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, Variant::Standard)
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, Variant::Store)
+    }
+
+    /// Init using special rules for cycle counting specific to read-modify-write instructions
+    ///
+    /// Read-modify-write instructions do not have a conditional page boundary cycle. For these
+    /// instructions we always execute this cycle.
+    pub fn init_rmw<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, Variant::ReadModifyWrite)
+    }
+
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, variant: Variant) -> Self {
+        let base_addr = cpu.read_pc16();
+        let target_addr = base_addr + cpu.registers.x as u16;
+
+        // Conditional cycle if memory page crossed
+        if variant != Variant::Store &&
+           (variant == Variant::ReadModifyWrite || (base_addr & 0xff00 != target_addr & 0xff00)) {
+            cpu.tick();
+        }
+
+        let val = if variant != Variant::Store {
+            cpu.read_memory(target_addr)
+        } else {
+            cpu.tick();
+            0x0 // Stores do not read memory and can cause illegal memory access if attempted
+        };
+
+        AbsoluteX {
+            addr: target_addr,
+            value: val,
+            is_store: variant == Variant::Store,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for AbsoluteX {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        if !self.is_store {
+            // Dummy write cycle
+            cpu.tick();
+        }
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct AbsoluteY {
+    addr: u16,
+    value: u8,
+}
+
+impl AbsoluteY {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, false)
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, true)
+    }
+
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
+        let base_addr = cpu.read_pc16();
+        let target_addr = base_addr + cpu.registers.y as u16;
+
+        // Conditional cycle if memory page crossed
+        if !is_store && base_addr & 0xff00 != target_addr & 0xff00 {
+            cpu.tick()
+        }
+
+        let val = if !is_store {
+            cpu.read_memory(target_addr)
+        } else {
+            cpu.tick();
+            0x0 // Stores do not read memory and can cause illegal memory access if attempted
+        };
+
+        AbsoluteY {
+            addr: target_addr,
+            value: val,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for AbsoluteY {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct Accumulator {
+    value: u8,
+}
+
+impl Accumulator {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        // dummy read cycle
+        cpu.tick();
+        Accumulator { value: cpu.registers.acc }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Accumulator {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        cpu.registers.acc = value;
+    }
+}
+
+pub struct Immediate {
+    value: u8,
+}
+
+impl Immediate {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let val = cpu.read_pc();
+        Immediate { value: val }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Immediate {
+    type Output = u8;
+
+    fn read(&self) -> u8 {
+        self.value
+    }
+}
+
+pub struct Implied;
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Implied {
+    type Output = ();
+
+    fn read(&self) -> Self::Output {
+        ()
+    }
+}
+
+pub struct IndexedIndirect {
+    addr: u16,
+    value: u8,
+}
+
+impl IndexedIndirect {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, false)
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, true)
+    }
+
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
+        let operand = cpu.read_pc();
+        let base_addr = wrapping_add(operand, cpu.registers.x) as u16;
+
+        if !is_store {
+            // Dummy read cycle
+            cpu.tick();
+        }
+
+        let target_addr = cpu.read_memory16(base_addr);
+        let value = cpu.read_memory(target_addr);
+
+        IndexedIndirect {
+            addr: target_addr,
+            value: value,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for IndexedIndirect {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct Indirect {
+    addr: u16,
+}
+
+impl Indirect {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let addr = cpu.read_pc16();
+
+        // Recreate hardware bug specific to indirect jmp
+        let lo_byte = cpu.read_memory(addr);
+
+        // recreate indirect jump bug in nmos 6502
+        let hi_byte = if addr & 0x00ff == 0x00ff {
+            cpu.read_memory(addr & 0xff00)
+        } else {
+            cpu.read_memory(addr + 1)
+        };
+
+        let target_addr = from_lo_hi(lo_byte, hi_byte);
+        Indirect { addr: target_addr }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Indirect {
+    type Output = u16;
+
+    fn read(&self) -> Self::Output {
+        self.addr
+    }
+}
+
+pub struct IndirectIndexed {
+    addr: u16,
+    value: u8,
+}
+
+impl IndirectIndexed {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, false)
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, true)
+    }
+
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
+        let addr = cpu.read_pc();
+        let y = cpu.registers.y;
+        let base_addr = cpu.read_memory16_zp(addr);
+        let target_addr = base_addr + y as u16;
+
+        // Conditional cycle if memory page crossed
+        if !is_store && base_addr & 0xff00 != target_addr & 0xff00 {
+            cpu.tick();
+        }
+
+        let val = cpu.read_memory(target_addr);
+        IndirectIndexed {
+            addr: target_addr,
+            value: val,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for IndirectIndexed {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct Relative {
+    offset: i8,
+}
+
+impl Relative {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let offset = cpu.read_pc() as i8;
+        Relative { offset: offset }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Relative {
+    type Output = i8;
+
+    fn read(&self) -> Self::Output {
+        self.offset
+    }
+}
+
+pub struct ZeroPage {
+    addr: u16,
+    value: u8,
+    is_store: bool,
+}
+
+impl ZeroPage {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let addr = cpu.read_pc() as u16;
+        let val = cpu.read_memory(addr);
+
+        ZeroPage {
+            addr: addr,
+            value: val,
+            is_store: false,
+        }
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let addr = cpu.read_pc() as u16;
+
+        ZeroPage {
+            addr: addr,
+            value: 0x0, // Stores don't read memory, can cause illegal memory access if attempted
+            is_store: true,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for ZeroPage {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        if !self.is_store {
+            // Dummy write cycle
+            cpu.tick();
+        }
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct ZeroPageX {
+    addr: u16,
+    value: u8,
+    is_store: bool,
+}
+
+impl ZeroPageX {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let base_addr = cpu.read_pc();
+        let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
+
+        // Dummy read cycle
+        cpu.tick();
+
+        let val = cpu.read_memory(target_addr);
+
+        ZeroPageX {
+            addr: target_addr,
+            value: val,
+            is_store: false,
+        }
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        let base_addr = cpu.read_pc();
+        let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
+
+        let val = cpu.read_memory(target_addr);
+
+        ZeroPageX {
+            addr: target_addr,
+            value: val,
+            is_store: true,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for ZeroPageX {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        if !self.is_store {
+            // Dummy write cycle
+            cpu.tick();
+        }
+        cpu.write_memory(self.addr, value)
+    }
+}
+
+pub struct ZeroPageY {
+    addr: u16,
+    value: u8,
+    is_store: bool,
+}
+
+impl ZeroPageY {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, false)
+    }
+
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
+        Self::init_base(cpu, true)
+    }
+
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
+        let base_addr = cpu.read_pc();
+        let target_addr = wrapping_add(base_addr, cpu.registers.y) as u16;
+
+        if !is_store {
+            // Dummy read cycle
+            cpu.tick();
+        }
+
+        let val = if !is_store {
+            cpu.read_memory(target_addr)
+        } else {
+            cpu.tick();
+            0x0 // Stores don't read memory, can cause illegal memory access if attempted
+        };
+
+        ZeroPageY {
+            addr: target_addr,
+            value: val,
+            is_store: is_store,
+        }
+    }
+}
+
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for ZeroPageY {
+    type Output = u8;
+
+    fn read(&self) -> Self::Output {
+        self.value
+    }
+
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
+        if !self.is_store {
+            // Dummy write cycle
+            cpu.tick();
+        }
+        cpu.write_memory(self.addr, value)
     }
 }
 

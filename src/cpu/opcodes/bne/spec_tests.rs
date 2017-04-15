@@ -1,5 +1,5 @@
 use super::Bne;
-use cpu::opcodes::OpCode;
+use cpu::opcodes::*;
 use cpu::opcodes::branch_tests_base::*;
 
 #[test]

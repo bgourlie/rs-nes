@@ -2,8 +2,8 @@
 mod spec_tests;
 
 use cpu::Cpu;
+use cpu::opcodes::AddressingMode;
 use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing::AddressingMode;
 use cpu::opcodes::branch_base::branch;
 use memory::Memory;
 use screen::Screen;

@@ -3,8 +3,8 @@ mod spec_tests;
 
 use byte_utils::wrapping_dec;
 use cpu::Cpu;
+use cpu::opcodes::AddressingMode;
 use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
 use screen::Screen;
 

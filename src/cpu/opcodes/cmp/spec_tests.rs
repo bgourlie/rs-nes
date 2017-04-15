@@ -1,5 +1,5 @@
 use super::Cmp;
-use cpu::opcodes::OpCode;
+use cpu::opcodes::*;
 use cpu::opcodes::compare_tests_base::*;
 
 #[test]

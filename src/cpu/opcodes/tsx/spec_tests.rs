@@ -1,6 +1,5 @@
 use cpu::*;
-use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::*;
 use cpu::opcodes::tsx::Tsx;
 
 #[test]

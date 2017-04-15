@@ -1,5 +1,5 @@
-use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing::testing::WriterAddressingMode;
+use cpu::opcodes::*;
+use cpu::opcodes::am_test_utils::*;
 use cpu::opcodes::dec::Dec;
 use cpu::opcodes::inc_dec_tests_base::*;
 

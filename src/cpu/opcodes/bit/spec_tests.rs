@@ -1,6 +1,6 @@
 use super::Bit;
 use cpu::*;
-use cpu::opcodes::OpCode;
+use cpu::opcodes::*;
 
 #[test]
 fn zero_flag_behavior() {

@@ -1,5 +1,4 @@
-use cpu::opcodes::OpCode;
-use cpu::opcodes::addressing::Implied;
+use cpu::opcodes::*;
 use cpu::opcodes::dey::Dey;
 use cpu::opcodes::inc_dec_tests_base::*;
 

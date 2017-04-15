@@ -1,5 +1,5 @@
 use cpu::{TestCpu, TestMemory};
-use cpu::opcodes::addressing::AddressingMode;
+use cpu::opcodes::AddressingMode;
 use screen::NoScreen;
 use std::cell::Cell;
 use std::rc::Rc;
