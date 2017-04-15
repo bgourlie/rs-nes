@@ -1,4 +1,5 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
+use input::NoInput;
 use screen::NoScreen;
 
 #[cfg(feature = "debugger")]
@@ -27,7 +28,7 @@ impl Default for SimpleMemory {
     }
 }
 
-impl Memory<NoScreen> for SimpleMemory {
+impl Memory<NoInput, NoScreen> for SimpleMemory {
     fn write(&mut self, addr: u16, data: u8, _: u64) -> u64 {
         let addr = addr as usize;
         self.addr[addr] = data;
@@ -49,6 +50,10 @@ impl Memory<NoScreen> for SimpleMemory {
     }
 
     fn screen(&self) -> &NoScreen {
+        unimplemented!()
+    }
+
+    fn input(&self) -> &NoInput {
         unimplemented!()
     }
 }

@@ -36,13 +36,13 @@ pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
 }
 
 impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
-    pub fn new(rom: Rc<Box<NesRom>>, ppu: P) -> Self {
+    pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
             ppu: ppu,
             apu: A::default(),
-            input: I::default(),
+            input: input,
         }
     }
 
@@ -67,7 +67,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryBase<P, A, I> {
+impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Interrupt {
         let mut tick_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
@@ -91,7 +91,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryB
         } else if address == 0x4014 {
             addl_cycles = self.dma_write(value, cycles)
         } else if address == 0x4016 {
-            self.input.write_probe(value)
+            self.input.write(address, value)
         } else if address < 0x4018 {
             self.apu.write(address, value)
         } else {
@@ -108,9 +108,9 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryB
         } else if address == 0x4015 {
             self.apu.read_control()
         } else if address == 0x4016 {
-            self.input.read_joy_1()
-        } else if address == 0x4017 {
-            self.input.read_joy_2()
+            self.input.read(address)
+        } else if address < 0x4018 {
+            0
         } else if address < 0x8000 {
             panic!("Read from 0x{:0>4X}", address);
         } else {
@@ -159,5 +159,8 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryB
 
     fn screen(&self) -> &NesScreen {
         self.ppu.screen()
+    }
+    fn input(&self) -> &I {
+        &self.input
     }
 }

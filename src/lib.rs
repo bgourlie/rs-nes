@@ -53,6 +53,6 @@ pub mod memory;
 pub mod cpu;
 pub mod ppu;
 pub mod screen;
-mod input;
+pub mod input;
 mod apu;
 mod byte_utils;

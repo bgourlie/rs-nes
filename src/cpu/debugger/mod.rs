@@ -10,6 +10,7 @@ use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
+use input::Input;
 use iron::prelude::*;
 use memory::{ADDRESSABLE_MEMORY, Memory};
 use router::Router;
@@ -31,10 +32,10 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<S: Screen + Serialize, Mem: Memory<S>> {
+pub struct HttpDebugger<S: Screen + Serialize, I: Input, M: Memory<I, S>> {
     ws_tx: Sender<DebuggerCommand<S>>,
     ws_rx: Receiver<DebuggerCommand<S>>,
-    cpu: Cpu<S, Mem>,
+    cpu: Cpu<S, I, M>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
@@ -44,8 +45,8 @@ pub struct HttpDebugger<S: Screen + Serialize, Mem: Memory<S>> {
     last_mem_hash: u64,
 }
 
-impl<S: Screen + Serialize, Mem: Memory<S>> HttpDebugger<S, Mem> {
-    pub fn new(cpu: Cpu<S, Mem>) -> Self {
+impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
+    pub fn new(cpu: Cpu<S, I, M>) -> Self {
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,

@@ -7,6 +7,7 @@ extern crate env_logger;
 extern crate rs_nes;
 
 use rs_nes::cpu::*;
+use rs_nes::input::InputBase;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
@@ -26,7 +27,7 @@ fn main() {
              rom.chr.len());
 
     let ppu = PpuImpl::new(rom.clone());
-    let mem = NesMemoryImpl::new(rom, ppu);
+    let mem = NesMemoryImpl::new(rom, ppu, InputBase::default());
     let mut cpu = Cpu::new(mem);
     cpu.reset();
     let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
