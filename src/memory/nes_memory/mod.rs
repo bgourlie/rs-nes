@@ -46,10 +46,6 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
         }
     }
 
-    fn input(&self) -> &I {
-        &self.input
-    }
-
     fn dma_write(&mut self, value: u8, cycles: u64) -> u64 {
         let mut elapsed_cycles = 513;
         dma_tick!(self);
@@ -94,8 +90,8 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
             self.ppu.write(address, value)
         } else if address == 0x4014 {
             addl_cycles = self.dma_write(value, cycles)
-        } else if address == 0x4016 {
-            self.input.write_probe(value)
+        } else if address == 0x4016 || address == 0x4017 {
+            self.input.write(address, value)
         } else if address < 0x4018 {
             self.apu.write(address, value)
         } else {
@@ -111,10 +107,8 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
             self.ppu.read(address)
         } else if address == 0x4015 {
             self.apu.read_control()
-        } else if address == 0x4016 {
-            self.input.read_joy_1()
-        } else if address == 0x4017 {
-            self.input.read_joy_2()
+        } else if address == 0x4016 || address == 0x4017 {
+            self.input.read(address)
         } else if address < 0x8000 {
             panic!("Read from 0x{:0>4X}", address);
         } else {

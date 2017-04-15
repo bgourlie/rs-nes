@@ -9,7 +9,6 @@ use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::log;
 use sdl2::pixels::PixelFormatEnum;
 use std::env;
 use std::rc::Rc;
@@ -71,38 +70,42 @@ fn main() {
                         Keycode::W => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Up)
                         }
                         Keycode::A => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Left)
                         }
                         Keycode::S => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Down)
                         }
                         Keycode::D => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Right)
                         }
                         Keycode::LShift | Keycode::RShift => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Select)
                         }
                         Keycode::Return => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_press(Button::Start)
+                        }
+                        Keycode::J => {
+                            cpu.memory
+                                .input()
+                                .player1_press(Button::B)
+                        }
+                        Keycode::K => {
+                            cpu.memory
+                                .input()
+                                .player1_press(Button::A)
                         }
                         _ => (),
                     }
@@ -112,38 +115,42 @@ fn main() {
                         Keycode::W => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Up)
                         }
                         Keycode::A => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Left)
                         }
                         Keycode::S => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Down)
                         }
                         Keycode::D => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Right)
                         }
                         Keycode::LShift | Keycode::RShift => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Select)
                         }
                         Keycode::Return => {
                             cpu.memory
                                 .input()
-                                .controllers()
                                 .player1_release(Button::Start)
+                        }
+                        Keycode::J => {
+                            cpu.memory
+                                .input()
+                                .player1_release(Button::B)
+                        }
+                        Keycode::K => {
+                            cpu.memory
+                                .input()
+                                .player1_release(Button::A)
                         }
                         _ => (),
                     }

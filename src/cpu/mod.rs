@@ -15,9 +15,9 @@ mod opcodes;
 
 use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
-use input::{Input, NoInput};
+use input::*;
 use memory::*;
-use screen::{NoScreen, Screen};
+use screen::*;
 use std::marker::PhantomData;
 
 const STACK_LOC: u16 = 0x100;
