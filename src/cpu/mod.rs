@@ -15,6 +15,7 @@ mod opcodes;
 
 use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
+use input::Input;
 use memory::*;
 use screen::{NoScreen, Screen};
 use std::marker::PhantomData;
@@ -47,28 +48,30 @@ pub enum Interrupt {
     Irq,
 }
 
-pub struct Cpu<S: Screen, M: Memory<S>> {
+pub struct Cpu<S: Screen, I: Input, M: Memory<I, S>> {
     registers: Registers,
     pub memory: M,
     pending_interrupt: Interrupt,
     pub cycles: u64,
-    phantom: PhantomData<S>,
+    phantom_s: PhantomData<S>,
+    phantom_i: PhantomData<I>,
 }
 
-impl<S: Screen, Mem: Memory<S>> Cpu<S, Mem> {
-    pub fn new_init_pc(memory: Mem, pc: u16) -> Self {
+impl<S: Screen, I: Input, M: Memory<I, S>> Cpu<S, I, M> {
+    pub fn new_init_pc(memory: M, pc: u16) -> Self {
         let mut cpu = Self::new(memory);
         cpu.registers.pc = pc;
         cpu
     }
 
-    pub fn new(memory: Mem) -> Self {
+    pub fn new(memory: M) -> Self {
         Cpu {
             registers: Registers::new(),
             memory: memory,
             cycles: 0,
             pending_interrupt: Interrupt::None,
-            phantom: PhantomData,
+            phantom_s: PhantomData,
+            phantom_i: PhantomData,
         }
     }
 

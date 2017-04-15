@@ -72,3 +72,18 @@ impl Input for InputBase {
         0
     }
 }
+
+#[derive(Default)]
+pub struct NoInput;
+
+impl Input for NoInput {
+    fn write_probe(&mut self, _: u8) {}
+
+    fn read_joy_1(&self) -> u8 {
+        0
+    }
+
+    fn read_joy_2(&self) -> u8 {
+        0
+    }
+}

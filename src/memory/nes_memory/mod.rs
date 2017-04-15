@@ -71,7 +71,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryBase<P, A, I> {
+impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Interrupt {
         let mut tick_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
@@ -163,5 +163,8 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<NesScreen> for NesMemoryB
 
     fn screen(&self) -> &NesScreen {
         self.ppu.screen()
+    }
+    fn input(&self) -> &I {
+        &self.input
     }
 }
