@@ -59,6 +59,9 @@ mod bcs_spec_tests;
 mod bne_spec_tests;
 
 #[cfg(test)]
+mod bit_spec_tests;
+
+#[cfg(test)]
 mod cmp_spec_tests;
 
 #[cfg(test)]
@@ -100,7 +103,6 @@ mod stx;
 mod sty;
 mod ora;
 mod eor;
-mod bit;
 mod inc;
 mod dec;
 mod jmp;
@@ -517,11 +519,11 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         }
         0x24 => {
             let am = ZeroPage::init(cpu);
-            self::bit::Bit::execute(cpu, am)
+            Bit::execute(cpu, am)
         }
         0x2c => {
             let am = Absolute::init(cpu);
-            self::bit::Bit::execute(cpu, am)
+            Bit::execute(cpu, am)
         }
         0x2a => {
             let am = Accumulator::init(cpu);
@@ -1479,5 +1481,21 @@ impl OpCode for Cpy {
 fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
         let val = cpu.registers.y;
         compare(cpu, am, val);
+    }
+}
+
+struct Bit;
+
+impl OpCode for Bit {
+    type Input = u8;
+
+    fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let lhs = cpu.registers.acc;
+        let rhs = am.read();
+        let res = lhs & rhs;
+
+        cpu.registers.set_zero_flag(res == 0);
+        cpu.registers.set_overflow_flag(rhs & 0x40 != 0);
+        cpu.registers.set_sign_flag(rhs & 0x80 != 0);
     }
 }
