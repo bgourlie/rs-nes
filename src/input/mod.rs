@@ -41,7 +41,7 @@ impl Input for InputBase {
     }
 
     fn read(&self, addr: u16) -> u8 {
-        debug_assert!(addr == 0x4016 || addr == 0x4017);
+        debug_assert!(addr == 0x4016);
         if addr == 0x4016 {
             let strobe = self.strobe.get();
             let state = self.state.get();

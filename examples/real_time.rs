@@ -67,91 +67,31 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
                 Event::KeyDown { keycode: Some(keycode), .. } => {
                     match keycode {
-                        Keycode::W => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Up)
-                        }
-                        Keycode::A => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Left)
-                        }
-                        Keycode::S => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Down)
-                        }
-                        Keycode::D => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Right)
-                        }
+                        Keycode::W => cpu.memory.input().player1_press(Button::Up),
+                        Keycode::A => cpu.memory.input().player1_press(Button::Left),
+                        Keycode::S => cpu.memory.input().player1_press(Button::Down),
+                        Keycode::D => cpu.memory.input().player1_press(Button::Right),
                         Keycode::LShift | Keycode::RShift => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Select)
+                            cpu.memory.input().player1_press(Button::Select)
                         }
-                        Keycode::Return => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::Start)
-                        }
-                        Keycode::J => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::B)
-                        }
-                        Keycode::K => {
-                            cpu.memory
-                                .input()
-                                .player1_press(Button::A)
-                        }
+                        Keycode::Return => cpu.memory.input().player1_press(Button::Start),
+                        Keycode::J => cpu.memory.input().player1_press(Button::B),
+                        Keycode::K => cpu.memory.input().player1_press(Button::A),
                         _ => (),
                     }
                 }
                 Event::KeyUp { keycode: Some(keycode), .. } => {
                     match keycode {
-                        Keycode::W => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Up)
-                        }
-                        Keycode::A => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Left)
-                        }
-                        Keycode::S => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Down)
-                        }
-                        Keycode::D => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Right)
-                        }
+                        Keycode::W => cpu.memory.input().player1_release(Button::Up),
+                        Keycode::A => cpu.memory.input().player1_release(Button::Left),
+                        Keycode::S => cpu.memory.input().player1_release(Button::Down),
+                        Keycode::D => cpu.memory.input().player1_release(Button::Right),
                         Keycode::LShift | Keycode::RShift => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Select)
+                            cpu.memory.input().player1_release(Button::Select)
                         }
-                        Keycode::Return => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::Start)
-                        }
-                        Keycode::J => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::B)
-                        }
-                        Keycode::K => {
-                            cpu.memory
-                                .input()
-                                .player1_release(Button::A)
-                        }
+                        Keycode::Return => cpu.memory.input().player1_release(Button::Start),
+                        Keycode::J => cpu.memory.input().player1_release(Button::B),
+                        Keycode::K => cpu.memory.input().player1_release(Button::A),
                         _ => (),
                     }
                 }
