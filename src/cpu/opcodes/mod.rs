@@ -2,9 +2,6 @@
 pub mod am_test_utils;
 
 #[cfg(test)]
-pub mod branch_tests_base;
-
-#[cfg(test)]
 pub mod compare_tests_base;
 
 #[cfg(test)]
@@ -35,28 +32,7 @@ mod ror_spec_tests;
 mod lsr_spec_tests;
 
 #[cfg(test)]
-mod bcc_spec_tests;
-
-#[cfg(test)]
-mod bpl_spec_tests;
-
-#[cfg(test)]
-mod beq_spec_tests;
-
-#[cfg(test)]
-mod bmi_spec_tests;
-
-#[cfg(test)]
-mod bvc_spec_tests;
-
-#[cfg(test)]
-mod bvs_spec_tests;
-
-#[cfg(test)]
-mod bcs_spec_tests;
-
-#[cfg(test)]
-mod bne_spec_tests;
+mod branch_spec_tests;
 
 #[cfg(test)]
 mod bit_spec_tests;
