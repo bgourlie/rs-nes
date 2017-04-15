@@ -23,12 +23,11 @@ fn main() {
              rom.chr_rom_banks,
              rom.chr.len());
 
-    let screen = Rc::new(RefCell::new(NesScreen::default()));
     let ppu = PpuImpl::new(rom.clone());
     let mem = NesMemoryImpl::new(rom, ppu);
     let mut cpu = Cpu::new(mem);
     cpu.reset();
-    let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu, screen);
+    let mut debugger = rs_nes::cpu::debugger::HttpDebugger::new(cpu);
     debugger.start();
     loop {
         debugger.step();

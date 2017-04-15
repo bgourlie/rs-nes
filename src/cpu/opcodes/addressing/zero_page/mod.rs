@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct ZeroPage {
     addr: u16,
@@ -9,7 +10,7 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         let addr = cpu.read_pc() as u16;
         let val = cpu.read_memory(addr);
 
@@ -20,7 +21,7 @@ impl ZeroPage {
         }
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         let addr = cpu.read_pc() as u16;
 
         ZeroPage {
@@ -31,14 +32,14 @@ impl ZeroPage {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for ZeroPage {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for ZeroPage {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();

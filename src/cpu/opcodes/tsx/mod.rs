@@ -5,13 +5,14 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct Tsx;
 
 impl OpCode for Tsx {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, _: AM){
         cpu.registers.x = cpu.registers.sp;
         let x = cpu.registers.x;
         cpu.registers.set_sign_and_zero_flag(x);

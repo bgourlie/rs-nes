@@ -2,6 +2,7 @@ use byte_utils::wrapping_add;
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct IndexedIndirect {
     addr: u16,
@@ -9,15 +10,15 @@ pub struct IndexedIndirect {
 }
 
 impl IndexedIndirect {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Self {
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
         let operand = cpu.read_pc();
         let base_addr = wrapping_add(operand, cpu.registers.x) as u16;
 
@@ -36,14 +37,14 @@ impl IndexedIndirect {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for IndexedIndirect {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for IndexedIndirect {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }

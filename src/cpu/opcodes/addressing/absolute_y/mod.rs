@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct AbsoluteY {
     addr: u16,
@@ -8,15 +9,15 @@ pub struct AbsoluteY {
 }
 
 impl AbsoluteY {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Self {
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
         let base_addr = cpu.read_pc16();
         let target_addr = base_addr + cpu.registers.y as u16;
 
@@ -39,14 +40,14 @@ impl AbsoluteY {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for AbsoluteY {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for AbsoluteY {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }

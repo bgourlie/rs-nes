@@ -6,13 +6,14 @@ use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use cpu::opcodes::branch_base::branch;
 use memory::Memory;
+use screen::Screen;
 
 pub struct Bvs;
 
 impl OpCode for Bvs {
     type Input = i8;
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM) {
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
         let sign_clear = cpu.registers.overflow_flag();
         branch(cpu, am, sign_clear)
     }

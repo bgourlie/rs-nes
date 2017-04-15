@@ -75,13 +75,14 @@ mod jsr;
 use cpu::Cpu;
 use cpu::opcodes::addressing::*;
 use memory::Memory;
+use screen::Screen;
 
 trait OpCode {
     type Input;
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, am: AM);
+    fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM);
 }
 
-pub fn execute<M: Memory>(cpu: &mut Cpu<M>, opcode: u8) {
+pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
     match opcode {
         0xe8 => self::inx::Inx::execute(cpu, Implied),
         0xca => self::dex::Dex::execute(cpu, Implied),

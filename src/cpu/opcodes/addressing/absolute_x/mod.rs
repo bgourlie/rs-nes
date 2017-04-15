@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct AbsoluteX {
     addr: u16,
@@ -17,11 +18,11 @@ enum Variant {
 }
 
 impl AbsoluteX {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, Variant::Standard)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, Variant::Store)
     }
 
@@ -29,11 +30,11 @@ impl AbsoluteX {
     ///
     /// Read-modify-write instructions do not have a conditional page boundary cycle. For these
     /// instructions we always execute this cycle.
-    pub fn init_rmw<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_rmw<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, Variant::ReadModifyWrite)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, variant: Variant) -> Self {
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, variant: Variant) -> Self {
         let base_addr = cpu.read_pc16();
         let target_addr = base_addr + cpu.registers.x as u16;
 
@@ -58,14 +59,14 @@ impl AbsoluteX {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for AbsoluteX {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for AbsoluteX {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();

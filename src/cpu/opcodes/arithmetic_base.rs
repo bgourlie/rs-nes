@@ -1,7 +1,8 @@
 use cpu::Cpu;
 use memory::Memory;
+use screen::Screen;
 
-pub fn adc_base<M: Memory>(cpu: &mut Cpu<M>, lhs: u8, rhs: u8) {
+pub fn adc_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, lhs: u8, rhs: u8) {
 
     if cpu.registers.decimal_flag() {
         panic!("Attempted decimal mode arithmetic");

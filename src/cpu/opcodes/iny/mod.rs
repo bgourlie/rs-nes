@@ -6,13 +6,14 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct Iny;
 
 impl OpCode for Iny {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, _: AM){
         let val = wrapping_inc(cpu.registers.y);
         cpu.registers.y = val;
         cpu.registers.set_sign_and_zero_flag(val);

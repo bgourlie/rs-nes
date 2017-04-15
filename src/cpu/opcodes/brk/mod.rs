@@ -5,6 +5,7 @@ use cpu::Cpu;
 use cpu::opcodes::OpCode;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 const BRK_VECTOR: u16 = 0xfffe;
 
@@ -13,7 +14,7 @@ pub struct Brk;
 impl OpCode for Brk {
     type Input = ();
 
-    fn execute<M: Memory, AM: AddressingMode<M, Output = Self::Input>>(cpu: &mut Cpu<M>, _: AM) {
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, _: AM){
         cpu.registers.pc += 1;
         let pc = cpu.registers.pc;
         let status = cpu.registers.status;

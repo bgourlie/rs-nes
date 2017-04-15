@@ -16,8 +16,6 @@ use router::Router;
 use screen::Screen;
 use serde::Serialize;
 use serde_json;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
@@ -33,10 +31,10 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
+pub struct HttpDebugger<S: Screen + Serialize, Mem: Memory<S>> {
     ws_tx: Sender<DebuggerCommand<S>>,
     ws_rx: Receiver<DebuggerCommand<S>>,
-    cpu: Cpu<Mem>,
+    cpu: Cpu<S, Mem>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
@@ -44,11 +42,10 @@ pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     break_on_trap: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
-    screen: Rc<RefCell<S>>,
 }
 
-impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
-    pub fn new(cpu: Cpu<Mem>, screen: Rc<RefCell<S>>) -> Self {
+impl<S: Screen + Serialize, Mem: Memory<S>> HttpDebugger<S, Mem> {
+    pub fn new(cpu: Cpu<S, Mem>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
         let (ws_sender, ws_receiver) = chan::sync(0);
@@ -63,7 +60,6 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             break_on_trap: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
-            screen: screen,
         }
     }
 
@@ -121,7 +117,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        let screen: S = self.screen.borrow().clone();
+        let screen: S = self.cpu.memory.screen().clone();
         CpuSnapshot::new(mem_snapshot,
                          self.cpu.registers.clone(),
                          screen,

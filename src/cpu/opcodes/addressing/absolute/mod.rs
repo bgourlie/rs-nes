@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct Absolute {
     addr: u16,
@@ -9,7 +10,7 @@ pub struct Absolute {
 }
 
 impl Absolute {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         let addr = cpu.read_pc16();
         let value = cpu.read_memory(addr);
 
@@ -20,7 +21,7 @@ impl Absolute {
         }
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         let addr = cpu.read_pc16();
 
         Absolute {
@@ -31,14 +32,14 @@ impl Absolute {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for Absolute {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Absolute {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();

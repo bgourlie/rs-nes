@@ -1,6 +1,7 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct IndirectIndexed {
     addr: u16,
@@ -8,15 +9,15 @@ pub struct IndirectIndexed {
 }
 
 impl IndirectIndexed {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init_store<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<M: Memory>(cpu: &mut Cpu<M>, is_store: bool) -> Self {
+    fn init_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, is_store: bool) -> Self {
         let addr = cpu.read_pc();
         let y = cpu.registers.y;
         let base_addr = cpu.read_memory16_zp(addr);
@@ -35,14 +36,14 @@ impl IndirectIndexed {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for IndirectIndexed {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for IndirectIndexed {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }

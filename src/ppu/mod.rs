@@ -38,7 +38,7 @@ pub trait Ppu {
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
-    fn screen_buffer(&self) -> &[u8];
+    fn screen(&self) -> &NesScreen;
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
@@ -548,7 +548,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
         writer.write_all(&regs).unwrap()
     }
-    fn screen_buffer(&self) -> &[u8] {
-        &*self.screen.screen_buffer
+
+    fn screen(&self) -> &NesScreen {
+        &self.screen
     }
 }

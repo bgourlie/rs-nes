@@ -2,13 +2,14 @@ use byte_utils::from_lo_hi;
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
 pub struct Indirect {
     addr: u16,
 }
 
 impl Indirect {
-    pub fn init<M: Memory>(cpu: &mut Cpu<M>) -> Self {
+    pub fn init<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>) -> Self {
         let addr = cpu.read_pc16();
 
         // Recreate hardware bug specific to indirect jmp
@@ -26,7 +27,7 @@ impl Indirect {
     }
 }
 
-impl<M: Memory> AddressingMode<M> for Indirect {
+impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for Indirect {
     type Output = u16;
 
     fn read(&self) -> Self::Output {

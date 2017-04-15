@@ -1,9 +1,10 @@
 use cpu::{TestCpu, TestMemory};
 use cpu::opcodes::addressing::AddressingMode;
+use screen::NoScreen;
 use std::cell::Cell;
 use std::rc::Rc;
 
-impl AddressingMode<TestMemory> for u8 {
+impl AddressingMode<NoScreen, TestMemory> for u8 {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
@@ -15,7 +16,7 @@ impl AddressingMode<TestMemory> for u8 {
     }
 }
 
-impl AddressingMode<TestMemory> for i8 {
+impl AddressingMode<NoScreen, TestMemory> for i8 {
     type Output = i8;
 
     fn read(&self) -> Self::Output {
@@ -52,7 +53,7 @@ impl WriterAddressingMode {
     }
 }
 
-impl AddressingMode<TestMemory> for WriterAddressingMode {
+impl AddressingMode<NoScreen, TestMemory> for WriterAddressingMode {
     type Output = u8;
     fn read(&self) -> Self::Output {
         self.read_value
@@ -63,7 +64,7 @@ impl AddressingMode<TestMemory> for WriterAddressingMode {
     }
 }
 
-impl AddressingMode<TestMemory> for u16 {
+impl AddressingMode<NoScreen, TestMemory> for u16 {
     type Output = Self;
     fn read(&self) -> Self::Output {
         *self

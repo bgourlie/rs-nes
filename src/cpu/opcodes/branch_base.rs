@@ -1,10 +1,11 @@
 use cpu::Cpu;
 use cpu::opcodes::addressing::AddressingMode;
 use memory::Memory;
+use screen::Screen;
 
-pub fn branch<M: Memory, AM: AddressingMode<M, Output = i8>>(cpu: &mut Cpu<M>,
-                                                             am: AM,
-                                                             condition: bool) {
+pub fn branch<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = i8>>(cpu: &mut Cpu<S, M>,
+                                                                              am: AM,
+                                                                              condition: bool) {
     if condition {
         let rel_addr = am.read();
         let old_pc = cpu.registers.pc;

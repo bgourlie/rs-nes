@@ -191,6 +191,7 @@ mod mocks {
     pub struct PpuMock {
         addr: u16,
         value: u8,
+        screen: NesScreen,
     }
 
     impl PpuMock {
@@ -232,8 +233,8 @@ mod mocks {
             unimplemented!()
         }
 
-        fn screen_buffer(&self) -> &[u8] {
-            &[]
+        fn screen(&self) -> &NesScreen {
+            &self.screen
         }
     }
 
