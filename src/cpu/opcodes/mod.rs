@@ -38,43 +38,16 @@ mod compare_spec_tests;
 mod brk_spec_tests;
 
 #[cfg(test)]
-mod clc_spec_tests;
-
-#[cfg(test)]
-mod cld_spec_tests;
-
-#[cfg(test)]
 mod reg_transfer_spec_tests;
 
 #[cfg(test)]
-mod sec_spec_tests;
-
-#[cfg(test)]
-mod cli_spec_tests;
-
-#[cfg(test)]
-mod sei_spec_tests;
-
-#[cfg(test)]
-mod clv_spec_tests;
-
-#[cfg(test)]
-mod sed_spec_tests;
+mod flag_instr_spec_tests;
 
 #[cfg(test)]
 mod rts_spec_tests;
 
 #[cfg(test)]
 mod rti_spec_tests;
-
-#[cfg(test)]
-mod pha_spec_tests;
-
-#[cfg(test)]
-mod php_spec_tests;
-
-#[cfg(test)]
-mod plp_spec_tests;
 
 #[cfg(test)]
 mod loads_and_stores_spec_tests;
