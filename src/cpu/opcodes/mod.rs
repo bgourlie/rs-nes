@@ -2,37 +2,16 @@
 pub mod am_test_utils;
 
 #[cfg(test)]
-mod shift_tests_base;
-
-#[cfg(test)]
 mod arithmetic_instr_spec_tests;
 
 #[cfg(test)]
-mod and_spec_tests;
-
-#[cfg(test)]
-mod asl_spec_tests;
-
-#[cfg(test)]
-mod rol_spec_tests;
-
-#[cfg(test)]
-mod ror_spec_tests;
-
-#[cfg(test)]
-mod lsr_spec_tests;
+mod bitwise_and_shift_instr_spec_tests;
 
 #[cfg(test)]
 mod branch_spec_tests;
 
 #[cfg(test)]
-mod bit_spec_tests;
-
-#[cfg(test)]
 mod compare_spec_tests;
-
-#[cfg(test)]
-mod brk_spec_tests;
 
 #[cfg(test)]
 mod reg_transfer_spec_tests;
@@ -41,28 +20,13 @@ mod reg_transfer_spec_tests;
 mod flag_instr_spec_tests;
 
 #[cfg(test)]
-mod rts_spec_tests;
-
-#[cfg(test)]
-mod rti_spec_tests;
-
-#[cfg(test)]
 mod loads_and_stores_spec_tests;
-
-#[cfg(test)]
-mod ora_spec_tests;
-
-#[cfg(test)]
-mod eor_spec_tests;
 
 #[cfg(test)]
 mod inc_dec_spec_tests;
 
 #[cfg(test)]
-mod jmp_spec_tests;
-
-#[cfg(test)]
-mod jsr_spec_tests;
+mod jump_and_returns_instr_spec_tests;
 
 use byte_utils::*;
 use cpu::Cpu;
