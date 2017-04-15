@@ -58,7 +58,15 @@ mod bcs_spec_tests;
 #[cfg(test)]
 mod bne_spec_tests;
 
-mod compare_base;
+#[cfg(test)]
+mod cmp_spec_tests;
+
+#[cfg(test)]
+mod cpx_spec_tests;
+
+#[cfg(test)]
+mod cpy_spec_tests;
+
 mod dex;
 mod inx;
 mod iny;
@@ -90,9 +98,6 @@ mod ldy;
 mod sta;
 mod stx;
 mod sty;
-mod cmp;
-mod cpx;
-mod cpy;
 mod ora;
 mod eor;
 mod bit;
@@ -360,59 +365,59 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         }
         0xc9 => {
             let am = Immediate::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xc5 => {
             let am = ZeroPage::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xd5 => {
             let am = ZeroPageX::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xc1 => {
             let am = IndexedIndirect::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xd1 => {
             let am = IndirectIndexed::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xcd => {
             let am = Absolute::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xdd => {
             let am = AbsoluteX::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xd9 => {
             let am = AbsoluteY::init(cpu);
-            self::cmp::Cmp::execute(cpu, am)
+            Cmp::execute(cpu, am)
         }
         0xe0 => {
             let am = Immediate::init(cpu);
-            self::cpx::Cpx::execute(cpu, am)
+            Cpx::execute(cpu, am)
         }
         0xe4 => {
             let am = ZeroPage::init(cpu);
-            self::cpx::Cpx::execute(cpu, am)
+            Cpx::execute(cpu, am)
         }
         0xec => {
             let am = Absolute::init(cpu);
-            self::cpx::Cpx::execute(cpu, am)
+            Cpx::execute(cpu, am)
         }
         0xc0 => {
             let am = Immediate::init(cpu);
-            self::cpy::Cpy::execute(cpu, am)
+            Cpy::execute(cpu, am)
         }
         0xc4 => {
             let am = ZeroPage::init(cpu);
-            self::cpy::Cpy::execute(cpu, am)
+            Cpy::execute(cpu, am)
         }
         0xcc => {
             let am = Absolute::init(cpu);
-            self::cpy::Cpy::execute(cpu, am)
+            Cpy::execute(cpu, am)
         }
         0x29 => {
             let am = Immediate::init(cpu);
@@ -1432,5 +1437,47 @@ impl OpCode for Bne {
 fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
         let zero_clear = !cpu.registers.zero_flag();
         branch(cpu, am, zero_clear)
+    }
+}
+
+fn compare<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = u8>>(cpu: &mut Cpu<S, M>,
+                                                                           am: AM,
+                                                                           lhs: u8) {
+    let rhs = am.read();
+    let res = lhs as i32 - rhs as i32;
+    cpu.registers.set_carry_flag(res & 0x100 == 0);
+    cpu.registers.set_sign_and_zero_flag(res as u8);
+}
+
+struct Cmp;
+
+impl OpCode for Cmp {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let val = cpu.registers.acc;
+        compare(cpu, am, val);
+    }
+}
+
+struct Cpx;
+
+impl OpCode for Cpx {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let val = cpu.registers.x;
+        compare(cpu, am, val);
+    }
+}
+
+struct Cpy;
+
+impl OpCode for Cpy {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let val = cpu.registers.y;
+        compare(cpu, am, val);
     }
 }
