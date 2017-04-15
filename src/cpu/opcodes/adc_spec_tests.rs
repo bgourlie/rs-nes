@@ -1,7 +1,5 @@
 use cpu::*;
-use cpu::opcodes::Adc;
-use cpu::opcodes::OpCode;
-use cpu::opcodes::lda::Lda;
+use cpu::opcodes::*;
 
 /// ## Sign and zero flag tests
 ///
