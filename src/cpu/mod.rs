@@ -16,6 +16,8 @@ mod opcodes;
 use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
 use memory::*;
+use screen::{NoScreen, Screen};
+use std::marker::PhantomData;
 
 const STACK_LOC: u16 = 0x100;
 const NMI_VECTOR: u16 = 0xfffa;
@@ -26,7 +28,7 @@ const BREAK_VECTOR: u16 = 0xfffe;
 pub type TestMemory = SimpleMemory;
 
 #[cfg(test)]
-pub type TestCpu = Cpu<TestMemory>;
+pub type TestCpu = Cpu<NoScreen, TestMemory>;
 
 #[cfg(test)]
 impl TestCpu {
@@ -45,14 +47,15 @@ pub enum Interrupt {
     Irq,
 }
 
-pub struct Cpu<M: Memory> {
+pub struct Cpu<S: Screen, M: Memory<S>> {
     registers: Registers,
     pub memory: M,
     pending_interrupt: Interrupt,
     pub cycles: u64,
+    phantom: PhantomData<S>,
 }
 
-impl<Mem: Memory> Cpu<Mem> {
+impl<S: Screen, Mem: Memory<S>> Cpu<S, Mem> {
     pub fn new_init_pc(memory: Mem, pc: u16) -> Self {
         let mut cpu = Self::new(memory);
         cpu.registers.pc = pc;
@@ -65,6 +68,7 @@ impl<Mem: Memory> Cpu<Mem> {
             memory: memory,
             cycles: 0,
             pending_interrupt: Interrupt::None,
+            phantom: PhantomData,
         }
     }
 

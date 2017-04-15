@@ -1,4 +1,5 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
+use screen::NoScreen;
 
 #[cfg(feature = "debugger")]
 use seahash;
@@ -26,7 +27,7 @@ impl Default for SimpleMemory {
     }
 }
 
-impl Memory for SimpleMemory {
+impl Memory<NoScreen> for SimpleMemory {
     fn write(&mut self, addr: u16, data: u8, _: u64) -> u64 {
         let addr = addr as usize;
         self.addr[addr] = data;
@@ -47,7 +48,7 @@ impl Memory for SimpleMemory {
         seahash::hash(&self.addr)
     }
 
-    fn screen_buffer(&self) -> &[u8] {
+    fn screen(&self) -> &NoScreen {
         unimplemented!()
     }
 }

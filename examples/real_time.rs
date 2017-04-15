@@ -76,8 +76,9 @@ fn main() {
             accumulator -= fixed_time_stamp;
             loop {
                 if cpu.step() == Interrupt::Nmi {
+                    let screen_buffer = &*cpu.memory.screen().screen_buffer;
                     texture
-                        .update(None, cpu.memory.screen_buffer(), SCREEN_WIDTH as usize * 3)
+                        .update(None, screen_buffer, SCREEN_WIDTH as usize * 3)
                         .unwrap();
                     renderer.clear();
                     renderer.copy(&texture, None, None).unwrap();

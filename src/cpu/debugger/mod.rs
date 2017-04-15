@@ -16,12 +16,9 @@ use router::Router;
 use screen::Screen;
 use serde::Serialize;
 use serde_json;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use std::time::Duration;
 use websocket::{Message as WsMessage, Server as WsServer};
 
 const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
@@ -34,10 +31,10 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
+pub struct HttpDebugger<S: Screen + Serialize, Mem: Memory<S>> {
     ws_tx: Sender<DebuggerCommand<S>>,
     ws_rx: Receiver<DebuggerCommand<S>>,
-    cpu: Cpu<Mem>,
+    cpu: Cpu<S, Mem>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
@@ -45,11 +42,10 @@ pub struct HttpDebugger<Mem: Memory, S: Screen + Serialize> {
     break_on_trap: Arc<AtomicBool>,
     last_pc: u16,
     last_mem_hash: u64,
-    screen: Rc<RefCell<S>>,
 }
 
-impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
-    pub fn new(cpu: Cpu<Mem>, screen: Rc<RefCell<S>>) -> Self {
+impl<S: Screen + Serialize, Mem: Memory<S>> HttpDebugger<S, Mem> {
+    pub fn new(cpu: Cpu<S, Mem>) -> Self {
         let mut buf = Vec::new();
         cpu.memory.dump(&mut buf);
         let (ws_sender, ws_receiver) = chan::sync(0);
@@ -64,7 +60,6 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             break_on_trap: Arc::new(AtomicBool::new(false)),
             last_pc: 0,
             last_mem_hash: 0,
-            screen: screen,
         }
     }
 
@@ -122,7 +117,7 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
             MemorySnapshot::NoChange(hash)
         };
 
-        let screen: S = (self.screen.as_ref()).borrow().clone();
+        let screen: S = self.cpu.memory.screen().clone();
         CpuSnapshot::new(mem_snapshot,
                          self.cpu.registers.clone(),
                          screen,
@@ -133,29 +128,29 @@ impl<Mem: Memory, S: Screen + Serialize> HttpDebugger<Mem, S> {
         info!("Starting web socket server at {}", DEBUGGER_WS_ADDR);
         let mut ws_server = WsServer::bind(DEBUGGER_WS_ADDR).unwrap();
         info!("Waiting for debugger to attach");
-        let connection = ws_server.accept();
+        let connection = match ws_server.accept() {
+            Ok(conn) => conn,
+            _ => panic!("Panic on debugger accept connection"),
+        };
         info!("Debugger attached!");
         let ws_rx = self.ws_rx.clone();
         thread::Builder::new()
             .name("Websocket Server".to_owned())
-            .stack_size(4 * 1024 * 1024) // Should probably put DebuggerMessage in shared mutex
             .spawn(move || {
-                let request = connection.unwrap().read_request().unwrap();
-                request.validate().unwrap();
-                let response = request.accept();
-                let mut sender = response.send().unwrap();
+                let mut client = connection.accept().unwrap();
 
                 while let Some(debugger_msg) = ws_rx.recv() {
                     let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
-                        .unwrap());
+                                                                 .unwrap());
 
-                    if sender.send_message(&message).is_err() {
+                    if client.send_message(&message).is_err() {
                         break;
                     }
                 }
 
                 info!("Websocket thread is terminating!")
-            }).unwrap();
+            })
+            .unwrap();
     }
 
     fn start_http_server_thread(&self) {

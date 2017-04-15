@@ -33,7 +33,8 @@ fn main() {
                 let file_name = file_name.to_str().unwrap();
                 if file_name.ends_with(".dll") {
                     new_file_path.push(file_name);
-                    std::fs::copy(&entry_path, new_file_path.as_path()).expect("Can't copy from DLL dir");
+                    let expect_msg = "Can't copy from DLL dir";
+                    std::fs::copy(&entry_path, new_file_path.as_path()).expect(expect_msg);
                 }
             }
         }
