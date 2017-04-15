@@ -112,7 +112,7 @@ mod mocks {
     use apu::Apu;
     use cpu::Interrupt;
 
-    use input::Input;
+    use input::{ControllerState, Input};
     use memory::nes_memory::NesMemoryBase;
     use ppu::Ppu;
     use rom::*;
@@ -152,6 +152,10 @@ mod mocks {
 
         fn read_joy_2(&self) -> u8 {
             self.joy2
+        }
+
+        fn controllers(&self) -> &ControllerState {
+            unimplemented!()
         }
     }
 

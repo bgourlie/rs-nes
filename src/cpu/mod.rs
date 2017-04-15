@@ -15,7 +15,7 @@ mod opcodes;
 
 use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
-use input::Input;
+use input::{Input, NoInput};
 use memory::*;
 use screen::{NoScreen, Screen};
 use std::marker::PhantomData;
@@ -29,7 +29,7 @@ const BREAK_VECTOR: u16 = 0xfffe;
 pub type TestMemory = SimpleMemory;
 
 #[cfg(test)]
-pub type TestCpu = Cpu<NoScreen, TestMemory>;
+pub type TestCpu = Cpu<NoScreen, NoInput, TestMemory>;
 
 #[cfg(test)]
 impl TestCpu {

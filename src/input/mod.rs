@@ -57,6 +57,7 @@ pub trait Input: Default {
     fn write_probe(&mut self, _: u8);
     fn read_joy_1(&self) -> u8;
     fn read_joy_2(&self) -> u8;
+    fn controllers(&self) -> &ControllerState;
 }
 
 impl Input for InputBase {
@@ -70,6 +71,9 @@ impl Input for InputBase {
 
     fn read_joy_2(&self) -> u8 {
         0
+    }
+    fn controllers(&self) -> &ControllerState {
+        &self.controllers
     }
 }
 
@@ -85,5 +89,8 @@ impl Input for NoInput {
 
     fn read_joy_2(&self) -> u8 {
         0
+    }
+    fn controllers(&self) -> &ControllerState {
+        unimplemented!()
     }
 }

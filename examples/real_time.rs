@@ -7,7 +7,6 @@ use rs_nes::memory::Memory;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
-use sdl2;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::log;
