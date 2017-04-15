@@ -8,19 +8,33 @@ pub mod branch_tests_base;
 pub mod compare_tests_base;
 
 #[cfg(test)]
-pub mod inc_dec_tests_base;
+mod inc_dec_tests_base;
 
 #[cfg(test)]
-pub mod shift_tests_base;
+mod shift_tests_base;
 
 #[cfg(test)]
-pub mod adc_spec_tests;
+mod adc_spec_tests;
 
 #[cfg(test)]
-pub mod sbc_spec_tests;
+mod and_spec_tests;
+
+#[cfg(test)]
+mod asl_spec_tests;
+
+#[cfg(test)]
+mod rol_spec_tests;
+
+#[cfg(test)]
+mod ror_spec_tests;
+
+#[cfg(test)]
+mod lsr_spec_tests;
+
+#[cfg(test)]
+mod sbc_spec_tests;
 
 mod branch_base;
-mod shift_base;
 mod compare_base;
 mod dex;
 mod inx;
@@ -64,14 +78,9 @@ mod sty;
 mod cmp;
 mod cpx;
 mod cpy;
-mod and;
 mod ora;
 mod eor;
 mod bit;
-mod rol;
-mod ror;
-mod asl;
-mod lsr;
 mod inc;
 mod dec;
 mod jmp;
@@ -392,35 +401,35 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         }
         0x29 => {
             let am = Immediate::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x25 => {
             let am = ZeroPage::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x35 => {
             let am = ZeroPageX::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x21 => {
             let am = IndexedIndirect::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x31 => {
             let am = IndirectIndexed::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x2d => {
             let am = Absolute::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x3d => {
             let am = AbsoluteX::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x39 => {
             let am = AbsoluteY::init(cpu);
-            self::and::And::execute(cpu, am)
+            And::execute(cpu, am)
         }
         0x09 => {
             let am = Immediate::init(cpu);
@@ -496,83 +505,83 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         }
         0x2a => {
             let am = Accumulator::init(cpu);
-            self::rol::Rol::execute(cpu, am)
+            Rol::execute(cpu, am)
         }
         0x26 => {
             let am = ZeroPage::init(cpu);
-            self::rol::Rol::execute(cpu, am)
+            Rol::execute(cpu, am)
         }
         0x36 => {
             let am = ZeroPageX::init(cpu);
-            self::rol::Rol::execute(cpu, am)
+            Rol::execute(cpu, am)
         }
         0x2e => {
             let am = Absolute::init(cpu);
-            self::rol::Rol::execute(cpu, am)
+            Rol::execute(cpu, am)
         }
         0x3e => {
             let am = AbsoluteX::init_rmw(cpu);
-            self::rol::Rol::execute(cpu, am)
+            Rol::execute(cpu, am)
         }
         0x6a => {
             let am = Accumulator::init(cpu);
-            self::ror::Ror::execute(cpu, am)
+            Ror::execute(cpu, am)
         }
         0x66 => {
             let am = ZeroPage::init(cpu);
-            self::ror::Ror::execute(cpu, am)
+            Ror::execute(cpu, am)
         }
         0x76 => {
             let am = ZeroPageX::init(cpu);
-            self::ror::Ror::execute(cpu, am)
+            Ror::execute(cpu, am)
         }
         0x6e => {
             let am = Absolute::init(cpu);
-            self::ror::Ror::execute(cpu, am)
+            Ror::execute(cpu, am)
         }
         0x7e => {
             let am = AbsoluteX::init_rmw(cpu);
-            self::ror::Ror::execute(cpu, am)
+            Ror::execute(cpu, am)
         }
         0x0a => {
             let am = Accumulator::init(cpu);
-            self::asl::Asl::execute(cpu, am)
+            Asl::execute(cpu, am)
         }
         0x06 => {
             let am = ZeroPage::init(cpu);
-            self::asl::Asl::execute(cpu, am)
+            Asl::execute(cpu, am)
         }
         0x16 => {
             let am = ZeroPageX::init(cpu);
-            self::asl::Asl::execute(cpu, am)
+            Asl::execute(cpu, am)
         }
         0x0e => {
             let am = Absolute::init(cpu);
-            self::asl::Asl::execute(cpu, am)
+            Asl::execute(cpu, am)
         }
         0x1e => {
             let am = AbsoluteX::init_rmw(cpu);
-            self::asl::Asl::execute(cpu, am)
+            Asl::execute(cpu, am)
         }
         0x4a => {
             let am = Accumulator::init(cpu);
-            self::lsr::Lsr::execute(cpu, am)
+            Lsr::execute(cpu, am)
         }
         0x46 => {
             let am = ZeroPage::init(cpu);
-            self::lsr::Lsr::execute(cpu, am)
+            Lsr::execute(cpu, am)
         }
         0x56 => {
             let am = ZeroPageX::init(cpu);
-            self::lsr::Lsr::execute(cpu, am)
+            Lsr::execute(cpu, am)
         }
         0x4e => {
             let am = Absolute::init(cpu);
-            self::lsr::Lsr::execute(cpu, am)
+            Lsr::execute(cpu, am)
         }
         0x5e => {
             let am = AbsoluteX::init_rmw(cpu);
-            self::lsr::Lsr::execute(cpu, am)
+            Lsr::execute(cpu, am)
         }
         0xe6 => {
             let am = ZeroPage::init(cpu);
@@ -1165,7 +1174,7 @@ impl<S: Screen, M: Memory<S>> AddressingMode<S, M> for ZeroPageY {
     }
 }
 
-pub struct Adc;
+struct Adc;
 
 impl OpCode for Adc {
     type Input = u8;
@@ -1181,7 +1190,7 @@ impl OpCode for Adc {
     }
 }
 
-pub struct Sbc;
+struct Sbc;
 
 impl OpCode for Sbc {
     type Input = u8;
@@ -1198,7 +1207,7 @@ impl OpCode for Sbc {
     }
 }
 
-pub fn adc_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, lhs: u8, rhs: u8) {
+fn adc_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, lhs: u8, rhs: u8) {
 
     if cpu.registers.decimal_flag() {
         panic!("Attempted decimal mode arithmetic");
@@ -1222,5 +1231,87 @@ pub fn adc_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, lhs: u8, rhs: u8) 
         cpu.registers.set_carry_flag(has_carry);
         cpu.registers.set_overflow_flag(has_overflow);
         cpu.registers.set_acc(res);
+    }
+}
+
+struct And;
+
+impl OpCode for And {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let lhs = cpu.registers.acc;
+        let rhs = am.read();
+        let res = lhs & rhs;
+        cpu.registers.set_acc(res);
+    }
+}
+
+fn shift_left<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = u8>>(cpu: &mut Cpu<S, M>,
+                                                                              am: AM,
+                                                                              lsb: bool) {
+    let val = am.read();
+    let carry = (val & 0x80) != 0;
+    let res = if lsb { (val << 1) | 0x1 } else { val << 1 };
+    cpu.registers.set_carry_flag(carry);
+    cpu.registers.set_sign_and_zero_flag(res);
+    am.write(cpu, res)
+}
+
+fn shift_right<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = u8>>(cpu: &mut Cpu<S,
+                                                                                             M>,
+                                                                               am: AM,
+                                                                               msb: bool) {
+    let val = am.read();
+    let carry = (val & 0x1) != 0;
+    let res = if msb { (val >> 1) | 0x80 } else { val >> 1 };
+    cpu.registers.set_carry_flag(carry);
+    cpu.registers.set_sign_and_zero_flag(res);
+    am.write(cpu, res)
+}
+
+struct Asl;
+
+impl OpCode for Asl {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        shift_left(cpu, am, false)
+    }
+}
+
+struct Rol;
+
+impl OpCode for Rol {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let carry_set = cpu.registers.carry_flag();
+        shift_left(cpu, am, carry_set)
+    }
+}
+
+struct Ror;
+
+impl OpCode for Ror {
+    type Input = u8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let carry_set = cpu.registers.carry_flag();
+        shift_right(cpu, am, carry_set)
+    }
+}
+
+struct Lsr;
+
+impl OpCode for Lsr {
+    type Input = u8;
+
+    fn execute<S, M, AM>(cpu: &mut Cpu<S, M>, am: AM)
+        where S: Screen,
+              M: Memory<S>,
+              AM: AddressingMode<S, M, Output = Self::Input>
+    {
+        shift_right(cpu, am, false)
     }
 }

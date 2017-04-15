@@ -1,6 +1,8 @@
 #![allow(unused_imports)]
 
+#[cfg(feature = "debugger")]
 extern crate log;
+#[cfg(feature = "debugger")]
 extern crate env_logger;
 extern crate rs_nes;
 
