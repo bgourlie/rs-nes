@@ -36,14 +36,18 @@ pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
 }
 
 impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
-    pub fn new(rom: Rc<Box<NesRom>>, ppu: P) -> Self {
+    pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom: rom,
             ppu: ppu,
             apu: A::default(),
-            input: I::default(),
+            input: input,
         }
+    }
+
+    fn input(&self) -> &I {
+        &self.input
     }
 
     fn dma_write(&mut self, value: u8, cycles: u64) -> u64 {

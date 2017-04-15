@@ -2,12 +2,15 @@ extern crate sdl2;
 extern crate rs_nes;
 
 use rs_nes::cpu::*;
+use rs_nes::input::InputBase;
 use rs_nes::memory::Memory;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
+use sdl2;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::log;
 use sdl2::pixels::PixelFormatEnum;
 use std::env;
 use std::rc::Rc;
@@ -18,7 +21,7 @@ const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
 
 fn main() {
-    ::sdl2::log::set_output_function(sdl2_print);
+    sdl2::log::set_output_function(sdl2_print);
 
     // INIT NES
     let file = env::args().last().unwrap();
@@ -29,7 +32,8 @@ fn main() {
              rom.chr.len());
 
     let ppu = PpuImpl::new(rom.clone());
-    let mem = NesMemoryImpl::new(rom, ppu);
+    let input = InputBase::default();
+    let mem = NesMemoryImpl::new(rom, ppu, input);
     let mut cpu = Cpu::new(mem);
     cpu.reset();
 
@@ -37,7 +41,7 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
 
     let window = video_subsystem
-        .window("rust-sdl2 demo: Video", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
+        .window("RS-NES!", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
         .position_centered()
         .opengl()
         .build()
@@ -63,7 +67,8 @@ fn main() {
             match event {
                 Event::Quit { .. } |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
-                _ => {}
+                Event::KeyDown { keycode: Some(Keycode::W), .. } => (),
+                _ => (),
             }
         }
 
@@ -91,6 +96,6 @@ fn main() {
     }
 }
 
-fn sdl2_print(priority: ::sdl2::log::Priority, category: ::sdl2::log::Category, message: &str) {
+fn sdl2_print(priority: sdl2::log::Priority, category: sdl2::log::Category, message: &str) {
     println!("[{:?}][{:?}] {}", category, priority, message);
 }
