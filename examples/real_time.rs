@@ -1,76 +1,71 @@
-extern crate time;
-extern crate glium;
+extern crate sdl2;
 extern crate rs_nes;
 
-use glium::{Display, DisplayBuild, Surface, glutin};
-use glium::texture::RawImage2d;
-use glium::uniforms::MagnifySamplerFilter;
 use rs_nes::cpu::*;
+use rs_nes::memory::Memory;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
-use rs_nes::screen::NesScreen;
-use std::cell::RefCell;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::PixelFormatEnum;
 use std::env;
 use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-static SCREEN_DIMENSIONS: (u32, u32) = (256, 240);
+const SCREEN_WIDTH: u32 = 256;
+const SCREEN_HEIGHT: u32 = 240;
 
 fn main() {
+    ::sdl2::log::set_output_function(sdl2_print);
+
     // INIT NES
     let file = env::args().last().unwrap();
-    let rom = NesRom::read(format!("{}", file)).expect("Couldn't find rom file");
+    let rom = Rc::new(Box::new(NesRom::read(format!("{}", file)).expect("Couldn't find rom file")));
     println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
              rom.mapper,
              rom.chr_rom_banks,
              rom.chr.len());
 
-    let screen = Rc::new(RefCell::new(NesScreen::default()));
-    let ppu = PpuImpl::new(rom.clone(), screen.clone());
+    let ppu = PpuImpl::new(rom.clone());
     let mem = NesMemoryImpl::new(rom, ppu);
     let mut cpu = Cpu::new(mem);
     cpu.reset();
 
-    // building the display, ie. the main object
-    let display = glutin::WindowBuilder::new()
-        .with_vsync()
-        .build_glium()
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let window = video_subsystem
+        .window("rust-sdl2 demo: Video", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
+        .position_centered()
+        .opengl()
+        .build()
         .unwrap();
 
-    start_loop(cpu, screen, &display, || {
-        for event in display.poll_events() {
-            match event {
-                glutin::Event::Closed => {
-                    return Action::Stop;
-                }
-                _ => (),
-            }
-        }
-        Action::Continue
-    });
-}
+    let mut renderer = window
+        .renderer()
+        .accelerated()
+        .present_vsync()
+        .build()
+        .unwrap();
 
-enum Action {
-    Stop,
-    Continue,
-}
+    let mut texture = renderer
+        .create_texture_streaming(PixelFormatEnum::RGB24, SCREEN_WIDTH, SCREEN_HEIGHT)
+        .unwrap();
 
-fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
-                 screen: Rc<RefCell<NesScreen>>,
-                 display: &glium::Display,
-                 mut callback: F)
-    where F: FnMut() -> Action
-{
+    let mut event_pump = sdl_context.event_pump().unwrap();
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
 
-    loop {
-        match callback() {
-            Action::Stop => break,
-            Action::Continue => (),
-        };
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. } |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                _ => {}
+            }
+        }
 
         let now = Instant::now();
         accumulator += now - previous_clock;
@@ -81,7 +76,12 @@ fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
             accumulator -= fixed_time_stamp;
             loop {
                 if cpu.step() == Interrupt::Nmi {
-                    update_screen(&display, &screen);
+                    texture
+                        .update(None, cpu.memory.screen_buffer(), SCREEN_WIDTH as usize * 3)
+                        .unwrap();
+                    renderer.clear();
+                    renderer.copy(&texture, None, None).unwrap();
+                    renderer.present();
                     break;
                 }
             }
@@ -90,18 +90,6 @@ fn start_loop<F>(mut cpu: Cpu<NesMemoryImpl>,
     }
 }
 
-fn update_screen(display: &Display, screen: &Rc<RefCell<NesScreen>>) {
-    let target = display.draw();
-
-    // Write screen buffer
-    let borrowed_scr = screen.borrow();
-    let mut buf = vec![0_u8; 256 * 240 * 3];
-    buf.clone_from_slice(&borrowed_scr.screen_buffer[..]);
-    let screen = RawImage2d::from_raw_rgb_reversed(buf, SCREEN_DIMENSIONS);
-    glium::Texture2d::new(display, screen)
-        .unwrap()
-        .as_surface()
-        .fill(&target, MagnifySamplerFilter::Nearest);
-
-    target.finish().unwrap();
+fn sdl2_print(priority: ::sdl2::log::Priority, category: ::sdl2::log::Category, message: &str) {
+    println!("[{:?}][{:?}] {}", category, priority, message);
 }

@@ -47,7 +47,7 @@ pub enum Interrupt {
 
 pub struct Cpu<M: Memory> {
     registers: Registers,
-    memory: M,
+    pub memory: M,
     pending_interrupt: Interrupt,
     pub cycles: u64,
 }

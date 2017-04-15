@@ -22,7 +22,6 @@ use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
 use screen::{NesScreen, Screen};
-use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -35,10 +34,11 @@ pub type PpuImpl = PpuBase<VramBase, SpriteRendererBase>;
 pub trait Ppu {
     type Scr: Screen;
 
-    fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self;
+    fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
+    fn screen_buffer(&self) -> &[u8];
     fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
@@ -61,7 +61,7 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
     status: StatusRegister,
     vram: V,
     sprite_renderer: S,
-    screen: Rc<RefCell<NesScreen>>,
+    screen: NesScreen,
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
@@ -92,9 +92,7 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
             self.status.set_sprite_zero_hit()
         }
 
-        self.screen
-            .borrow_mut()
-            .put_pixel((x - 2) as _, scanline as _, color);
+        self.screen.put_pixel((x - 2) as _, scanline as _, color);
 
     }
 
@@ -111,7 +109,7 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
 impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
     type Scr = NesScreen;
 
-    fn new(rom: NesRom, screen: Rc<RefCell<Self::Scr>>) -> Self {
+    fn new(rom: Rc<Box<NesRom>>) -> Self {
         PpuBase {
             cycles: 0,
             control: ControlRegister::default(),
@@ -119,7 +117,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             status: StatusRegister::default(),
             vram: V::new(rom),
             sprite_renderer: S::default(),
-            screen: screen,
+            screen: Self::Scr::default(),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -549,5 +547,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     0];
 
         writer.write_all(&regs).unwrap()
+    }
+    fn screen_buffer(&self) -> &[u8] {
+        &*self.screen.screen_buffer
     }
 }

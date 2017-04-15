@@ -2,6 +2,7 @@
 name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
+build = "build.rs"
 
 [features]
 default = []
@@ -10,7 +11,7 @@ slow_tests = []
 
 
 [dependencies]
-glium = "*"
+sdl2 = {git = "https://github.com/AngryLawyer/rust-sdl2.git"}
 
 # Debugger dependencies
 websocket = {version = "*", optional = true}

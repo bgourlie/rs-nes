@@ -3,6 +3,7 @@
 *.so
 *.rlib
 *.dll
+*.lib
 
 # Executables
 *.exe

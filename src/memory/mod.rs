@@ -13,6 +13,7 @@ pub trait Memory {
     }
     fn write(&mut self, u16, u8, u64) -> u64;
     fn read(&self, u16) -> u8;
+    fn screen_buffer(&self) -> &[u8];
     fn dump<T: Write>(&self, writer: &mut T);
     fn hash(&self) -> u64 {
         0

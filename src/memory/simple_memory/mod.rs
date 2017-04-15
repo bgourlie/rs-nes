@@ -46,4 +46,8 @@ impl Memory for SimpleMemory {
     fn hash(&self) -> u64 {
         seahash::hash(&self.addr)
     }
+
+    fn screen_buffer(&self) -> &[u8] {
+        unimplemented!()
+    }
 }

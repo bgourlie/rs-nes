@@ -8,7 +8,7 @@ use serde::{Serialize, Serializer};
 #[cfg(feature = "debugger")]
 use serde::ser::SerializeStruct;
 
-pub trait Screen: Default + Send + Clone + 'static {
+pub trait Screen: Default {
     fn put_pixel(&mut self, _: usize, _: usize, _: Color) {}
     fn dimensions() -> (usize, usize) {
         (0, 0)
