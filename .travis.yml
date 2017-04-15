@@ -3,9 +3,14 @@ rust:
   - stable
   - beta
   - nightly
+
 matrix:
   allow_failures:
     - rust: nightly
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libsdl2-dev
 
 script:
 - cargo build --verbose --all-features
