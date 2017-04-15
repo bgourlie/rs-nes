@@ -17,6 +17,9 @@ mod shift_tests_base;
 mod adc_spec_tests;
 
 #[cfg(test)]
+mod sbc_spec_tests;
+
+#[cfg(test)]
 mod and_spec_tests;
 
 #[cfg(test)]
@@ -32,9 +35,29 @@ mod ror_spec_tests;
 mod lsr_spec_tests;
 
 #[cfg(test)]
-mod sbc_spec_tests;
+mod bcc_spec_tests;
 
-mod branch_base;
+#[cfg(test)]
+mod bpl_spec_tests;
+
+#[cfg(test)]
+mod beq_spec_tests;
+
+#[cfg(test)]
+mod bmi_spec_tests;
+
+#[cfg(test)]
+mod bvc_spec_tests;
+
+#[cfg(test)]
+mod bvs_spec_tests;
+
+#[cfg(test)]
+mod bcs_spec_tests;
+
+#[cfg(test)]
+mod bne_spec_tests;
+
 mod compare_base;
 mod dex;
 mod inx;
@@ -61,14 +84,6 @@ mod pla;
 mod php;
 mod plp;
 mod nop;
-mod bpl;
-mod bmi;
-mod bvc;
-mod bvs;
-mod bcc;
-mod bcs;
-mod bne;
-mod beq;
 mod lda;
 mod ldx;
 mod ldy;
@@ -125,35 +140,35 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         0xea => self::nop::Nop::execute(cpu, Implied),
         0x10 => {
             let am = Relative::init(cpu);
-            self::bpl::Bpl::execute(cpu, am)
+            Bpl::execute(cpu, am)
         }
         0x30 => {
             let am = Relative::init(cpu);
-            self::bmi::Bmi::execute(cpu, am)
+            Bmi::execute(cpu, am)
         }
         0x50 => {
             let am = Relative::init(cpu);
-            self::bvc::Bvc::execute(cpu, am)
+            Bvc::execute(cpu, am)
         }
         0x70 => {
             let am = Relative::init(cpu);
-            self::bvs::Bvs::execute(cpu, am)
+            Bvs::execute(cpu, am)
         }
         0x90 => {
             let am = Relative::init(cpu);
-            self::bcc::Bcc::execute(cpu, am)
+            Bcc::execute(cpu, am)
         }
         0xb0 => {
             let am = Relative::init(cpu);
-            self::bcs::Bcs::execute(cpu, am)
+            Bcs::execute(cpu, am)
         }
         0xd0 => {
             let am = Relative::init(cpu);
-            self::bne::Bne::execute(cpu, am)
+            Bne::execute(cpu, am)
         }
         0xf0 => {
             let am = Relative::init(cpu);
-            self::beq::Beq::execute(cpu, am)
+            Beq::execute(cpu, am)
         }
         0xa1 => {
             let am = IndexedIndirect::init(cpu);
@@ -1313,5 +1328,109 @@ impl OpCode for Lsr {
               AM: AddressingMode<S, M, Output = Self::Input>
     {
         shift_right(cpu, am, false)
+    }
+}
+
+fn branch<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = i8>>(cpu: &mut Cpu<S, M>,
+                                                                          am: AM,
+                                                                          condition: bool) {
+    if condition {
+        let rel_addr = am.read();
+        let old_pc = cpu.registers.pc;
+        cpu.registers.pc = (cpu.registers.pc as i32 + rel_addr as i32) as u16;
+        cpu.tick();
+
+        // Conditional cycle if pc crosses page boundary
+        if old_pc & 0xFF00 != cpu.registers.pc & 0xFF00 {
+            cpu.tick();
+        }
+    }
+}
+
+struct Bcc;
+
+impl OpCode for Bcc {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let carry_clear = !cpu.registers.carry_flag();
+        branch(cpu, am, carry_clear)
+    }
+}
+
+pub struct Bpl;
+
+impl OpCode for Bpl {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let sign_clear = !cpu.registers.sign_flag();
+        branch(cpu, am, sign_clear)
+    }
+}
+
+struct Beq;
+
+impl OpCode for Beq {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let zero_set = cpu.registers.zero_flag();
+        branch(cpu, am, zero_set)
+    }
+}
+
+struct Bmi;
+
+impl OpCode for Bmi {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let sign_set = cpu.registers.sign_flag();
+        branch(cpu, am, sign_set)
+    }
+}
+
+struct Bvc;
+
+impl OpCode for Bvc {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let sign_clear = !cpu.registers.overflow_flag();
+        branch(cpu, am, sign_clear)
+    }
+}
+
+struct Bvs;
+
+impl OpCode for Bvs {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let sign_clear = cpu.registers.overflow_flag();
+        branch(cpu, am, sign_clear)
+    }
+}
+
+struct Bcs;
+
+impl OpCode for Bcs {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let carry_set = cpu.registers.carry_flag();
+        branch(cpu, am, carry_set)
+    }
+}
+
+struct Bne;
+
+impl OpCode for Bne {
+    type Input = i8;
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+        let zero_clear = !cpu.registers.zero_flag();
+        branch(cpu, am, zero_clear)
     }
 }
