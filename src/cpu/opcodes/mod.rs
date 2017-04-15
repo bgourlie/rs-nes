@@ -2,9 +2,6 @@
 pub mod am_test_utils;
 
 #[cfg(test)]
-mod inc_dec_tests_base;
-
-#[cfg(test)]
 mod shift_tests_base;
 
 #[cfg(test)]
@@ -45,18 +42,6 @@ mod clc_spec_tests;
 
 #[cfg(test)]
 mod cld_spec_tests;
-
-#[cfg(test)]
-mod dex_spec_tests;
-
-#[cfg(test)]
-mod inx_spec_tests;
-
-#[cfg(test)]
-mod iny_spec_tests;
-
-#[cfg(test)]
-mod dey_spec_tests;
 
 #[cfg(test)]
 mod tax_spec_tests;
@@ -131,10 +116,7 @@ mod ora_spec_tests;
 mod eor_spec_tests;
 
 #[cfg(test)]
-mod inc_spec_tests;
-
-#[cfg(test)]
-mod dec_spec_tests;
+mod inc_dec_spec_tests;
 
 #[cfg(test)]
 mod jmp_spec_tests;
