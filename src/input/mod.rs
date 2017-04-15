@@ -13,7 +13,7 @@ pub struct ControllerState {
 }
 
 impl ControllerState {
-    fn player1_press(&self, button: Button) {
+    pub fn player1_press(&self, button: Button) {
         let state = self.state.get();
         match button {
             Button::A => self.state.set(state | 1),
@@ -27,7 +27,7 @@ impl ControllerState {
         }
     }
 
-    fn player1_release(&self, button: Button) {
+    pub fn player1_release(&self, button: Button) {
         let state = self.state.get();
         match button {
             Button::A => self.state.set(state & !1),
@@ -72,6 +72,7 @@ impl Input for InputBase {
     fn read_joy_2(&self) -> u8 {
         0
     }
+
     fn controllers(&self) -> &ControllerState {
         &self.controllers
     }
@@ -90,6 +91,7 @@ impl Input for NoInput {
     fn read_joy_2(&self) -> u8 {
         0
     }
+
     fn controllers(&self) -> &ControllerState {
         unimplemented!()
     }
