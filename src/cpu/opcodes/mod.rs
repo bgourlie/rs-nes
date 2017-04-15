@@ -44,22 +44,7 @@ mod clc_spec_tests;
 mod cld_spec_tests;
 
 #[cfg(test)]
-mod tax_spec_tests;
-
-#[cfg(test)]
-mod tay_spec_tests;
-
-#[cfg(test)]
-mod txa_spec_tests;
-
-#[cfg(test)]
-mod tya_spec_tests;
-
-#[cfg(test)]
-mod txs_spec_tests;
-
-#[cfg(test)]
-mod tsx_spec_tests;
+mod reg_transfer_spec_tests;
 
 #[cfg(test)]
 mod sec_spec_tests;
