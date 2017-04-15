@@ -5,10 +5,7 @@ pub mod am_test_utils;
 mod shift_tests_base;
 
 #[cfg(test)]
-mod adc_spec_tests;
-
-#[cfg(test)]
-mod sbc_spec_tests;
+mod arithmetic_instr_spec_tests;
 
 #[cfg(test)]
 mod and_spec_tests;
