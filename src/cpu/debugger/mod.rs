@@ -46,8 +46,6 @@ pub struct HttpDebugger<S: Screen + Serialize, Mem: Memory<S>> {
 
 impl<S: Screen + Serialize, Mem: Memory<S>> HttpDebugger<S, Mem> {
     pub fn new(cpu: Cpu<S, Mem>) -> Self {
-        let mut buf = Vec::new();
-        cpu.memory.dump(&mut buf);
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,
