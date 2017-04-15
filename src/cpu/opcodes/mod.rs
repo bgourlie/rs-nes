@@ -10,12 +10,16 @@ pub mod inc_dec_tests_base;
 #[cfg(test)]
 pub mod shift_tests_base;
 
+#[cfg(test)]
+pub mod adc_spec_tests;
+
+#[cfg(test)]
+pub mod sbc_spec_tests;
+
 mod addressing;
-mod arithmetic_base;
 mod branch_base;
 mod shift_base;
 mod compare_base;
-mod adc;
 mod dex;
 mod inx;
 mod iny;
@@ -55,7 +59,6 @@ mod ldy;
 mod sta;
 mod stx;
 mod sty;
-mod sbc;
 mod cmp;
 mod cpx;
 mod cpy;
@@ -267,67 +270,67 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         }
         0x69 => {
             let am = Immediate::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x65 => {
             let am = ZeroPage::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x75 => {
             let am = ZeroPageX::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x61 => {
             let am = IndexedIndirect::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x71 => {
             let am = IndirectIndexed::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x6d => {
             let am = Absolute::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x7d => {
             let am = AbsoluteX::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0x79 => {
             let am = AbsoluteY::init(cpu);
-            self::adc::Adc::execute(cpu, am)
+            Adc::execute(cpu, am)
         }
         0xe9 => {
             let am = Immediate::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xe5 => {
             let am = ZeroPage::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xf5 => {
             let am = ZeroPageX::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xe1 => {
             let am = IndexedIndirect::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xf1 => {
             let am = IndirectIndexed::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xed => {
             let am = Absolute::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xfd => {
             let am = AbsoluteX::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xf9 => {
             let am = AbsoluteY::init(cpu);
-            self::sbc::Sbc::execute(cpu, am)
+            Sbc::execute(cpu, am)
         }
         0xc9 => {
             let am = Immediate::init(cpu);
@@ -614,5 +617,65 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
             self::jsr::Jsr::execute(cpu, am)
         }
         _ => panic!("Unexpected opcode: {:0>2X}", opcode),
+    }
+}
+
+pub struct Adc;
+
+impl OpCode for Adc {
+    type Input = u8;
+
+    fn execute<S, M, AM>(cpu: &mut Cpu<S, M>, am: AM)
+        where S: Screen,
+              M: Memory<S>,
+              AM: AddressingMode<S, M, Output = Self::Input>
+    {
+        let left = cpu.registers.acc;
+        let right = am.read();
+        adc_base(cpu, left, right)
+    }
+}
+
+pub struct Sbc;
+
+impl OpCode for Sbc {
+    type Input = u8;
+
+    fn execute<S, M, AM>(cpu: &mut Cpu<S, M>, am: AM)
+        where S: Screen,
+              M: Memory<S>,
+              AM: AddressingMode<S, M, Output = Self::Input>
+    {
+        let lhs = cpu.registers.acc;
+        let rhs = am.read();
+        let rhs = !rhs;
+        adc_base(cpu, lhs, rhs)
+    }
+}
+
+pub fn adc_base<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, lhs: u8, rhs: u8) {
+
+    if cpu.registers.decimal_flag() {
+        panic!("Attempted decimal mode arithmetic");
+    } else {
+        // See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+        let carry = if cpu.registers.carry_flag() { 1 } else { 0 };
+
+        // add using the native word size
+        let res = carry + lhs as isize + rhs as isize;
+
+        // if the operation carries into the 8th bit, carry flag will be 1,
+        // and zero otherwise.
+        let has_carry = res & 0x100 != 0;
+
+        let res = res as u8;
+
+        // Set the overflow flag when both operands have the same sign bit AND
+        // the sign bit of the result differs from the two.
+        let has_overflow = (lhs ^ rhs) & 0x80 == 0 && (lhs ^ res) & 0x80 != 0;
+
+        cpu.registers.set_carry_flag(has_carry);
+        cpu.registers.set_overflow_flag(has_overflow);
+        cpu.registers.set_acc(res);
     }
 }
