@@ -70,6 +70,9 @@ mod cpx_spec_tests;
 #[cfg(test)]
 mod cpy_spec_tests;
 
+#[cfg(test)]
+mod brk_spec_tests;
+
 mod dex;
 mod inx;
 mod iny;
@@ -88,7 +91,6 @@ mod clv;
 mod cld;
 mod sed;
 mod rts;
-mod brk;
 mod rti;
 mod pha;
 mod pla;
@@ -112,6 +114,8 @@ use byte_utils::{from_lo_hi, wrapping_add};
 use cpu::Cpu;
 use memory::Memory;
 use screen::Screen;
+
+const BRK_VECTOR: u16 = 0xfffe;
 
 trait OpCode {
     type Input;
@@ -138,7 +142,7 @@ pub fn execute<S: Screen, M: Memory<S>>(cpu: &mut Cpu<S, M>, opcode: u8) {
         0xd8 => self::cld::Cld::execute(cpu, Implied),
         0xf8 => self::sed::Sed::execute(cpu, Implied),
         0x60 => self::rts::Rts::execute(cpu, Implied),
-        0x00 => self::brk::Brk::execute(cpu, Implied),
+        0x00 => Brk::execute(cpu, Implied),
         0x40 => self::rti::Rti::execute(cpu, Implied),
         0x48 => self::pha::Pha::execute(cpu, Implied),
         0x68 => self::pla::Pla::execute(cpu, Implied),
@@ -1489,7 +1493,7 @@ struct Bit;
 impl OpCode for Bit {
     type Input = u8;
 
-    fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, am: AM){
         let lhs = cpu.registers.acc;
         let rhs = am.read();
         let res = lhs & rhs;
@@ -1497,5 +1501,22 @@ impl OpCode for Bit {
         cpu.registers.set_zero_flag(res == 0);
         cpu.registers.set_overflow_flag(rhs & 0x40 != 0);
         cpu.registers.set_sign_flag(rhs & 0x80 != 0);
+    }
+}
+
+struct Brk;
+
+impl OpCode for Brk {
+    type Input = ();
+
+fn execute<S: Screen, M: Memory<S>, AM: AddressingMode<S, M, Output = Self::Input>>(cpu: &mut Cpu<S, M>, _: AM){
+        cpu.registers.pc += 1;
+        let pc = cpu.registers.pc;
+        let status = cpu.registers.status;
+        cpu.push_stack16(pc);
+        cpu.push_stack(status);
+        let irq_handler = cpu.read_memory16(BRK_VECTOR);
+        cpu.registers.pc = irq_handler;
+        cpu.registers.set_interrupt_disable_flag(true);
     }
 }
