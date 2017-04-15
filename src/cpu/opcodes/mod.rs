@@ -92,22 +92,7 @@ mod php_spec_tests;
 mod plp_spec_tests;
 
 #[cfg(test)]
-mod lda_spec_tests;
-
-#[cfg(test)]
-mod ldx_spec_tests;
-
-#[cfg(test)]
-mod ldy_spec_tests;
-
-#[cfg(test)]
-mod sta_spec_tests;
-
-#[cfg(test)]
-mod stx_spec_tests;
-
-#[cfg(test)]
-mod sty_spec_tests;
+mod loads_and_stores_spec_tests;
 
 #[cfg(test)]
 mod ora_spec_tests;
