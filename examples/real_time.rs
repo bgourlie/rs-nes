@@ -19,8 +19,6 @@ const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
 
 fn main() {
-    sdl2::log::set_output_function(sdl2_print);
-
     // INIT NES
     let file = env::args().last().unwrap();
     let rom = Rc::new(Box::new(NesRom::read(format!("{}", file)).expect("Couldn't find rom file")));
@@ -121,8 +119,4 @@ fn main() {
         }
         thread::sleep(fixed_time_stamp - accumulator);
     }
-}
-
-fn sdl2_print(priority: sdl2::log::Priority, category: sdl2::log::Category, message: &str) {
-    println!("[{:?}][{:?}] {}", category, priority, message);
 }

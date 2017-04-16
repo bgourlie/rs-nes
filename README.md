@@ -5,8 +5,6 @@ A work-in-progress NES emulator written in rust.
 
 The emulator can be compiled with debugger support. The debugger exposes HTTP endpoints and a websocket endpoint that the debugger front-end interfaces with. You can find the debugger front-end [here](https://github.com/bgourlie/rs-nes-debugger-frontend). You can see it in action on a crappy demo I put on [youtube](https://www.youtube.com/watch?v=5JlHSK6BeKI).
 
-On Windows, the emulator will not compile with the debugger feature enabled. This is due to a transitive OpenSSL dependency that has issues compiling on Windows. The debugger compiles and runs fine on Bash for Windows, however.
-
 ### Running
 
 The examples folder contains the actual entrypoint files that I use to run and test the emulator. The three hastily named files and their purpose are:

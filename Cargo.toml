@@ -11,10 +11,10 @@ slow_tests = []
 
 
 [dependencies]
-sdl2 = {git = "https://github.com/AngryLawyer/rust-sdl2.git"}
+sdl2 = "*"
 
 # Debugger dependencies
-websocket = {version = "*", optional = true}
+websocket = {version = "*", optional = true, default-features = false}
 iron = {version = "*", optional = true}
 router = {version = "*", optional = true}
 byteorder = {version = "*", optional = true}
