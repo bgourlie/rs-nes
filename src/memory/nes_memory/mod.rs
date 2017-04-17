@@ -79,6 +79,15 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
                 panic!("Two different interrupt requests during PPU step");
             };
         }
+        let apu_action = self.apu.cpu_tick();
+
+        // TODO: What do we do if PPU and APU generate an interrupt?
+        let tick_action = if tick_action == Interrupt::None && apu_action != Interrupt::None {
+            apu_action
+        } else {
+            tick_action
+        };
+
         tick_action
     }
 
@@ -106,7 +115,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
         } else if address < 0x4000 {
             self.ppu.read(address)
         } else if address == 0x4015 {
-            self.apu.read_control()
+            self.apu.read()
         } else if address == 0x4016 {
             self.input.read(address)
         } else if address < 0x4018 {

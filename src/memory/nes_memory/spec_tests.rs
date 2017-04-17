@@ -50,7 +50,7 @@ fn ppu_memory_mapped_write() {
 #[test]
 fn apu_memory_mapped_read() {
     let mut fixture = new_fixture();
-    fixture.apu.set_control(0xff);
+    fixture.apu.set_status(0xff);
     // Only a single APU address is readable
     let val = fixture.read(0x4015);
     assert_eq!(0xff, val);
@@ -137,7 +137,7 @@ mod mocks {
     pub struct ApuMock {
         write_addr: u16,
         write_value: u8,
-        control: u8,
+        status: u8,
     }
 
     impl ApuMock {
@@ -149,8 +149,8 @@ mod mocks {
             self.write_value
         }
 
-        pub fn set_control(&mut self, val: u8) {
-            self.control = val;
+        pub fn set_status(&mut self, val: u8) {
+            self.status = val;
         }
     }
 
@@ -160,8 +160,12 @@ mod mocks {
             self.write_value = value;
         }
 
-        fn read_control(&self) -> u8 {
-            self.control
+        fn read(&self) -> u8 {
+            self.status
+        }
+
+        fn cpu_tick(&mut self) -> Interrupt {
+            Interrupt::None
         }
     }
 
