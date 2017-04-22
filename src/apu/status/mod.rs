@@ -5,7 +5,7 @@ use std::cell::Cell;
 
 pub trait Status: Default {
     fn read(&self) -> u8;
-    fn write(&self, val: u8);
+    fn write(&mut self, val: u8);
 }
 
 #[derive(Default)]
@@ -22,7 +22,7 @@ impl Status for StatusImpl {
         val
     }
 
-    fn write(&self, val: u8) {
+    fn write(&mut self, val: u8) {
         self.val.set(0b_0111_1111 & val)
     }
 }

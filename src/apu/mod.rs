@@ -1,5 +1,8 @@
 #![allow(dead_code)]
 
+#[cfg(test)]
+mod spec_tests;
+
 mod status;
 mod pulse;
 mod frame_sequencer;
@@ -43,15 +46,15 @@ impl<P, T, N, S, F> ApuContract for ApuImpl<P, T, N, S, F>
             0x4000 => self.pulse_1.write_duty_etc_reg(val),
             0x4001 => self.pulse_1.write_sweep_reg(val),
             0x4002 => self.pulse_1.write_timer_low_reg(val),
-            0x4003 => self.pulse_1.write_len_low_timer_high_reg(val),
+            0x4003 => self.pulse_1.write_counter_load_timer_high_reg(val),
             0x4004 => self.pulse_2.write_duty_etc_reg(val),
             0x4005 => self.pulse_2.write_sweep_reg(val),
             0x4006 => self.pulse_2.write_timer_low_reg(val),
-            0x4007 => self.pulse_2.write_len_low_timer_high_reg(val),
+            0x4007 => self.pulse_2.write_counter_load_timer_high_reg(val),
             0x4008 => self.triangle.write_linear_counter_reg(val),
             0x400a => self.triangle.write_timer_low_reg(val),
             0x400b => self.triangle.write_counter_load_timer_high_reg(val),
-            0x400c => self.noise.write_len_counter_etc_reg(val),
+            0x400c => self.noise.write_counter_halt_etc_reg(val),
             0x400e => self.noise.write_mode_and_period_reg(val),
             0x400f => self.noise.write_counter_load_and_envelope_restart(val),
             0x4015 => self.status.write(val),

@@ -13,7 +13,7 @@ fn read() {
 #[test]
 fn write() {
     // Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
-    let status = StatusImpl::default();
+    let mut status = StatusImpl::default();
     assert_eq!(0, status.val.get());
 
     status.write(0b_1111_1111);
