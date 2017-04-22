@@ -16,7 +16,7 @@ impl TriangleGenerator {
         self.timer_low_reg = val
     }
 
-    pub fn write_counter_low_timer_high_reg(&mut self, val: u8) {
+    pub fn write_counter_load_timer_high_reg(&mut self, val: u8) {
         self.counter_low_timer_high_reg = val
     }
 
