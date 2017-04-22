@@ -160,7 +160,7 @@ mod mocks {
             self.write_value = value;
         }
 
-        fn read(&self) -> u8 {
+        fn read_status(&self) -> u8 {
             self.status
         }
         fn step(&mut self) -> Interrupt {
