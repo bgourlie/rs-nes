@@ -9,6 +9,64 @@ fn memory_read_mapping() {
     assert_eq!(0xb0, result)
 }
 
+#[test]
+fn memory_write_mapping() {
+    let mut apu = apu_mock();
+    apu.write(0x4000, 0xde);
+    assert_eq!(0xde, apu.pulse_1.reg_4000_4004);
+
+    let mut apu = apu_mock();
+    apu.write(0x4001, 0xad);
+    assert_eq!(0xad, apu.pulse_1.reg_4001_4005);
+
+    let mut apu = apu_mock();
+    apu.write(0x4002, 0xbe);
+    assert_eq!(0xbe, apu.pulse_1.reg_4002_4006);
+
+    let mut apu = apu_mock();
+    apu.write(0x4003, 0xef);
+    assert_eq!(0xef, apu.pulse_1.reg_4003_4007);
+
+    apu.write(0x4004, 0xde);
+    assert_eq!(0xde, apu.pulse_2.reg_4000_4004);
+
+    let mut apu = apu_mock();
+    apu.write(0x4005, 0xad);
+    assert_eq!(0xad, apu.pulse_2.reg_4001_4005);
+
+    let mut apu = apu_mock();
+    apu.write(0x4006, 0xbe);
+    assert_eq!(0xbe, apu.pulse_2.reg_4002_4006);
+
+    let mut apu = apu_mock();
+    apu.write(0x4007, 0xef);
+    assert_eq!(0xef, apu.pulse_2.reg_4003_4007);
+
+    let mut apu = apu_mock();
+    apu.write(0x4008, 0xde);
+    assert_eq!(0xde, apu.triangle.reg_4008);
+
+    let mut apu = apu_mock();
+    apu.write(0x400a, 0xad);
+    assert_eq!(0xad, apu.triangle.reg_400a);
+
+    let mut apu = apu_mock();
+    apu.write(0x400b, 0xbe);
+    assert_eq!(0xbe, apu.triangle.reg_400b);
+
+    let mut apu = apu_mock();
+    apu.write(0x400c, 0xef);
+    assert_eq!(0xef, apu.noise.reg_400c);
+
+    let mut apu = apu_mock();
+    apu.write(0x400e, 0xde);
+    assert_eq!(0xde, apu.noise.reg_400e);
+
+    let mut apu = apu_mock();
+    apu.write(0x400f, 0xad);
+    assert_eq!(0xad, apu.noise.reg_400f);
+}
+
 mod mocks {
     use apu::ApuImpl;
     use apu::frame_sequencer::FrameSequencer;
