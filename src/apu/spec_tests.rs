@@ -65,17 +65,39 @@ fn memory_write_mapping() {
     let mut apu = apu_mock();
     apu.write(0x400f, 0xad);
     assert_eq!(0xad, apu.noise.reg_400f);
+
+    let mut apu = apu_mock();
+    apu.write(0x4010, 0xbe);
+    assert_eq!(0xbe, apu.dmc.reg_4010);
+
+    let mut apu = apu_mock();
+    apu.write(0x4011, 0xef);
+    assert_eq!(0xef, apu.dmc.reg_4011);
+
+    let mut apu = apu_mock();
+    apu.write(0x4012, 0xde);
+    assert_eq!(0xde, apu.dmc.reg_4012);
+
+    let mut apu = apu_mock();
+    apu.write(0x4013, 0xad);
+    assert_eq!(0xad, apu.dmc.reg_4013);
 }
 
 mod mocks {
     use apu::ApuImpl;
+    use apu::dmc::Dmc;
     use apu::frame_sequencer::FrameSequencer;
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::status::Status;
     use apu::triangle::Triangle;
 
-    pub type ApuMock = ApuImpl<PulseMock, TriangleMock, NoiseMock, StatusMock, FrameSequencerMock>;
+    pub type ApuMock = ApuImpl<PulseMock,
+                               TriangleMock,
+                               NoiseMock,
+                               StatusMock,
+                               FrameSequencerMock,
+                               DmcMock>;
 
     pub fn apu_mock() -> ApuMock {
         ApuImpl::default()
@@ -172,6 +194,32 @@ mod mocks {
 
         fn write(&mut self, val: u8) {
             self.reg_4015 = val
+        }
+    }
+
+    #[derive(Default)]
+    pub struct DmcMock {
+        pub reg_4010: u8,
+        pub reg_4011: u8,
+        pub reg_4012: u8,
+        pub reg_4013: u8,
+    }
+
+    impl Dmc for DmcMock {
+        fn write_flags_and_rate_reg(&mut self, val: u8) {
+            self.reg_4010 = val
+        }
+
+        fn write_direct_load_reg(&mut self, val: u8) {
+            self.reg_4011 = val
+        }
+
+        fn write_sample_addr_reg(&mut self, val: u8) {
+            self.reg_4012 = val
+        }
+
+        fn write_sample_len_reg(&mut self, val: u8) {
+            self.reg_4013 = val
         }
     }
 }
