@@ -103,7 +103,7 @@ fn oam_dma_timing() {
 }
 
 mod mocks {
-    use apu::Apu;
+    use apu::ApuContract;
     use cpu::Interrupt;
 
     use input::{Button, Input};
@@ -154,7 +154,7 @@ mod mocks {
         }
     }
 
-    impl Apu for ApuMock {
+    impl ApuContract for ApuMock {
         fn write(&mut self, addr: u16, value: u8) {
             self.write_addr = addr;
             self.write_value = value;

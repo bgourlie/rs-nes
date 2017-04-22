@@ -2,7 +2,7 @@
 mod spec_tests;
 
 use super::Memory;
-use apu::{Apu, ApuBase};
+use apu::{Apu, ApuContract};
 use cpu::Interrupt;
 use input::{Input, InputBase};
 use ppu::{Ppu, PpuImpl};
@@ -25,9 +25,9 @@ macro_rules! dma_tick {
     };
 }
 
-pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;
+pub type NesMemoryImpl = NesMemoryBase<PpuImpl, Apu, InputBase>;
 
-pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
+pub struct NesMemoryBase<P: Ppu, A: ApuContract, I: Input> {
     ram: [u8; 0x800],
     rom: Rc<Box<NesRom>>,
     ppu: P,
@@ -35,7 +35,7 @@ pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
     input: I,
 }
 
-impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
+impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> NesMemoryBase<P, A, I> {
     pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
@@ -67,7 +67,8 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemoryBase<P, A, I> {
+impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen>
+    for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Interrupt {
         let mut ppu_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times

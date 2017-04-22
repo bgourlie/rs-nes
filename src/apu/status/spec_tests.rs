@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn read() {
     // Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
-    let status = StatusRegister::default();
+    let status = StatusImpl::default();
     status.val.set(0b_1111_1111);
     let result = status.read();
     assert_eq!(0b_1111_1111, result);
@@ -13,7 +13,7 @@ fn read() {
 #[test]
 fn write() {
     // Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
-    let status = StatusRegister::default();
+    let status = StatusImpl::default();
     assert_eq!(0, status.val.get());
 
     status.write(0b_1111_1111);

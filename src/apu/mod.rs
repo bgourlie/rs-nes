@@ -1,35 +1,43 @@
 #![allow(dead_code)]
 
 mod status;
-mod pulse_generator;
+mod pulse;
 mod frame_sequencer;
-mod triangle_generator;
-mod noise_generator;
+mod triangle;
+mod noise;
 
-use apu::frame_sequencer::FrameSequencer;
-use apu::noise_generator::NoiseGenerator;
-use apu::pulse_generator::PulseGenerator;
-use apu::status::StatusRegister;
-use apu::triangle_generator::TriangleGenerator;
+use apu::frame_sequencer::{FrameSequencer, FrameSequencerImpl};
+use apu::noise::{Noise, NoiseImpl};
+use apu::pulse::{Pulse, PulseImpl};
+use apu::status::{Status, StatusImpl};
+use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
 
+pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameSequencerImpl>;
+
 #[derive(Default)]
-pub struct ApuBase {
-    frame_sequencer: FrameSequencer,
-    pulse_1: PulseGenerator,
-    pulse_2: PulseGenerator,
-    triangle: TriangleGenerator,
-    noise: NoiseGenerator,
-    status: StatusRegister,
+pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameSequencer> {
+    frame_sequencer: F,
+    pulse_1: P,
+    pulse_2: P,
+    triangle: T,
+    noise: N,
+    status: S,
 }
 
-pub trait Apu: Default {
+pub trait ApuContract: Default {
     fn step(&mut self) -> Interrupt;
     fn write(&mut self, _: u16, _: u8);
     fn read_status(&self) -> u8;
 }
 
-impl Apu for ApuBase {
+impl<P, T, N, S, F> ApuContract for ApuImpl<P, T, N, S, F>
+    where P: Pulse,
+          T: Triangle,
+          N: Noise,
+          S: Status,
+          F: FrameSequencer
+{
     fn write(&mut self, addr: u16, val: u8) {
         match addr {
             0x4000 => self.pulse_1.write_duty_etc_reg(val),
