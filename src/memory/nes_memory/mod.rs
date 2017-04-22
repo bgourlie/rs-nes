@@ -69,23 +69,24 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 // Currently NROM only
 impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Interrupt {
-        let mut tick_action = Interrupt::None;
+        let mut ppu_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
             let ppu_step_action = self.ppu.step();
-            if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
-                tick_action = Interrupt::Nmi;
-            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
+            if ppu_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
+                ppu_action = Interrupt::Nmi;
+            } else if ppu_action != Interrupt::None && ppu_step_action != Interrupt::None {
                 panic!("Two different interrupt requests during PPU step");
             };
         }
-        let apu_action = self.apu.cpu_tick();
 
-        // TODO: What do we do if PPU and APU generate an interrupt?
-        let tick_action = if tick_action == Interrupt::None && apu_action != Interrupt::None {
-            apu_action
+        let apu_action = self.apu.step();
+
+        // TODO: What do we do if PPU and APU both generate an interrupt?
+        let tick_action = if ppu_action != Interrupt::None {
+            ppu_action
         } else {
-            tick_action
+            apu_action
         };
 
         tick_action

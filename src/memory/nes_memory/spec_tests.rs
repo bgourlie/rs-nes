@@ -163,8 +163,7 @@ mod mocks {
         fn read(&self) -> u8 {
             self.status
         }
-
-        fn cpu_tick(&mut self) -> Interrupt {
+        fn step(&mut self) -> Interrupt {
             Interrupt::None
         }
     }
