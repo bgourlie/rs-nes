@@ -12,7 +12,7 @@ mod noise;
 mod dmc;
 
 use apu::dmc::{Dmc, DmcImpl};
-use apu::frame_counter::{FrameCounter, FrameCounterImpl, StepResult};
+use apu::frame_counter::{ClockUnits, FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, PulseImpl};
 use apu::status::{Status, StatusImpl};
@@ -78,7 +78,12 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x4012 => self.dmc.write_sample_addr_reg(val),
             0x4013 => self.dmc.write_sample_len_reg(val),
             0x4015 => self.status.write(val),
-            0x4017 => self.frame_counter.write(val),
+            0x4017 => {
+                match self.frame_counter.write(val) {
+                    ClockUnits::All(_) => (),
+                    _ => (),
+                }
+            }
             _ => panic!("Unexpected PPU write"),
         }
     }
@@ -89,15 +94,18 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
 
     fn half_step(&mut self) -> Interrupt {
         match self.frame_counter.half_step() {
-            StepResult::ClockAll(interrupt) => {
+            ClockUnits::All(interrupt) => {
+                self.pulse_1.clock_length_counter();
+                self.pulse_2.clock_length_counter();
+
                 if interrupt {
                     Interrupt::Irq
                 } else {
                     Interrupt::None
                 }
             }
-            StepResult::ClockEnvelopesAndTrianglesLinearCounter => Interrupt::None,
-            StepResult::None => Interrupt::None,
+            ClockUnits::EnvelopesAndTrianglesLinearCounter => Interrupt::None,
+            ClockUnits::None => Interrupt::None,
         }
     }
 }
