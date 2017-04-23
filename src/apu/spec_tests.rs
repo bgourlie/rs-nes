@@ -149,7 +149,7 @@ mod mocks {
     }
 
     impl Pulse for PulseMock {
-        fn write_duty_etc_reg(&mut self, val: u8) {
+        fn write_duty_and_envelope_reg(&mut self, val: u8) {
             self.reg_4000_4004 = val
         }
 
@@ -182,7 +182,7 @@ mod mocks {
     }
 
     impl Noise for NoiseMock {
-        fn write_counter_halt_etc_reg(&mut self, val: u8) {
+        fn write_envelope_reg(&mut self, val: u8) {
             self.reg_400c = val;
         }
 
@@ -190,9 +190,11 @@ mod mocks {
             self.reg_400e = val;
         }
 
-        fn write_length_load_and_envelope_restart(&mut self, val: u8) {
+        fn write_length_load_envelope_restart_reg(&mut self, val: u8) {
             self.reg_400f = val;
         }
+
+        fn clock_envelope(&mut self) {}
     }
 
     #[derive(Default)]

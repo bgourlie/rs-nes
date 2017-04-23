@@ -1,26 +1,34 @@
+use apu::envelope::Envelope;
+
 pub trait Noise: Default {
-    fn write_counter_halt_etc_reg(&mut self, val: u8);
+    fn write_envelope_reg(&mut self, val: u8);
     fn write_mode_and_period_reg(&mut self, val: u8);
-    fn write_length_load_and_envelope_restart(&mut self, val: u8);
+    fn write_length_load_envelope_restart_reg(&mut self, val: u8);
+    fn clock_envelope(&mut self);
 }
 
 #[derive(Default)]
 pub struct NoiseImpl {
-    counter_halt_etc_reg: u8,
     mode_and_period_reg: u8,
-    length_load_and_envelope_restart: u8,
+    length_load_envelope_restart_reg: u8,
+    envelope: Envelope,
 }
 
 impl Noise for NoiseImpl {
-    fn write_counter_halt_etc_reg(&mut self, val: u8) {
-        self.counter_halt_etc_reg = val
+    fn write_envelope_reg(&mut self, val: u8) {
+        self.envelope.set_flags(val);
     }
 
     fn write_mode_and_period_reg(&mut self, val: u8) {
         self.mode_and_period_reg = val
     }
 
-    fn write_length_load_and_envelope_restart(&mut self, val: u8) {
-        self.length_load_and_envelope_restart = val
+    fn write_length_load_envelope_restart_reg(&mut self, val: u8) {
+        self.length_load_envelope_restart_reg = val;
+        self.envelope.set_start_flag();
+    }
+
+    fn clock_envelope(&mut self) {
+        self.envelope.clock()
     }
 }

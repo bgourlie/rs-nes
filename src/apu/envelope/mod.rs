@@ -4,6 +4,7 @@ use apu::divider::{Divider, DownCountDivider};
 pub struct Envelope {
     start_flag: bool,
     decay_counter: u8,
+    flags: u8,
     divider: DownCountDivider<()>,
 }
 
@@ -12,11 +13,20 @@ impl Envelope {
         self.start_flag = true
     }
 
-    pub fn clock(&mut self, loop_flag: bool) {
+    pub fn set_flags(&mut self, flags: u8) {
+        // Flags: ---C_VVVV
+        // Where C is the constant volume flag and V is either:
+        // a) The constant volume value (occurs when C is set), or
+        // b) The period for the divider that clocks the decay counter (occurs when C is not set)
+        self.flags = flags;
+        self.divider.set_period(flags & 0b_0000_1111);
+    }
+
+    pub fn clock(&mut self) {
         // When clocked by the frame counter, one of two actions occurs: if the start flag is clear,
         // the divider is clocked, otherwise the start flag is cleared, the decay level counter is
         // loaded with 15, and the divider's period is immediately reloaded.
-
+        let loop_flag = self.flags & 0b_0010_0000 > 0;
         let decay_counter = self.decay_counter;
         let mut reload_decay_counter = false;
         let mut counter_decrement_amount = 0;

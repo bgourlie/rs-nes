@@ -1,9 +1,8 @@
-
 use apu::envelope::Envelope;
 use apu::length_counter::LengthCounter;
 
 pub trait Pulse: Default {
-    fn write_duty_etc_reg(&mut self, val: u8);
+    fn write_duty_and_envelope_reg(&mut self, val: u8);
     fn write_sweep_reg(&mut self, val: u8);
     fn write_timer_low_reg(&mut self, val: u8);
     fn write_length_load_timer_high_reg(&mut self, val: u8);
@@ -15,7 +14,7 @@ pub trait Pulse: Default {
 
 #[derive(Default)]
 pub struct PulseImpl {
-    duty_etc_reg: u8,
+    duty_reg: u8,
     sweep_reg: u8,
     timer_low_reg: u8,
     length_load_timer_high_reg: u8,
@@ -25,8 +24,9 @@ pub struct PulseImpl {
 }
 
 impl Pulse for PulseImpl {
-    fn write_duty_etc_reg(&mut self, val: u8) {
-        self.duty_etc_reg = val;
+    fn write_duty_and_envelope_reg(&mut self, val: u8) {
+        self.envelope.set_flags(val);
+        self.duty_reg = val;
     }
 
     fn write_sweep_reg(&mut self, val: u8) {
@@ -61,7 +61,7 @@ impl Pulse for PulseImpl {
     }
 
     fn clock_envelope(&mut self) {
-        self.envelope.clock(self.duty_etc_reg & 0b_0010_0000 > 0)
+        self.envelope.clock()
     }
 }
 
@@ -73,7 +73,7 @@ impl PulseImpl {
     fn clock_waveform_generator(&mut self) {}
 
     fn length_counter_halt(&self) -> bool {
-        self.duty_etc_reg & 0b_0010_0000 > 0
+        self.duty_reg & 0b_0010_0000 > 0
     }
 
     fn length_counter_load(&self) -> u8 {
