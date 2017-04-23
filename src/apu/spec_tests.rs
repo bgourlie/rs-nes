@@ -126,7 +126,7 @@ mod mocks {
             self.reg_4008 = val;
         }
 
-        fn write_counter_load_timer_high_reg(&mut self, val: u8) {
+        fn write_length_load_timer_high_reg(&mut self, val: u8) {
             self.reg_400b = val;
         }
 
@@ -156,9 +156,15 @@ mod mocks {
             self.reg_4002_4006 = val
         }
 
-        fn write_counter_load_timer_high_reg(&mut self, val: u8) {
+        fn write_length_load_timer_high_reg(&mut self, val: u8) {
             self.reg_4003_4007 = val;
         }
+
+        fn tick(&mut self) {}
+
+        fn clock_length_counter(&mut self) {}
+
+        fn set_length_counter(&mut self, _: u8) {}
     }
 
     #[derive(Default)]
@@ -177,7 +183,7 @@ mod mocks {
             self.reg_400e = val;
         }
 
-        fn write_counter_load_and_envelope_restart(&mut self, val: u8) {
+        fn write_length_load_and_envelope_restart(&mut self, val: u8) {
             self.reg_400f = val;
         }
     }

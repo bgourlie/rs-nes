@@ -2,7 +2,7 @@
 
 pub trait Triangle: Default {
     fn write_linear_counter_reg(&mut self, val: u8);
-    fn write_counter_load_timer_high_reg(&mut self, val: u8);
+    fn write_length_load_timer_high_reg(&mut self, val: u8);
     fn write_timer_low_reg(&mut self, val: u8);
 }
 
@@ -10,7 +10,7 @@ pub trait Triangle: Default {
 pub struct TriangleImpl {
     linear_counter_reg: u8,
     timer_low_reg: u8,
-    counter_low_timer_high_reg: u8,
+    length_load_timer_high_reg: u8,
 }
 
 impl TriangleImpl {
@@ -23,7 +23,7 @@ impl TriangleImpl {
     }
 
     fn timer_period(&self) -> u16 {
-        self.timer_low_reg as u16 | (self.counter_low_timer_high_reg as u16 & 0b111) << 8
+        self.timer_low_reg as u16 | (self.length_load_timer_high_reg as u16 & 0b111) << 8
     }
 }
 
@@ -36,7 +36,7 @@ impl Triangle for TriangleImpl {
         self.timer_low_reg = val
     }
 
-    fn write_counter_load_timer_high_reg(&mut self, val: u8) {
-        self.counter_low_timer_high_reg = val
+    fn write_length_load_timer_high_reg(&mut self, val: u8) {
+        self.length_load_timer_high_reg = val
     }
 }
