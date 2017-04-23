@@ -163,7 +163,7 @@ mod mocks {
         fn read_status(&self) -> u8 {
             self.status
         }
-        fn step(&mut self) -> Interrupt {
+        fn half_step(&mut self) -> Interrupt {
             Interrupt::None
         }
     }

@@ -86,7 +86,7 @@ fn memory_write_mapping() {
 mod mocks {
     use apu::ApuImpl;
     use apu::dmc::Dmc;
-    use apu::frame_counter::FrameCounter;
+    use apu::frame_counter::{FrameCounter, StepResult};
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::status::Status;
@@ -113,7 +113,9 @@ mod mocks {
             self.reg_4017 = val;
         }
 
-        fn half_step(&mut self) {}
+        fn half_step(&mut self) -> StepResult {
+            StepResult::None
+        }
     }
 
     #[derive(Default)]

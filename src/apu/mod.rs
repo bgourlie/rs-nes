@@ -12,12 +12,13 @@ mod noise;
 mod dmc;
 
 use apu::dmc::{Dmc, DmcImpl};
-use apu::frame_counter::{FrameCounter, FrameCounterImpl};
+use apu::frame_counter::{FrameCounter, FrameCounterImpl, StepResult};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, PulseImpl};
 use apu::status::{Status, StatusImpl};
 use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
+use std::ops::FnOnce;
 
 const LENGTH_TIMER_TABLE: [u8; 32] = [10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26,
                                       14, 12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28,
@@ -25,9 +26,15 @@ const LENGTH_TIMER_TABLE: [u8; 32] = [10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 
 
 pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameCounterImpl, DmcImpl>;
 
+
+trait Sequencer: Default {
+    type R;
+    fn half_step<F>(&mut self, sequence_handler: F) -> Self::R where F: FnOnce(u8, u8) -> Self::R;
+}
+
 #[derive(Default)]
 pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, D: Dmc> {
-    frame_sequencer: F,
+    frame_counter: F,
     pulse_1: P,
     pulse_2: P,
     triangle: T,
@@ -37,7 +44,7 @@ pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, 
 }
 
 pub trait ApuContract: Default {
-    fn step(&mut self) -> Interrupt;
+    fn half_step(&mut self) -> Interrupt;
     fn write(&mut self, _: u16, _: u8);
     fn read_status(&self) -> u8;
 }
@@ -71,7 +78,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x4012 => self.dmc.write_sample_addr_reg(val),
             0x4013 => self.dmc.write_sample_len_reg(val),
             0x4015 => self.status.write(val),
-            0x4017 => self.frame_sequencer.write(val),
+            0x4017 => self.frame_counter.write(val),
             _ => panic!("Unexpected PPU write"),
         }
     }
@@ -80,7 +87,17 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
         self.status.read()
     }
 
-    fn step(&mut self) -> Interrupt {
-        Interrupt::None
+    fn half_step(&mut self) -> Interrupt {
+        match self.frame_counter.half_step() {
+            StepResult::ClockAll(interrupt) => {
+                if interrupt {
+                    Interrupt::Irq
+                } else {
+                    Interrupt::None
+                }
+            }
+            StepResult::ClockEnvelopesAndTrianglesLinearCounter => Interrupt::None,
+            StepResult::None => Interrupt::None,
+        }
     }
 }

@@ -81,7 +81,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen>
             };
         }
 
-        let apu_action = self.apu.step();
+        let apu_action = self.apu.half_step();
 
         // TODO: What do we do if PPU and APU both generate an interrupt?
         let tick_action = if ppu_action != Interrupt::None {
