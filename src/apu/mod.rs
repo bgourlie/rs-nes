@@ -6,13 +6,13 @@ mod spec_tests;
 mod length_counter;
 mod status;
 mod pulse;
-mod frame_sequencer;
+mod frame_counter;
 mod triangle;
 mod noise;
 mod dmc;
 
 use apu::dmc::{Dmc, DmcImpl};
-use apu::frame_sequencer::{FrameSequencer, FrameSequencerImpl};
+use apu::frame_counter::{FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, PulseImpl};
 use apu::status::{Status, StatusImpl};
@@ -23,10 +23,10 @@ const LENGTH_TIMER_TABLE: [u8; 32] = [10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 
                                       14, 12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28,
                                       32, 30];
 
-pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameSequencerImpl, DmcImpl>;
+pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameCounterImpl, DmcImpl>;
 
 #[derive(Default)]
-pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameSequencer, D: Dmc> {
+pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, D: Dmc> {
     frame_sequencer: F,
     pulse_1: P,
     pulse_2: P,
@@ -47,7 +47,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
           T: Triangle,
           N: Noise,
           S: Status,
-          F: FrameSequencer,
+          F: FrameCounter,
           D: Dmc
 {
     fn write(&mut self, addr: u16, val: u8) {

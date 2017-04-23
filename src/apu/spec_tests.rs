@@ -86,7 +86,7 @@ fn memory_write_mapping() {
 mod mocks {
     use apu::ApuImpl;
     use apu::dmc::Dmc;
-    use apu::frame_sequencer::FrameSequencer;
+    use apu::frame_counter::FrameCounter;
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::status::Status;
@@ -96,7 +96,7 @@ mod mocks {
                                TriangleMock,
                                NoiseMock,
                                StatusMock,
-                               FrameSequencerMock,
+                               FrameCounterMock,
                                DmcMock>;
 
     pub fn apu_mock() -> ApuMock {
@@ -104,14 +104,16 @@ mod mocks {
     }
 
     #[derive(Default)]
-    pub struct FrameSequencerMock {
+    pub struct FrameCounterMock {
         pub reg_4017: u8,
     }
 
-    impl FrameSequencer for FrameSequencerMock {
+    impl FrameCounter for FrameCounterMock {
         fn write(&mut self, val: u8) {
             self.reg_4017 = val;
         }
+
+        fn half_step(&mut self) {}
     }
 
     #[derive(Default)]
