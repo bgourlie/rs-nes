@@ -170,6 +170,8 @@ mod mocks {
         fn clock_length_counter(&mut self) {}
 
         fn set_length_counter(&mut self, _: u8) {}
+
+        fn clock_envelope(&mut self) {}
     }
 
     #[derive(Default)]

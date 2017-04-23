@@ -1,3 +1,5 @@
+
+use apu::envelope::Envelope;
 use apu::length_counter::LengthCounter;
 
 pub trait Pulse: Default {
@@ -6,6 +8,7 @@ pub trait Pulse: Default {
     fn write_timer_low_reg(&mut self, val: u8);
     fn write_length_load_timer_high_reg(&mut self, val: u8);
     fn clock_length_counter(&mut self);
+    fn clock_envelope(&mut self);
     fn set_length_counter(&mut self, load: u8);
     fn tick(&mut self);
 }
@@ -18,6 +21,7 @@ pub struct PulseImpl {
     length_load_timer_high_reg: u8,
     timer: u16,
     length_counter: LengthCounter,
+    envelope: Envelope,
 }
 
 impl Pulse for PulseImpl {
@@ -34,6 +38,7 @@ impl Pulse for PulseImpl {
     }
 
     fn write_length_load_timer_high_reg(&mut self, val: u8) {
+        self.envelope.set_start_flag();
         self.length_load_timer_high_reg = val;
     }
 
@@ -53,6 +58,10 @@ impl Pulse for PulseImpl {
 
     fn set_length_counter(&mut self, load: u8) {
         self.length_counter.set(load)
+    }
+
+    fn clock_envelope(&mut self) {
+        self.envelope.clock(self.duty_etc_reg & 0b_0010_0000 > 0)
     }
 }
 

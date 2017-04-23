@@ -9,6 +9,8 @@ mod pulse;
 mod frame_counter;
 mod triangle;
 mod noise;
+mod envelope;
+mod divider;
 mod dmc;
 
 use apu::dmc::{Dmc, DmcImpl};
@@ -96,7 +98,9 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
         match self.frame_counter.half_step() {
             ClockUnits::All(interrupt) => {
                 self.pulse_1.clock_length_counter();
+                self.pulse_1.clock_envelope();
                 self.pulse_2.clock_length_counter();
+                self.pulse_2.clock_envelope();
 
                 if interrupt {
                     Interrupt::Irq
