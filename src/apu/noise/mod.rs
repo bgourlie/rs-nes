@@ -7,9 +7,9 @@ const TIMER_PERIOD_TABLE: [u16; 32] = [4, 8, 16, 32, 64, 96, 128, 160, 202, 254,
                                        354, 472, 708, 944, 1890, 3778];
 
 pub trait Noise: Default {
-    fn write_envelope_reg(&mut self, val: u8);
-    fn write_mode_and_period_reg(&mut self, val: u8);
-    fn write_length_load_envelope_restart_reg(&mut self, val: u8);
+    fn write_400c(&mut self, val: u8);
+    fn write_400e(&mut self, val: u8);
+    fn write_400f(&mut self, val: u8);
     fn clock_envelope(&mut self);
     fn clock_length_counter(&mut self);
     fn clock_timer(&mut self);
@@ -58,18 +58,18 @@ impl NoiseImpl {
 }
 
 impl Noise for NoiseImpl {
-    fn write_envelope_reg(&mut self, val: u8) {
+    fn write_400c(&mut self, val: u8) {
         self.length_counter.set_halt_flag(val & 0b_0010_0000 > 0);
         self.envelope.set_flags(val);
     }
 
-    fn write_mode_and_period_reg(&mut self, val: u8) {
+    fn write_400e(&mut self, val: u8) {
         self.timer
             .set_period(TIMER_PERIOD_TABLE[val as usize & 0b_1111]);
         self.mode_flag = val & 0b_1000_0000 > 0
     }
 
-    fn write_length_load_envelope_restart_reg(&mut self, val: u8) {
+    fn write_400f(&mut self, val: u8) {
         self.length_counter.load((val & 0b_1111_1000) >> 3);
         self.envelope.set_start_flag();
     }

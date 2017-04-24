@@ -7,7 +7,7 @@ pub enum Clock {
 }
 
 pub trait FrameCounter: Default {
-    fn write(&mut self, val: u8, on_full_cycle: bool) -> Clock;
+    fn write_4017(&mut self, val: u8, on_full_cycle: bool) -> Clock;
     fn half_step(&mut self) -> Clock;
 }
 
@@ -19,7 +19,7 @@ pub struct FrameCounterImpl {
 }
 
 impl FrameCounter for FrameCounterImpl {
-    fn write(&mut self, val: u8, on_full_cycle: bool) -> Clock {
+    fn write_4017(&mut self, val: u8, on_full_cycle: bool) -> Clock {
         // The rest of the bits are used for input
         self.reg = val & 0b_1100_0000;
         if on_full_cycle {

@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
 pub trait Triangle: Default {
-    fn write_linear_counter_reg(&mut self, val: u8);
-    fn write_length_load_timer_high_reg(&mut self, val: u8);
-    fn write_timer_low_reg(&mut self, val: u8);
+    fn write_4008(&mut self, val: u8);
+    fn write_400a(&mut self, val: u8);
+    fn write_400b(&mut self, val: u8);
 }
 
 #[derive(Default)]
@@ -28,15 +28,15 @@ impl TriangleImpl {
 }
 
 impl Triangle for TriangleImpl {
-    fn write_linear_counter_reg(&mut self, val: u8) {
+    fn write_4008(&mut self, val: u8) {
         self.linear_counter_reg = val
     }
 
-    fn write_timer_low_reg(&mut self, val: u8) {
+    fn write_400a(&mut self, val: u8) {
         self.timer_low_reg = val
     }
 
-    fn write_length_load_timer_high_reg(&mut self, val: u8) {
+    fn write_400b(&mut self, val: u8) {
         self.length_load_timer_high_reg = val
     }
 }

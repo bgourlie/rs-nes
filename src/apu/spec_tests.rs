@@ -109,12 +109,12 @@ mod mocks {
     }
 
     impl FrameCounter for FrameCounterMock {
-        fn write(&mut self, val: u8, _: bool) -> Clock {
-            self.reg_4017 = val;
+        fn half_step(&mut self) -> Clock {
             Clock::None
         }
 
-        fn half_step(&mut self) -> Clock {
+        fn write_4017(&mut self, val: u8, _: bool) -> Clock {
+            self.reg_4017 = val;
             Clock::None
         }
     }
@@ -127,15 +127,15 @@ mod mocks {
     }
 
     impl Triangle for TriangleMock {
-        fn write_linear_counter_reg(&mut self, val: u8) {
+        fn write_4008(&mut self, val: u8) {
             self.reg_4008 = val;
         }
 
-        fn write_length_load_timer_high_reg(&mut self, val: u8) {
+        fn write_400b(&mut self, val: u8) {
             self.reg_400b = val;
         }
 
-        fn write_timer_low_reg(&mut self, val: u8) {
+        fn write_400a(&mut self, val: u8) {
             self.reg_400a = val;
         }
     }
@@ -149,19 +149,19 @@ mod mocks {
     }
 
     impl Pulse for PulseMock {
-        fn write_duty_and_envelope_reg(&mut self, val: u8) {
+        fn write_4000_4004(&mut self, val: u8) {
             self.reg_4000_4004 = val
         }
 
-        fn write_sweep_reg(&mut self, val: u8) {
+        fn write_4001_4005(&mut self, val: u8) {
             self.reg_4001_4005 = val
         }
 
-        fn write_timer_low_reg(&mut self, val: u8) {
+        fn write_4002_4006(&mut self, val: u8) {
             self.reg_4002_4006 = val
         }
 
-        fn write_length_load_timer_high_reg(&mut self, val: u8) {
+        fn write_4003_4007(&mut self, val: u8) {
             self.reg_4003_4007 = val;
         }
 
@@ -180,15 +180,15 @@ mod mocks {
     }
 
     impl Noise for NoiseMock {
-        fn write_envelope_reg(&mut self, val: u8) {
+        fn write_400c(&mut self, val: u8) {
             self.reg_400c = val;
         }
 
-        fn write_mode_and_period_reg(&mut self, val: u8) {
+        fn write_400e(&mut self, val: u8) {
             self.reg_400e = val;
         }
 
-        fn write_length_load_envelope_restart_reg(&mut self, val: u8) {
+        fn write_400f(&mut self, val: u8) {
             self.reg_400f = val;
         }
 

@@ -51,27 +51,27 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
 {
     fn write(&mut self, addr: u16, val: u8) {
         match addr {
-            0x4000 => self.pulse_1.write_duty_and_envelope_reg(val),
-            0x4001 => self.pulse_1.write_sweep_reg(val),
-            0x4002 => self.pulse_1.write_timer_low_reg(val),
-            0x4003 => self.pulse_1.write_length_load_timer_high_reg(val),
-            0x4004 => self.pulse_2.write_duty_and_envelope_reg(val),
-            0x4005 => self.pulse_2.write_sweep_reg(val),
-            0x4006 => self.pulse_2.write_timer_low_reg(val),
-            0x4007 => self.pulse_2.write_length_load_timer_high_reg(val),
-            0x4008 => self.triangle.write_linear_counter_reg(val),
-            0x400a => self.triangle.write_timer_low_reg(val),
-            0x400b => self.triangle.write_length_load_timer_high_reg(val),
-            0x400c => self.noise.write_envelope_reg(val),
-            0x400e => self.noise.write_mode_and_period_reg(val),
-            0x400f => self.noise.write_length_load_envelope_restart_reg(val),
+            0x4000 => self.pulse_1.write_4000_4004(val),
+            0x4001 => self.pulse_1.write_4001_4005(val),
+            0x4002 => self.pulse_1.write_4002_4006(val),
+            0x4003 => self.pulse_1.write_4003_4007(val),
+            0x4004 => self.pulse_2.write_4000_4004(val),
+            0x4005 => self.pulse_2.write_4001_4005(val),
+            0x4006 => self.pulse_2.write_4002_4006(val),
+            0x4007 => self.pulse_2.write_4003_4007(val),
+            0x4008 => self.triangle.write_4008(val),
+            0x400a => self.triangle.write_400a(val),
+            0x400b => self.triangle.write_400b(val),
+            0x400c => self.noise.write_400c(val),
+            0x400e => self.noise.write_400e(val),
+            0x400f => self.noise.write_400f(val),
             0x4010 => self.dmc.write_flags_and_rate_reg(val),
             0x4011 => self.dmc.write_direct_load_reg(val),
             0x4012 => self.dmc.write_sample_addr_reg(val),
             0x4013 => self.dmc.write_sample_len_reg(val),
             0x4015 => self.status.write(val),
             0x4017 => {
-                if let Clock::All(_) = self.frame_counter.write(val, self.on_full_cycle) {
+                if let Clock::All(_) = self.frame_counter.write_4017(val, self.on_full_cycle) {
                     self.pulse_1.clock_length_counter();
                     self.pulse_1.clock_envelope();
                     self.pulse_2.clock_length_counter();

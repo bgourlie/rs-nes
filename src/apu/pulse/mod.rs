@@ -3,10 +3,10 @@ use apu::length_counter::LengthCounter;
 use apu::timer::Timer;
 
 pub trait Pulse: Default {
-    fn write_duty_and_envelope_reg(&mut self, val: u8);
-    fn write_sweep_reg(&mut self, val: u8);
-    fn write_timer_low_reg(&mut self, val: u8);
-    fn write_length_load_timer_high_reg(&mut self, val: u8);
+    fn write_4000_4004(&mut self, val: u8);
+    fn write_4001_4005(&mut self, val: u8);
+    fn write_4002_4006(&mut self, val: u8);
+    fn write_4003_4007(&mut self, val: u8);
     fn clock_length_counter(&mut self);
     fn clock_envelope(&mut self);
     fn clock_timer(&mut self);
@@ -24,22 +24,22 @@ pub struct PulseImpl {
 }
 
 impl Pulse for PulseImpl {
-    fn write_duty_and_envelope_reg(&mut self, val: u8) {
+    fn write_4000_4004(&mut self, val: u8) {
         self.envelope.set_flags(val);
         self.length_counter.set_halt_flag(val & 0b_0010_0000 > 0);
         self.duty = (val & 0b_1100_0000) >> 6;
     }
 
-    fn write_sweep_reg(&mut self, val: u8) {
+    fn write_4001_4005(&mut self, val: u8) {
         self.sweep_reg = val;
     }
 
-    fn write_timer_low_reg(&mut self, val: u8) {
+    fn write_4002_4006(&mut self, val: u8) {
         self.timer_period = (self.timer_period & 0b_0111_0000_0000) | val as u16;
         self.timer.set_period(self.timer_period)
     }
 
-    fn write_length_load_timer_high_reg(&mut self, val: u8) {
+    fn write_4003_4007(&mut self, val: u8) {
         self.sequencer.reset();
         self.envelope.set_start_flag();
         self.timer_period = (self.timer_period & 0b_1111_1111) | ((val as u16 & 0b111) << 8);
