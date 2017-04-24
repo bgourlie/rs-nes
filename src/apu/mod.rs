@@ -20,7 +20,6 @@ use apu::status::{Status, StatusImpl};
 use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
 
-
 pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameCounterImpl, DmcImpl>;
 
 #[derive(Default)]
@@ -65,11 +64,11 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x400c => self.noise.write_400c(val),
             0x400e => self.noise.write_400e(val),
             0x400f => self.noise.write_400f(val),
-            0x4010 => self.dmc.write_flags_and_rate_reg(val),
-            0x4011 => self.dmc.write_direct_load_reg(val),
-            0x4012 => self.dmc.write_sample_addr_reg(val),
-            0x4013 => self.dmc.write_sample_len_reg(val),
-            0x4015 => self.status.write(val),
+            0x4010 => self.dmc.write_4010(val),
+            0x4011 => self.dmc.write_4011(val),
+            0x4012 => self.dmc.write_4012(val),
+            0x4013 => self.dmc.write_4013(val),
+            0x4015 => self.status.write_4015(val),
             0x4017 => {
                 if let Clock::All(_) = self.frame_counter.write_4017(val, self.on_full_cycle) {
                     self.pulse_1.clock_length_counter();

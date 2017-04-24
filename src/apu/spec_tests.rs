@@ -215,7 +215,7 @@ mod mocks {
             self.reg_4015
         }
 
-        fn write(&mut self, val: u8) {
+        fn write_4015(&mut self, val: u8) {
             self.reg_4015 = val
         }
     }
@@ -229,19 +229,19 @@ mod mocks {
     }
 
     impl Dmc for DmcMock {
-        fn write_flags_and_rate_reg(&mut self, val: u8) {
+        fn write_4010(&mut self, val: u8) {
             self.reg_4010 = val
         }
 
-        fn write_direct_load_reg(&mut self, val: u8) {
+        fn write_4011(&mut self, val: u8) {
             self.reg_4011 = val
         }
 
-        fn write_sample_addr_reg(&mut self, val: u8) {
+        fn write_4012(&mut self, val: u8) {
             self.reg_4012 = val
         }
 
-        fn write_sample_len_reg(&mut self, val: u8) {
+        fn write_4013(&mut self, val: u8) {
             self.reg_4013 = val
         }
     }

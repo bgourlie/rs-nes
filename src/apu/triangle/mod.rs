@@ -21,11 +21,11 @@ pub struct TriangleImpl {
 }
 
 impl Triangle for TriangleImpl {
-    fn write_4008(&mut self, val: u8) {}
+    fn write_4008(&mut self, _: u8) {}
 
-    fn write_400a(&mut self, val: u8) {}
+    fn write_400a(&mut self, _: u8) {}
 
-    fn write_400b(&mut self, val: u8) {}
+    fn write_400b(&mut self, _: u8) {}
 
     fn clock_timer(&mut self) {
         self.timer.clock(|| { /* TODO */ })

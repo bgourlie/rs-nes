@@ -16,6 +16,6 @@ fn write() {
     let mut status = StatusImpl::default();
     assert_eq!(0, status.val.get());
 
-    status.write(0b_1111_1111);
+    status.write_4015(0b_1111_1111);
     assert_eq!(0b_0111_1111, status.val.get());
 }
