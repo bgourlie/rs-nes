@@ -1,8 +1,6 @@
+use self::sequencer::Sequencer;
 use apu::length_counter::LengthCounter;
 use apu::timer::Timer;
-
-const SEQUENCER_VALUE_TABLE: [u8; 32] = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0,
-                                         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 pub trait Triangle: Default {
     fn write_4008(&mut self, val: u8);
@@ -17,7 +15,7 @@ pub trait Triangle: Default {
 pub struct TriangleImpl {
     length_counter: LengthCounter,
     timer: Timer,
-    sequencer: TriangleSequencer,
+    sequencer: Sequencer,
 }
 
 impl Triangle for TriangleImpl {
@@ -25,10 +23,16 @@ impl Triangle for TriangleImpl {
 
     fn write_400a(&mut self, _: u8) {}
 
-    fn write_400b(&mut self, _: u8) {}
+    fn write_400b(&mut self, _: u8) {
+        // Side effects: Sets the linear counter reload flag
+    }
 
     fn clock_timer(&mut self) {
-        self.timer.clock(|| { /* TODO */ })
+        let mut clock_sequencer = false;
+        self.timer.clock(|| clock_sequencer = true);
+        if clock_sequencer {
+            self.sequencer.clock()
+        }
     }
 
     fn clock_length_counter(&mut self) {
@@ -39,20 +43,30 @@ impl Triangle for TriangleImpl {
         // TODO
     }
 }
+mod sequencer {
 
-#[derive(Default)]
-struct TriangleSequencer {
-    step: u8,
-}
+    const SEQUENCER_VALUE_TABLE: [u8; 32] = [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+                                             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-impl TriangleSequencer {
-    fn clock(&mut self) -> u8 {
-        let step = self.step;
-        if step == 0 {
-            self.step = 31;
-        } else {
-            self.step -= 1;
+    #[derive(Default)]
+    pub struct Sequencer {
+        step: u8,
+        current_output: u8,
+    }
+
+    impl Sequencer {
+        pub fn clock(&mut self) {
+            let step = self.step;
+            if step == 0 {
+                self.step = 31;
+            } else {
+                self.step -= 1;
+            }
+            self.current_output = SEQUENCER_VALUE_TABLE[31 - step as usize];
         }
-        SEQUENCER_VALUE_TABLE[31 - step as usize]
+
+        pub fn current_output(&self) -> u8 {
+            self.current_output
+        }
     }
 }

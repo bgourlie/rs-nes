@@ -16,6 +16,10 @@ impl Timer {
         }
     }
 
+    pub fn period(&self) -> u16 {
+        self.period
+    }
+
     pub fn set_period(&mut self, period: u16) {
         self.period = period;
     }
