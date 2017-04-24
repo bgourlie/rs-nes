@@ -3,8 +3,8 @@ use apu::ApuContract;
 
 #[test]
 fn memory_read_mapping() {
-    let mut apu = apu_mock();
-    apu.status.reg_4015 = 0xb0;
+    let apu = apu_mock();
+    apu.status.set(0xb0);
     let result = apu.read_status();
     assert_eq!(0xb0, result)
 }
@@ -89,15 +89,9 @@ mod mocks {
     use apu::frame_counter::{Clock, FrameCounter};
     use apu::noise::Noise;
     use apu::pulse::Pulse;
-    use apu::status::Status;
     use apu::triangle::Triangle;
 
-    pub type ApuMock = ApuImpl<PulseMock,
-                               TriangleMock,
-                               NoiseMock,
-                               StatusMock,
-                               FrameCounterMock,
-                               DmcMock>;
+    pub type ApuMock = ApuImpl<PulseMock, TriangleMock, NoiseMock, FrameCounterMock, DmcMock>;
 
     pub fn apu_mock() -> ApuMock {
         ApuImpl::default()
@@ -203,21 +197,6 @@ mod mocks {
         fn clock_length_counter(&mut self) {}
 
         fn clock_timer(&mut self) {}
-    }
-
-    #[derive(Default)]
-    pub struct StatusMock {
-        pub reg_4015: u8,
-    }
-
-    impl Status for StatusMock {
-        fn read(&self) -> u8 {
-            self.reg_4015
-        }
-
-        fn write_4015(&mut self, val: u8) {
-            self.reg_4015 = val
-        }
     }
 
     #[derive(Default)]

@@ -2,7 +2,6 @@
 mod spec_tests;
 
 mod length_counter;
-mod status;
 mod pulse;
 mod frame_counter;
 mod triangle;
@@ -15,20 +14,20 @@ use apu::dmc::{Dmc, DmcImpl};
 use apu::frame_counter::{Clock, FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, PulseImpl};
-use apu::status::{Status, StatusImpl};
 use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
+use std::cell::Cell;
 
-pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameCounterImpl, DmcImpl>;
+pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, FrameCounterImpl, DmcImpl>;
 
 #[derive(Default)]
-pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, D: Dmc> {
+pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, F: FrameCounter, D: Dmc> {
     frame_counter: F,
     pulse_1: P,
     pulse_2: P,
     triangle: T,
     noise: N,
-    status: S,
+    status: Cell<u8>,
     dmc: D,
     on_full_cycle: bool,
 }
@@ -39,11 +38,43 @@ pub trait ApuContract: Default {
     fn read_status(&self) -> u8;
 }
 
-impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
+impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
     where P: Pulse,
           T: Triangle,
           N: Noise,
-          S: Status,
+          F: FrameCounter,
+          D: Dmc
+{
+    fn read_4015(&self) -> u8 {
+        // - N/T/2/1 will read as 1 if the corresponding length counter is greater than 0. For the
+        //   triangle channel, the status of the linear counter is irrelevant.
+        // - D will read as 1 if the DMC bytes remaining is more than 0.
+        // - Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
+        // - If an interrupt flag was set at the same moment of the read, it will read back as 1 but
+        //   it will not be cleared.
+        let new_status = self.status.get() & 0b_1011_1111;
+        self.status.set(new_status);
+        new_status
+    }
+
+    fn write_4015(&mut self, val: u8) {
+        // - Writing a zero to any of the channel enable bits will silence that channel and
+        //   immediately set its length counter to 0.
+        // - If the DMC bit is clear, the DMC bytes remaining will be set to 0 and the DMC will
+        //   silence when it empties.
+        // - If the DMC bit is set, the DMC sample will be restarted only if its bytes remaining is
+        //   0. If there are bits remaining in the 1-byte sample buffer, these will finish playing
+        //   before the next sample is fetched.
+        // - Writing to this register clears the DMC interrupt flag.
+        // - Power-up and reset have the effect of writing $00, silencing all channels.
+        self.status.set(val & 0b_0111_1111)
+    }
+}
+
+impl<P, T, N, F, D> ApuContract for ApuImpl<P, T, N, F, D>
+    where P: Pulse,
+          T: Triangle,
+          N: Noise,
           F: FrameCounter,
           D: Dmc
 {
@@ -67,7 +98,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x4011 => self.dmc.write_4011(val),
             0x4012 => self.dmc.write_4012(val),
             0x4013 => self.dmc.write_4013(val),
-            0x4015 => self.status.write_4015(val),
+            0x4015 => self.write_4015(val),
             0x4017 => {
                 if let Clock::All(_) = self.frame_counter.write_4017(val) {
                     self.pulse_1.clock_length_counter();
@@ -85,7 +116,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
     }
 
     fn read_status(&self) -> u8 {
-        self.status.read()
+        self.read_4015()
     }
 
     fn half_step(&mut self) -> Interrupt {
