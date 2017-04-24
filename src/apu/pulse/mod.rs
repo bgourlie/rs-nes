@@ -10,7 +10,9 @@ pub trait Pulse: Default {
     fn write_4003_4007(&mut self, val: u8);
     fn clock_envelope(&mut self);
     fn clock_timer(&mut self);
-    fn length_counter(&mut self) -> &mut LengthCounter;
+    fn clock_length_counter(&mut self);
+    fn zero_length_counter(&mut self);
+    fn length_is_nonzero(&self) -> bool;
 }
 
 #[derive(Default)]
@@ -75,8 +77,16 @@ impl Pulse for PulseImpl {
         self.envelope.clock()
     }
 
-    fn length_counter(&mut self) -> &mut LengthCounter {
-        &mut self.length_counter
+    fn clock_length_counter(&mut self) {
+        self.length_counter.clock();
+    }
+
+    fn zero_length_counter(&mut self) {
+        self.length_counter.zero();
+    }
+
+    fn length_is_nonzero(&self) -> bool {
+        self.length_counter.is_nonzero()
     }
 }
 

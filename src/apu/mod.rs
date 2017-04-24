@@ -55,7 +55,11 @@ impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
         // - Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
         // - If an interrupt flag was set at the same moment of the read, it will read back as 1 but
         //   it will not be cleared.
-        let status = self.status.get() & 0b_1111_0000;
+        let status_high = self.status.get() & 0b_1111_0000;
+        let status_low = {
+            0
+        };
+
 
         let new_status = self.status.get() & 0b_1011_1111;
         self.status.set(new_status);
@@ -109,13 +113,13 @@ impl<P, T, N, F, D> ApuContract for ApuImpl<P, T, N, F, D>
             0x4015 => self.write_4015(val),
             0x4017 => {
                 if let Clock::All(_) = self.frame_counter.write_4017(val) {
-                    self.pulse_1.length_counter().clock();
+                    self.pulse_1.clock_length_counter();
                     self.pulse_1.clock_envelope();
-                    self.pulse_2.length_counter().clock();
+                    self.pulse_2.clock_length_counter();
                     self.pulse_2.clock_envelope();
-                    self.noise.length_counter().clock();
+                    self.noise.clock_length_counter();
                     self.noise.clock_envelope();
-                    self.triangle.length_counter().clock();
+                    self.triangle.clock_length_counter();
                     self.triangle.clock_linear_counter();
                 }
             }
@@ -130,13 +134,13 @@ impl<P, T, N, F, D> ApuContract for ApuImpl<P, T, N, F, D>
     fn half_step(&mut self) -> Interrupt {
         let ret = match self.frame_counter.half_step() {
             Clock::All(interrupt) => {
-                self.pulse_1.length_counter().clock();
+                self.pulse_1.clock_length_counter();
                 self.pulse_1.clock_envelope();
-                self.pulse_2.length_counter().clock();
+                self.pulse_2.clock_length_counter();
                 self.pulse_2.clock_envelope();
-                self.noise.length_counter().clock();
+                self.noise.clock_length_counter();
                 self.noise.clock_envelope();
-                self.triangle.length_counter().clock();
+                self.triangle.clock_length_counter();
                 self.triangle.clock_linear_counter();
 
                 if interrupt {
