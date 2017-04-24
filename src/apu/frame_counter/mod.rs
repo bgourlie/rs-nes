@@ -1,51 +1,64 @@
 #![allow(dead_code)]
 
-use apu::Sequencer;
-
-pub enum ClockUnits {
+pub enum Clock {
     None,
     All(bool),
     EnvelopesAndTrianglesLinearCounter,
 }
 
 pub trait FrameCounter: Default {
-    fn write(&mut self, val: u8) -> ClockUnits;
-    fn half_step(&mut self) -> ClockUnits;
+    fn write(&mut self, val: u8, on_full_cycle: bool) -> Clock;
+    fn half_step(&mut self) -> Clock;
 }
 
 #[derive(Default)]
 pub struct FrameCounterImpl {
     reg: u8,
     sequencer: FrameTimerSequencer,
+    reset_cycles: Option<u8>,
 }
 
 impl FrameCounter for FrameCounterImpl {
-    fn write(&mut self, val: u8) -> ClockUnits {
+    fn write(&mut self, val: u8, on_full_cycle: bool) -> Clock {
         // The rest of the bits are used for input
         self.reg = val & 0b_1100_0000;
+        if on_full_cycle {
+            self.reset_cycles = Some(3)
+        } else {
+            self.reset_cycles = Some(4)
+        }
 
         // Writing to $4017 with bit 7 set ($80) will immediately clock all of its controlled units
         // at the beginning of the 5-step sequence; with bit 7 clear, only the sequence is reset
         // without clocking any of its units.
         if val & 0b_1000_0000 == 0 {
             self.sequencer.set_mode(SequenceMode::FourStep);
-            ClockUnits::None
+            Clock::None
         } else {
             self.sequencer.set_mode(SequenceMode::FiveStep);
-            ClockUnits::All(false)
+            Clock::All(false)
         }
     }
 
-    fn half_step(&mut self) -> ClockUnits {
+    fn half_step(&mut self) -> Clock {
+        self.reset_cycles = match self.reset_cycles {
+            Some(0) => {
+                self.sequencer.reset();
+                None
+            }
+            Some(cycles) => Some(cycles - 1),
+            None => None,
+        };
+
         let reg = self.reg;
         self.sequencer
             .half_step(|step, max_steps| match (step, max_steps) {
-                           (1, _) => ClockUnits::EnvelopesAndTrianglesLinearCounter,
-                           (2, _) => ClockUnits::All(false),
-                           (3, _) => ClockUnits::EnvelopesAndTrianglesLinearCounter,
-                           (4, 4) => ClockUnits::All(reg & 0b_0100_0000 == 0),
-                           (5, 5) => ClockUnits::All(false),
-                           _ => ClockUnits::None,
+                           (1, _) => Clock::EnvelopesAndTrianglesLinearCounter,
+                           (2, _) => Clock::All(false),
+                           (3, _) => Clock::EnvelopesAndTrianglesLinearCounter,
+                           (4, 4) => Clock::All(reg & 0b_0100_0000 == 0),
+                           (5, 5) => Clock::All(false),
+                           _ => Clock::None,
                        })
     }
 }
@@ -75,11 +88,13 @@ impl FrameTimerSequencer {
     }
 }
 
-impl Sequencer for FrameTimerSequencer {
-    type R = ClockUnits;
+impl FrameTimerSequencer {
+    fn reset(&mut self) {
+        self.half_steps = 0;
+    }
 
-    fn half_step<F>(&mut self, sequence_handler: F) -> ClockUnits
-        where F: FnOnce(u8, u8) -> ClockUnits
+    fn half_step<F>(&mut self, sequence_handler: F) -> Clock
+        where F: FnOnce(u8, u8) -> Clock
     {
         self.half_steps += 1;
         match self.mode {
@@ -91,9 +106,9 @@ impl Sequencer for FrameTimerSequencer {
                     29829 => sequence_handler(4, 4),
                     29830 => {
                         self.half_steps = 0;
-                        ClockUnits::None
+                        Clock::None
                     }
-                    _ => ClockUnits::None,
+                    _ => Clock::None,
                 }
             }
             SequenceMode::FiveStep => {
@@ -105,9 +120,9 @@ impl Sequencer for FrameTimerSequencer {
                     37281 => sequence_handler(5, 5),
                     37282 => {
                         self.half_steps = 0;
-                        ClockUnits::None
+                        Clock::None
                     }
-                    _ => ClockUnits::None,
+                    _ => Clock::None,
                 }
             }
         }

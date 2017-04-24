@@ -86,7 +86,7 @@ fn memory_write_mapping() {
 mod mocks {
     use apu::ApuImpl;
     use apu::dmc::Dmc;
-    use apu::frame_counter::{ClockUnits, FrameCounter};
+    use apu::frame_counter::{Clock, FrameCounter};
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::status::Status;
@@ -109,13 +109,13 @@ mod mocks {
     }
 
     impl FrameCounter for FrameCounterMock {
-        fn write(&mut self, val: u8) -> ClockUnits {
+        fn write(&mut self, val: u8, _: bool) -> Clock {
             self.reg_4017 = val;
-            ClockUnits::None
+            Clock::None
         }
 
-        fn half_step(&mut self) -> ClockUnits {
-            ClockUnits::None
+        fn half_step(&mut self) -> Clock {
+            Clock::None
         }
     }
 
@@ -165,13 +165,11 @@ mod mocks {
             self.reg_4003_4007 = val;
         }
 
-        fn tick(&mut self) {}
-
         fn clock_length_counter(&mut self) {}
 
-        fn set_length_counter(&mut self, _: u8) {}
-
         fn clock_envelope(&mut self) {}
+
+        fn clock_timer(&mut self) {}
     }
 
     #[derive(Default)]
@@ -195,6 +193,10 @@ mod mocks {
         }
 
         fn clock_envelope(&mut self) {}
+
+        fn clock_length_counter(&mut self) {}
+
+        fn clock_timer(&mut self) {}
     }
 
     #[derive(Default)]

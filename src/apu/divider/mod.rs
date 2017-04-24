@@ -32,6 +32,7 @@ impl<T: Default> Divider for DownCountDivider<T> {
             T::default()
         }
     }
+
     fn reload_period(&mut self) {
         self.counter = self.period
     }

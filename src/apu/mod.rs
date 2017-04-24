@@ -11,28 +11,19 @@ mod triangle;
 mod noise;
 mod envelope;
 mod divider;
+mod timer;
 mod dmc;
 
 use apu::dmc::{Dmc, DmcImpl};
-use apu::frame_counter::{ClockUnits, FrameCounter, FrameCounterImpl};
+use apu::frame_counter::{Clock, FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, PulseImpl};
 use apu::status::{Status, StatusImpl};
 use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
-use std::ops::FnOnce;
 
-const LENGTH_TIMER_TABLE: [u8; 32] = [10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26,
-                                      14, 12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28,
-                                      32, 30];
 
 pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, StatusImpl, FrameCounterImpl, DmcImpl>;
-
-
-trait Sequencer: Default {
-    type R;
-    fn half_step<F>(&mut self, sequence_handler: F) -> Self::R where F: FnOnce(u8, u8) -> Self::R;
-}
 
 #[derive(Default)]
 pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, D: Dmc> {
@@ -43,6 +34,7 @@ pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, S: Status, F: FrameCounter, 
     noise: N,
     status: S,
     dmc: D,
+    on_full_cycle: bool,
 }
 
 pub trait ApuContract: Default {
@@ -81,12 +73,16 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x4013 => self.dmc.write_sample_len_reg(val),
             0x4015 => self.status.write(val),
             0x4017 => {
-                match self.frame_counter.write(val) {
-                    ClockUnits::All(_) => (),
-                    _ => (),
+                if let Clock::All(_) = self.frame_counter.write(val, self.on_full_cycle) {
+                    self.pulse_1.clock_length_counter();
+                    self.pulse_1.clock_envelope();
+                    self.pulse_2.clock_length_counter();
+                    self.pulse_2.clock_envelope();
+                    self.noise.clock_length_counter();
+                    self.noise.clock_envelope();
                 }
             }
-            _ => panic!("Unexpected PPU write"),
+            _ => panic!("Unexpected APU write"),
         }
     }
 
@@ -95,12 +91,13 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
     }
 
     fn half_step(&mut self) -> Interrupt {
-        match self.frame_counter.half_step() {
-            ClockUnits::All(interrupt) => {
+        let ret = match self.frame_counter.half_step() {
+            Clock::All(interrupt) => {
                 self.pulse_1.clock_length_counter();
                 self.pulse_1.clock_envelope();
                 self.pulse_2.clock_length_counter();
                 self.pulse_2.clock_envelope();
+                self.noise.clock_length_counter();
                 self.noise.clock_envelope();
 
                 if interrupt {
@@ -109,8 +106,22 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                     Interrupt::None
                 }
             }
-            ClockUnits::EnvelopesAndTrianglesLinearCounter => Interrupt::None,
-            ClockUnits::None => Interrupt::None,
+            Clock::EnvelopesAndTrianglesLinearCounter => {
+                self.pulse_1.clock_envelope();
+                self.pulse_2.clock_envelope();
+                self.noise.clock_envelope();
+                Interrupt::None
+            }
+            Clock::None => Interrupt::None,
+        };
+
+        if self.on_full_cycle {
+            self.pulse_1.clock_timer();
+            self.pulse_2.clock_timer();
+            self.noise.clock_timer();
         }
+
+        self.on_full_cycle = !self.on_full_cycle;
+        ret
     }
 }
