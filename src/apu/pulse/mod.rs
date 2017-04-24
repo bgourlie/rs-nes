@@ -15,8 +15,7 @@ pub trait Pulse: Default {
 #[derive(Default)]
 pub struct PulseImpl {
     sweep_reg: u8,
-    timer_low_reg: u8,
-    length_load_timer_high_reg: u8,
+    timer_period: u16,
     duty: u8,
     timer: Timer,
     length_counter: LengthCounter,
@@ -36,17 +35,16 @@ impl Pulse for PulseImpl {
     }
 
     fn write_timer_low_reg(&mut self, val: u8) {
-        self.timer_low_reg = val;
-        let timer_period = self.timer_period();
-        self.timer.set_period(timer_period)
+        self.timer_period = (self.timer_period & 0b_0111_0000_0000) | val as u16;
+        self.timer.set_period(self.timer_period)
     }
 
     fn write_length_load_timer_high_reg(&mut self, val: u8) {
         self.sequencer.reset();
         self.envelope.set_start_flag();
-        self.length_load_timer_high_reg = val;
-        let timer_period = self.timer_period();
-        self.timer.set_period(timer_period)
+        self.timer_period = (self.timer_period & 0b_1111_1111) | ((val as u16 & 0b111) << 8);
+        self.timer.set_period(self.timer_period);
+        self.length_counter.load((val & 0b_1111_1000) >> 3);
     }
 
     fn clock_timer(&mut self) {
@@ -64,16 +62,6 @@ impl Pulse for PulseImpl {
 
     fn clock_envelope(&mut self) {
         self.envelope.clock()
-    }
-}
-
-impl PulseImpl {
-    fn timer_period(&self) -> u16 {
-        ((self.length_load_timer_high_reg as u16 & 0b111) << 8) | self.timer_low_reg as u16
-    }
-
-    fn length_counter_load(&self) -> u8 {
-        (self.length_load_timer_high_reg & 0b_1111_1000) >> 3
     }
 }
 

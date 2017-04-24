@@ -1,36 +1,28 @@
-use std::marker::PhantomData;
-
 pub trait Divider {
-    type T: Default;
     fn set_period(&mut self, period: u8);
     fn reload_period(&mut self);
-    fn clock<F>(&mut self, clock_handler: F) -> Self::T where F: FnOnce() -> Self::T;
+    fn clock<F>(&mut self, clock_handler: F) where F: FnOnce();
 }
 
 #[derive(Default)]
-pub struct DownCountDivider<T: Default> {
+pub struct DownCountDivider {
     period: u8,
     counter: u8,
-    phantom: PhantomData<T>,
 }
 
-impl<T: Default> Divider for DownCountDivider<T> {
-    type T = T;
-
+impl Divider for DownCountDivider {
     fn set_period(&mut self, period: u8) {
         self.period = period
     }
 
-    fn clock<F>(&mut self, clock_handler: F) -> Self::T
-        where F: FnOnce() -> Self::T
+    fn clock<F>(&mut self, clock_handler: F)
+        where F: FnOnce()
     {
-        self.counter += 1;
-        if self.counter > self.period {
-            self.counter = 0;
+        if self.counter == 0 {
+            self.reload_period();
             clock_handler()
-        } else {
-            T::default()
         }
+        self.counter -= 1;
     }
 
     fn reload_period(&mut self) {

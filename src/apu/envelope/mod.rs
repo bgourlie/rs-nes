@@ -5,7 +5,7 @@ pub struct Envelope {
     start_flag: bool,
     decay_counter: u8,
     flags: u8,
-    divider: DownCountDivider<()>,
+    divider: DownCountDivider,
 }
 
 impl Envelope {
