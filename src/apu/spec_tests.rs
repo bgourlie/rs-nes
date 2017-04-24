@@ -113,7 +113,7 @@ mod mocks {
             Clock::None
         }
 
-        fn write_4017(&mut self, val: u8, _: bool) -> Clock {
+        fn write_4017(&mut self, val: u8) -> Clock {
             self.reg_4017 = val;
             Clock::None
         }

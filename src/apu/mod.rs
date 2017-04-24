@@ -8,7 +8,6 @@ mod frame_counter;
 mod triangle;
 mod noise;
 mod envelope;
-mod divider;
 mod timer;
 mod dmc;
 
@@ -70,7 +69,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
             0x4013 => self.dmc.write_4013(val),
             0x4015 => self.status.write_4015(val),
             0x4017 => {
-                if let Clock::All(_) = self.frame_counter.write_4017(val, self.on_full_cycle) {
+                if let Clock::All(_) = self.frame_counter.write_4017(val) {
                     self.pulse_1.clock_length_counter();
                     self.pulse_1.clock_envelope();
                     self.pulse_2.clock_length_counter();
