@@ -15,6 +15,10 @@ impl LengthCounter {
         }
     }
 
+    pub fn is_nonzero(&self) -> bool {
+        self.counter > 0
+    }
+
     pub fn set_halt_flag(&mut self, halt: bool) {
         self.halt_flag = halt;
     }

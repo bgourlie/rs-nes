@@ -78,6 +78,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                     self.noise.clock_length_counter();
                     self.noise.clock_envelope();
                     self.triangle.clock_length_counter();
+                    self.triangle.clock_linear_counter();
                 }
             }
             _ => panic!("Unexpected APU write"),
@@ -98,6 +99,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                 self.noise.clock_length_counter();
                 self.noise.clock_envelope();
                 self.triangle.clock_length_counter();
+                self.triangle.clock_linear_counter();
 
                 if interrupt {
                     Interrupt::Irq
@@ -105,7 +107,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                     Interrupt::None
                 }
             }
-            Clock::EnvelopesAndTrianglesLinearCounter => {
+            Clock::EnvelopeAndTriangleLinearCounter => {
                 self.pulse_1.clock_envelope();
                 self.pulse_2.clock_envelope();
                 self.noise.clock_envelope();

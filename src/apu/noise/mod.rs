@@ -79,10 +79,7 @@ impl Noise for NoiseImpl {
     }
 
     fn clock_timer(&mut self) {
-        let mut clock_shift_register = false;
-        self.timer.clock(|| { clock_shift_register = true; });
-
-        if clock_shift_register {
+        if self.timer.clock() {
             self.clock_shift_register()
         }
     }

@@ -3,7 +3,7 @@
 pub enum Clock {
     None,
     All(bool),
-    EnvelopesAndTrianglesLinearCounter,
+    EnvelopeAndTriangleLinearCounter,
 }
 
 pub trait FrameCounter: Default {
@@ -53,9 +53,9 @@ impl FrameCounter for FrameCounterImpl {
         let reg = self.reg;
         self.sequencer
             .half_step(|step, max_steps| match (step, max_steps) {
-                           (1, _) => Clock::EnvelopesAndTrianglesLinearCounter,
+                           (1, _) => Clock::EnvelopeAndTriangleLinearCounter,
                            (2, _) => Clock::All(false),
-                           (3, _) => Clock::EnvelopesAndTrianglesLinearCounter,
+                           (3, _) => Clock::EnvelopeAndTriangleLinearCounter,
                            (4, 4) => Clock::All(reg & 0b_0100_0000 == 0),
                            (5, 5) => Clock::All(false),
                            _ => Clock::None,

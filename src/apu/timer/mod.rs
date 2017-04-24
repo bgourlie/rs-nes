@@ -5,14 +5,14 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn clock<F>(&mut self, output_clock_handler: F)
-        where F: FnOnce()
-    {
+    /// The return value indicates whether or not an output clock occurs
+    pub fn clock(&mut self) -> bool {
         if self.current == 0 {
             self.current = self.period;
-            output_clock_handler();
+            true
         } else {
             self.current -= 1;
+            false
         }
     }
 

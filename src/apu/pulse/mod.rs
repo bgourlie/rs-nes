@@ -66,10 +66,7 @@ impl Pulse for PulseImpl {
     }
 
     fn clock_timer(&mut self) {
-        let mut clock_sequencer = false;
-        self.timer.clock(|| { clock_sequencer = true; });
-
-        if clock_sequencer {
+        if self.timer.clock() {
             self.sequencer.clock();
         }
     }
