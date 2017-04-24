@@ -8,9 +8,9 @@ pub trait Pulse: Default {
     fn write_4001_4005(&mut self, val: u8);
     fn write_4002_4006(&mut self, val: u8);
     fn write_4003_4007(&mut self, val: u8);
-    fn clock_length_counter(&mut self);
     fn clock_envelope(&mut self);
     fn clock_timer(&mut self);
+    fn length_counter(&mut self) -> &mut LengthCounter;
 }
 
 #[derive(Default)]
@@ -71,12 +71,12 @@ impl Pulse for PulseImpl {
         }
     }
 
-    fn clock_length_counter(&mut self) {
-        self.length_counter.clock()
-    }
-
     fn clock_envelope(&mut self) {
         self.envelope.clock()
+    }
+
+    fn length_counter(&mut self) -> &mut LengthCounter {
+        &mut self.length_counter
     }
 }
 

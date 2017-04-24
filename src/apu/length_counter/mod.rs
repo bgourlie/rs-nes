@@ -19,12 +19,16 @@ impl LengthCounter {
         self.counter > 0
     }
 
+    pub fn zero(&mut self) {
+        self.counter = 0;
+    }
+
     pub fn set_halt_flag(&mut self, halt: bool) {
         self.halt_flag = halt;
     }
 
-    pub fn load(&mut self, length: u8) {
-        debug_assert!(length < 32);
-        self.counter = LENGTH_COUNTER_TABLE[length as usize];
+    pub fn load(&mut self, val: u8) {
+        debug_assert!(val < 32);
+        self.counter = LENGTH_COUNTER_TABLE[val as usize];
     }
 }

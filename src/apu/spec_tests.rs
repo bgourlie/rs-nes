@@ -87,6 +87,7 @@ mod mocks {
     use apu::ApuImpl;
     use apu::dmc::Dmc;
     use apu::frame_counter::{Clock, FrameCounter};
+    use apu::length_counter::LengthCounter;
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::triangle::Triangle;
@@ -118,6 +119,7 @@ mod mocks {
         pub reg_4008: u8,
         pub reg_400a: u8,
         pub reg_400b: u8,
+        length_counter: LengthCounter,
     }
 
     impl Triangle for TriangleMock {
@@ -135,9 +137,11 @@ mod mocks {
 
         fn clock_timer(&mut self) {}
 
-        fn clock_length_counter(&mut self) {}
-
         fn clock_linear_counter(&mut self) {}
+
+        fn length_counter(&mut self) -> &mut LengthCounter {
+            &mut self.length_counter
+        }
     }
 
     #[derive(Default)]
@@ -146,6 +150,7 @@ mod mocks {
         pub reg_4001_4005: u8,
         pub reg_4002_4006: u8,
         pub reg_4003_4007: u8,
+        length_counter: LengthCounter,
     }
 
     impl Pulse for PulseMock {
@@ -165,11 +170,13 @@ mod mocks {
             self.reg_4003_4007 = val;
         }
 
-        fn clock_length_counter(&mut self) {}
-
         fn clock_envelope(&mut self) {}
 
         fn clock_timer(&mut self) {}
+
+        fn length_counter(&mut self) -> &mut LengthCounter {
+            &mut self.length_counter
+        }
     }
 
     #[derive(Default)]
@@ -177,6 +184,7 @@ mod mocks {
         pub reg_400c: u8,
         pub reg_400e: u8,
         pub reg_400f: u8,
+        length_counter: LengthCounter,
     }
 
     impl Noise for NoiseMock {
@@ -194,9 +202,11 @@ mod mocks {
 
         fn clock_envelope(&mut self) {}
 
-        fn clock_length_counter(&mut self) {}
-
         fn clock_timer(&mut self) {}
+
+        fn length_counter(&mut self) -> &mut LengthCounter {
+            &mut self.length_counter
+        }
     }
 
     #[derive(Default)]
@@ -223,5 +233,7 @@ mod mocks {
         fn write_4013(&mut self, val: u8) {
             self.reg_4013 = val
         }
+
+        fn zero_length_counter(&mut self) {}
     }
 }

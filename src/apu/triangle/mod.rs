@@ -8,8 +8,8 @@ pub trait Triangle: Default {
     fn write_400a(&mut self, val: u8);
     fn write_400b(&mut self, val: u8);
     fn clock_timer(&mut self);
-    fn clock_length_counter(&mut self);
     fn clock_linear_counter(&mut self);
+    fn length_counter(&mut self) -> &mut LengthCounter;
 }
 
 #[derive(Default)]
@@ -62,12 +62,12 @@ impl Triangle for TriangleImpl {
         }
     }
 
-    fn clock_length_counter(&mut self) {
-        self.length_counter.clock()
-    }
-
     fn clock_linear_counter(&mut self) {
         self.linear_counter.clock()
+    }
+
+    fn length_counter(&mut self) -> &mut LengthCounter {
+        &mut self.length_counter
     }
 }
 

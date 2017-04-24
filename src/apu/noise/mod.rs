@@ -11,8 +11,8 @@ pub trait Noise: Default {
     fn write_400e(&mut self, val: u8);
     fn write_400f(&mut self, val: u8);
     fn clock_envelope(&mut self);
-    fn clock_length_counter(&mut self);
     fn clock_timer(&mut self);
+    fn length_counter(&mut self) -> &mut LengthCounter;
 }
 
 pub struct NoiseImpl {
@@ -84,7 +84,7 @@ impl Noise for NoiseImpl {
         }
     }
 
-    fn clock_length_counter(&mut self) {
-        self.length_counter.clock()
+    fn length_counter(&mut self) -> &mut LengthCounter {
+        &mut self.length_counter
     }
 }
