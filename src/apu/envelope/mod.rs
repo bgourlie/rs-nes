@@ -14,7 +14,7 @@ impl Envelope {
     }
 
     pub fn set_flags(&mut self, flags: u8) {
-        // Flags: ---C_VVVV
+        // Flags: ---CVVVV
         // Where C is the constant volume flag and V is either:
         // a) The constant volume value (occurs when C is set), or
         // b) The period for the divider that clocks the decay counter (occurs when C is not set)

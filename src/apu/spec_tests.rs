@@ -138,6 +138,12 @@ mod mocks {
         fn write_400a(&mut self, val: u8) {
             self.reg_400a = val;
         }
+
+        fn clock_timer(&mut self) {}
+
+        fn clock_length_counter(&mut self) {}
+
+        fn clock_linear_counter(&mut self) {}
     }
 
     #[derive(Default)]

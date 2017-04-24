@@ -78,6 +78,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                     self.pulse_2.clock_envelope();
                     self.noise.clock_length_counter();
                     self.noise.clock_envelope();
+                    self.triangle.clock_length_counter();
                 }
             }
             _ => panic!("Unexpected APU write"),
@@ -97,6 +98,7 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                 self.pulse_2.clock_envelope();
                 self.noise.clock_length_counter();
                 self.noise.clock_envelope();
+                self.triangle.clock_length_counter();
 
                 if interrupt {
                     Interrupt::Irq
@@ -108,16 +110,21 @@ impl<P, T, N, S, F, D> ApuContract for ApuImpl<P, T, N, S, F, D>
                 self.pulse_1.clock_envelope();
                 self.pulse_2.clock_envelope();
                 self.noise.clock_envelope();
+                self.triangle.clock_linear_counter();
                 Interrupt::None
             }
             Clock::None => Interrupt::None,
         };
 
         if self.on_full_cycle {
+            // These timers are clocked every other CPU cycle, or every full APU cycle
             self.pulse_1.clock_timer();
             self.pulse_2.clock_timer();
             self.noise.clock_timer();
         }
+
+        // Triangle timer is clocked every CPU cycle, or every APU half-cycle
+        self.triangle.clock_timer();
 
         self.on_full_cycle = !self.on_full_cycle;
         ret
