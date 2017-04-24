@@ -51,19 +51,18 @@ impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
         //
         // - N/T/2/1 will read as 1 if the corresponding length counter is greater than 0. For the
         //   triangle channel, the status of the linear counter is irrelevant.
-        // - D will read as 1 if the DMC bytes remaining is more than 0.
         // - Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
-        // - If an interrupt flag was set at the same moment of the read, it will read back as 1 but
-        //   it will not be cleared.
+        // - TODO: D will read as 1 if the DMC bytes remaining is more than 0.
+        // - TODO: If an interrupt flag was set at the same moment of the read, it will read back as
+        //   1 but it will not be cleared.
         let status_high = self.status.get() & 0b_1111_0000;
-        let status_low = {
-            0
-        };
-
-
-        let new_status = self.status.get() & 0b_1011_1111;
-        self.status.set(new_status);
-        new_status
+        let status_low = ((self.noise.length_is_nonzero() as u8) << 3) |
+                         ((self.triangle.length_is_nonzero() as u8) << 2) |
+                         ((self.pulse_2.length_is_nonzero() as u8) << 1) |
+                         self.pulse_1.length_is_nonzero() as u8;
+        let status = status_high | status_low;
+        self.status.set(status & 0b_1011_1111);
+        status
     }
 
     fn write_4015(&mut self, val: u8) {
@@ -72,13 +71,102 @@ impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
         //
         // - Writing a zero to any of the channel enable bits will silence that channel and
         //   immediately set its length counter to 0.
-        // - If the DMC bit is clear, the DMC bytes remaining will be set to 0 and the DMC will
-        //   silence when it empties.
-        // - If the DMC bit is set, the DMC sample will be restarted only if its bytes remaining is
-        //   0. If there are bits remaining in the 1-byte sample buffer, these will finish playing
-        //   before the next sample is fetched.
+        // - TODO: If the DMC bit is clear, the DMC bytes remaining will be set to 0 and the DMC
+        //   will silence when it empties.
+        // - TODO: If the DMC bit is set, the DMC sample will be restarted only if its bytes
+        //   remaining is 0. If there are bits remaining in the 1-byte sample buffer, these will
+        //   finish playing before the next sample is fetched.
         // - Writing to this register clears the DMC interrupt flag.
         // - Power-up and reset have the effect of writing $00, silencing all channels.
+
+        match val & 0b_0000_1111 {
+            0 => {
+                // 0000
+                self.noise.zero_length_counter();
+                self.triangle.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+            }
+            1 => {
+                // 0001
+                self.noise.zero_length_counter();
+                self.triangle.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+            }
+            2 => {
+                // 0010
+                self.noise.zero_length_counter();
+                self.triangle.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+            }
+            3 => {
+                // 0011
+                self.noise.zero_length_counter();
+                self.triangle.zero_length_counter();
+
+            }
+            4 => {
+                // 0100
+                self.noise.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+
+            }
+            5 => {
+                // 0101
+                self.noise.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+
+            }
+            6 => {
+                // 0110
+                self.noise.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+
+            }
+            7 => {
+                // 0111
+                self.noise.zero_length_counter();
+
+            }
+            8 => {
+                // 1000
+                self.triangle.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+
+            }
+            9 => {
+                // 1001
+                self.triangle.zero_length_counter();
+                self.pulse_2.zero_length_counter();
+            }
+            10 => {
+                // 1010
+                self.triangle.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+            }
+            11 => {
+                // 1011
+                self.triangle.zero_length_counter();
+            }
+            12 => {
+                // 1100
+                self.pulse_2.zero_length_counter();
+                self.pulse_1.zero_length_counter();
+            }
+            13 => {
+                // 1101
+                self.pulse_2.zero_length_counter();
+            }
+            14 => {
+                // 1110
+                self.pulse_1.zero_length_counter();
+            }
+            15 => (),
+            _ => unreachable!(),
+        }
+
         self.status.set(val & 0b_0111_1111)
     }
 }
