@@ -18,7 +18,6 @@ use apu::pulse::{Pulse, Pulse1, Pulse2};
 use apu::triangle::{Triangle, TriangleImpl};
 use audio::Audio;
 use cpu::Interrupt;
-use std::cell::Cell;
 
 const PULSE_FREQUENCY_TABLE: [f32; 31] = [0.0,
                                           0.011609139523578026,
@@ -62,7 +61,7 @@ pub struct ApuImpl<P1: Pulse, P2: Pulse, T: Triangle, N: Noise, F: FrameCounter,
     triangle: T,
     noise: N,
     dmc: D,
-    status: Cell<u8>,
+    status: u8,
     on_full_cycle: bool,
 }
 
@@ -86,17 +85,18 @@ impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
         //
         // - N/T/2/1 will read as 1 if the corresponding length counter is greater than 0. For the
         //   triangle channel, the status of the linear counter is irrelevant.
-        // - Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
+        // - TODO: Reading this register clears the frame interrupt flag (but not the DMC interrupt
+        //   flag).
         // - TODO: D will read as 1 if the DMC bytes remaining is more than 0.
         // - TODO: If an interrupt flag was set at the same moment of the read, it will read back as
         //   1 but it will not be cleared.
-        let status_high = self.status.get() & 0b_1111_0000;
+        let status_high = self.status & 0b_1111_0000;
         let status_low = ((self.noise.length_is_nonzero() as u8) << 3) |
                          ((self.triangle.length_is_nonzero() as u8) << 2) |
                          ((self.pulse_2.length_is_nonzero() as u8) << 1) |
                          self.pulse_1.length_is_nonzero() as u8;
         let status = status_high | status_low;
-        self.status.set(status & 0b_1011_1111);
+        // self.status.set(status & 0b_1011_1111);
         status
     }
 
@@ -196,7 +196,7 @@ impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
             _ => unreachable!(),
         }
 
-        self.status.set(val & 0b_0111_1111)
+        self.status = val & 0b_0111_1111;
     }
 }
 

@@ -49,8 +49,8 @@ fn ppu_memory_mapped_write() {
 
 #[test]
 fn apu_memory_mapped_read() {
-    let mut fixture = new_fixture();
-    fixture.apu.set_status(0xff);
+    let fixture = new_fixture();
+    fixture.apu.write().unwrap().set_status(0xff);
     // Only a single APU address is readable
     let val = fixture.read(0x4015);
     assert_eq!(0xff, val);
@@ -62,21 +62,21 @@ fn apu_memory_mapped_write() {
 
     for addr in 0x4000..0x4014_u16 {
         fixture.write(addr, 0xff, 0);
-        assert_eq!(addr, fixture.apu.write_addr());
-        assert_eq!(0xff, fixture.apu.write_value());
+        assert_eq!(addr, fixture.apu.write().unwrap().write_addr());
+        assert_eq!(0xff, fixture.apu.write().unwrap().write_value());
     }
     // Skip 0x4014, since it's ppu DMA address
 
     fixture.write(0x4015, 0xff, 0);
-    assert_eq!(0x4015, fixture.apu.write_addr());
-    assert_eq!(0xff, fixture.apu.write_value());
+    assert_eq!(0x4015, fixture.apu.write().unwrap().write_addr());
+    assert_eq!(0xff, fixture.apu.write().unwrap().write_value());
 
     // Skip 0x4016 since it's input probe register
 
     for addr in 0x4017..0x4018_u16 {
         fixture.write(addr, 0xff, 0);
-        assert_eq!(addr, fixture.apu.write_addr());
-        assert_eq!(0xff, fixture.apu.write_value());
+        assert_eq!(addr, fixture.apu.write().unwrap().write_addr());
+        assert_eq!(0xff, fixture.apu.write().unwrap().write_value());
     }
 }
 
@@ -113,6 +113,7 @@ mod mocks {
     use screen::NesScreen;
     use std::io::Write;
     use std::rc::Rc;
+    use std::sync::{Arc, RwLock};
 
     #[derive(Default)]
     pub struct InputMock;
@@ -250,7 +251,7 @@ mod mocks {
             ram: [0_u8; 0x800],
             rom: rom,
             ppu: PpuMock::default(),
-            apu: ApuMock::default(),
+            apu: Arc::new(RwLock::new(ApuMock::default())),
             input: InputMock::default(),
         }
     }

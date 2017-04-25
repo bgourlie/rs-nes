@@ -3,8 +3,8 @@ use apu::ApuContract;
 
 #[test]
 fn memory_read_mapping() {
-    let apu = apu_mock();
-    apu.status.set(0xb0);
+    let mut apu = apu_mock();
+    apu.status = 0xb0;
     let result = apu.read_status();
     assert_eq!(0xb0, result)
 }

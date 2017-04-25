@@ -13,6 +13,7 @@ use screen::NesScreen;
 use seahash;
 use std::io::Write;
 use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 
 macro_rules! dma_tick {
     ( $mem : expr ) => {
@@ -31,7 +32,7 @@ pub struct NesMemoryBase<P: Ppu, A: ApuContract, I: Input> {
     ram: [u8; 0x800],
     rom: Rc<Box<NesRom>>,
     ppu: P,
-    apu: A,
+    apu: Arc<RwLock<A>>,
     input: I,
 }
 
@@ -41,7 +42,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> NesMemoryBase<P, A, I> {
             ram: [0_u8; 0x800],
             rom: rom,
             ppu: ppu,
-            apu: A::default(),
+            apu: Arc::new(RwLock::new(A::default())),
             input: input,
         }
     }
@@ -81,7 +82,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen, A>
             };
         }
 
-        let apu_action = self.apu.half_step();
+        let apu_action = self.apu.write().unwrap().half_step();
 
         // TODO: What do we do if PPU and APU both generate an interrupt?
         let tick_action = if ppu_action != Interrupt::None {
@@ -104,7 +105,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen, A>
         } else if address == 0x4016 {
             self.input.write(address, value)
         } else if address < 0x4018 {
-            self.apu.write(address, value)
+            self.apu.write().unwrap().write(address, value)
         } else {
             panic!("Unimplemented write to 0x{:0>4X}", address);
         }
@@ -117,7 +118,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen, A>
         } else if address < 0x4000 {
             self.ppu.read(address)
         } else if address == 0x4015 {
-            self.apu.read_status()
+            self.apu.read().unwrap().read_status()
         } else if address == 0x4016 {
             self.input.read(address)
         } else if address < 0x4018 {
@@ -175,7 +176,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen, A>
         &self.input
     }
 
-    fn audio(&self) -> &A {
-        &self.apu
+    fn audio(&self) -> Arc<RwLock<A>> {
+        self.apu.clone()
     }
 }

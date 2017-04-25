@@ -6,12 +6,13 @@ use screen::NoScreen;
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
+use std::sync::{Arc, RwLock};
 
 pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
     input: NoInput,
     screen: NoScreen,
-    audio: NoAudio,
+    audio: Arc<RwLock<NoAudio>>,
 }
 
 impl SimpleMemory {
@@ -20,7 +21,7 @@ impl SimpleMemory {
             addr: [0; ADDRESSABLE_MEMORY],
             input: NoInput,
             screen: NoScreen,
-            audio: NoAudio,
+            audio: Arc::new(RwLock::new(NoAudio)),
         }
     }
 
@@ -66,7 +67,7 @@ impl Memory<NoInput, NoScreen, NoAudio> for SimpleMemory {
         &self.input
     }
 
-    fn audio(&self) -> &NoAudio {
-        &self.audio
+    fn audio(&self) -> Arc<RwLock<NoAudio>> {
+        self.audio.clone()
     }
 }
