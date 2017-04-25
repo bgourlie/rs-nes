@@ -38,7 +38,7 @@ impl Envelope {
         } else {
             self.start_flag = false;
             self.reload_decay_counter();
-            self.timer.reload_period();
+            self.timer.reload();
         }
     }
 

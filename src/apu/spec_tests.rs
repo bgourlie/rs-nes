@@ -87,7 +87,6 @@ mod mocks {
     use apu::ApuImpl;
     use apu::dmc::Dmc;
     use apu::frame_counter::{Clock, FrameCounter};
-    use apu::length_counter::LengthCounter;
     use apu::noise::Noise;
     use apu::pulse::Pulse;
     use apu::triangle::Triangle;
@@ -183,6 +182,8 @@ mod mocks {
         fn length_is_nonzero(&self) -> bool {
             false
         }
+
+        fn clock_sweep(&mut self) {}
     }
 
     #[derive(Default)]

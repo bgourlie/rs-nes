@@ -24,7 +24,11 @@ impl Timer {
         self.period = period;
     }
 
-    pub fn reload_period(&mut self) {
+    pub fn reload(&mut self) {
         self.counter = self.period
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.counter == 0
     }
 }

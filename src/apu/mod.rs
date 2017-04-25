@@ -9,6 +9,7 @@ mod noise;
 mod envelope;
 mod timer;
 mod dmc;
+mod sweep;
 
 use apu::dmc::{Dmc, DmcImpl};
 use apu::frame_counter::{Clock, FrameCounter, FrameCounterImpl};
@@ -223,8 +224,10 @@ impl<P, T, N, F, D> ApuContract for ApuImpl<P, T, N, F, D>
         let ret = match self.frame_counter.half_step() {
             Clock::All(interrupt) => {
                 self.pulse_1.clock_length_counter();
+                self.pulse_1.clock_sweep();
                 self.pulse_1.clock_envelope();
                 self.pulse_2.clock_length_counter();
+                self.pulse_2.clock_sweep();
                 self.pulse_2.clock_envelope();
                 self.noise.clock_length_counter();
                 self.noise.clock_envelope();
