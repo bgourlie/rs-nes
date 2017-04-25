@@ -67,7 +67,7 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> NesMemoryBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen>
+impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen, A>
     for NesMemoryBase<P, A, I> {
     fn tick(&mut self) -> Interrupt {
         let mut ppu_action = Interrupt::None;
@@ -173,5 +173,9 @@ impl<P: Ppu<Scr = NesScreen>, A: ApuContract, I: Input> Memory<I, NesScreen>
     }
     fn input(&self) -> &I {
         &self.input
+    }
+
+    fn audio(&self) -> &A {
+        &self.apu
     }
 }

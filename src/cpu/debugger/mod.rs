@@ -3,6 +3,7 @@ mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
 
+use audio::Audio;
 use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
 use cpu::{Cpu, Interrupt};
@@ -32,10 +33,10 @@ pub enum InterruptHandler {
     Nmi,
 }
 
-pub struct HttpDebugger<S: Screen + Serialize, I: Input, M: Memory<I, S>> {
+pub struct HttpDebugger<S: Screen + Serialize, I: Input, A: Audio, M: Memory<I, S, A>> {
     ws_tx: Sender<DebuggerCommand<S>>,
     ws_rx: Receiver<DebuggerCommand<S>>,
-    cpu: Cpu<S, I, M>,
+    cpu: Cpu<S, I, A, M>,
     breakpoints: Arc<Mutex<BreakpointMap>>,
     cpu_thread_handle: thread::Thread,
     cpu_paused: Arc<AtomicBool>,
@@ -45,8 +46,8 @@ pub struct HttpDebugger<S: Screen + Serialize, I: Input, M: Memory<I, S>> {
     last_mem_hash: u64,
 }
 
-impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
-    pub fn new(cpu: Cpu<S, I, M>) -> Self {
+impl<S: Screen + Serialize, I: Input, A: Audio, M: Memory<I, S, A>> HttpDebugger<S, I, A, M> {
+    pub fn new(cpu: Cpu<S, I, A, M>) -> Self {
         let (ws_sender, ws_receiver) = chan::sync(0);
         HttpDebugger {
             ws_tx: ws_sender,

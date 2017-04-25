@@ -54,5 +54,6 @@ pub mod cpu;
 pub mod ppu;
 pub mod screen;
 pub mod input;
+pub mod audio;
 mod apu;
 mod byte_utils;

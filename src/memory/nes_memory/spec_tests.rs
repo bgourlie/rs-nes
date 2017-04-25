@@ -104,8 +104,8 @@ fn oam_dma_timing() {
 
 mod mocks {
     use apu::ApuContract;
+    use audio::Audio;
     use cpu::Interrupt;
-
     use input::{Button, Input};
     use memory::nes_memory::NesMemoryBase;
     use ppu::Ppu;
@@ -167,7 +167,9 @@ mod mocks {
         fn half_step(&mut self) -> Interrupt {
             Interrupt::None
         }
+    }
 
+    impl Audio for ApuMock {
         fn sample(&self) -> f32 {
             0.0
         }

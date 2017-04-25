@@ -28,6 +28,7 @@ mod inc_dec_spec_tests;
 #[cfg(test)]
 mod jump_and_returns_instr_spec_tests;
 
+use audio::Audio;
 use byte_utils::*;
 use cpu::Cpu;
 use input::Input;
@@ -38,14 +39,20 @@ const BRK_VECTOR: u16 = 0xfffe;
 
 trait OpCode {
     type Input;
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>;
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>;
 }
 
-pub fn execute<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>, opcode: u8) {
+pub fn execute<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, opcode: u8)
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     match opcode {
         0xe8 => Inx::execute(cpu, Implied),
         0xca => Dex::execute(cpu, Implied),
@@ -580,10 +587,10 @@ pub fn execute<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>, opc
     }
 }
 
-pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>> {
+pub trait AddressingMode<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> {
     type Output;
     fn read(&self) -> Self::Output;
-    fn write(&self, _: &mut Cpu<S, I, M>, _: u8) {
+    fn write(&self, _: &mut Cpu<S, I, A, M>, _: u8) {
         unimplemented!();
     }
 }
@@ -595,7 +602,8 @@ pub struct Absolute {
 }
 
 impl Absolute {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>)
+                                                                   -> Self {
         let addr = cpu.read_pc16();
         let value = cpu.read_memory(addr);
 
@@ -606,7 +614,12 @@ impl Absolute {
         }
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         let addr = cpu.read_pc16();
 
         Absolute {
@@ -617,14 +630,19 @@ impl Absolute {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Absolute {
+impl<S, I, A, M> AddressingMode<S, I, A, M> for Absolute
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();
@@ -640,16 +658,18 @@ pub struct AbsoluteAddress {
 }
 
 impl AbsoluteAddress {
-    pub fn init<S, I, M>(cpu: &mut Cpu<S, I, M>) -> Self
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         AbsoluteAddress { addr: cpu.read_pc16() }
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteAddress {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M>
+    for AbsoluteAddress {
     type Output = u16;
 
     fn read(&self) -> Self::Output {
@@ -672,11 +692,21 @@ enum Variant {
 }
 
 impl AbsoluteX {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, Variant::Standard)
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, Variant::Store)
     }
 
@@ -684,13 +714,21 @@ impl AbsoluteX {
     ///
     /// Read-modify-write instructions do not have a conditional page boundary cycle. For these
     /// instructions we always execute this cycle.
-    pub fn init_rmw<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_rmw<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, Variant::ReadModifyWrite)
     }
 
-    fn init_base<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>,
-                                                       variant: Variant)
-                                                       -> Self {
+    fn init_base<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, variant: Variant) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         let base_addr = cpu.read_pc16();
         let target_addr = base_addr + cpu.registers.x as u16;
 
@@ -715,14 +753,19 @@ impl AbsoluteX {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteX {
+impl<S, I, A, M> AddressingMode<S, I, A, M> for AbsoluteX
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();
@@ -737,18 +780,29 @@ pub struct AbsoluteY {
 }
 
 impl AbsoluteY {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<S, I, M>(cpu: &mut Cpu<S, I, M>, is_store: bool) -> Self
+    fn init_base<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, is_store: bool) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         let base_addr = cpu.read_pc16();
         let target_addr = base_addr + cpu.registers.y as u16;
@@ -772,14 +826,14 @@ impl AbsoluteY {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteY {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for AbsoluteY {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }
@@ -789,21 +843,22 @@ pub struct Accumulator {
 }
 
 impl Accumulator {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>)
+                                                                   -> Self {
         // dummy read cycle
         cpu.tick();
         Accumulator { value: cpu.registers.acc }
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Accumulator {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for Accumulator {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         cpu.registers.acc = value;
     }
 }
@@ -813,13 +868,18 @@ pub struct Immediate {
 }
 
 impl Immediate {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         let val = cpu.read_pc();
         Immediate { value: val }
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Immediate {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for Immediate {
     type Output = u8;
 
     fn read(&self) -> u8 {
@@ -829,7 +889,12 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Immediate
 
 pub struct Implied;
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Implied {
+impl<S, I, A, M> AddressingMode<S, I, A, M> for Implied
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     type Output = ();
 
     fn read(&self) -> Self::Output {
@@ -843,18 +908,29 @@ pub struct IndexedIndirect {
 }
 
 impl IndexedIndirect {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<S, I, M>(cpu: &mut Cpu<S, I, M>, is_store: bool) -> Self
+    fn init_base<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, is_store: bool) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         let operand = cpu.read_pc();
         let base_addr = wrapping_add(operand, cpu.registers.x) as u16;
@@ -874,14 +950,19 @@ impl IndexedIndirect {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for IndexedIndirect {
+impl<S, I, A, M> AddressingMode<S, I, A, M> for IndexedIndirect
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }
@@ -891,7 +972,12 @@ pub struct Indirect {
 }
 
 impl Indirect {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         let addr = cpu.read_pc16();
 
         // Recreate hardware bug specific to indirect jmp
@@ -909,7 +995,12 @@ impl Indirect {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Indirect {
+impl<S, I, A, M> AddressingMode<S, I, A, M> for Indirect
+    where S: Screen,
+          I: Input,
+          A: Audio,
+          M: Memory<I, S, A>
+{
     type Output = u16;
 
     fn read(&self) -> Self::Output {
@@ -923,26 +1014,29 @@ pub struct IndirectIndexed {
 }
 
 impl IndirectIndexed {
-    pub fn init<S, I, M>(cpu: &mut Cpu<S, I, M>) -> Self
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<S, I, M>(cpu: &mut Cpu<S, I, M>) -> Self
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<S, I, M>(cpu: &mut Cpu<S, I, M>, is_store: bool) -> Self
+    fn init_base<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, is_store: bool) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         let addr = cpu.read_pc();
         let y = cpu.registers.y;
@@ -962,14 +1056,15 @@ impl IndirectIndexed {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for IndirectIndexed {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M>
+    for IndirectIndexed {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         cpu.write_memory(self.addr, value)
     }
 }
@@ -979,13 +1074,14 @@ pub struct Relative {
 }
 
 impl Relative {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>)
+                                                                   -> Self {
         let offset = cpu.read_pc() as i8;
         Relative { offset: offset }
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Relative {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for Relative {
     type Output = i8;
 
     fn read(&self) -> Self::Output {
@@ -1000,7 +1096,8 @@ pub struct ZeroPage {
 }
 
 impl ZeroPage {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>)
+                                                                   -> Self {
         let addr = cpu.read_pc() as u16;
         let val = cpu.read_memory(addr);
 
@@ -1011,7 +1108,11 @@ impl ZeroPage {
         }
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S,
+                                                                                       I,
+                                                                                       A,
+                                                                                       M>)
+                                                                         -> Self {
         let addr = cpu.read_pc() as u16;
 
         ZeroPage {
@@ -1022,14 +1123,14 @@ impl ZeroPage {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for ZeroPage {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for ZeroPage {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();
@@ -1045,7 +1146,8 @@ pub struct ZeroPageX {
 }
 
 impl ZeroPageX {
-    pub fn init<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>)
+                                                                   -> Self {
         let base_addr = cpu.read_pc();
         let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
 
@@ -1061,7 +1163,12 @@ impl ZeroPageX {
         }
     }
 
-    pub fn init_store<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>) -> Self {
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
+        where S: Screen,
+              I: Input,
+              A: Audio,
+              M: Memory<I, S, A>
+    {
         let base_addr = cpu.read_pc();
         let target_addr = wrapping_add(base_addr, cpu.registers.x) as u16;
 
@@ -1075,14 +1182,14 @@ impl ZeroPageX {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for ZeroPageX {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for ZeroPageX {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();
@@ -1098,26 +1205,29 @@ pub struct ZeroPageY {
 }
 
 impl ZeroPageY {
-    pub fn init<S, I, M>(cpu: &mut Cpu<S, I, M>) -> Self
+    pub fn init<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         Self::init_base(cpu, false)
     }
 
-    pub fn init_store<S, I, M>(cpu: &mut Cpu<S, I, M>) -> Self
+    pub fn init_store<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         Self::init_base(cpu, true)
     }
 
-    fn init_base<S, I, M>(cpu: &mut Cpu<S, I, M>, is_store: bool) -> Self
+    fn init_base<S, I, A, M>(cpu: &mut Cpu<S, I, A, M>, is_store: bool) -> Self
         where S: Screen,
               I: Input,
-              M: Memory<I, S>
+              A: Audio,
+              M: Memory<I, S, A>
     {
         let base_addr = cpu.read_pc();
         let target_addr = wrapping_add(base_addr, cpu.registers.y) as u16;
@@ -1142,14 +1252,14 @@ impl ZeroPageY {
     }
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for ZeroPageY {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> AddressingMode<S, I, A, M> for ZeroPageY {
     type Output = u8;
 
     fn read(&self) -> Self::Output {
         self.value
     }
 
-    fn write(&self, cpu: &mut Cpu<S, I, M>, value: u8) {
+    fn write(&self, cpu: &mut Cpu<S, I, A, M>, value: u8) {
         if !self.is_store {
             // Dummy write cycle
             cpu.tick();
@@ -1163,11 +1273,12 @@ struct Adc;
 impl OpCode for Adc {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let left = cpu.registers.acc;
         let right = am.read();
@@ -1180,11 +1291,12 @@ struct Sbc;
 impl OpCode for Sbc {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let lhs = cpu.registers.acc;
         let rhs = am.read();
@@ -1193,7 +1305,9 @@ impl OpCode for Sbc {
     }
 }
 
-fn adc_base<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>, lhs: u8, rhs: u8) {
+fn adc_base<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>>(cpu: &mut Cpu<S, I, A, M>,
+                                                               lhs: u8,
+                                                               rhs: u8) {
 
     if cpu.registers.decimal_flag() {
         panic!("Attempted decimal mode arithmetic");
@@ -1225,11 +1339,12 @@ struct And;
 impl OpCode for And {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let lhs = cpu.registers.acc;
         let rhs = am.read();
@@ -1238,11 +1353,12 @@ impl OpCode for And {
     }
 }
 
-fn shift_left<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM, lsb: bool)
+fn shift_left<S, I, M, AM, A>(cpu: &mut Cpu<S, I, A, M>, am: AM, lsb: bool)
     where S: Screen,
           I: Input,
-          M: Memory<I, S>,
-          AM: AddressingMode<S, I, M, Output = u8>
+          A: Audio,
+          M: Memory<I, S, A>,
+          AM: AddressingMode<S, I, A, M, Output = u8>
 {
     let val = am.read();
     let carry = (val & 0x80) != 0;
@@ -1252,11 +1368,12 @@ fn shift_left<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM, lsb: bool)
     am.write(cpu, res)
 }
 
-fn shift_right<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM, msb: bool)
+fn shift_right<S, I, M, AM, A>(cpu: &mut Cpu<S, I, A, M>, am: AM, msb: bool)
     where S: Screen,
           I: Input,
-          M: Memory<I, S>,
-          AM: AddressingMode<S, I, M, Output = u8>
+          A: Audio,
+          M: Memory<I, S, A>,
+          AM: AddressingMode<S, I, A, M, Output = u8>
 {
     let val = am.read();
     let carry = (val & 0x1) != 0;
@@ -1271,11 +1388,12 @@ struct Asl;
 impl OpCode for Asl {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         shift_left(cpu, am, false)
     }
@@ -1286,11 +1404,12 @@ struct Rol;
 impl OpCode for Rol {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let carry_set = cpu.registers.carry_flag();
         shift_left(cpu, am, carry_set)
@@ -1302,11 +1421,12 @@ struct Ror;
 impl OpCode for Ror {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let carry_set = cpu.registers.carry_flag();
         shift_right(cpu, am, carry_set)
@@ -1318,21 +1438,23 @@ struct Lsr;
 impl OpCode for Lsr {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         shift_right(cpu, am, false)
     }
 }
 
-fn branch<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM, condition: bool)
+fn branch<S, I, M, AM, A>(cpu: &mut Cpu<S, I, A, M>, am: AM, condition: bool)
     where S: Screen,
           I: Input,
-          M: Memory<I, S>,
-          AM: AddressingMode<S, I, M, Output = i8>
+          A: Audio,
+          M: Memory<I, S, A>,
+          AM: AddressingMode<S, I, A, M, Output = i8>
 {
     if condition {
         let rel_addr = am.read();
@@ -1352,11 +1474,12 @@ struct Bcc;
 impl OpCode for Bcc {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let carry_clear = !cpu.registers.carry_flag();
         branch(cpu, am, carry_clear)
@@ -1368,11 +1491,12 @@ pub struct Bpl;
 impl OpCode for Bpl {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let sign_clear = !cpu.registers.sign_flag();
         branch(cpu, am, sign_clear)
@@ -1384,11 +1508,12 @@ struct Beq;
 impl OpCode for Beq {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let zero_set = cpu.registers.zero_flag();
         branch(cpu, am, zero_set)
@@ -1400,11 +1525,12 @@ struct Bmi;
 impl OpCode for Bmi {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let sign_set = cpu.registers.sign_flag();
         branch(cpu, am, sign_set)
@@ -1416,11 +1542,12 @@ struct Bvc;
 impl OpCode for Bvc {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let sign_clear = !cpu.registers.overflow_flag();
         branch(cpu, am, sign_clear)
@@ -1432,11 +1559,12 @@ struct Bvs;
 impl OpCode for Bvs {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let sign_clear = cpu.registers.overflow_flag();
         branch(cpu, am, sign_clear)
@@ -1448,11 +1576,12 @@ struct Bcs;
 impl OpCode for Bcs {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let carry_set = cpu.registers.carry_flag();
         branch(cpu, am, carry_set)
@@ -1464,22 +1593,24 @@ struct Bne;
 impl OpCode for Bne {
     type Input = i8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let zero_clear = !cpu.registers.zero_flag();
         branch(cpu, am, zero_clear)
     }
 }
 
-fn compare<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM, lhs: u8)
+fn compare<S, I, M, AM, A>(cpu: &mut Cpu<S, I, A, M>, am: AM, lhs: u8)
     where S: Screen,
           I: Input,
-          M: Memory<I, S>,
-          AM: AddressingMode<S, I, M, Output = u8>
+          A: Audio,
+          M: Memory<I, S, A>,
+          AM: AddressingMode<S, I, A, M, Output = u8>
 {
     let rhs = am.read();
     let res = lhs as i32 - rhs as i32;
@@ -1492,11 +1623,12 @@ struct Cmp;
 impl OpCode for Cmp {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = cpu.registers.acc;
         compare(cpu, am, val);
@@ -1508,11 +1640,12 @@ struct Cpx;
 impl OpCode for Cpx {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = cpu.registers.x;
         compare(cpu, am, val);
@@ -1524,11 +1657,12 @@ struct Cpy;
 impl OpCode for Cpy {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = cpu.registers.y;
         compare(cpu, am, val);
@@ -1540,11 +1674,12 @@ struct Bit;
 impl OpCode for Bit {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let lhs = cpu.registers.acc;
         let rhs = am.read();
@@ -1561,11 +1696,12 @@ struct Brk;
 impl OpCode for Brk {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.pc += 1;
         let pc = cpu.registers.pc;
@@ -1583,11 +1719,12 @@ struct Clc;
 impl OpCode for Clc {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_carry_flag(false);
         cpu.tick()
@@ -1599,11 +1736,12 @@ struct Cld;
 impl OpCode for Cld {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_decimal_flag(false);
         cpu.tick()
@@ -1615,11 +1753,12 @@ struct Cli;
 impl OpCode for Cli {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_interrupt_disable_flag(false);
         cpu.tick()
@@ -1631,11 +1770,12 @@ struct Clv;
 impl OpCode for Clv {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_overflow_flag(false);
         cpu.tick()
@@ -1647,11 +1787,12 @@ struct Dec;
 impl OpCode for Dec {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_dec(am.read());
         am.write(cpu, val);
@@ -1664,11 +1805,12 @@ struct Dex;
 impl OpCode for Dex {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_dec(cpu.registers.x);
         cpu.registers.x = val;
@@ -1682,11 +1824,12 @@ struct Dey;
 impl OpCode for Dey {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_dec(cpu.registers.y);
         cpu.registers.y = val;
@@ -1700,11 +1843,12 @@ struct Eor;
 impl OpCode for Eor {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let rhs = am.read();
         let lhs = cpu.registers.acc;
@@ -1718,11 +1862,12 @@ struct Inc;
 impl OpCode for Inc {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_inc(am.read());
         am.write(cpu, val);
@@ -1735,11 +1880,12 @@ struct Inx;
 impl OpCode for Inx {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_inc(cpu.registers.x);
         cpu.registers.x = val;
@@ -1753,11 +1899,12 @@ struct Iny;
 impl OpCode for Iny {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = wrapping_inc(cpu.registers.y);
         cpu.registers.y = val;
@@ -1771,11 +1918,12 @@ struct Jmp;
 impl OpCode for Jmp {
     type Input = u16;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.pc = am.read();
     }
@@ -1786,11 +1934,12 @@ struct Jsr;
 impl OpCode for Jsr {
     type Input = u16;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let loc = am.read();
         let pc = cpu.registers.pc;
@@ -1805,11 +1954,12 @@ struct Lda;
 impl OpCode for Lda {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = am.read();
         cpu.registers.set_acc(val);
@@ -1821,11 +1971,12 @@ struct Ldx;
 impl OpCode for Ldx {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = am.read();
         cpu.registers.x = val;
@@ -1838,11 +1989,12 @@ struct Ldy;
 impl OpCode for Ldy {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let val = am.read();
         cpu.registers.y = val;
@@ -1855,11 +2007,12 @@ struct Nop;
 impl OpCode for Nop {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.tick()
     }
@@ -1870,11 +2023,12 @@ struct Ora;
 impl OpCode for Ora {
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let lhs = cpu.registers.acc;
         let rhs = am.read();
@@ -1888,11 +2042,12 @@ struct Pha;
 impl OpCode for Pha {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read
         cpu.tick();
@@ -1907,11 +2062,12 @@ struct Php;
 impl OpCode for Php {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read
         cpu.tick();
@@ -1926,11 +2082,12 @@ struct Pla;
 impl OpCode for Pla {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read
         cpu.tick();
@@ -1948,11 +2105,12 @@ struct Plp;
 impl OpCode for Plp {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read
         cpu.tick();
@@ -1971,11 +2129,12 @@ struct Rti;
 impl OpCode for Rti {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read cycle
         cpu.tick();
@@ -1996,11 +2155,12 @@ struct Rts;
 impl OpCode for Rts {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         // Dummy read cycle
         cpu.tick();
@@ -2021,11 +2181,12 @@ struct Sec;
 impl OpCode for Sec {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_carry_flag(true);
         cpu.tick()
@@ -2037,11 +2198,12 @@ struct Sed;
 impl OpCode for Sed {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_decimal_flag(true);
         cpu.tick()
@@ -2053,11 +2215,12 @@ struct Sei;
 impl OpCode for Sei {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.set_interrupt_disable_flag(true);
         cpu.tick()
@@ -2071,11 +2234,12 @@ impl OpCode for Sta {
     // Is there a compelling reason to have write-only addressing implementations?
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let acc = cpu.registers.acc;
         am.write(cpu, acc)
@@ -2089,11 +2253,12 @@ impl OpCode for Stx {
     // Is there a compelling reason to have write-only addressing implementations?
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let x = cpu.registers.x;
         am.write(cpu, x)
@@ -2107,11 +2272,12 @@ impl OpCode for Sty {
     // Is there a compelling reason to have write-only addressing implementations?
     type Input = u8;
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, am: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, am: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         let y = cpu.registers.y;
         am.write(cpu, y)
@@ -2123,11 +2289,12 @@ struct Tax;
 impl OpCode for Tax {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.x = cpu.registers.acc;
         let x = cpu.registers.x;
@@ -2141,11 +2308,12 @@ struct Tay;
 impl OpCode for Tay {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.y = cpu.registers.acc;
         let y = cpu.registers.y;
@@ -2159,11 +2327,12 @@ struct Tsx;
 impl OpCode for Tsx {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.x = cpu.registers.sp;
         let x = cpu.registers.x;
@@ -2177,11 +2346,12 @@ struct Txa;
 impl OpCode for Txa {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.acc = cpu.registers.x;
         let acc = cpu.registers.acc;
@@ -2195,11 +2365,12 @@ struct Txs;
 impl OpCode for Txs {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.sp = cpu.registers.x;
         cpu.tick()
@@ -2211,11 +2382,12 @@ struct Tya;
 impl OpCode for Tya {
     type Input = ();
 
-    fn execute<S, I, M, AM>(cpu: &mut Cpu<S, I, M>, _: AM)
+    fn execute<S, I, A, M, AM>(cpu: &mut Cpu<S, I, A, M>, _: AM)
         where S: Screen,
               I: Input,
-              M: Memory<I, S>,
-              AM: AddressingMode<S, I, M, Output = Self::Input>
+              A: Audio,
+              M: Memory<I, S, A>,
+              AM: AddressingMode<S, I, A, M, Output = Self::Input>
     {
         cpu.registers.acc = cpu.registers.y;
         let acc = cpu.registers.acc;

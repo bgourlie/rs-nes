@@ -1,4 +1,5 @@
 use super::{ADDRESSABLE_MEMORY, Memory};
+use audio::NoAudio;
 use input::NoInput;
 use screen::NoScreen;
 
@@ -8,11 +9,19 @@ use std::io::Write;
 
 pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
+    input: NoInput,
+    screen: NoScreen,
+    audio: NoAudio,
 }
 
 impl SimpleMemory {
     pub fn new() -> Self {
-        SimpleMemory { addr: [0; ADDRESSABLE_MEMORY] }
+        SimpleMemory {
+            addr: [0; ADDRESSABLE_MEMORY],
+            input: NoInput,
+            screen: NoScreen,
+            audio: NoAudio,
+        }
     }
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {
@@ -28,7 +37,7 @@ impl Default for SimpleMemory {
     }
 }
 
-impl Memory<NoInput, NoScreen> for SimpleMemory {
+impl Memory<NoInput, NoScreen, NoAudio> for SimpleMemory {
     fn write(&mut self, addr: u16, data: u8, _: u64) -> u64 {
         let addr = addr as usize;
         self.addr[addr] = data;
@@ -50,10 +59,14 @@ impl Memory<NoInput, NoScreen> for SimpleMemory {
     }
 
     fn screen(&self) -> &NoScreen {
-        unimplemented!()
+        &self.screen
     }
 
     fn input(&self) -> &NoInput {
-        unimplemented!()
+        &self.input
+    }
+
+    fn audio(&self) -> &NoAudio {
+        &self.audio
     }
 }

@@ -16,6 +16,7 @@ use apu::frame_counter::{Clock, FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, Pulse1, Pulse2};
 use apu::triangle::{Triangle, TriangleImpl};
+use audio::Audio;
 use cpu::Interrupt;
 use std::cell::Cell;
 
@@ -65,11 +66,10 @@ pub struct ApuImpl<P1: Pulse, P2: Pulse, T: Triangle, N: Noise, F: FrameCounter,
     on_full_cycle: bool,
 }
 
-pub trait ApuContract: Default {
+pub trait ApuContract: Audio + Default {
     fn half_step(&mut self) -> Interrupt;
     fn write(&mut self, _: u16, _: u8);
     fn read_status(&self) -> u8;
-    fn sample(&self) -> f32;
 }
 
 impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
@@ -200,6 +200,20 @@ impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
     }
 }
 
+impl<P1, P2, T, N, F, D> Audio for ApuImpl<P1, P2, T, N, F, D>
+    where P1: Pulse,
+          P2: Pulse,
+          T: Triangle,
+          N: Noise,
+          F: FrameCounter,
+          D: Dmc
+{
+    fn sample(&self) -> f32 {
+        let pulse_frequency_index = (self.pulse_1.output() + self.pulse_2.output()) as usize;
+        PULSE_FREQUENCY_TABLE[pulse_frequency_index]
+    }
+}
+
 impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
     where P1: Pulse,
           P2: Pulse,
@@ -291,10 +305,5 @@ impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
 
         self.on_full_cycle = !self.on_full_cycle;
         ret
-    }
-
-    fn sample(&self) -> f32 {
-        let pulse_frequency_index = (self.pulse_1.output() + self.pulse_2.output()) as usize;
-        PULSE_FREQUENCY_TABLE[pulse_frequency_index]
     }
 }

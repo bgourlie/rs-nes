@@ -13,6 +13,7 @@ pub mod debugger;
 mod registers;
 mod opcodes;
 
+use audio::*;
 use byte_utils::{from_lo_hi, lo_hi, wrapping_dec, wrapping_inc};
 use cpu::registers::Registers;
 use input::*;
@@ -29,7 +30,7 @@ const BREAK_VECTOR: u16 = 0xfffe;
 pub type TestMemory = SimpleMemory;
 
 #[cfg(test)]
-pub type TestCpu = Cpu<NoScreen, NoInput, TestMemory>;
+pub type TestCpu = Cpu<NoScreen, NoInput, NoAudio, TestMemory>;
 
 #[cfg(test)]
 impl TestCpu {
@@ -48,16 +49,17 @@ pub enum Interrupt {
     Irq,
 }
 
-pub struct Cpu<S: Screen, I: Input, M: Memory<I, S>> {
+pub struct Cpu<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> {
     registers: Registers,
     pub memory: M,
     pending_interrupt: Interrupt,
     pub cycles: u64,
     phantom_s: PhantomData<S>,
     phantom_i: PhantomData<I>,
+    phantom_a: PhantomData<A>,
 }
 
-impl<S: Screen, I: Input, M: Memory<I, S>> Cpu<S, I, M> {
+impl<S: Screen, I: Input, A: Audio, M: Memory<I, S, A>> Cpu<S, I, A, M> {
     pub fn new_init_pc(memory: M, pc: u16) -> Self {
         let mut cpu = Self::new(memory);
         cpu.registers.pc = pc;
@@ -72,6 +74,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> Cpu<S, I, M> {
             pending_interrupt: Interrupt::None,
             phantom_s: PhantomData,
             phantom_i: PhantomData,
+            phantom_a: PhantomData,
         }
     }
 
