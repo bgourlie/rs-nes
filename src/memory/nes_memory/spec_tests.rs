@@ -168,7 +168,7 @@ mod mocks {
             Interrupt::None
         }
 
-        fn output(&self) -> f32 {
+        fn sample(&self) -> f32 {
             0.0
         }
     }

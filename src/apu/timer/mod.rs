@@ -28,6 +28,10 @@ impl Timer {
         self.counter = self.period
     }
 
+    pub fn counter(&self) -> u16 {
+        self.counter
+    }
+
     pub fn is_zero(&self) -> bool {
         self.counter == 0
     }

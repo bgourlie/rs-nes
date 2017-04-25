@@ -19,6 +19,38 @@ use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
 use std::cell::Cell;
 
+const PULSE_FREQUENCY_TABLE: [f32; 31] = [0.0,
+                                          0.011609139523578026,
+                                          0.022939481268011527,
+                                          0.03400094921689606,
+                                          0.04480300187617261,
+                                          0.05535465924895688,
+                                          0.06566452795600367,
+                                          0.07574082464884459,
+                                          0.08559139784946236,
+                                          0.09522374833850243,
+                                          0.10464504820333041,
+                                          0.11386215864759427,
+                                          0.12288164665523155,
+                                          0.13170980059397538,
+                                          0.14035264483627205,
+                                          0.1488159534690486,
+                                          0.15710526315789472,
+                                          0.16522588522588522,
+                                          0.1731829170024174,
+                                          0.18098125249301955,
+                                          0.18862559241706162,
+                                          0.19612045365662886,
+                                          0.20347017815646784,
+                                          0.21067894131185272,
+                                          0.21775075987841944,
+                                          0.2246894994354535,
+                                          0.2314988814317673,
+                                          0.23818248984115256,
+                                          0.2447437774524158,
+                                          0.2511860718171926,
+                                          0.25751258087706685];
+
 pub type Apu = ApuImpl<Pulse1, Pulse2, TriangleImpl, NoiseImpl, FrameCounterImpl, DmcImpl>;
 
 #[derive(Default)]
@@ -37,7 +69,7 @@ pub trait ApuContract: Default {
     fn half_step(&mut self) -> Interrupt;
     fn write(&mut self, _: u16, _: u8);
     fn read_status(&self) -> u8;
-    fn output(&self) -> f32;
+    fn sample(&self) -> f32;
 }
 
 impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
@@ -261,7 +293,8 @@ impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
         ret
     }
 
-    fn output(&self) -> f32 {
-        0.0
+    fn sample(&self) -> f32 {
+        let pulse_frequency_index = (self.pulse_1.output() + self.pulse_2.output()) as usize;
+        PULSE_FREQUENCY_TABLE[pulse_frequency_index]
     }
 }

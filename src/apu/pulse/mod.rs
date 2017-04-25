@@ -5,8 +5,6 @@ use apu::sweep::Sweep;
 use apu::timer::Timer;
 use std::marker::PhantomData;
 
-const CPU_FREQ: f32 = 1.789773;
-
 pub type Pulse1 = PulseImpl<Pulse1Negater>;
 pub type Pulse2 = PulseImpl<Pulse1Negater>;
 
@@ -21,7 +19,7 @@ pub trait Pulse: Default {
     fn clock_sweep(&mut self);
     fn zero_length_counter(&mut self);
     fn length_is_nonzero(&self) -> bool;
-    fn output(&self) -> (f32, u8);
+    fn output(&self) -> u8;
 }
 
 /// Trait for implementing negation logic used during sweep adjustment, which differs between pulse
@@ -163,8 +161,18 @@ impl<N: Negater> Pulse for PulseImpl<N> {
         }
     }
 
-    fn output(&self) -> (f32, u8) {
-        (CPU_FREQ / (16.0 * (self.timer.period() as f32 + 1.0)), self.envelope.output())
+    fn output(&self) -> u8 {
+        // The mixer receives the current envelope volume except when
+        //   - The sequencer output is zero, or
+        //   - TODO: overflow from the sweep unit's adder is silencing the channel, or
+        //   - the length counter is zero, or
+        //   - the timer has a value less than eight.
+        let volume = if !self.length_is_nonzero() || self.timer.counter() < 8 {
+            0
+        } else {
+            self.envelope.output()
+        };
+        volume * self.duty_cycle as u8
     }
 }
 

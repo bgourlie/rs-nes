@@ -194,8 +194,8 @@ mod mocks {
 
         fn clock_sweep(&mut self) {}
 
-        fn output(&self) -> (f32, u8) {
-            (0.0, 0)
+        fn output(&self) -> u8 {
+            0
         }
     }
 
