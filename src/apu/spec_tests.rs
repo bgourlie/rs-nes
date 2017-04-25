@@ -149,6 +149,10 @@ mod mocks {
         fn length_is_nonzero(&self) -> bool {
             false
         }
+
+        fn output(&self) -> f32 {
+            0.0
+        }
     }
 
     #[derive(Default)]
@@ -189,6 +193,10 @@ mod mocks {
         }
 
         fn clock_sweep(&mut self) {}
+
+        fn output(&self) -> f32 {
+            0.0
+        }
     }
 
     #[derive(Default)]
@@ -222,6 +230,10 @@ mod mocks {
         fn length_is_nonzero(&self) -> bool {
             false
         }
+
+        fn output(&self) -> f32 {
+            0.0
+        }
     }
 
     #[derive(Default)]
@@ -247,6 +259,10 @@ mod mocks {
 
         fn write_4013(&mut self, val: u8) {
             self.reg_4013 = val
+        }
+
+        fn output(&self) -> f32 {
+            0.0
         }
     }
 }

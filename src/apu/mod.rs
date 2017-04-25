@@ -37,6 +37,7 @@ pub trait ApuContract: Default {
     fn half_step(&mut self) -> Interrupt;
     fn write(&mut self, _: u16, _: u8);
     fn read_status(&self) -> u8;
+    fn output(&self) -> f32;
 }
 
 impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
@@ -258,5 +259,9 @@ impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
 
         self.on_full_cycle = !self.on_full_cycle;
         ret
+    }
+
+    fn output(&self) -> f32 {
+        0.0
     }
 }

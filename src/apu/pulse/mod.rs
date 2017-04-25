@@ -19,6 +19,7 @@ pub trait Pulse: Default {
     fn clock_sweep(&mut self);
     fn zero_length_counter(&mut self);
     fn length_is_nonzero(&self) -> bool;
+    fn output(&self) -> f32;
 }
 
 /// Trait for implementing negation logic used during sweep adjustment, which differs between pulse
@@ -161,6 +162,10 @@ impl<N: Negater> Pulse for PulseImpl<N> {
         if self.sweep.clock() {
             self.update_timer_period()
         }
+    }
+
+    fn output(&self) -> f32 {
+        0.0
     }
 }
 

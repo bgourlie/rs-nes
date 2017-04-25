@@ -12,6 +12,7 @@ pub trait Triangle: Default {
     fn clock_length_counter(&mut self);
     fn zero_length_counter(&mut self);
     fn length_is_nonzero(&self) -> bool;
+    fn output(&self) -> f32;
 }
 
 #[derive(Default)]
@@ -78,6 +79,10 @@ impl Triangle for TriangleImpl {
 
     fn length_is_nonzero(&self) -> bool {
         self.length_counter.is_nonzero()
+    }
+
+    fn output(&self) -> f32 {
+        0.0
     }
 }
 
