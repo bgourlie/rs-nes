@@ -3,6 +3,10 @@ use apu::envelope::Envelope;
 use apu::length_counter::LengthCounter;
 use apu::sweep::Sweep;
 use apu::timer::Timer;
+use std::marker::PhantomData;
+
+pub type Pulse1 = PulseImpl<Pulse1Negater>;
+pub type Pulse2 = PulseImpl<Pulse1Negater>;
 
 pub trait Pulse: Default {
     fn write_4000_4004(&mut self, val: u8);
@@ -17,8 +21,41 @@ pub trait Pulse: Default {
     fn length_is_nonzero(&self) -> bool;
 }
 
+/// Trait for implementing negation logic used during sweep adjustment, which differs between pulse
+/// units.
+///
+/// The two pulse channels have their adders' carry inputs wired differently, which produces
+/// different results when each channel's change amount is made negative:
+///
+///   - Pulse 1 adds the ones' complement (−c − 1). Making 20 negative produces a change
+///     amount of −21.
+///
+///   - Pulse 2 adds the two's complement (−c). Making 20 negative produces a change amount
+///     of -20.
+pub trait Negater: Default {
+    fn negate_amount(val: u16) -> u16;
+}
+
 #[derive(Default)]
-pub struct PulseImpl {
+pub struct Pulse1Negater;
+
+#[derive(Default)]
+pub struct Pulse2Negater;
+
+impl Negater for Pulse1Negater {
+    fn negate_amount(val: u16) -> u16 {
+        val + 1
+    }
+}
+
+impl Negater for Pulse2Negater {
+    fn negate_amount(val: u16) -> u16 {
+        val
+    }
+}
+
+#[derive(Default)]
+pub struct PulseImpl<N: Negater> {
     sweep: Sweep,
     duty: u8,
     timer: Timer,
@@ -26,9 +63,10 @@ pub struct PulseImpl {
     sequencer: Sequencer,
     envelope: Envelope,
     raw_timer_period: u16,
+    phantom: PhantomData<N>,
 }
 
-impl PulseImpl {
+impl<N: Negater> PulseImpl<N> {
     fn set_raw_timer_period_low(&mut self, val: u8) {
         self.raw_timer_period = (self.raw_timer_period & 0b_0111_0000_0000) | val as u16;
         self.update_timer_period()
@@ -52,22 +90,13 @@ impl PulseImpl {
         // amount equals the current period, making the target period equal to twice the current
         // period.
         //
-        // The two pulse channels have their adders' carry inputs wired differently, which produces
-        // different results when each channel's change amount is made negative:
-        //
-        // - Pulse 1 adds the ones' complement (−c − 1). Making 20 negative produces a change
-        //   amount of −21.
-        //
-        // - Pulse 2 adds the two's complement (−c). Making 20 negative produces a change amount
-        //   of -20.
-        //
         // Whenever the current period changes for any reason, whether by $400x writes or by sweep,
         // the target period also changes.
         let target_period = {
             let change_amount = self.raw_timer_period >> self.sweep.shift_count();
             if self.sweep.negate_flag() {
                 // TODO differences between pulse1 and pulse2
-                self.raw_timer_period - change_amount
+                self.raw_timer_period - N::negate_amount(change_amount)
             } else {
                 self.raw_timer_period + change_amount
             }
@@ -76,7 +105,7 @@ impl PulseImpl {
     }
 }
 
-impl Pulse for PulseImpl {
+impl<N: Negater> Pulse for PulseImpl<N> {
     fn write_4000_4004(&mut self, val: u8) {
         self.envelope.set_flags(val);
         self.length_counter.set_halt_flag(val & 0b_0010_0000 > 0);

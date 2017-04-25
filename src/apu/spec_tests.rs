@@ -91,7 +91,12 @@ mod mocks {
     use apu::pulse::Pulse;
     use apu::triangle::Triangle;
 
-    pub type ApuMock = ApuImpl<PulseMock, TriangleMock, NoiseMock, FrameCounterMock, DmcMock>;
+    pub type ApuMock = ApuImpl<PulseMock,
+                               PulseMock,
+                               TriangleMock,
+                               NoiseMock,
+                               FrameCounterMock,
+                               DmcMock>;
 
     pub fn apu_mock() -> ApuMock {
         ApuImpl::default()

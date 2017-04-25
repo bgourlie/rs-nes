@@ -14,18 +14,18 @@ mod sweep;
 use apu::dmc::{Dmc, DmcImpl};
 use apu::frame_counter::{Clock, FrameCounter, FrameCounterImpl};
 use apu::noise::{Noise, NoiseImpl};
-use apu::pulse::{Pulse, PulseImpl};
+use apu::pulse::{Pulse, Pulse1, Pulse2};
 use apu::triangle::{Triangle, TriangleImpl};
 use cpu::Interrupt;
 use std::cell::Cell;
 
-pub type Apu = ApuImpl<PulseImpl, TriangleImpl, NoiseImpl, FrameCounterImpl, DmcImpl>;
+pub type Apu = ApuImpl<Pulse1, Pulse2, TriangleImpl, NoiseImpl, FrameCounterImpl, DmcImpl>;
 
 #[derive(Default)]
-pub struct ApuImpl<P: Pulse, T: Triangle, N: Noise, F: FrameCounter, D: Dmc> {
+pub struct ApuImpl<P1: Pulse, P2: Pulse, T: Triangle, N: Noise, F: FrameCounter, D: Dmc> {
     frame_counter: F,
-    pulse_1: P,
-    pulse_2: P,
+    pulse_1: P1,
+    pulse_2: P2,
     triangle: T,
     noise: N,
     dmc: D,
@@ -39,8 +39,9 @@ pub trait ApuContract: Default {
     fn read_status(&self) -> u8;
 }
 
-impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
-    where P: Pulse,
+impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
+    where P1: Pulse,
+          P2: Pulse,
           T: Triangle,
           N: Noise,
           F: FrameCounter,
@@ -104,38 +105,32 @@ impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
                 // 0011
                 self.noise.zero_length_counter();
                 self.triangle.zero_length_counter();
-
             }
             4 => {
                 // 0100
                 self.noise.zero_length_counter();
                 self.pulse_2.zero_length_counter();
                 self.pulse_1.zero_length_counter();
-
             }
             5 => {
                 // 0101
                 self.noise.zero_length_counter();
                 self.pulse_2.zero_length_counter();
-
             }
             6 => {
                 // 0110
                 self.noise.zero_length_counter();
                 self.pulse_1.zero_length_counter();
-
             }
             7 => {
                 // 0111
                 self.noise.zero_length_counter();
-
             }
             8 => {
                 // 1000
                 self.triangle.zero_length_counter();
                 self.pulse_2.zero_length_counter();
                 self.pulse_1.zero_length_counter();
-
             }
             9 => {
                 // 1001
@@ -172,8 +167,9 @@ impl<P, T, N, F, D> ApuImpl<P, T, N, F, D>
     }
 }
 
-impl<P, T, N, F, D> ApuContract for ApuImpl<P, T, N, F, D>
-    where P: Pulse,
+impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
+    where P1: Pulse,
+          P2: Pulse,
           T: Triangle,
           N: Noise,
           F: FrameCounter,

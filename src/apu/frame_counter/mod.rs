@@ -1,5 +1,17 @@
 #![allow(dead_code)]
 
+#[derive(Copy, Clone)]
+enum SequenceMode {
+    FourStep,
+    FiveStep,
+}
+
+impl Default for SequenceMode {
+    fn default() -> Self {
+        SequenceMode::FourStep
+    }
+}
+
 pub enum Clock {
     None,
     All(bool),
@@ -13,7 +25,9 @@ pub trait FrameCounter: Default {
 
 #[derive(Default)]
 pub struct FrameCounterImpl {
-    sequencer: FrameTimerSequencer,
+    half_steps: u16,
+    interrupt_inhibit: bool,
+    mode: SequenceMode,
 }
 
 impl FrameCounter for FrameCounterImpl {
@@ -26,38 +40,9 @@ impl FrameCounter for FrameCounterImpl {
         // Side effects: After 3 or 4 CPU clock cycles*, the timer is reset. If the mode flag is
         // set, then both "quarter frame" and "half frame" signals are also generated.
         //
-        // * If the write occurs during an APU cycle, the effects occur 3 CPU cycles after the $4017
-        //   write cycle, and if the write occurs between APU cycles, the effects occurs 4 CPU
-        //   cycles after the write cycle.
-        self.sequencer.set_flags(val)
-    }
-
-    fn half_step(&mut self) -> Clock {
-        self.sequencer.clock()
-    }
-}
-
-#[derive(Copy, Clone)]
-enum SequenceMode {
-    FourStep,
-    FiveStep,
-}
-
-impl Default for SequenceMode {
-    fn default() -> Self {
-        SequenceMode::FourStep
-    }
-}
-
-#[derive(Default)]
-pub struct FrameTimerSequencer {
-    half_steps: u16,
-    interrupt_inhibit: bool,
-    mode: SequenceMode,
-}
-
-impl FrameTimerSequencer {
-    fn set_flags(&mut self, val: u8) -> Clock {
+        // * If the write occurs during an APU cycle, the effects occur 3 CPU cycles after the
+        //   $4017 write cycle, and if the write occurs between APU cycles, the effects occurs 4
+        //   CPU cycles after the write cycle.
         self.interrupt_inhibit = val & 0b_0100_0000 > 0;
 
         // Writing to $4017 with bit 7 set ($80) will immediately clock all of its controlled units
@@ -72,7 +57,7 @@ impl FrameTimerSequencer {
         }
     }
 
-    fn clock(&mut self) -> Clock {
+    fn half_step(&mut self) -> Clock {
         self.half_steps += 1;
         match (self.half_steps, self.mode) {
             (7547, _) => Clock::EnvelopeAndTriangleLinearCounter,
