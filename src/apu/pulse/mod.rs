@@ -5,6 +5,8 @@ use apu::sweep::Sweep;
 use apu::timer::Timer;
 use std::marker::PhantomData;
 
+const CPU_FREQ: f32 = 1.789773;
+
 pub type Pulse1 = PulseImpl<Pulse1Negater>;
 pub type Pulse2 = PulseImpl<Pulse1Negater>;
 
@@ -19,7 +21,7 @@ pub trait Pulse: Default {
     fn clock_sweep(&mut self);
     fn zero_length_counter(&mut self);
     fn length_is_nonzero(&self) -> bool;
-    fn output(&self) -> f32;
+    fn output(&self) -> (f32, u8);
 }
 
 /// Trait for implementing negation logic used during sweep adjustment, which differs between pulse
@@ -58,7 +60,7 @@ impl Negater for Pulse2Negater {
 #[derive(Default)]
 pub struct PulseImpl<N: Negater> {
     sweep: Sweep,
-    duty: u8,
+    duty_cycle: bool,
     timer: Timer,
     length_counter: LengthCounter,
     sequencer: Sequencer,
@@ -110,11 +112,8 @@ impl<N: Negater> Pulse for PulseImpl<N> {
     fn write_4000_4004(&mut self, val: u8) {
         self.envelope.set_flags(val);
         self.length_counter.set_halt_flag(val & 0b_0010_0000 > 0);
-        self.duty = (val & 0b_1100_0000) >> 6;
-
-        // TODO: Side-effects
-        // The duty cycle is changed (see table on nesdev), but the sequencer's current position
-        // isn't affected.
+        self.sequencer
+            .set_duty_sequence((val & 0b_1100_0000) >> 6);
     }
 
     fn write_4001_4005(&mut self, val: u8) {
@@ -138,7 +137,7 @@ impl<N: Negater> Pulse for PulseImpl<N> {
 
     fn clock_timer(&mut self) {
         if self.timer.clock() {
-            self.sequencer.clock();
+            self.duty_cycle = self.sequencer.clock();
         }
     }
 
@@ -164,28 +163,40 @@ impl<N: Negater> Pulse for PulseImpl<N> {
         }
     }
 
-    fn output(&self) -> f32 {
-        0.0
+    fn output(&self) -> (f32, u8) {
+        (CPU_FREQ / (16.0 * (self.timer.period() as f32 + 1.0)), self.envelope.output())
     }
 }
 
 mod sequencer {
+    const WAVEFORM_TABLE: [[u8; 8]; 4] = [[0, 1, 0, 0, 0, 0, 0, 0],
+                                          [0, 1, 1, 0, 0, 0, 0, 0],
+                                          [0, 1, 1, 1, 1, 0, 0, 0],
+                                          [1, 0, 0, 1, 1, 1, 1, 1]];
+
     #[derive(Default)]
     pub struct Sequencer {
         step: u8,
+        duty_sequence: u8,
     }
 
     impl Sequencer {
+        pub fn set_duty_sequence(&mut self, duty_sequence: u8) {
+            debug_assert!(duty_sequence < 4);
+            self.duty_sequence = duty_sequence;
+        }
+
         pub fn reset(&mut self) {
             self.step = 0
         }
 
-        pub fn clock(&mut self) {
+        pub fn clock(&mut self) -> bool {
             if self.step == 0 {
                 self.step = 7;
             } else {
                 self.step -= 1;
             }
+            WAVEFORM_TABLE[self.duty_sequence as usize][self.step as usize] > 0
         }
     }
 }

@@ -3,8 +3,10 @@ use apu::timer::Timer;
 #[derive(Default)]
 pub struct Envelope {
     start_flag: bool,
+    loop_flag: bool,
     decay_counter: u8,
-    flags: u8,
+    constant_volume_flag: bool,
+    constant_volume: u8,
     timer: Timer,
 }
 
@@ -18,7 +20,9 @@ impl Envelope {
         // Where C is the constant volume flag and V is either:
         // a) The constant volume value (occurs when C is set), or
         // b) The period for the divider that clocks the decay counter (occurs when C is not set)
-        self.flags = flags;
+        self.loop_flag = flags & 0b_0010_0000 > 0;
+        self.constant_volume_flag = flags & 0b_0001_0000 > 0;
+        self.constant_volume = flags & 0b_0000_1111;
         self.timer.set_period(flags as u16 & 0b_0000_1111);
     }
 
@@ -32,13 +36,21 @@ impl Envelope {
             // counter is loaded with 15.
             if self.decay_counter > 0 {
                 self.decay_counter -= 1;
-            } else if self.flags & 0b_0010_0000 > 0 {
+            } else if self.loop_flag {
                 self.reload_decay_counter();
             }
         } else {
             self.start_flag = false;
             self.reload_decay_counter();
             self.timer.reload();
+        }
+    }
+
+    pub fn output(&self) -> u8 {
+        if self.constant_volume_flag {
+            self.constant_volume
+        } else {
+            self.decay_counter
         }
     }
 
