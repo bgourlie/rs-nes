@@ -1,9 +1,11 @@
-// `error_chain!` can recurse deeply
-#![recursion_limit = "1024"]
-
 #[cfg(feature = "debugger")]
 #[macro_use]
 extern crate log;
+
+#[macro_use]
+extern crate lazy_static;
+
+extern crate sdl2;
 
 #[cfg(feature = "debugger")]
 extern crate env_logger;
@@ -55,5 +57,6 @@ pub mod ppu;
 pub mod screen;
 pub mod input;
 pub mod audio;
+pub mod audio_out;
 pub mod apu;
 mod byte_utils;

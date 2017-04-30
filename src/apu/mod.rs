@@ -17,7 +17,14 @@ use apu::noise::{Noise, NoiseImpl};
 use apu::pulse::{Pulse, Pulse1, Pulse2};
 use apu::triangle::{Triangle, TriangleImpl};
 use audio::Audio;
+use audio_out::OutputBuffer;
 use cpu::Interrupt;
+
+const SAMPLE_COUNT: usize = 178992;
+const NES_SAMPLE_RATE: u32 = 1789920; // Actual is 1789800, but this is divisible by 240.
+const OUTPUT_SAMPLE_RATE: u32 = 44100;
+const TICK_FREQUENCY: u32 = 240;
+const NES_SAMPLES_PER_TICK: u32 = NES_SAMPLE_RATE / TICK_FREQUENCY;
 
 const PULSE_FREQUENCY_TABLE: [f32; 31] = [0.0,
                                           0.011609139523578026,
@@ -63,6 +70,8 @@ pub struct ApuImpl<P1: Pulse, P2: Pulse, T: Triangle, N: Noise, F: FrameCounter,
     dmc: D,
     status: u8,
     on_full_cycle: bool,
+    output_buffer: Option<*mut OutputBuffer>,
+    sample_buffer_offset: usize,
 }
 
 pub trait ApuContract: Audio + Default {
@@ -79,6 +88,12 @@ impl<P1, P2, T, N, F, D> ApuImpl<P1, P2, T, N, F, D>
           F: FrameCounter,
           D: Dmc
 {
+    pub fn new(output_buffer: Option<*mut OutputBuffer>) -> Self {
+        let mut apu = Self::default();
+        apu.output_buffer = output_buffer;
+        apu
+    }
+
     fn read_4015(&self) -> u8 {
         // IF-D NT21
         // DMC interrupt (I), frame interrupt (F), DMC active (D), length counter > 0 (N/T/2/1)
@@ -208,10 +223,6 @@ impl<P1, P2, T, N, F, D> Audio for ApuImpl<P1, P2, T, N, F, D>
           F: FrameCounter,
           D: Dmc
 {
-    fn sample(&self) -> f32 {
-        let pulse_frequency_index = (self.pulse_1.output() + self.pulse_2.output()) as usize;
-        PULSE_FREQUENCY_TABLE[pulse_frequency_index]
-    }
 }
 
 impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
@@ -303,7 +314,24 @@ impl<P1, P2, T, N, F, D> ApuContract for ApuImpl<P1, P2, T, N, F, D>
         // Triangle timer is clocked every CPU cycle, or every APU half-cycle
         self.triangle.clock_timer();
 
+
+
         self.on_full_cycle = !self.on_full_cycle;
         ret
     }
+}
+
+fn get_or_zero_sample_buffer(buffer: &mut [i16],
+                             offset: usize,
+                             audible: bool)
+                             -> Option<&mut [i16]> {
+    let buffer = &mut buffer[offset..offset + NES_SAMPLES_PER_TICK as usize];
+    if audible {
+        return Some(buffer);
+    }
+
+    for dest in buffer.iter_mut() {
+        *dest = 0;
+    }
+    None
 }

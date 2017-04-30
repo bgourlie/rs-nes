@@ -1,11 +1,5 @@
-pub trait Audio {
-    fn sample(&self) -> f32;
-}
+pub trait Audio {}
 
 pub struct NoAudio;
 
-impl Audio for NoAudio {
-    fn sample(&self) -> f32 {
-        0.0
-    }
-}
+impl Audio for NoAudio {}

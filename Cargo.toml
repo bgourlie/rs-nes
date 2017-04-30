@@ -12,6 +12,7 @@ slow_tests = []
 
 [dependencies]
 sdl2 = "*"
+lazy_static = "0.2"
 
 # Debugger dependencies
 websocket = {version = "*", optional = true, default-features = false}

@@ -1,8 +1,9 @@
-extern crate sdl2;
 extern crate rs_nes;
+extern crate sdl2;
 
 use rs_nes::apu::Apu;
 use rs_nes::audio::Audio;
+use rs_nes::audio_out;
 use rs_nes::cpu::*;
 use rs_nes::input::{Button, Input, InputBase};
 use rs_nes::memory::Memory;
@@ -23,22 +24,9 @@ use std::time::{Duration, Instant};
 const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
 
-struct ApuAudio {
-    apu: Arc<RwLock<Apu>>,
-}
-
-impl AudioCallback for ApuAudio {
-    type Channel = f32;
-
-    fn callback(&mut self, out: &mut [f32]) {
-        // Generate a square wave
-        for x in out.iter_mut() {
-            *x = self.apu.read().unwrap().sample();
-        }
-    }
-}
-
 fn main() {
+    let sdl_context = sdl2::init().unwrap();
+
     // INIT NES
     let file = env::args().last().unwrap();
     let rom = Rc::new(Box::new(NesRom::read(format!("{}", file)).expect("Couldn't find rom file")));
@@ -47,33 +35,15 @@ fn main() {
              rom.chr_rom_banks,
              rom.chr.len());
 
+    let audio_output_buffer = audio_out::open(&sdl_context);
+    let apu = Apu::new(audio_output_buffer);
     let ppu = PpuImpl::new(rom.clone());
     let input = InputBase::default();
-    let mem = NesMemoryImpl::new(rom, ppu, input);
+    let mem = NesMemoryImpl::new(rom, ppu, input, apu);
     let mut cpu = Cpu::new(mem);
     cpu.reset();
 
-    let sdl_context = sdl2::init().unwrap();
-    let audio_subsystem = sdl_context.audio().unwrap();
 
-    let desired_spec = AudioSpecDesired {
-        freq: Some(44100),
-        channels: Some(1), // mono
-        samples: None, // default sample size
-    };
-
-    let device = audio_subsystem
-        .open_playback(None, &desired_spec, |spec| {
-            // Show obtained AudioSpec
-            println!("{:?}", spec);
-
-            // initialize the audio callback
-            ApuAudio { apu: cpu.memory.audio().clone() }
-        })
-        .unwrap();
-
-    // Start playback
-    device.resume();
 
     let video_subsystem = sdl_context.video().unwrap();
 

@@ -19,7 +19,8 @@ pub trait Pulse: Default {
     fn clock_sweep(&mut self);
     fn zero_length_counter(&mut self);
     fn length_is_nonzero(&self) -> bool;
-    fn output(&self) -> u8;
+    fn sample(&mut self, sample_buffer_offset: usize);
+    fn sample_buffer(&self) -> &[i16; super::SAMPLE_COUNT];
 }
 
 /// Trait for implementing negation logic used during sweep adjustment, which differs between pulse
@@ -55,7 +56,6 @@ impl Negater for Pulse2Negater {
     }
 }
 
-#[derive(Default)]
 pub struct PulseImpl<N: Negater> {
     sweep: Sweep,
     duty_cycle: bool,
@@ -64,7 +64,24 @@ pub struct PulseImpl<N: Negater> {
     sequencer: Sequencer,
     envelope: Envelope,
     raw_timer_period: u16,
+    sample_buffer: Box<[i16; super::SAMPLE_COUNT]>,
     phantom: PhantomData<N>,
+}
+
+impl<N: Negater> Default for PulseImpl<N> {
+    fn default() -> Self {
+        PulseImpl {
+            sweep: Sweep::default(),
+            duty_cycle: false,
+            timer: Timer::default(),
+            length_counter: LengthCounter::default(),
+            sequencer: Sequencer::default(),
+            envelope: Envelope::default(),
+            raw_timer_period: 0,
+            sample_buffer: Box::new([0; super::SAMPLE_COUNT]),
+            phantom: PhantomData::default(),
+        }
+    }
 }
 
 impl<N: Negater> PulseImpl<N> {
@@ -161,7 +178,7 @@ impl<N: Negater> Pulse for PulseImpl<N> {
         }
     }
 
-    fn output(&self) -> u8 {
+    fn sample(&mut self, sample_buffer_offset: usize) {
         // The mixer receives the current envelope volume except when
         //   - The sequencer output is zero, or
         //   - TODO: overflow from the sweep unit's adder is silencing the channel, or
@@ -172,15 +189,25 @@ impl<N: Negater> Pulse for PulseImpl<N> {
         } else {
             self.envelope.output()
         };
-        volume * self.duty_cycle as u8
+
+        let audible = volume > 0;
+        let buffer_opt = super::get_or_zero_sample_buffer(&mut (self.sample_buffer),
+                                                          sample_buffer_offset,
+                                                          audible);
+        if let Some(buffer) = buffer_opt {
+            for dest in buffer.iter_mut() {
+                *dest = volume * self.duty_cycle as u8;
+            }
+        }
+    }
+
+    fn sample_buffer(&self) -> &[i16; super::SAMPLE_COUNT] {
+        &self.sample_buffer
     }
 }
 
 mod sequencer {
-    const WAVEFORM_TABLE: [[u8; 8]; 4] = [[0, 1, 0, 0, 0, 0, 0, 0],
-                                          [0, 1, 1, 0, 0, 0, 0, 0],
-                                          [0, 1, 1, 1, 1, 0, 0, 0],
-                                          [1, 0, 0, 1, 1, 1, 1, 1]];
+    const WAVEFORM_TABLE: [u8; 4] = [0b01000000, 0b01100000, 0b01111000, 0b10011111];
 
     #[derive(Default)]
     pub struct Sequencer {
@@ -204,7 +231,7 @@ mod sequencer {
             } else {
                 self.step -= 1;
             }
-            WAVEFORM_TABLE[self.duty_sequence as usize][self.step as usize] > 0
+            WAVEFORM_TABLE[self.duty_sequence as usize] >> (7 - self.step) & 1 > 0
         }
     }
 }
