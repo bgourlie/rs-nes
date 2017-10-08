@@ -212,6 +212,7 @@ fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
 }
 
 fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
+    println!("#[allow(zero_prefixed_literal)]");
     println!("pub static CYCLE_TABLE: [[u8; {}]; {}] = [",
              CYCLES_PER_SCANLINE,
              SCANLINES);
