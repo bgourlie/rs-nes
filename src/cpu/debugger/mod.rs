@@ -12,7 +12,7 @@ use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
 use input::Input;
 use iron::prelude::*;
-use memory::{ADDRESSABLE_MEMORY, Memory};
+use memory::{Memory, ADDRESSABLE_MEMORY};
 use router::Router;
 use screen::Screen;
 use serde::Serialize;
@@ -79,25 +79,33 @@ impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
     }
 
     fn break_reason(&self) -> Option<BreakReason> {
-        if self.interrupt_handler() == InterruptHandler::Nmi &&
-           self.break_on_nmi.load(Ordering::Relaxed) {
+        if self.interrupt_handler() == InterruptHandler::Nmi
+            && self.break_on_nmi.load(Ordering::Relaxed)
+        {
             debug!("Break on NMI. CPU thread paused.");
             self.cpu_paused
                 .compare_and_swap(false, true, Ordering::Relaxed);
             Some(BreakReason::Nmi)
-        } else if self.last_pc == self.cpu.registers.pc &&
-                  self.break_on_trap.load(Ordering::Relaxed) {
-            debug!("Trap detected @ {:0>4X}. CPU thread paused.",
-                   self.cpu.registers.pc);
+        } else if self.last_pc == self.cpu.registers.pc
+            && self.break_on_trap.load(Ordering::Relaxed)
+        {
+            debug!(
+                "Trap detected @ {:0>4X}. CPU thread paused.",
+                self.cpu.registers.pc
+            );
             Some(BreakReason::Trap)
         } else if self.at_breakpoint(self.cpu.registers.pc) {
-            debug!("Breakpoint hit @ {:0>4X}. CPU thread paused.",
-                   self.cpu.registers.pc);
+            debug!(
+                "Breakpoint hit @ {:0>4X}. CPU thread paused.",
+                self.cpu.registers.pc
+            );
             Some(BreakReason::Breakpoint)
         } else if self.cpu_paused.load(Ordering::Relaxed) {
             // Stepping deliberately takes the least precedence when determining the break reason
-            debug!("Stepping @ {:0>4X}. CPU thread paused.",
-                   self.cpu.registers.pc);
+            debug!(
+                "Stepping @ {:0>4X}. CPU thread paused.",
+                self.cpu.registers.pc
+            );
             Some(BreakReason::Step)
         } else {
             None
@@ -117,10 +125,12 @@ impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
         };
 
         let screen: S = self.cpu.memory.screen().clone();
-        CpuSnapshot::new(mem_snapshot,
-                         self.cpu.registers.clone(),
-                         screen,
-                         self.cpu.cycles)
+        CpuSnapshot::new(
+            mem_snapshot,
+            self.cpu.registers.clone(),
+            screen,
+            self.cpu.cycles,
+        )
     }
 
     fn start_websocket_thread(&mut self) {
@@ -139,8 +149,8 @@ impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
                 let mut client = connection.accept().unwrap();
 
                 while let Some(debugger_msg) = ws_rx.recv() {
-                    let message: WsMessage = WsMessage::text(serde_json::to_string(&debugger_msg)
-                                                                 .unwrap());
+                    let message: WsMessage =
+                        WsMessage::text(serde_json::to_string(&debugger_msg).unwrap());
 
                     if client.send_message(&message).is_err() {
                         break;
@@ -162,16 +172,22 @@ impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
         thread::spawn(move || {
             let mut router = Router::new();
             router.get("/step", StepHandler::new(cpu_thread.clone()), "step");
-            router.get("/continue",
-                       ContinueHandler::new(cpu_thread, cpu_paused),
-                       "continue");
-            router.get("/toggle_breakpoint/:addr",
-                       ToggleBreakpointHandler::new(breakpoints),
-                       "toggle_breakpoint");
+            router.get(
+                "/continue",
+                ContinueHandler::new(cpu_thread, cpu_paused),
+                "continue",
+            );
+            router.get(
+                "/toggle_breakpoint/:addr",
+                ToggleBreakpointHandler::new(breakpoints),
+                "toggle_breakpoint",
+            );
 
-            router.get("/toggle_break_on_nmi",
-                       ToggleBreakOnNmiHandler::new(break_on_nmi),
-                       "toggle_break_on_nmi");
+            router.get(
+                "/toggle_break_on_nmi",
+                ToggleBreakOnNmiHandler::new(break_on_nmi),
+                "toggle_break_on_nmi",
+            );
             Iron::new(router).http(DEBUGGER_HTTP_ADDR).unwrap();
         });
     }

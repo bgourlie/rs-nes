@@ -8,7 +8,6 @@ use input::{Input, InputBase};
 use ppu::{Ppu, PpuImpl};
 use rom::NesRom;
 use screen::NesScreen;
-
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;

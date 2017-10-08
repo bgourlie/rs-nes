@@ -64,5 +64,7 @@ fn clear_in_vblank() {
 }
 
 fn new_status_register(val: u8) -> StatusRegister {
-    StatusRegister { reg: Cell::new(val) }
+    StatusRegister {
+        reg: Cell::new(val),
+    }
 }

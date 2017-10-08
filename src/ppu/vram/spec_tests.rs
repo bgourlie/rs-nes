@@ -169,7 +169,6 @@ fn addr_second_write() {
     vram.write_ppu_addr(LatchState::SecondWrite(0b1010_1010));
     assert_eq!(0b0111_1111_1010_1010, vram.t.get());
     assert_eq!(vram.t.get(), vram.address.get());
-
 }
 
 #[test]

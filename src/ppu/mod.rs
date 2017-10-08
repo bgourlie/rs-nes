@@ -44,7 +44,7 @@ pub trait Ppu {
 
 #[derive(Debug, PartialEq)]
 pub enum SpriteSize {
-    X8, // 8x8
+    X8,  // 8x8
     X16, // 8x16
 }
 
@@ -77,13 +77,11 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
             (0, 0) => self.background_renderer.pixel_color(fine_x),
             (0, _) => sprite_pixel.color,
             (_, 0) => self.background_renderer.pixel_color(fine_x),
-            (_, _) => {
-                if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
-                    sprite_pixel.color
-                } else {
-                    self.background_renderer.pixel_color(fine_x)
-                }
-            }
+            (_, _) => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
+                sprite_pixel.color
+            } else {
+                self.background_renderer.pixel_color(fine_x)
+            },
         };
 
         // TODO: Is it appropriate to evaluate sprite zero hit here considering the cycles
@@ -93,16 +91,14 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
         }
 
         self.screen.put_pixel((x - 2) as _, scanline as _, color);
-
     }
 
     // TODO: tests
     fn sprite_zero_hit(&self, x: u16, bg_pixel: u8, sprite_pixel: &SpritePixel) -> bool {
-        !self.status.sprite_zero_hit() &&
-        (self.mask.show_background() && self.mask.show_sprites()) &&
-        ((self.mask.background_render_leftmost_8_px() &&
-          self.mask.sprites_render_leftmost_8_px()) || x > 7) && x != 255 &&
-        (bg_pixel > 0 && sprite_pixel.value > 0) && sprite_pixel.is_sprite_zero
+        !self.status.sprite_zero_hit() && (self.mask.show_background() && self.mask.show_sprites())
+            && ((self.mask.background_render_leftmost_8_px()
+                && self.mask.sprites_render_leftmost_8_px()) || x > 7) && x != 255
+            && (bg_pixel > 0 && sprite_pixel.value > 0) && sprite_pixel.is_sprite_zero
     }
 }
 
@@ -475,8 +471,10 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
     fn write(&mut self, addr: u16, val: u8) {
-        debug_assert!(addr >= 0x2000 && addr < 0x4000,
-                      "Invalid memory mapped ppu address");
+        debug_assert!(
+            addr >= 0x2000 && addr < 0x4000,
+            "Invalid memory mapped ppu address"
+        );
 
         match addr & 7 {
             0x0 => {
@@ -505,8 +503,10 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
     /// Accepts a PPU memory mapped address and returns the value
     fn read(&self, addr: u16) -> u8 {
-        debug_assert!(addr >= 0x2000 && addr < 0x4000,
-                      "Invalid memory mapped ppu address");
+        debug_assert!(
+            addr >= 0x2000 && addr < 0x4000,
+            "Invalid memory mapped ppu address"
+        );
         let val = match addr & 7 {
             0x0 => *self.control,
             0x1 => *self.mask,
@@ -536,15 +536,16 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
     /// Dump register memory
     fn dump_registers<T: Write>(&self, writer: &mut T) {
-
-        let regs = [*self.control,
-                    *self.mask,
-                    self.status.read(),
-                    0, // Write-only
-                    self.sprite_renderer.read_data(),
-                    0, // Write-only
-                    0, // Write-only
-                    0];
+        let regs = [
+            *self.control,
+            *self.mask,
+            self.status.read(),
+            0, // Write-only
+            self.sprite_renderer.read_data(),
+            0, // Write-only
+            0, // Write-only
+            0,
+        ];
 
         writer.write_all(&regs).unwrap()
     }

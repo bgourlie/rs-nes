@@ -21,14 +21,17 @@ impl Clone for NesScreen {
         for i in 0..self.screen_buffer.len() {
             scr[i] = self.screen_buffer[i]
         }
-        NesScreen { screen_buffer: Box::new(scr) }
+        NesScreen {
+            screen_buffer: Box::new(scr),
+        }
     }
 }
 
 impl Default for NesScreen {
     fn default() -> Self {
-        let mut screen =
-            NesScreen { screen_buffer: Box::new([0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 3]) };
+        let mut screen = NesScreen {
+            screen_buffer: Box::new([0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 3]),
+        };
         for y in 0..SCREEN_HEIGHT {
             for x in 0..SCREEN_WIDTH {
                 screen.put_pixel(x, y, Color(0xf0, 0, 0))
@@ -45,9 +48,7 @@ impl Serialize for NesScreen {
         let mut img_buf = Vec::<u8>::new();
         {
             let mut encoder = png::Encoder::new(&mut img_buf, width as _, height as _);
-            encoder
-                .set(png::ColorType::RGB)
-                .set(png::BitDepth::Eight);
+            encoder.set(png::ColorType::RGB).set(png::BitDepth::Eight);
             let mut writer = encoder.write_header().unwrap();
             writer.write_image_data(&*self.screen_buffer).unwrap();
         }

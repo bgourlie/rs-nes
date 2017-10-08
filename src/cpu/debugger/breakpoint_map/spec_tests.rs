@@ -1,6 +1,6 @@
 use cpu::debugger::BreakpointMap;
 use memory::ADDRESSABLE_MEMORY;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 
 #[test]
 fn set_breakpoint() {

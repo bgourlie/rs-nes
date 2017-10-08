@@ -105,7 +105,6 @@ fn oam_dma_timing() {
 mod mocks {
     use apu::Apu;
     use cpu::Interrupt;
-
     use input::{Button, Input};
     use memory::nes_memory::NesMemoryBase;
     use ppu::Ppu;
@@ -192,7 +191,6 @@ mod mocks {
         fn write(&mut self, addr: u16, val: u8) {
             self.addr = addr;
             self.value = val;
-
         }
 
         fn read(&self, _: u16) -> u8 {
@@ -220,21 +218,21 @@ mod mocks {
 
     pub fn new_fixture() -> NesMemoryFixture {
         let rom = Rc::new(Box::new(NesRom {
-                                       format: RomFormat::INes,
-                                       video_standard: VideoStandard::Ntsc,
-                                       mapper: 0,
-                                       mirroring: Mirroring::Horizontal,
-                                       prg_rom_banks: 1,
-                                       prg_ram_banks: 1,
-                                       chr_rom_banks: 1,
-                                       has_sram: false,
-                                       has_trainer: false,
-                                       is_pc10: false,
-                                       is_vs_unisystem: false,
-                                       trainer: Vec::new(),
-                                       chr: Vec::new(),
-                                       prg: Vec::new(),
-                                   }));
+            format: RomFormat::INes,
+            video_standard: VideoStandard::Ntsc,
+            mapper: 0,
+            mirroring: Mirroring::Horizontal,
+            prg_rom_banks: 1,
+            prg_ram_banks: 1,
+            chr_rom_banks: 1,
+            has_sram: false,
+            has_trainer: false,
+            is_pc10: false,
+            is_vs_unisystem: false,
+            trainer: Vec::new(),
+            chr: Vec::new(),
+            prg: Vec::new(),
+        }));
 
         NesMemoryBase {
             ram: [0_u8; 0x800],

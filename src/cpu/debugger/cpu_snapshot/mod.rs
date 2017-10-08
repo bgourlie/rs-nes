@@ -5,7 +5,7 @@ use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
 pub enum MemorySnapshot {
-    NoChange(u64), // If no change, just send the hash.
+    NoChange(u64),         // If no change, just send the hash.
     Updated(u64, Vec<u8>), // Updated, send hash and memory
 }
 

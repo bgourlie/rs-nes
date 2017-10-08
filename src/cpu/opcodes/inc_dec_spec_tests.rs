@@ -5,173 +5,174 @@ use cpu::opcodes::am_test_utils::*;
 #[test]
 fn dec_test1() {
     dec_base_1(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Dec::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Dec::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn dec_test2() {
     dec_base_2(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Dec::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Dec::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn dec_test3() {
     dec_base_3(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Dec::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Dec::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn dex_test1() {
     dec_base_1(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Dex::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Dex::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn dex_test2() {
     dec_base_2(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Dex::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Dex::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn dex_test3() {
     dec_base_3(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Dex::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Dex::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn dey_test1() {
     dec_base_1(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Dey::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Dey::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 #[test]
 fn dey_test2() {
     dec_base_2(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Dey::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Dey::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 #[test]
 fn dey_test3() {
     dec_base_3(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Dey::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Dey::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 #[test]
 fn inc_test1() {
     inc_base_1(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Inc::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Inc::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn inc_test2() {
     inc_base_2(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Inc::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Inc::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn inc_test3() {
     inc_base_3(|ref mut cpu, val| {
-                   let am = WriterAddressingMode::with_read_value(val);
-                   let write_ref = am.write_ref();
-                   Inc::execute(cpu, am);
-                   write_ref.get()
-               });
+        let am = WriterAddressingMode::with_read_value(val);
+        let write_ref = am.write_ref();
+        Inc::execute(cpu, am);
+        write_ref.get()
+    });
 }
 
 #[test]
 fn inx_test1() {
     inc_base_1(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Inx::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Inx::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn inx_test2() {
     inc_base_2(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Inx::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Inx::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn inx_test3() {
     inc_base_3(|ref mut cpu, val| {
-                   cpu.registers.x = val;
-                   Inx::execute(cpu, Implied);
-                   cpu.registers.x
-               });
+        cpu.registers.x = val;
+        Inx::execute(cpu, Implied);
+        cpu.registers.x
+    });
 }
 
 #[test]
 fn iny_test1() {
     inc_base_1(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Iny::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Iny::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 #[test]
 fn iny_test2() {
     inc_base_2(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Iny::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Iny::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 #[test]
 fn iny_test3() {
     inc_base_3(|ref mut cpu, val| {
-                   cpu.registers.y = val;
-                   Iny::execute(cpu, Implied);
-                   cpu.registers.y
-               });
+        cpu.registers.y = val;
+        Iny::execute(cpu, Implied);
+        cpu.registers.y
+    });
 }
 
 fn inc_base_1<F>(inc: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = inc(&mut cpu, 1);
@@ -181,7 +182,8 @@ fn inc_base_1<F>(inc: F)
 }
 
 fn inc_base_2<F>(inc: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = inc(&mut cpu, 255);
@@ -191,7 +193,8 @@ fn inc_base_2<F>(inc: F)
 }
 
 fn inc_base_3<F>(inc: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = inc(&mut cpu, 254);
@@ -201,7 +204,8 @@ fn inc_base_3<F>(inc: F)
 }
 
 fn dec_base_1<F>(dec: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = dec(&mut cpu, 1);
@@ -211,7 +215,8 @@ fn dec_base_1<F>(dec: F)
 }
 
 fn dec_base_2<F>(dec: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = dec(&mut cpu, 2);
@@ -221,7 +226,8 @@ fn dec_base_2<F>(dec: F)
 }
 
 fn dec_base_3<F>(dec: F)
-    where F: Fn(&mut TestCpu, u8) -> u8
+where
+    F: Fn(&mut TestCpu, u8) -> u8,
 {
     let mut cpu = TestCpu::new_test();
     let val = dec(&mut cpu, 254);

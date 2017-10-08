@@ -16,6 +16,7 @@ use ppu::vram::Vram;
 use std::cell::Cell;
 use std::num::Wrapping;
 
+#[cfg_attr(rustfmt, rustfmt_skip)]
 static REVERSE_LOOKUP: [u8; 256] =
     [0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0, 0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70,
      0xf0, 0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8, 0x18, 0x98, 0x58, 0xd8, 0x38, 0xb8,
@@ -155,23 +156,24 @@ impl SpriteRenderer for SpriteRendererBase {
 
     fn update_palettes<V: Vram>(&mut self, vram: &V) {
         let bg = vram.read(0x3f00) as usize;
-        self.palettes = [PALETTE[bg],
-                         PALETTE[vram.read(0x3f11) as usize],
-                         PALETTE[vram.read(0x3f12) as usize],
-                         PALETTE[vram.read(0x3f13) as usize],
-                         PALETTE[bg],
-                         PALETTE[vram.read(0x3f15) as usize],
-                         PALETTE[vram.read(0x3f16) as usize],
-                         PALETTE[vram.read(0x3f17) as usize],
-                         PALETTE[bg],
-                         PALETTE[vram.read(0x3f19) as usize],
-                         PALETTE[vram.read(0x3f1a) as usize],
-                         PALETTE[vram.read(0x3f1b) as usize],
-                         PALETTE[bg],
-                         PALETTE[vram.read(0x3f1d) as usize],
-                         PALETTE[vram.read(0x3f1e) as usize],
-                         PALETTE[vram.read(0x3f1f) as usize]];
-
+        self.palettes = [
+            PALETTE[bg],
+            PALETTE[vram.read(0x3f11) as usize],
+            PALETTE[vram.read(0x3f12) as usize],
+            PALETTE[vram.read(0x3f13) as usize],
+            PALETTE[bg],
+            PALETTE[vram.read(0x3f15) as usize],
+            PALETTE[vram.read(0x3f16) as usize],
+            PALETTE[vram.read(0x3f17) as usize],
+            PALETTE[bg],
+            PALETTE[vram.read(0x3f19) as usize],
+            PALETTE[vram.read(0x3f1a) as usize],
+            PALETTE[vram.read(0x3f1b) as usize],
+            PALETTE[bg],
+            PALETTE[vram.read(0x3f1d) as usize],
+            PALETTE[vram.read(0x3f1e) as usize],
+            PALETTE[vram.read(0x3f1f) as usize],
+        ];
     }
 
     fn dec_x_counters(&mut self) {
@@ -194,8 +196,7 @@ impl SpriteRenderer for SpriteRendererBase {
             let sprite_base = sprites_fetched * 4;
 
             let tile_y = self.sprite_evaluation.read_secondary_oam(sprite_base);
-            let attribute_byte = self.sprite_evaluation
-                .read_secondary_oam(sprite_base + 2);
+            let attribute_byte = self.sprite_evaluation.read_secondary_oam(sprite_base + 2);
 
             let attribute = SpriteAttributes(attribute_byte);
 
@@ -203,8 +204,7 @@ impl SpriteRenderer for SpriteRendererBase {
                 // It's an unused tile, return all transparent pixels
                 (0, 0)
             } else {
-                let tile_index = self.sprite_evaluation
-                    .read_secondary_oam(sprite_base + 1);
+                let tile_index = self.sprite_evaluation.read_secondary_oam(sprite_base + 1);
 
                 let fine_y = if attribute.flip_vertically() {
                     7 - (self.sprite_evaluation.scanline() - tile_y)
@@ -228,14 +228,16 @@ impl SpriteRenderer for SpriteRendererBase {
                 let pattern_high = vram.read(tile_offset + 8);
 
                 if attribute.flip_horizontally() {
-                    (REVERSE_LOOKUP[pattern_low as usize], REVERSE_LOOKUP[pattern_high as usize])
+                    (
+                        REVERSE_LOOKUP[pattern_low as usize],
+                        REVERSE_LOOKUP[pattern_high as usize],
+                    )
                 } else {
                     (pattern_low, pattern_high)
                 }
             };
 
-            let x = self.sprite_evaluation
-                .read_secondary_oam(sprite_base + 3);
+            let x = self.sprite_evaluation.read_secondary_oam(sprite_base + 3);
 
             self.pattern_low_shift_registers[sprites_fetched as usize] = pattern_low;
             self.pattern_high_shift_registers[sprites_fetched as usize] = pattern_high;
@@ -243,7 +245,6 @@ impl SpriteRenderer for SpriteRendererBase {
             self.x_counters[sprites_fetched as usize] = x;
         }
         self.sprite_zero_map = self.sprite_evaluation.sprite_zero_map();
-
     }
 
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {

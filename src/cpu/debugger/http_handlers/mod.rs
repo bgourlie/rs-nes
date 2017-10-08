@@ -57,7 +57,9 @@ pub struct ToggleBreakOnNmiHandler {
 
 impl ToggleBreakOnNmiHandler {
     pub fn new(break_on_nmi: Arc<AtomicBool>) -> Self {
-        ToggleBreakOnNmiHandler { break_on_nmi: break_on_nmi }
+        ToggleBreakOnNmiHandler {
+            break_on_nmi: break_on_nmi,
+        }
     }
 }
 
@@ -79,7 +81,9 @@ pub struct ToggleBreakpointHandler {
 
 impl ToggleBreakpointHandler {
     pub fn new(breakpoints: Arc<Mutex<BreakpointMap>>) -> Self {
-        ToggleBreakpointHandler { breakpoints: breakpoints }
+        ToggleBreakpointHandler {
+            breakpoints: breakpoints,
+        }
     }
 }
 
@@ -87,8 +91,9 @@ impl Handler for ToggleBreakpointHandler {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
         debug!("Toggle breakpoint request received!");
         if let Some(addr) = get_router(req)
-               .find("addr")
-               .and_then(|a| a.parse::<u16>().ok()) {
+            .find("addr")
+            .and_then(|a| a.parse::<u16>().ok())
+        {
             let breakpoints = &mut (*self.breakpoints.lock().unwrap());
             let is_set = breakpoints.toggle(addr);
             let resp_model = ToggleBreakpointResponse::new(addr, is_set);
@@ -120,7 +125,9 @@ pub struct StepHandler {
 
 impl StepHandler {
     pub fn new(cpu_thread: Thread) -> Self {
-        StepHandler { cpu_thread_handle: cpu_thread }
+        StepHandler {
+            cpu_thread_handle: cpu_thread,
+        }
     }
 }
 

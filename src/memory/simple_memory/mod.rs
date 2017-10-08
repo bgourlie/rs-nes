@@ -1,7 +1,6 @@
-use super::{ADDRESSABLE_MEMORY, Memory};
+use super::{Memory, ADDRESSABLE_MEMORY};
 use input::NoInput;
 use screen::NoScreen;
-
 #[cfg(feature = "debugger")]
 use seahash;
 use std::io::Write;
@@ -9,12 +8,16 @@ use std::io::Write;
 pub struct SimpleMemory {
     addr: [u8; ADDRESSABLE_MEMORY],
     screen: NoScreen,
-    input: NoInput
+    input: NoInput,
 }
 
 impl SimpleMemory {
     pub fn new() -> Self {
-        SimpleMemory { addr: [0; ADDRESSABLE_MEMORY], screen: NoScreen, input: NoInput }
+        SimpleMemory {
+            addr: [0; ADDRESSABLE_MEMORY],
+            screen: NoScreen,
+            input: NoInput,
+        }
     }
 
     pub fn store_many(&mut self, addr: u16, data: &[u8]) {

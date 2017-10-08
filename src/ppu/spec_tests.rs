@@ -171,24 +171,28 @@ fn increment_coarse_x_called() {
 
     let mut ppu = mocks::mock_ppu();
     ppu.mask.write(0b00011000); // Enable rendering
-    // Render 5 frames and assert that the VRAM coarse x increment function is called
+                                // Render 5 frames and assert that the VRAM coarse x increment function is called
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
         let scanline = frame_cycle / CYCLES_PER_SCANLINE;
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         ppu.step();
         if (scanline < 240 || scanline == 261) && ((x > 0 && x < 256) || x >= 328) && x % 8 == 0 {
-            assert_eq!(true,
-                       ppu.vram.coarse_x_increment_called.get(),
-                       "scanline = {} x = {}",
-                       scanline,
-                       x)
+            assert_eq!(
+                true,
+                ppu.vram.coarse_x_increment_called.get(),
+                "scanline = {} x = {}",
+                scanline,
+                x
+            )
         } else {
-            assert_eq!(false,
-                       ppu.vram.coarse_x_increment_called.get(),
-                       "scanline = {} x = {}",
-                       scanline,
-                       x)
+            assert_eq!(
+                false,
+                ppu.vram.coarse_x_increment_called.get(),
+                "scanline = {} x = {}",
+                scanline,
+                x
+            )
         }
         ppu.vram.reset_mock();
     }
@@ -339,10 +343,10 @@ fn oam_read_non_blanking_increments_addr() {
     ppu.status.clear_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004);
-    assert_eq!(true,
-               ppu.sprite_renderer
-                   .read_data_increment_addr_called
-                   .get());
+    assert_eq!(
+        true,
+        ppu.sprite_renderer.read_data_increment_addr_called.get()
+    );
     assert_eq!(false, ppu.sprite_renderer.read_data_called.get());
 }
 
@@ -352,10 +356,10 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
     ppu.status.set_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004);
-    assert_eq!(false,
-               ppu.sprite_renderer
-                   .read_data_increment_addr_called
-                   .get());
+    assert_eq!(
+        false,
+        ppu.sprite_renderer.read_data_increment_addr_called.get()
+    );
     assert_eq!(true, ppu.sprite_renderer.read_data_called.get());
 }
 
@@ -365,10 +369,10 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
     ppu.read(0x2004);
-    assert_eq!(false,
-               ppu.sprite_renderer
-                   .read_data_increment_addr_called
-                   .get());
+    assert_eq!(
+        false,
+        ppu.sprite_renderer.read_data_increment_addr_called.get()
+    );
     assert_eq!(true, ppu.sprite_renderer.read_data_called.get());
 }
 
@@ -382,12 +386,14 @@ fn odd_frame_cycle_skip() {
         let x = frame_cycle % super::CYCLES_PER_SCANLINE;
         let frame_number = ppu.cycles / super::CYCLES_PER_FRAME;
         let was_odd_frame = frame_number % 2 == 1;
-        assert_eq!(ppu.odd_frame,
-                   was_odd_frame,
-                   "frame_number = {} ({},{})",
-                   frame_number,
-                   x,
-                   scanline);
+        assert_eq!(
+            ppu.odd_frame,
+            was_odd_frame,
+            "frame_number = {} ({},{})",
+            frame_number,
+            x,
+            scanline
+        );
         ppu.step();
 
         if scanline == 261 && x == 339 {
@@ -579,7 +585,6 @@ mod mocks {
 
         fn copy_horizontal_pos_to_addr(&self) {
             self.copy_horizontal_pos_to_addr_called.set(true)
-
         }
         fn copy_vertical_pos_to_addr(&self) {
             self.copy_vertical_pos_to_addr_called.set(true)

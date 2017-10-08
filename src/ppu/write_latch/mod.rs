@@ -15,7 +15,9 @@ pub struct WriteLatch {
 
 impl Default for WriteLatch {
     fn default() -> Self {
-        WriteLatch { is_first_write: Cell::new(true) }
+        WriteLatch {
+            is_first_write: Cell::new(true),
+        }
     }
 }
 

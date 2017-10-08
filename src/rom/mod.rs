@@ -108,7 +108,14 @@ impl NesRom {
             Mirroring::Vertical
         };
 
-        (prg_rom_banks, chr_rom_banks, mapper, has_trainer, has_sram, mirroring)
+        (
+            prg_rom_banks,
+            chr_rom_banks,
+            mapper,
+            has_trainer,
+            has_sram,
+            mirroring,
+        )
     }
 
     fn load_ines_archaic(bytes: &[u8]) -> Result<NesRom, &'static str> {
@@ -121,21 +128,21 @@ impl NesRom {
             NesRom::load_common(bytes);
 
         Ok(NesRom {
-               format: RomFormat::INesArchaic,
-               video_standard: VideoStandard::Indeterminite,
-               mapper: mapper_lo,
-               mirroring: mirroring,
-               prg_rom_banks: prg_rom_banks,
-               prg_ram_banks: 1,
-               chr_rom_banks: chr_rom_banks,
-               has_sram: has_sram,
-               has_trainer: has_trainer,
-               is_pc10: false,
-               is_vs_unisystem: false,
-               trainer: Vec::new(), // TODO
-               prg: Vec::new(),
-               chr: Vec::new(),
-           })
+            format: RomFormat::INesArchaic,
+            video_standard: VideoStandard::Indeterminite,
+            mapper: mapper_lo,
+            mirroring: mirroring,
+            prg_rom_banks: prg_rom_banks,
+            prg_ram_banks: 1,
+            chr_rom_banks: chr_rom_banks,
+            has_sram: has_sram,
+            has_trainer: has_trainer,
+            is_pc10: false,
+            is_vs_unisystem: false,
+            trainer: Vec::new(), // TODO
+            prg: Vec::new(),
+            chr: Vec::new(),
+        })
     }
 
     fn load_ines(bytes: &[u8]) -> Result<NesRom, &'static str> {
@@ -172,7 +179,6 @@ impl NesRom {
         if has_trainer {
             trainer.extend(bytes[16..528].iter().cloned());
             prg_start = 529;
-
         } else {
             prg_start = 16;
         }
@@ -183,32 +189,32 @@ impl NesRom {
         chr.extend(bytes[chr_start..(chr_start + chr_size)].iter().cloned());
 
         Ok(NesRom {
-               format: RomFormat::INes,
-               video_standard: video_standard,
-               mapper: mapper,
-               mirroring: mirroring,
-               prg_rom_banks: prg_rom_banks,
-               prg_ram_banks: prg_ram_banks,
-               chr_rom_banks: chr_rom_banks,
-               has_sram: has_sram,
-               has_trainer: has_trainer,
-               is_pc10: is_pc10,
-               is_vs_unisystem: is_vs_unisystem,
-               trainer: trainer,
-               prg: prg,
-               chr: chr,
-           })
+            format: RomFormat::INes,
+            video_standard: video_standard,
+            mapper: mapper,
+            mirroring: mirroring,
+            prg_rom_banks: prg_rom_banks,
+            prg_ram_banks: prg_ram_banks,
+            chr_rom_banks: chr_rom_banks,
+            has_sram: has_sram,
+            has_trainer: has_trainer,
+            is_pc10: is_pc10,
+            is_vs_unisystem: is_vs_unisystem,
+            trainer: trainer,
+            prg: prg,
+            chr: chr,
+        })
     }
 
     // See http://wiki.nesdev.com/w/index.php/INES#Variant_comparison for
     // explanation of rom format detection.
     fn determine_format(bytes: &[u8], bytes_read: usize) -> RomFormat {
-
         // FIXME: Logic for determining Nes20 format is most certainly wrong.
         if bytes[7] & 0x0c == 0x08 && bytes[9] as usize <= bytes_read {
             RomFormat::Nes20
-        } else if bytes[7] & 0x0c == 0x00 && bytes[12] == 0 && bytes[13] == 0 &&
-                  bytes[14] == 0 && bytes[15] == 0 {
+        } else if bytes[7] & 0x0c == 0x00 && bytes[12] == 0 && bytes[13] == 0 && bytes[14] == 0
+            && bytes[15] == 0
+        {
             RomFormat::INes
         } else {
             RomFormat::INesArchaic

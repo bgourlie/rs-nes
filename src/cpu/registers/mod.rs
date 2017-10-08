@@ -16,11 +16,11 @@ const FL_ALWAYS_SET: u8 = FL_UNUSED | FL_BREAK;
 
 #[derive(Clone)]
 pub struct Registers {
-    pub pc: u16, // Program Counter
-    pub sp: u8, // Stack Pointer
-    pub acc: u8, // Accumulator
-    pub x: u8, // Index Register X
-    pub y: u8, // Index Register Y
+    pub pc: u16,    // Program Counter
+    pub sp: u8,     // Stack Pointer
+    pub acc: u8,    // Accumulator
+    pub x: u8,      // Index Register X
+    pub y: u8,      // Index Register Y
     pub status: u8, // Processor Status Flags
 }
 

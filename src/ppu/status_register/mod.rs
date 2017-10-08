@@ -17,7 +17,9 @@ pub struct StatusRegister {
 impl StatusRegister {
     #[cfg(test)]
     pub fn new(reg: u8) -> Self {
-        StatusRegister { reg: Cell::new(reg) }
+        StatusRegister {
+            reg: Cell::new(reg),
+        }
     }
 
     // TODO: How do we implement Deref over a Cell type?
