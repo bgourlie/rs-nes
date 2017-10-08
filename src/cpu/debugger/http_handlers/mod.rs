@@ -89,7 +89,7 @@ impl Handler for ToggleBreakpointHandler {
         if let Some(addr) = get_router(req)
                .find("addr")
                .and_then(|a| a.parse::<u16>().ok()) {
-            let mut breakpoints = &mut (*self.breakpoints.lock().unwrap());
+            let breakpoints = &mut (*self.breakpoints.lock().unwrap());
             let is_set = breakpoints.toggle(addr);
             let resp_model = ToggleBreakpointResponse::new(addr, is_set);
             let resp_body = serde_json::to_string(&resp_model).unwrap();
