@@ -7,14 +7,13 @@ build = "build.rs"
 [features]
 default = []
 debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "websocket", "base64", "png", "log", "env_logger"]
-slow_tests = []
 
 
 [dependencies]
 sdl2 = "^0.29"
 
 # Debugger dependencies
-websocket = {version = "*", optional = true, default-features = false}
+websocket = {version = "^0.19", optional = true, default-features = false}
 iron = {version = "*", optional = true}
 router = {version = "*", optional = true}
 byteorder = {version = "*", optional = true}
