@@ -61,8 +61,13 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
+    let fixed_time_stamp = Duration::new(0, 16666667);
 
     'running: loop {
+        let now = Instant::now();
+        accumulator += now - previous_clock;
+        previous_clock = now;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -106,11 +111,6 @@ fn main() {
             }
         }
 
-        let now = Instant::now();
-        accumulator += now - previous_clock;
-        previous_clock = now;
-
-        let fixed_time_stamp = Duration::new(0, 16666667);
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
             loop {
