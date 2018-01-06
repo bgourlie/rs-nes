@@ -670,7 +670,6 @@ pub struct AbsoluteX {
     is_store: bool,
 }
 
-
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum Variant {
     Standard,

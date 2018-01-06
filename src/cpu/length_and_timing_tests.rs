@@ -511,7 +511,6 @@ fn iny() {
     assert_length_and_cycles!("INY\n", 1, 2);
 }
 
-
 #[test]
 fn jmp() {
     // Absolute

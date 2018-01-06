@@ -39,7 +39,6 @@ impl TestCpu {
     }
 }
 
-
 #[allow(dead_code)]
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum Interrupt {

@@ -112,12 +112,10 @@ struct ContinueResponse {
     continued: bool,
 }
 
-
 #[derive(Serialize)]
 pub struct StepResponse {
     stepped: bool,
 }
-
 
 pub struct StepHandler {
     cpu_thread_handle: Thread,

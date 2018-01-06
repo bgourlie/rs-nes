@@ -1,9 +1,9 @@
 #![allow(unused_imports)]
 
 #[cfg(feature = "debugger")]
-extern crate log;
-#[cfg(feature = "debugger")]
 extern crate env_logger;
+#[cfg(feature = "debugger")]
+extern crate log;
 extern crate rs_nes;
 
 use rs_nes::cpu::*;
@@ -20,11 +20,15 @@ use std::rc::Rc;
 fn main() {
     env_logger::init().unwrap();
     let file = env::args().last().unwrap();
-    let rom = Rc::new(Box::new(NesRom::read(format!("{}", file)).expect("Couldn't find rom file")));
-    println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
-             rom.mapper,
-             rom.chr_rom_banks,
-             rom.chr.len());
+    let rom = Rc::new(Box::new(
+        NesRom::read(format!("{}", file)).expect("Couldn't find rom file"),
+    ));
+    println!(
+        "ROM Mapper: {} CHR banks: {} CHR size: {}",
+        rom.mapper,
+        rom.chr_rom_banks,
+        rom.chr.len()
+    );
 
     let ppu = PpuImpl::new(rom.clone());
     let mem = NesMemoryImpl::new(rom, ppu, InputBase::default());

@@ -1,5 +1,5 @@
-extern crate sdl2;
 extern crate rs_nes;
+extern crate sdl2;
 
 use rs_nes::cpu::*;
 use rs_nes::input::{Button, Input, InputBase};
@@ -21,11 +21,15 @@ const SCREEN_HEIGHT: u32 = 240;
 fn main() {
     // INIT NES
     let file = env::args().last().unwrap();
-    let rom = Rc::new(Box::new(NesRom::read(format!("{}", file)).expect("Couldn't find rom file")));
-    println!("ROM Mapper: {} CHR banks: {} CHR size: {}",
-             rom.mapper,
-             rom.chr_rom_banks,
-             rom.chr.len());
+    let rom = Rc::new(Box::new(
+        NesRom::read(format!("{}", file)).expect("Couldn't find rom file"),
+    ));
+    println!(
+        "ROM Mapper: {} CHR banks: {} CHR size: {}",
+        rom.mapper,
+        rom.chr_rom_banks,
+        rom.chr.len()
+    );
 
     let ppu = PpuImpl::new(rom.clone());
     let input = InputBase::default();
@@ -61,38 +65,43 @@ fn main() {
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
-                Event::KeyDown { keycode: Some(keycode), .. } => {
-                    match keycode {
-                        Keycode::W => cpu.memory.input().player1_press(Button::Up),
-                        Keycode::A => cpu.memory.input().player1_press(Button::Left),
-                        Keycode::S => cpu.memory.input().player1_press(Button::Down),
-                        Keycode::D => cpu.memory.input().player1_press(Button::Right),
-                        Keycode::LShift | Keycode::RShift => {
-                            cpu.memory.input().player1_press(Button::Select)
-                        }
-                        Keycode::Return => cpu.memory.input().player1_press(Button::Start),
-                        Keycode::J => cpu.memory.input().player1_press(Button::B),
-                        Keycode::K => cpu.memory.input().player1_press(Button::A),
-                        _ => (),
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => match keycode {
+                    Keycode::W => cpu.memory.input().player1_press(Button::Up),
+                    Keycode::A => cpu.memory.input().player1_press(Button::Left),
+                    Keycode::S => cpu.memory.input().player1_press(Button::Down),
+                    Keycode::D => cpu.memory.input().player1_press(Button::Right),
+                    Keycode::LShift | Keycode::RShift => {
+                        cpu.memory.input().player1_press(Button::Select)
                     }
-                }
-                Event::KeyUp { keycode: Some(keycode), .. } => {
-                    match keycode {
-                        Keycode::W => cpu.memory.input().player1_release(Button::Up),
-                        Keycode::A => cpu.memory.input().player1_release(Button::Left),
-                        Keycode::S => cpu.memory.input().player1_release(Button::Down),
-                        Keycode::D => cpu.memory.input().player1_release(Button::Right),
-                        Keycode::LShift | Keycode::RShift => {
-                            cpu.memory.input().player1_release(Button::Select)
-                        }
-                        Keycode::Return => cpu.memory.input().player1_release(Button::Start),
-                        Keycode::J => cpu.memory.input().player1_release(Button::B),
-                        Keycode::K => cpu.memory.input().player1_release(Button::A),
-                        _ => (),
+                    Keycode::Return => cpu.memory.input().player1_press(Button::Start),
+                    Keycode::J => cpu.memory.input().player1_press(Button::B),
+                    Keycode::K => cpu.memory.input().player1_press(Button::A),
+                    _ => (),
+                },
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    ..
+                } => match keycode {
+                    Keycode::W => cpu.memory.input().player1_release(Button::Up),
+                    Keycode::A => cpu.memory.input().player1_release(Button::Left),
+                    Keycode::S => cpu.memory.input().player1_release(Button::Down),
+                    Keycode::D => cpu.memory.input().player1_release(Button::Right),
+                    Keycode::LShift | Keycode::RShift => {
+                        cpu.memory.input().player1_release(Button::Select)
                     }
-                }
+                    Keycode::Return => cpu.memory.input().player1_release(Button::Start),
+                    Keycode::J => cpu.memory.input().player1_release(Button::B),
+                    Keycode::K => cpu.memory.input().player1_release(Button::A),
+                    _ => (),
+                },
                 _ => (),
             }
         }

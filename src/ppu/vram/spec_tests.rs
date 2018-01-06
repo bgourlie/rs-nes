@@ -82,7 +82,6 @@ fn write_mapping() {
     assert_eq!(true, vram.name_tables.into_iter().all(|val| *val == 2));
 }
 
-
 #[test]
 fn ppu_addr_mirroring() {
     let vram = vram_fixture();
@@ -243,7 +242,6 @@ fn scroll_second_write() {
     vram.scroll_write(LatchState::SecondWrite(0b1111_1000));
     assert_eq!(0b0000_0011_1110_0000, vram.t.get());
 
-
     vram.t.set(0b0000_1100_0001_1111);
     vram.scroll_write(LatchState::SecondWrite(0b1111_1111));
     assert_eq!(0b0111_1111_1111_1111, vram.t.get());
@@ -338,7 +336,6 @@ fn fine_y_increment() {
         }
     }
 }
-
 
 fn vram_fixture_with_chr(chr: Vec<u8>) -> VramBase {
     let mut rom = NesRom::default();

@@ -188,8 +188,8 @@ fn bg_shift_cycle(scanline: usize, x: usize) -> bool {
 }
 
 fn fill_bg_shift_registers(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && ((x > 8 && x <= 257) && (x - 1) % 8 == 0) ||
-    (x == 329 || x == 337)
+    bg_rendering_scanline(scanline) && ((x > 8 && x <= 257) && (x - 1) % 8 == 0)
+        || (x == 329 || x == 337)
 }
 
 fn draw_pixel(scanline: usize, x: usize) -> bool {
@@ -213,9 +213,10 @@ fn unique_cycles(cycle_map: &CycleTable) -> HashMap<u32, u8> {
 
 fn print_array(cycle_table: &CycleTable, type_map: &HashMap<u32, u8>) {
     println!("#[allow(zero_prefixed_literal)]");
-    println!("pub static CYCLE_TABLE: [[u8; {}]; {}] = [",
-             CYCLES_PER_SCANLINE,
-             SCANLINES);
+    println!(
+        "pub static CYCLE_TABLE: [[u8; {}]; {}] = [",
+        CYCLES_PER_SCANLINE, SCANLINES
+    );
     for y in 0..SCANLINES {
         print!("    [");
         for x in 0..CYCLES_PER_SCANLINE {
@@ -244,10 +245,10 @@ fn print_legend(type_map: &HashMap<u32, u8>) {
         let actions: Vec<String> = actions
             .iter()
             .map(|a: &Action| match a {
-                     &Action::NoReturnExpression(ref action_name, _) |
-                     &Action::WhenRenderingEnabled(ref action_name, _, _) |
-                     &Action::ReturnExpression(ref action_name, _) => action_name.clone(),
-                 })
+                &Action::NoReturnExpression(ref action_name, _)
+                | &Action::WhenRenderingEnabled(ref action_name, _, _)
+                | &Action::ReturnExpression(ref action_name, _) => action_name.clone(),
+            })
             .collect();
         let actions = actions.join(", ");
         println!("// {:2>}: {}", alias, actions)
@@ -362,33 +363,54 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & START_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.sprite_renderer.start_sprite_evaluation(scanline, self.control);"
-                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("START_SPRITE_EVALUATION".to_owned(), lines, 10))
+        lines.push(
+            "    self.sprite_renderer.start_sprite_evaluation(scanline, self.control);".to_owned(),
+        );
+        actions.push(Action::WhenRenderingEnabled(
+            "START_SPRITE_EVALUATION".to_owned(),
+            lines,
+            10,
+        ))
     }
 
     if cycle_type & SPRITE_DEC_X > 0 {
         let mut lines = Vec::new();
         lines.push("    self.sprite_renderer.dec_x_counters();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("SPRITE_DEC_X".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "SPRITE_DEC_X".to_owned(),
+            lines,
+            0,
+        ))
     }
 
     if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let mut lines = Vec::new();
         lines.push("    self.sprite_renderer.fill_registers(&self.vram, self.control);".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FILL_SPRITE_REGISTERS".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "FILL_SPRITE_REGISTERS".to_owned(),
+            lines,
+            0,
+        ))
     }
 
     if cycle_type & TICK_SPRITE_EVALUATION > 0 {
         let mut lines = Vec::new();
         lines.push("    self.sprite_renderer.tick_sprite_evaluation();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("TICK_SPRITE_EVALUATION".to_owned(), lines, 100))
+        actions.push(Action::WhenRenderingEnabled(
+            "TICK_SPRITE_EVALUATION".to_owned(),
+            lines,
+            100,
+        ))
     }
 
     if cycle_type & DRAW_PIXEL > 0 {
         let mut lines = Vec::new();
         lines.push("    self.draw_pixel(x, scanline);".to_owned());
-        actions.push(Action::WhenRenderingEnabled("DRAW_PIXEL".to_owned(), lines, -10000))
+        actions.push(Action::WhenRenderingEnabled(
+            "DRAW_PIXEL".to_owned(),
+            lines,
+            -10000,
+        ))
     }
 
     if cycle_type & SET_VBLANK > 0 {
@@ -403,51 +425,86 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let mut lines = Vec::new();
-        lines.push("    // Updating palettes here isn't accurate, but should suffice for now"
-                       .to_owned());
+        lines.push(
+            "    // Updating palettes here isn't accurate, but should suffice for now".to_owned(),
+        );
         lines.push("    self.background_renderer.update_palettes(&self.vram);".to_owned());
         lines.push("    self.sprite_renderer.update_palettes(&self.vram);".to_owned());
         lines.push("    self.status.clear_in_vblank();".to_owned());
         lines.push("    self.status.clear_sprite_zero_hit();".to_owned());
-        actions.push(Action::NoReturnExpression("CLEAR_VBLANK_AND_SPRITE_ZERO_HIT".to_owned(),
-                                                lines))
+        actions.push(Action::NoReturnExpression(
+            "CLEAR_VBLANK_AND_SPRITE_ZERO_HIT".to_owned(),
+            lines,
+        ))
     }
     if cycle_type & INC_COARSE_X > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.coarse_x_increment();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("INC_COARSE_X".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "INC_COARSE_X".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & INC_FINE_Y > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.fine_y_increment();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("INC_FINE_Y".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "INC_FINE_Y".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & HORI_V_EQ_HORI_T > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.copy_horizontal_pos_to_addr();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("HORI_V_EQ_HORI_T".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "HORI_V_EQ_HORI_T".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & FETCH_AT > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fetch_attribute_byte(&self.vram);".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_AT".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "FETCH_AT".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & FETCH_NT > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.fetch_nametable_byte(&self.vram);".to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_NT".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "FETCH_NT".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control);"
-                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_BG_LOW".to_owned(), lines, 0))
+        lines.push(
+            "    self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control);"
+                .to_owned(),
+        );
+        actions.push(Action::WhenRenderingEnabled(
+            "FETCH_BG_LOW".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control);"
-                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FETCH_BG_HIGH".to_owned(), lines, 0))
+        lines.push(
+            "    self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control);"
+                .to_owned(),
+        );
+        actions.push(Action::WhenRenderingEnabled(
+            "FETCH_BG_HIGH".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & ODD_FRAME_SKIP_CYCLE > 0 {
         let mut lines = Vec::new();
@@ -457,30 +514,47 @@ fn actions(cycle_type: u32) -> Vec<Action> {
         lines.push("        self.cycles += 1;".to_owned());
         lines.push("        self.odd_frame = false;".to_owned());
         lines.push("    }".to_owned());
-        actions.push(Action::NoReturnExpression("ODD_FRAME_SKIP_CYCLE".to_owned(), lines))
+        actions.push(Action::NoReturnExpression(
+            "ODD_FRAME_SKIP_CYCLE".to_owned(),
+            lines,
+        ))
     }
     if cycle_type & FRAME_INC > 0 {
         let mut lines = Vec::new();
-        lines.push("    // This is the last cycle for even frames and when rendering disabled"
-                       .to_owned());
+        lines.push(
+            "    // This is the last cycle for even frames and when rendering disabled".to_owned(),
+        );
         lines.push("    self.odd_frame = !self.odd_frame;".to_owned());
         actions.push(Action::NoReturnExpression("FRAME_INC".to_owned(), lines))
     }
     if cycle_type & SHIFT_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
         lines.push("    self.background_renderer.tick_shifters();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("SHIFT_BG_REGISTERS".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "SHIFT_BG_REGISTERS".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & VERT_V_EQ_VERT_T > 0 {
         let mut lines = Vec::new();
         lines.push("    self.vram.copy_vertical_pos_to_addr();".to_owned());
-        actions.push(Action::WhenRenderingEnabled("VERT_V_EQ_VERT_T".to_owned(), lines, 0))
+        actions.push(Action::WhenRenderingEnabled(
+            "VERT_V_EQ_VERT_T".to_owned(),
+            lines,
+            0,
+        ))
     }
     if cycle_type & FILL_BG_REGISTERS > 0 {
         let mut lines = Vec::new();
-        lines.push("    self.background_renderer.fill_shift_registers(self.vram.addr());"
-                       .to_owned());
-        actions.push(Action::WhenRenderingEnabled("FILL_BG_REGISTERS".to_owned(), lines, 0))
+        lines.push(
+            "    self.background_renderer.fill_shift_registers(self.vram.addr());".to_owned(),
+        );
+        actions.push(Action::WhenRenderingEnabled(
+            "FILL_BG_REGISTERS".to_owned(),
+            lines,
+            0,
+        ))
     }
     actions.sort_by(cmp_action);
     actions
@@ -488,24 +562,18 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
 fn cmp_action(a: &Action, b: &Action) -> Ordering {
     match a {
-        &Action::NoReturnExpression(_, _) => {
-            match b {
-                &Action::NoReturnExpression(_, _) => Ordering::Equal,
-                _ => Ordering::Less,
-            }
-        }
-        &Action::ReturnExpression(_, _) => {
-            match b {
-                &Action::ReturnExpression(_, _) => Ordering::Equal,
-                _ => Ordering::Greater,
-            }
-        }
-        &Action::WhenRenderingEnabled(_, _, order_a) => {
-            match b {
-                &Action::WhenRenderingEnabled(_, _, order_b) => order_a.cmp(&order_b),
-                &Action::NoReturnExpression(_, _) => Ordering::Greater,
-                &Action::ReturnExpression(_, _) => Ordering::Less,
-            }
-        }
+        &Action::NoReturnExpression(_, _) => match b {
+            &Action::NoReturnExpression(_, _) => Ordering::Equal,
+            _ => Ordering::Less,
+        },
+        &Action::ReturnExpression(_, _) => match b {
+            &Action::ReturnExpression(_, _) => Ordering::Equal,
+            _ => Ordering::Greater,
+        },
+        &Action::WhenRenderingEnabled(_, _, order_a) => match b {
+            &Action::WhenRenderingEnabled(_, _, order_b) => order_a.cmp(&order_b),
+            &Action::NoReturnExpression(_, _) => Ordering::Greater,
+            &Action::ReturnExpression(_, _) => Ordering::Less,
+        },
     }
 }
