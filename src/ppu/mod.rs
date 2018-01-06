@@ -74,10 +74,9 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
         let sprite_pixel = self.sprite_renderer.current_pixel();
 
         let color = match (bg_pixel, sprite_pixel.value) {
-            (0, 0) => self.background_renderer.pixel_color(fine_x),
+            (0, 0) | (_, 0) => self.background_renderer.pixel_color(fine_x),
             (0, _) => sprite_pixel.color,
-            (_, 0) => self.background_renderer.pixel_color(fine_x),
-            (_, _) => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
+            _ => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
                 sprite_pixel.color
             } else {
                 self.background_renderer.pixel_color(fine_x)
@@ -120,6 +119,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
         }
     }
 
+    #[allow(cyclomatic_complexity)] // TODO: Reduce branching!
     fn step(&mut self) -> Interrupt {
         let frame_cycle = self.cycles % CYCLES_PER_FRAME;
         let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
@@ -507,7 +507,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             addr >= 0x2000 && addr < 0x4000,
             "Invalid memory mapped ppu address"
         );
-        let val = match addr & 7 {
+
+        match addr & 7 {
             0x0 => *self.control,
             0x1 => *self.mask,
             0x2 => {
@@ -530,8 +531,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             }
             0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => unreachable!(),
-        };
-        val
+        }
     }
 
     /// Dump register memory

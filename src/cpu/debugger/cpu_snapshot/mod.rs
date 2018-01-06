@@ -37,7 +37,7 @@ impl Serialize for MemorySnapshot {
                 state.end()
             }
             MemorySnapshot::Updated(hash, ref memory) => {
-                let base64 = base64::encode(&memory);
+                let base64 = base64::encode(memory);
                 let mut state = serializer.serialize_struct("Memory", 3)?;
                 state.serialize_field("state", "Updated")?;
                 state.serialize_field("hash", &hash)?;

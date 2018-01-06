@@ -581,7 +581,7 @@ pub fn execute<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>, opc
     }
 }
 
-pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>> {
+pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>>: Copy + Clone {
     type Output;
     fn read(&self) -> Self::Output;
     fn write(&self, _: &mut Cpu<S, I, M>, _: u8) {
@@ -589,6 +589,7 @@ pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>> {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Absolute {
     addr: u16,
     value: u8,
@@ -636,6 +637,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Absolute 
 
 /// An absolute addressing mode for instructions that operate on the actually memory address, and
 /// not the value at that address.
+#[derive(Copy, Clone)]
 pub struct AbsoluteAddress {
     addr: u16,
 }
@@ -661,6 +663,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteA
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct AbsoluteX {
     addr: u16,
     value: u8,
@@ -668,7 +671,7 @@ pub struct AbsoluteX {
 }
 
 
-#[derive(PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum Variant {
     Standard,
     ReadModifyWrite,
@@ -737,6 +740,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteX
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct AbsoluteY {
     addr: u16,
     value: u8,
@@ -791,6 +795,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for AbsoluteY
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Accumulator {
     value: u8,
 }
@@ -817,6 +822,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Accumulat
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Immediate {
     value: u8,
 }
@@ -836,6 +842,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Immediate
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Implied;
 
 impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Implied {
@@ -846,6 +853,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Implied {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct IndexedIndirect {
     addr: u16,
     value: u8,
@@ -896,6 +904,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for IndexedIn
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Indirect {
     addr: u16,
 }
@@ -927,6 +936,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Indirect 
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct IndirectIndexed {
     addr: u16,
     value: u8,
@@ -987,6 +997,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for IndirectI
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Relative {
     offset: i8,
 }
@@ -1006,6 +1017,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for Relative 
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct ZeroPage {
     addr: u16,
     value: u8,
@@ -1051,6 +1063,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for ZeroPage 
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct ZeroPageX {
     addr: u16,
     value: u8,
@@ -1104,6 +1117,7 @@ impl<S: Screen, I: Input, M: Memory<I, S>> AddressingMode<S, I, M> for ZeroPageX
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct ZeroPageY {
     addr: u16,
     value: u8,

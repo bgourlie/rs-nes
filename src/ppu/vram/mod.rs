@@ -121,9 +121,10 @@ impl Vram for VramBase {
         }
     }
 
+    #[allow(inline_always)]
     #[inline(always)]
     fn read(&self, addr: u16) -> u8 {
-        let val = if addr < 0x2000 {
+        if addr < 0x2000 {
             self.rom.chr[addr as usize]
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
@@ -139,9 +140,8 @@ impl Vram for VramBase {
             };
             self.palette[addr]
         } else {
-            panic!("Invalid vram read");
-        };
-        val
+            panic!("Invalid vram read")
+        }
     }
 
     fn addr(&self) -> u16 {

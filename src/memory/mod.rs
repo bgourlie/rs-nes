@@ -7,7 +7,7 @@ use input::Input;
 use screen::Screen;
 use std::io::Write;
 
-pub const ADDRESSABLE_MEMORY: usize = 65536;
+pub const ADDRESSABLE_MEMORY: usize = 65_536;
 
 pub trait Memory<I: Input, S: Screen> {
     fn tick(&mut self) -> Interrupt {

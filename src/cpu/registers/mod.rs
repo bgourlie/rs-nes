@@ -4,14 +4,14 @@
 #[cfg(test)]
 mod spec_tests;
 
-const FL_CARRY: u8 = 0b00000001;
-const FL_ZERO: u8 = 0b00000010;
-const FL_INTERRUPT_DISABLE: u8 = 0b00000100;
-const FL_DECIMAL: u8 = 0b00001000;
-const FL_BREAK: u8 = 0b00010000;
-const FL_UNUSED: u8 = 0b00100000;
-const FL_OVERFLOW: u8 = 0b01000000;
-const FL_SIGN: u8 = 0b10000000;
+const FL_CARRY: u8 = 0b0000_0001;
+const FL_ZERO: u8 = 0b0000_0010;
+const FL_INTERRUPT_DISABLE: u8 = 0b0000_0100;
+const FL_DECIMAL: u8 = 0b0000_1000;
+const FL_BREAK: u8 = 0b0001_0000;
+const FL_UNUSED: u8 = 0b0010_0000;
+const FL_OVERFLOW: u8 = 0b0100_0000;
+const FL_SIGN: u8 = 0b1000_0000;
 const FL_ALWAYS_SET: u8 = FL_UNUSED | FL_BREAK;
 
 #[derive(Clone)]

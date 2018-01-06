@@ -22,8 +22,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use websocket::{Message as WsMessage, Server as WsServer};
 
-const DEBUGGER_HTTP_ADDR: &'static str = "127.0.0.1:9975";
-const DEBUGGER_WS_ADDR: &'static str = "127.0.0.1:9976";
+const DEBUGGER_HTTP_ADDR: &str = "127.0.0.1:9975";
+const DEBUGGER_WS_ADDR: &str = "127.0.0.1:9976";
 
 #[derive(Eq, PartialEq)]
 pub enum InterruptHandler {
@@ -165,9 +165,9 @@ impl<S: Screen + Serialize, I: Input, M: Memory<I, S>> HttpDebugger<S, I, M> {
     fn start_http_server_thread(&self) {
         info!("Starting http debugger at {}", DEBUGGER_HTTP_ADDR);
         let cpu_thread = self.cpu_thread_handle.clone();
-        let breakpoints = self.breakpoints.clone();
-        let cpu_paused = self.cpu_paused.clone();
-        let break_on_nmi = self.break_on_nmi.clone();
+        let breakpoints = Arc::clone(&self.breakpoints);
+        let cpu_paused = Arc::clone(&self.cpu_paused);
+        let break_on_nmi = Arc::clone(&self.break_on_nmi);
 
         thread::spawn(move || {
             let mut router = Router::new();

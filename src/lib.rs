@@ -1,5 +1,7 @@
-// `error_chain!` can recurse deeply
-#![recursion_limit = "1024"]
+#![cfg_attr(all(debug_assertions, feature = "clippy"), feature(plugin))]
+#![cfg_attr(all(debug_assertions, feature = "clippy"), plugin(clippy))]
+
+#![allow(cast_lossless)]
 
 #[cfg(feature = "debugger")]
 #[macro_use]

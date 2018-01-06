@@ -54,7 +54,9 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
             elapsed_cycles += 1;
         }
 
+        #[allow(cast_lossless)]
         let start = (value as u16) << 8;
+
         for i in 0..0x100 {
             let val = self.read(i + start);
             dma_tick!(self);
@@ -100,7 +102,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
     }
 
     fn read(&self, address: u16) -> u8 {
-        let val = if address < 0x2000 {
+        if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
         } else if address < 0x4000 {
             self.ppu.read(address)
@@ -111,15 +113,12 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
         } else if address < 0x4018 {
             0
         } else if address < 0x8000 {
-            panic!("Read from 0x{:0>4X}", address);
+            panic!("Read from 0x{:0>4X}", address)
+        } else if self.rom.prg.len() > 16_384 {
+            self.rom.prg[address as usize & 0x7fff]
         } else {
-            if self.rom.prg.len() > 16384 {
-                self.rom.prg[address as usize & 0x7fff]
-            } else {
-                self.rom.prg[address as usize & 0x3fff]
-            }
-        };
-        val
+            self.rom.prg[address as usize & 0x3fff]
+        }
     }
 
     fn dump<T: Write>(&self, writer: &mut T) {
@@ -138,7 +137,7 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
         writer.write_all(&[0_u8; 0x20]).unwrap();
 
         // Not sure what goes here, but gotta pad it for now to have correct ROM size
-        writer.write_all(&[0_u8; 16352]).unwrap();
+        writer.write_all(&[0_u8; 16_352]).unwrap();
 
         // 0x6000 to 0xFFFF
         if self.rom.prg.len() > 0x4000 {

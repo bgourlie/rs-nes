@@ -55,48 +55,46 @@ impl SpriteEvaluation {
                 // Read Cycles
                 let oam_addr = (self.n as usize) * 4 + self.m as usize;
                 self.read_buffer = primary_oam[oam_addr];
-            } else {
+            } else if self.sprites_found < 8 {
                 // Write Cycles
-                if self.sprites_found < 8 {
-                    // Standard sprite evaluation
-                    if self.m == 0 {
-                        // We're evaluating y, check if sprite is on scanline
-                        let y = self.read_buffer;
-                        self.secondary_oam[self.sprites_found as usize * 4] = y;
-                        if !self.is_sprite_on_scanline(self.read_buffer) {
-                            // Sprite not on scanline, increment n to move on to next sprite.
-                            self.increment_n();
-                        } else {
-                            self.increment_m()
-                        }
+                // Standard sprite evaluation
+                if self.m == 0 {
+                    // We're evaluating y, check if sprite is on scanline
+                    let y = self.read_buffer;
+                    self.secondary_oam[self.sprites_found as usize * 4] = y;
+                    if !self.is_sprite_on_scanline(self.read_buffer) {
+                        // Sprite not on scanline, increment n to move on to next sprite.
+                        self.increment_n();
                     } else {
-                        // Copy remaining bytes of the sprite to secondary oam
-                        self.secondary_oam[self.sprites_found as usize * 4 + self.m as usize] =
-                            self.read_buffer;
-                        self.increment_m();
-
-                        if self.m == 0 {
-                            // m overflowed, meaning we copied the last byte for the sprite
-                            // We track if the sprite was sprite zero using a bit map.
-                            // It's sprite 0 if n == 1 (n will have been incremented once it gets
-                            // here)
-                            if self.n == 1 {
-                                self.sprite_zero_map = 1 << self.sprites_found;
-                            }
-                            self.sprites_found += 1;
-                        }
+                        self.increment_m()
                     }
                 } else {
-                    // Overflow sprite evaluation
-                    // The first sprite overflow evaluation correctly reads the y value of the next
-                    // sprite in OAM. After that, it reads the Y value of the first sprite in
-                    // secondary OAM. This contributes to the sprite overflow bug behavior.
-                    let y = self.read_buffer;
-                    if self.is_sprite_on_scanline(y) {
-                        self.sprite_overflow = true;
-                    } else {
-                        self.increment_n_hardware_bug();
+                    // Copy remaining bytes of the sprite to secondary oam
+                    self.secondary_oam[self.sprites_found as usize * 4 + self.m as usize] =
+                        self.read_buffer;
+                    self.increment_m();
+
+                    if self.m == 0 {
+                        // m overflowed, meaning we copied the last byte for the sprite
+                        // We track if the sprite was sprite zero using a bit map.
+                        // It's sprite 0 if n == 1 (n will have been incremented once it gets
+                        // here)
+                        if self.n == 1 {
+                            self.sprite_zero_map = 1 << self.sprites_found;
+                        }
+                        self.sprites_found += 1;
                     }
+                }
+            } else {
+                // Overflow sprite evaluation
+                // The first sprite overflow evaluation correctly reads the y value of the next
+                // sprite in OAM. After that, it reads the Y value of the first sprite in
+                // secondary OAM. This contributes to the sprite overflow bug behavior.
+                let y = self.read_buffer;
+                if self.is_sprite_on_scanline(y) {
+                    self.sprite_overflow = true;
+                } else {
+                    self.increment_n_hardware_bug();
                 }
             }
         }

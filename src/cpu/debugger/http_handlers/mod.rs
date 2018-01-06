@@ -101,7 +101,7 @@ impl Handler for ToggleBreakpointHandler {
             let resp = response_with((status::Ok, resp_body));
             Ok(resp)
         } else {
-            let resp = response_with((status::BadRequest));
+            let resp = response_with(status::BadRequest);
             Ok(resp)
         }
     }

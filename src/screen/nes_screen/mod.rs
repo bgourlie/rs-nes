@@ -18,8 +18,8 @@ pub struct NesScreen {
 impl Clone for NesScreen {
     fn clone(&self) -> Self {
         let mut scr = [0_u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3];
-        for i in 0..self.screen_buffer.len() {
-            scr[i] = self.screen_buffer[i]
+        for (i, pixel) in scr.iter_mut().enumerate().take(self.screen_buffer.len()) {
+            *pixel = self.screen_buffer[i]
         }
         NesScreen {
             screen_buffer: Box::new(scr),
@@ -53,7 +53,7 @@ impl Serialize for NesScreen {
             writer.write_image_data(&*self.screen_buffer).unwrap();
         }
         let img_buf = &*img_buf;
-        let encoded_img = base64::encode(&img_buf);
+        let encoded_img = base64::encode(img_buf);
         let mut state = serializer.serialize_struct("ScreenSnapshot", 3)?;
         state.serialize_field("height", &height)?;
         state.serialize_field("width", &width)?;

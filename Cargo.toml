@@ -12,6 +12,9 @@ debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", 
 [dependencies]
 sdl2 = "^0.29"
 
+# Build dependencies (needed in dependencies section for macro access)
+clippy = {version = "*", optional = true}
+
 # Debugger dependencies
 websocket = {version = "^0.19", optional = true, default-features = false}
 iron = {version = "*", optional = true}

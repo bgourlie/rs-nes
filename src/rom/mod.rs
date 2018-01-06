@@ -151,6 +151,8 @@ impl NesRom {
 
         let flags = bytes[7];
         let mapper = (flags & 0xf0) | mapper_lo;
+
+        #[allow(bad_bit_mask)] // This appears to be a false positive
         let is_pc10 = (flags & 0x2) == 1; // FIXME: See clippy warning
         let is_vs_unisystem = (flags & 0x1) == 1;
         let prg_ram_banks = if bytes[8] == 0 { 1 } else { bytes[8] };
@@ -173,7 +175,7 @@ impl NesRom {
         let mut chr = Vec::new();
         let mut prg = Vec::new();
         let prg_start: usize;
-        let prg_size: usize = prg_rom_banks as usize * 16384;
+        let prg_size: usize = prg_rom_banks as usize * 16_384;
         let chr_size: usize = chr_rom_banks as usize * 8192;
 
         if has_trainer {
@@ -190,19 +192,19 @@ impl NesRom {
 
         Ok(NesRom {
             format: RomFormat::INes,
-            video_standard: video_standard,
-            mapper: mapper,
-            mirroring: mirroring,
-            prg_rom_banks: prg_rom_banks,
-            prg_ram_banks: prg_ram_banks,
-            chr_rom_banks: chr_rom_banks,
-            has_sram: has_sram,
-            has_trainer: has_trainer,
-            is_pc10: is_pc10,
-            is_vs_unisystem: is_vs_unisystem,
-            trainer: trainer,
-            prg: prg,
-            chr: chr,
+            video_standard,
+            mapper,
+            mirroring,
+            prg_rom_banks,
+            prg_ram_banks,
+            chr_rom_banks,
+            has_sram,
+            has_trainer,
+            is_pc10,
+            is_vs_unisystem,
+            trainer,
+            prg,
+            chr,
         })
     }
 

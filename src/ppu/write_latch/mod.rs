@@ -25,9 +25,11 @@ impl WriteLatch {
     pub fn write(&self, val: u8) -> LatchState {
         let is_first_write = self.is_first_write.get();
         self.is_first_write.set(!is_first_write);
-        match is_first_write {
-            true => LatchState::FirstWrite(val),
-            false => LatchState::SecondWrite(val),
+
+        if is_first_write {
+            LatchState::FirstWrite(val)
+        } else {
+            LatchState::SecondWrite(val)
         }
     }
 
