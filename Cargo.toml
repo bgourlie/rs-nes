@@ -35,6 +35,9 @@ asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
 
+[build-dependencies]
+rustc_version = "0.2"
+
 [profile.release]
 opt-level = 3
 lto = true
