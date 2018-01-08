@@ -1,5 +1,6 @@
 #![cfg_attr(all(debug_assertions, feature = "RUSTC_IS_NIGHTLY"), feature(plugin))]
 #![cfg_attr(all(debug_assertions, feature = "RUSTC_IS_NIGHTLY"), plugin(clippy))]
+#![cfg_attr(not(feature = "RUSTC_IS_NIGHTLY"), allow(unknown_lints))]
 #![allow(cast_lossless)]
 
 #[cfg(feature = "debugger")]

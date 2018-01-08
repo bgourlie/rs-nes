@@ -12,9 +12,6 @@ debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", 
 [dependencies]
 sdl2 = "^0.29"
 
-# Build dependencies (needed in dependencies section for macro access)
-clippy = {version = "*", optional = true}
-
 # Debugger dependencies
 websocket = {version = "^0.19", optional = true, default-features = false}
 iron = {version = "*", optional = true}
@@ -37,6 +34,25 @@ time = "*"
 
 [build-dependencies]
 rustc_version = "0.2"
+
+# Nightly only dependencies
+# DO NOT ADD STUFF HERE. THIS IS A SPECIAL CASE TO SUPPORT THE CLIPPY PLUGIN FOR DEVELOPMENT ON NIGHTLY
+[target.'cfg(feature = "RUSTC_IS_NIGHTLY")'.dependencies]
+clippy = {version = "*", optional = true}
+
+[[example]]
+name = "functional_test_rom"
+required-features = ["debugger"]
+
+[[example]]
+name = "nes_rom"
+required-features = ["debugger"]
+
+[[example]]
+name = "generate_ppu_loop"
+
+[[example]]
+name = "real_time"
 
 [profile.release]
 opt-level = 3
