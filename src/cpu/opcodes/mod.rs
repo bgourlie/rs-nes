@@ -581,7 +581,7 @@ pub fn execute<S: Screen, I: Input, M: Memory<I, S>>(cpu: &mut Cpu<S, I, M>, opc
     }
 }
 
-pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>>: Copy + Clone {
+pub trait AddressingMode<S: Screen, I: Input, M: Memory<I, S>> {
     type Output;
     fn read(&self) -> Self::Output;
     fn write(&self, _: &mut Cpu<S, I, M>, _: u8) {

@@ -32,14 +32,6 @@ asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
 
-[build-dependencies]
-rustc_version = "0.2"
-
-# Nightly only dependencies
-# DO NOT ADD STUFF HERE. THIS IS A SPECIAL CASE TO SUPPORT THE CLIPPY PLUGIN FOR DEVELOPMENT ON NIGHTLY
-[target.'cfg(feature = "RUSTC_IS_NIGHTLY")'.dependencies]
-clippy = {version = "*", optional = true}
-
 [[example]]
 name = "functional_test_rom"
 required-features = ["debugger"]
