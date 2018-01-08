@@ -1,8 +1,4 @@
-#![allow(unused_imports)]
-
-#[cfg(feature = "debugger")]
 extern crate env_logger;
-#[cfg(feature = "debugger")]
 extern crate log;
 extern crate rs_nes;
 
@@ -11,12 +7,9 @@ use rs_nes::input::InputBase;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
-use rs_nes::screen::NesScreen;
-use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
 
-#[cfg(feature = "debugger")]
 fn main() {
     env_logger::init().unwrap();
     let file = env::args().last().unwrap();
@@ -39,9 +32,4 @@ fn main() {
     loop {
         debugger.step();
     }
-}
-
-#[cfg(not(feature = "debugger"))]
-fn main() {
-    panic!("You must run this example with the debugger feature enabled.")
 }

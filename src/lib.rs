@@ -1,5 +1,4 @@
-#![cfg_attr(all(debug_assertions, feature = "clippy"), feature(plugin))]
-#![cfg_attr(all(debug_assertions, feature = "clippy"), plugin(clippy))]
+#![allow(unknown_lints)]
 #![allow(cast_lossless)]
 
 #[cfg(feature = "debugger")]

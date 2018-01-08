@@ -12,9 +12,6 @@ debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", 
 [dependencies]
 sdl2 = "^0.29"
 
-# Build dependencies (needed in dependencies section for macro access)
-clippy = {version = "*", optional = true}
-
 # Debugger dependencies
 websocket = {version = "^0.19", optional = true, default-features = false}
 iron = {version = "*", optional = true}
@@ -34,6 +31,20 @@ env_logger = {version = "*", optional = true}
 asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
+
+[[example]]
+name = "functional_test_rom"
+required-features = ["debugger"]
+
+[[example]]
+name = "nes_rom"
+required-features = ["debugger"]
+
+[[example]]
+name = "generate_ppu_loop"
+
+[[example]]
+name = "real_time"
 
 [profile.release]
 opt-level = 3
