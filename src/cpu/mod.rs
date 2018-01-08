@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod spec_tests;
 
-#[cfg(all(test, feature = "slow_tests"))]
+#[cfg(test)]
 mod functional_tests;
 
-#[cfg(all(test, feature = "slow_tests"))]
+#[cfg(test)]
 mod length_and_timing_tests;
 
 #[cfg(feature = "debugger")]
