@@ -43,18 +43,17 @@ impl BackgroundRenderer {
         ];
     }
 
-    pub fn current_pixel(&self, fine_x: u8) -> u8 {
+    pub fn current_pixel(&self, fine_x: u8) -> (u8, Color) {
         let pattern_low = self.pattern_low_shift_register << fine_x;
         let pattern_high = self.pattern_high_shift_register << fine_x;
-        (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11
-    }
+        let pixel = (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11;
 
-    pub fn pixel_color(&self, fine_x: u8) -> Color {
         let palette_low = self.palette_low_bit_shift_register << fine_x;
         let palette_high = self.palette_high_bit_shift_register << fine_x;
         let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
-        let palette_index = (palette | self.current_pixel(fine_x)) as usize;
-        self.palettes[palette_index]
+        let palette_index = (palette | pixel) as usize;
+        let color = self.palettes[palette_index];
+        (pixel, color)
     }
 
     pub fn fill_shift_registers(&mut self, v: u16) {

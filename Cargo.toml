@@ -10,7 +10,7 @@ debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", 
 
 
 [dependencies]
-sdl2 = "^0.29"
+sdl2 = "^0.29.1"
 
 # Debugger dependencies
 websocket = {version = "^0.19", optional = true, default-features = false}
