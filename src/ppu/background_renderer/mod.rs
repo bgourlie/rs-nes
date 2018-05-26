@@ -10,10 +10,7 @@ use ppu::vram::Vram;
 #[derive(Default)]
 pub struct BackgroundRenderer {
     palettes: [Color; 16],
-    pattern_low_shift_register: u16,
-    pattern_high_shift_register: u16,
-    palette_low_bit_shift_register: u16,
-    palette_high_bit_shift_register: u16,
+    shift_registers: [u16; 4], // [pattern_low, pattern_high, palette_low, palette_high]
     attr_latch: u8,
     nametable_latch: u8,
     pattern_low_latch: u8,
@@ -43,26 +40,25 @@ impl BackgroundRenderer {
         ];
     }
 
-    pub fn current_pixel(&self, fine_x: u8) -> u8 {
-        let pattern_low = self.pattern_low_shift_register << fine_x;
-        let pattern_high = self.pattern_high_shift_register << fine_x;
-        (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11
-    }
+    pub fn current_pixel(&self, fine_x: u8) -> (u8, Color) {
+        let pattern_low = self.shift_registers[0] << fine_x;
+        let pattern_high = self.shift_registers[1] << fine_x;
+        let palette_low = self.shift_registers[2] << fine_x;
+        let palette_high = self.shift_registers[3] << fine_x;
+        let pixel = (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11;
 
-    pub fn pixel_color(&self, fine_x: u8) -> Color {
-        let palette_low = self.palette_low_bit_shift_register << fine_x;
-        let palette_high = self.palette_high_bit_shift_register << fine_x;
         let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
-        let palette_index = (palette | self.current_pixel(fine_x)) as usize;
-        self.palettes[palette_index]
+        let palette_index = (palette | pixel) as usize;
+        let color = self.palettes[palette_index];
+        (pixel, color)
     }
 
     pub fn fill_shift_registers(&mut self, v: u16) {
-        self.pattern_low_shift_register |= self.pattern_low_latch as u16;
-        self.pattern_high_shift_register |= self.pattern_high_latch as u16;
         let (palette_low, palette_high) = Self::palette_shift_bytes(v, self.attr_latch);
-        self.palette_low_bit_shift_register |= palette_low as u16;
-        self.palette_high_bit_shift_register |= palette_high as u16;
+        self.shift_registers[0] |= self.pattern_low_latch as u16;
+        self.shift_registers[1] |= self.pattern_high_latch as u16;
+        self.shift_registers[2] |= palette_low as u16;
+        self.shift_registers[3] |= palette_high as u16;
     }
 
     fn palette_shift_bytes(v: u16, attr_byte: u8) -> (u8, u8) {
@@ -81,10 +77,10 @@ impl BackgroundRenderer {
     }
 
     pub fn tick_shifters(&mut self) {
-        self.pattern_low_shift_register <<= 1;
-        self.pattern_high_shift_register <<= 1;
-        self.palette_low_bit_shift_register <<= 1;
-        self.palette_high_bit_shift_register <<= 1;
+        self.shift_registers[0] <<= 1;
+        self.shift_registers[1] <<= 1;
+        self.shift_registers[2] <<= 1;
+        self.shift_registers[3] <<= 1;
     }
 
     // TODO: Tests

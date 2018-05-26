@@ -70,16 +70,16 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
 impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     fn draw_pixel(&mut self, x: u16, scanline: u16) {
         let fine_x = self.vram.fine_x();
-        let bg_pixel = self.background_renderer.current_pixel(fine_x);
+        let (bg_pixel, bg_color) = self.background_renderer.current_pixel(fine_x);
         let sprite_pixel = self.sprite_renderer.current_pixel();
 
         let color = match (bg_pixel, sprite_pixel.value) {
-            (0, 0) | (_, 0) => self.background_renderer.pixel_color(fine_x),
+            (0, 0) | (_, 0) => bg_color,
             (0, _) => sprite_pixel.color,
             _ => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
                 sprite_pixel.color
             } else {
-                self.background_renderer.pixel_color(fine_x)
+                bg_color
             },
         };
 
