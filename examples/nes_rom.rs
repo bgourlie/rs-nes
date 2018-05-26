@@ -11,7 +11,7 @@ use std::env;
 use std::rc::Rc;
 
 fn main() {
-    env_logger::init().unwrap();
+    env_logger::init();
     let file = env::args().last().unwrap();
     let rom = Rc::new(Box::new(
         NesRom::read(format!("{}", file)).expect("Couldn't find rom file"),

@@ -8,11 +8,6 @@ matrix:
   allow_failures:
     - rust: nightly
 
-addons:
-  apt:
-    packages:
-    - libsdl2-dev
-
 script:
 - cargo build --verbose --examples --tests --all-features
 - cargo test --verbose --all-features

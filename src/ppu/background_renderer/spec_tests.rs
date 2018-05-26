@@ -8,28 +8,28 @@ fn fill_shift_registers() {
     renderer.pattern_high_latch = 0x0;
     renderer.attr_latch = 0x0;
     renderer.fill_shift_registers(0);
-    assert_eq!(0x0, renderer.pattern_low_shift_register);
-    assert_eq!(0x0, renderer.pattern_high_shift_register);
-    assert_eq!(0x0, renderer.palette_low_bit_shift_register);
-    assert_eq!(0x0, renderer.palette_high_bit_shift_register);
+    assert_eq!(0x0, renderer.shift_registers[0]);
+    assert_eq!(0x0, renderer.shift_registers[1]);
+    assert_eq!(0x0, renderer.shift_registers[2]);
+    assert_eq!(0x0, renderer.shift_registers[3]);
 
     renderer.pattern_low_latch = 0b10101010;
     renderer.pattern_high_latch = 0b01010101;
     renderer.attr_latch = 0xff;
     renderer.fill_shift_registers(0xff);
-    assert_eq!(0b10101010, renderer.pattern_low_shift_register);
-    assert_eq!(0b01010101, renderer.pattern_high_shift_register);
-    assert_eq!(0xff, renderer.palette_low_bit_shift_register);
-    assert_eq!(0xff, renderer.palette_high_bit_shift_register);
+    assert_eq!(0b10101010, renderer.shift_registers[0]);
+    assert_eq!(0b01010101, renderer.shift_registers[1]);
+    assert_eq!(0xff, renderer.shift_registers[2]);
+    assert_eq!(0xff, renderer.shift_registers[3]);
 
     renderer.pattern_low_latch = 0b01010101;
     renderer.pattern_high_latch = 0b10101010;
     renderer.attr_latch = 0xff;
     renderer.fill_shift_registers(0);
-    assert_eq!(0xff, renderer.pattern_low_shift_register);
-    assert_eq!(0xff, renderer.pattern_high_shift_register);
-    assert_eq!(0xff, renderer.palette_low_bit_shift_register);
-    assert_eq!(0xff, renderer.palette_high_bit_shift_register);
+    assert_eq!(0xff, renderer.shift_registers[0]);
+    assert_eq!(0xff, renderer.shift_registers[1]);
+    assert_eq!(0xff, renderer.shift_registers[2]);
+    assert_eq!(0xff, renderer.shift_registers[3]);
 }
 
 #[test]

@@ -2,16 +2,12 @@
 name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
-build = "build.rs"
 
 [features]
 default = []
 debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "websocket", "base64", "png", "log", "env_logger"]
 
-
 [dependencies]
-sdl2 = "^0.29.1"
-
 # Debugger dependencies
 websocket = {version = "^0.19", optional = true, default-features = false}
 iron = {version = "*", optional = true}
@@ -26,6 +22,10 @@ base64 = {version = "^0.4.0", optional = true}
 png = {version = "^0.6.2", optional = true}
 log = {version = "*", optional = true}
 env_logger = {version = "*", optional = true}
+
+[dependencies.sdl2]
+version = "^0.31"
+features = ["bundled"]
 
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
