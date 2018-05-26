@@ -47,14 +47,15 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut renderer = window
-        .renderer()
+    let mut canvas = window
+        .into_canvas()
         .accelerated()
         .present_vsync()
         .build()
         .unwrap();
+    let texture_creator = canvas.texture_creator();
 
-    let mut texture = renderer
+    let mut texture = texture_creator
         .create_texture_streaming(PixelFormatEnum::RGB24, SCREEN_WIDTH, SCREEN_HEIGHT)
         .unwrap();
 
@@ -119,9 +120,9 @@ fn main() {
                     texture
                         .update(None, screen_buffer, SCREEN_WIDTH as usize * 3)
                         .unwrap();
-                    renderer.clear();
-                    renderer.copy(&texture, None, None).unwrap();
-                    renderer.present();
+                    canvas.clear();
+                    canvas.copy(&texture, None, None).unwrap();
+                    canvas.present();
                     break;
                 }
             }
