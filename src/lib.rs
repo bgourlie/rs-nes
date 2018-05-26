@@ -48,11 +48,11 @@ extern crate asm6502;
 #[cfg(test)]
 extern crate rand;
 
-pub mod rom;
-pub mod memory;
-pub mod cpu;
-pub mod ppu;
-pub mod screen;
-pub mod input;
 mod apu;
 mod byte_utils;
+pub mod cpu;
+pub mod input;
+pub mod memory;
+pub mod ppu;
+pub mod rom;
+pub mod screen;

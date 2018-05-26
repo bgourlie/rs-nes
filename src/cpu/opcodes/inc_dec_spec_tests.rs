@@ -1,6 +1,6 @@
-use cpu::*;
-use cpu::opcodes::*;
 use cpu::opcodes::am_test_utils::*;
+use cpu::opcodes::*;
+use cpu::*;
 
 #[test]
 fn dec_test1() {

@@ -14,14 +14,12 @@ use std::io::Write;
 use std::rc::Rc;
 
 macro_rules! dma_tick {
-    ( $mem : expr ) => {
-        {
-            let tick_action = $mem.tick();
-            if tick_action != Interrupt::None {
-                panic!("unimplemented: nmi during dma")
-            }
+    ($mem:expr) => {{
+        let tick_action = $mem.tick();
+        if tick_action != Interrupt::None {
+            panic!("unimplemented: nmi during dma")
         }
-    };
+    }};
 }
 
 pub type NesMemoryImpl = NesMemoryBase<PpuImpl, ApuBase, InputBase>;

@@ -1,8 +1,8 @@
 use base64;
 use cpu::Registers;
 use screen::Screen;
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 
 pub enum MemorySnapshot {
     NoChange(u64),         // If no change, just send the hash.

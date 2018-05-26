@@ -3,8 +3,8 @@ extern crate sdl2;
 
 use rs_nes::cpu::*;
 use rs_nes::input::{Button, Input, InputBase};
-use rs_nes::memory::Memory;
 use rs_nes::memory::nes_memory::NesMemoryImpl;
+use rs_nes::memory::Memory;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use sdl2::event::Event;

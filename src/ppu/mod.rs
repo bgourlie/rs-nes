@@ -1,15 +1,15 @@
 #[cfg(test)]
 mod spec_tests;
 
-mod palette;
+mod background_renderer;
 mod control_register;
+mod cycle_table;
 mod mask_register;
-mod status_register;
+mod palette;
 mod sprite_renderer;
+mod status_register;
 mod vram;
 mod write_latch;
-mod background_renderer;
-mod cycle_table;
 
 use self::write_latch::WriteLatch;
 use cpu::Interrupt;
@@ -116,6 +116,71 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
+        }
+    }
+
+    /// Accepts a PPU memory mapped address and writes it to the appropriate register
+    fn write(&mut self, addr: u16, val: u8) {
+        debug_assert!(
+            addr >= 0x2000 && addr < 0x4000,
+            "Invalid memory mapped ppu address"
+        );
+
+        match addr & 7 {
+            0x0 => {
+                self.control.write(val);
+                self.vram.control_write(val);
+            }
+            0x1 => self.mask.write(val),
+            0x2 => (), // readonly
+            0x3 => self.sprite_renderer.write_address(val),
+            0x4 => self.sprite_renderer.write_data(val),
+            0x5 => {
+                let latch_state = self.write_latch.write(val);
+                self.vram.scroll_write(latch_state);
+            }
+            0x6 => {
+                let latch_state = self.write_latch.write(val);
+                self.vram.write_ppu_addr(latch_state);
+            }
+            0x7 => {
+                let inc_amount = self.control.vram_addr_increment();
+                self.vram.write_ppu_data(val, inc_amount)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    /// Accepts a PPU memory mapped address and returns the value
+    fn read(&self, addr: u16) -> u8 {
+        debug_assert!(
+            addr >= 0x2000 && addr < 0x4000,
+            "Invalid memory mapped ppu address"
+        );
+
+        match addr & 7 {
+            0x0 => *self.control,
+            0x1 => *self.mask,
+            0x2 => {
+                let status = self.status.read();
+                self.status.clear_in_vblank();
+                self.write_latch.clear();
+                status
+            }
+            0x4 => {
+                if self.status.in_vblank() || !self.mask.rendering_enabled() {
+                    // No OAM addr increment during vblank or forced blank
+                    self.sprite_renderer.read_data()
+                } else {
+                    self.sprite_renderer.read_data_increment_addr()
+                }
+            }
+            0x7 => {
+                let inc_amount = self.control.vram_addr_increment();
+                self.vram.read_ppu_data(inc_amount)
+            }
+            0x3 | 0x5 | 0x6 => 0, // Write-only
+            _ => unreachable!(),
         }
     }
 
@@ -469,69 +534,8 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
         }
     }
 
-    /// Accepts a PPU memory mapped address and writes it to the appropriate register
-    fn write(&mut self, addr: u16, val: u8) {
-        debug_assert!(
-            addr >= 0x2000 && addr < 0x4000,
-            "Invalid memory mapped ppu address"
-        );
-
-        match addr & 7 {
-            0x0 => {
-                self.control.write(val);
-                self.vram.control_write(val);
-            }
-            0x1 => self.mask.write(val),
-            0x2 => (), // readonly
-            0x3 => self.sprite_renderer.write_address(val),
-            0x4 => self.sprite_renderer.write_data(val),
-            0x5 => {
-                let latch_state = self.write_latch.write(val);
-                self.vram.scroll_write(latch_state);
-            }
-            0x6 => {
-                let latch_state = self.write_latch.write(val);
-                self.vram.write_ppu_addr(latch_state);
-            }
-            0x7 => {
-                let inc_amount = self.control.vram_addr_increment();
-                self.vram.write_ppu_data(val, inc_amount)
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    /// Accepts a PPU memory mapped address and returns the value
-    fn read(&self, addr: u16) -> u8 {
-        debug_assert!(
-            addr >= 0x2000 && addr < 0x4000,
-            "Invalid memory mapped ppu address"
-        );
-
-        match addr & 7 {
-            0x0 => *self.control,
-            0x1 => *self.mask,
-            0x2 => {
-                let status = self.status.read();
-                self.status.clear_in_vblank();
-                self.write_latch.clear();
-                status
-            }
-            0x4 => {
-                if self.status.in_vblank() || !self.mask.rendering_enabled() {
-                    // No OAM addr increment during vblank or forced blank
-                    self.sprite_renderer.read_data()
-                } else {
-                    self.sprite_renderer.read_data_increment_addr()
-                }
-            }
-            0x7 => {
-                let inc_amount = self.control.vram_addr_increment();
-                self.vram.read_ppu_data(inc_amount)
-            }
-            0x3 | 0x5 | 0x6 => 0, // Write-only
-            _ => unreachable!(),
-        }
+    fn screen(&self) -> &NesScreen {
+        &self.screen
     }
 
     /// Dump register memory
@@ -548,9 +552,5 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
         ];
 
         writer.write_all(&regs).unwrap()
-    }
-
-    fn screen(&self) -> &NesScreen {
-        &self.screen
     }
 }

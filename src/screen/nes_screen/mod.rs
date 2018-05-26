@@ -4,9 +4,9 @@ use base64;
 #[cfg(feature = "debugger")]
 use png::HasParameters;
 #[cfg(feature = "debugger")]
-use serde::{Serialize, Serializer};
-#[cfg(feature = "debugger")]
 use serde::ser::SerializeStruct;
+#[cfg(feature = "debugger")]
+use serde::{Serialize, Serializer};
 
 const SCREEN_WIDTH: usize = 256;
 const SCREEN_HEIGHT: usize = 240;

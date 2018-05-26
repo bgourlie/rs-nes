@@ -1,7 +1,7 @@
 // TODO: RTI, BRK tests
 
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 #[test]
 fn jmp() {

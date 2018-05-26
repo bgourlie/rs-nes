@@ -1,15 +1,15 @@
-mod debugger_command;
-mod http_handlers;
 mod breakpoint_map;
 mod cpu_snapshot;
+mod debugger_command;
+mod http_handlers;
 
 use byte_utils::from_lo_hi;
 use chan::{self, Receiver, Sender};
-use cpu::{Cpu, Interrupt};
 use cpu::debugger::breakpoint_map::BreakpointMap;
 use cpu::debugger::cpu_snapshot::{CpuSnapshot, MemorySnapshot};
 use cpu::debugger::debugger_command::{BreakReason, DebuggerCommand};
 use cpu::debugger::http_handlers::*;
+use cpu::{Cpu, Interrupt};
 use input::Input;
 use iron::prelude::*;
 use memory::{Memory, ADDRESSABLE_MEMORY};
@@ -17,8 +17,8 @@ use router::Router;
 use screen::Screen;
 use serde::Serialize;
 use serde_json;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use websocket::{Message as WsMessage, Server as WsServer};
 

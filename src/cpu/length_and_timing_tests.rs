@@ -15,7 +15,7 @@ use cpu::TestCpu;
 ///     crossing for indirect indexed addressing modes
 ///
 macro_rules! assert_length_and_cycles {
-    ( $ asm : expr , $ expected_len : expr , $ expected_cycles : expr ) => {{
+    ($asm:expr, $expected_len:expr, $expected_cycles:expr) => {{
         let mut cpu = TestCpu::new_test();
         cpu.registers.x = 1;
         cpu.registers.y = 1;
@@ -32,21 +32,25 @@ macro_rules! assert_length_and_cycles {
                 let actual_len = cpu.registers.pc - 0x200;
 
                 if expected_len != actual_len {
-                    panic!("Expected instruction length is {} but it was {}",
-                            expected_len, actual_len)
+                    panic!(
+                        "Expected instruction length is {} but it was {}",
+                        expected_len, actual_len
+                    )
                 }
 
                 if expected_cycles != cpu.cycles {
-                    panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cpu.cycles)
+                    panic!(
+                        "Expected number of executed cycles to be {} but it was {}",
+                        expected_cycles, cpu.cycles
+                    )
                 }
             }
         }
-    }}
+    }};
 }
 
 macro_rules! assert_cycles {
-    ( $ cpu : expr , $ asm : expr , $ expected_cycles : expr ) => {{
+    ($cpu:expr, $asm:expr, $expected_cycles:expr) => {{
         let asm = $asm;
         let mut cpu = $cpu;
         let mut buf = Vec::<u8>::new();
@@ -57,12 +61,14 @@ macro_rules! assert_cycles {
                 let expected_cycles = $expected_cycles;
                 cpu.step();
                 if expected_cycles != cpu.cycles {
-                    panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cpu.cycles)
+                    panic!(
+                        "Expected number of executed cycles to be {} but it was {}",
+                        expected_cycles, cpu.cycles
+                    )
                 }
             }
         }
-    }}
+    }};
 }
 
 /// Similar to the above macro, but for relative instructions. Instead of passing the instruction
@@ -70,7 +76,7 @@ macro_rules! assert_cycles {
 /// Also, the program counter is set to 0x27f so that can cross the page boundary given a max
 /// offset (relative instruction length + 127 will push PC to 0x300).
 macro_rules! assert_length_and_cycles_relative {
-    ( $ cpu: expr, $ asm : expr , $ expected_len : expr , $ expected_cycles : expr ) => {{
+    ($cpu:expr, $asm:expr, $expected_len:expr, $expected_cycles:expr) => {{
         let mut cpu = $cpu;
         let asm = $asm;
         let mut buf = Vec::<u8>::new();
@@ -85,17 +91,21 @@ macro_rules! assert_length_and_cycles_relative {
                 let actual_len = cpu.registers.pc - 0x27f;
 
                 if expected_len != actual_len {
-                    panic!("Expected instruction length is {} but it was {}",
-                            expected_len, actual_len)
+                    panic!(
+                        "Expected instruction length is {} but it was {}",
+                        expected_len, actual_len
+                    )
                 }
 
                 if expected_cycles != cpu.cycles {
-                    panic!("Expected number of executed cycles to be {} but it was {}",
-                            expected_cycles, cpu.cycles)
+                    panic!(
+                        "Expected number of executed cycles to be {} but it was {}",
+                        expected_cycles, cpu.cycles
+                    )
                 }
             }
         }
-    }}
+    }};
 }
 
 #[test]

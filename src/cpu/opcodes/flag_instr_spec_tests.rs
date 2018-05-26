@@ -1,5 +1,5 @@
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 #[test]
 fn sei() {

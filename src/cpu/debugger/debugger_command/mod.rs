@@ -1,7 +1,7 @@
 use super::CpuSnapshot;
 use screen::Screen;
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 
 // The web socket message sent from the debugger to the client
 pub enum DebuggerCommand<S: Screen + Serialize> {

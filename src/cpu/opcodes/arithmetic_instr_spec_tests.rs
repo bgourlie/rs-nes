@@ -1,5 +1,5 @@
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 /// ## Sign and zero flag tests
 ///

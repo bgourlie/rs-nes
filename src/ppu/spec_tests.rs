@@ -1,5 +1,5 @@
-use super::*;
 use super::status_register::StatusRegister;
+use super::*;
 
 #[test]
 fn write() {
@@ -387,12 +387,9 @@ fn odd_frame_cycle_skip() {
         let frame_number = ppu.cycles / super::CYCLES_PER_FRAME;
         let was_odd_frame = frame_number % 2 == 1;
         assert_eq!(
-            ppu.odd_frame,
-            was_odd_frame,
+            ppu.odd_frame, was_odd_frame,
             "frame_number = {} ({},{})",
-            frame_number,
-            x,
-            scanline
+            frame_number, x, scanline
         );
         ppu.step();
 
@@ -431,7 +428,6 @@ fn odd_frame_cycle_skip() {
 
 mod mocks {
 
-    use ppu::PpuBase;
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
@@ -440,6 +436,7 @@ mod mocks {
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
+    use ppu::PpuBase;
     use rom::NesRom;
     use screen::NesScreen;
     use std::cell::Cell;

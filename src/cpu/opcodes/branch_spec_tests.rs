@@ -1,5 +1,5 @@
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 #[test]
 fn bpl_not_crossing_page_boundary_positive_offset() {

@@ -8,11 +8,11 @@ mod sprite_evaluation;
 #[cfg(test)]
 mod spec_tests;
 
-use ppu::SpriteSize;
 use ppu::control_register::ControlRegister;
 use ppu::palette::{self, Color, PALETTE};
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
 use ppu::vram::Vram;
+use ppu::SpriteSize;
 use std::cell::Cell;
 use std::num::Wrapping;
 

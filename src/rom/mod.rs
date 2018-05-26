@@ -214,7 +214,10 @@ impl NesRom {
         // FIXME: Logic for determining Nes20 format is most certainly wrong.
         if bytes[7] & 0x0c == 0x08 && bytes[9] as usize <= bytes_read {
             RomFormat::Nes20
-        } else if bytes[7] & 0x0c == 0x00 && bytes[12] == 0 && bytes[13] == 0 && bytes[14] == 0
+        } else if bytes[7] & 0x0c == 0x00
+            && bytes[12] == 0
+            && bytes[13] == 0
+            && bytes[14] == 0
             && bytes[15] == 0
         {
             RomFormat::INes

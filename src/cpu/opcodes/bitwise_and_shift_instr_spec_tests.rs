@@ -1,5 +1,5 @@
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 fn asl(cpu: &mut TestCpu, val: u8) -> (u8, bool) {
     Asl::execute(cpu, val);

@@ -1,7 +1,7 @@
 // TODO: Tests to assert status flags
 
-use cpu::*;
 use cpu::opcodes::*;
+use cpu::*;
 
 #[test]
 fn tax() {

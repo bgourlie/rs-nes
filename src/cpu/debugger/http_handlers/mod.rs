@@ -1,15 +1,15 @@
 use super::breakpoint_map::BreakpointMap;
 use cpu::registers::Registers;
-use iron::{headers, status};
-use iron::Handler;
 use iron::modifier::Modifier;
 use iron::prelude::*;
+use iron::Handler;
+use iron::{headers, status};
 use router::{Params, Router};
-use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
 use serde_json;
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread::Thread;
 
 impl Serialize for Registers {

@@ -4,9 +4,9 @@ pub use self::nes_screen::NesScreen;
 #[cfg(feature = "debugger")]
 use png;
 #[cfg(feature = "debugger")]
-use serde::{Serialize, Serializer};
-#[cfg(feature = "debugger")]
 use serde::ser::SerializeStruct;
+#[cfg(feature = "debugger")]
+use serde::{Serialize, Serializer};
 
 pub trait Screen: Default + Clone + Send + 'static {
     fn put_pixel(&mut self, _: usize, _: usize, _: Color) {}
