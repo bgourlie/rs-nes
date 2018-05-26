@@ -5,27 +5,15 @@ authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 
 [features]
 default = []
-debugger = ["iron", "router", "serde", "serde_json", "serde_derive", "seahash", "chan", "byteorder", "websocket", "base64", "png", "log", "env_logger"]
+sdl = ["sdl2"]
 
 [dependencies]
-# Debugger dependencies
-websocket = {version = "^0.19", optional = true, default-features = false}
-iron = {version = "*", optional = true}
-router = {version = "*", optional = true}
-byteorder = {version = "*", optional = true}
-serde = {version = "^0.9.2", optional = true}
-serde_json = {version = "^0.9.1", optional = true}
-serde_derive = {version = "^0.9.2", optional = true}
-seahash = {version = "*", optional = true}
-chan = {version = "^0.1.18", optional = true}
-base64 = {version = "^0.4.0", optional = true}
-png = {version = "^0.6.2", optional = true}
-log = {version = "*", optional = true}
 env_logger = {version = "*", optional = true}
 
 [dependencies.sdl2]
 version = "^0.31"
 features = ["bundled"]
+optional = true
 
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
@@ -33,18 +21,11 @@ rand = "*"
 time = "*"
 
 [[example]]
-name = "functional_test_rom"
-required-features = ["debugger"]
-
-[[example]]
-name = "nes_rom"
-required-features = ["debugger"]
-
-[[example]]
 name = "generate_ppu_loop"
 
 [[example]]
 name = "real_time"
+required-features = ["sdl2"]
 
 [profile.release]
 opt-level = 3
