@@ -3,29 +3,10 @@ name = "rs_nes"
 version = "0.0.1"
 authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 
-[features]
-default = []
-sdl = ["sdl2"]
-
-[dependencies]
-env_logger = {version = "*", optional = true}
-
-[dependencies.sdl2]
-version = "^0.31"
-features = ["bundled"]
-optional = true
-
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
-
-[[example]]
-name = "generate_ppu_loop"
-
-[[example]]
-name = "real_time"
-required-features = ["sdl2"]
 
 [profile.release]
 opt-level = 3

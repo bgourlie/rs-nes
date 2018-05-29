@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 use stdweb::web::IParentNode;
+use stdweb::web::FileList;
 
 use stdweb::web::{
     self, ArrayBuffer, Element, FileReader, FileReaderResult, IElement, IEventTarget, INode,
@@ -410,3 +411,11 @@ fn main() {
 
     stdweb::event_loop();
 }
+
+/// Returns the list of selected files. **Only for inputs of type `file`**.
+    #[inline]
+    pub fn files( input: &InputElement ) -> Option< FileList > {
+            js! (
+            return @{input}.files;
+        ).try_into().ok()
+            }

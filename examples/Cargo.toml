@@ -1,0 +1,2 @@
+[workspace]
+members = ["real_time", "rs_nes_web"]
