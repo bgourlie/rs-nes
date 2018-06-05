@@ -10,17 +10,15 @@ extern crate serde;
 use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
-use stdweb::web::IParentNode;
-use stdweb::web::FileList;
-
 use stdweb::web::{
     self, ArrayBuffer, Element, FileReader, FileReaderResult, IElement, IEventTarget, INode,
+    IParentNode,
 };
 
 use stdweb::web::event::{ChangeEvent, ClickEvent, IEvent, KeyboardLocation, ProgressLoadEvent};
 
 use stdweb::unstable::TryInto;
-use stdweb::web::html_element::InputElement;
+use stdweb::web::html_element::{FileInputElement, InputElement};
 use stdweb::{Once, Value};
 
 macro_rules! enclose {
@@ -300,27 +298,31 @@ fn support_builtin_roms(roms: Vec<RomEntry>, pinky: Rc<RefCell<RsNesWeb>>) {
 }
 
 fn support_custom_roms(pinky: Rc<RefCell<RsNesWeb>>) {
-    //    let browse_for_roms_button = web::document().query_selector( "#browse-for-roms" ).unwrap().unwrap();
-    //    browse_for_roms_button.add_event_listener( move |event: ChangeEvent| {
-    //        let input: InputElement = event.target().unwrap().try_into().unwrap();
-    //        let file: String = input.raw_value();
-    //
-    //        hide( "#change-rom-menu" );
-    //        hide( "#side-text" );
-    //        show( "#loading" );
-    //
-    //        let reader = FileReader::new();
-    //        reader.add_event_listener( enclose!( [pinky, reader] move |_: ProgressLoadEvent| {
-    //            let rom_data: Vec< u8 > = match reader.result().unwrap() {
-    //                FileReaderResult::ArrayBuffer( buffer ) => buffer,
-    //                _ => unreachable!()
-    //            }.into();
-    //
-    //            load_rom( &pinky, &rom_data );
-    //        }));
-    //
-    //        reader.read_as_array_buffer( &file );
-    //    });
+    let browse_for_roms_button = web::document()
+        .query_selector("#browse-for-roms")
+        .unwrap()
+        .unwrap();
+    browse_for_roms_button.add_event_listener(move |event: ChangeEvent| {
+        let input: FileInputElement = event.target().unwrap().try_into().unwrap();
+        let files = input.files();
+        let file = files.into_iter().nth(0).unwrap();
+
+        hide("#change-rom-menu");
+        hide("#side-text");
+        show("#loading");
+
+        let reader = FileReader::new();
+        reader.add_event_listener(enclose!( [pinky, reader] move |_: ProgressLoadEvent| {
+                let rom_data: Vec< u8 > = match reader.result().unwrap() {
+                    FileReaderResult::ArrayBuffer( buffer ) => buffer,
+                    _ => unreachable!()
+                }.into();
+
+//                load_rom( &pinky, &rom_data );
+            }));
+
+        reader.read_as_array_buffer(&file);
+    });
 }
 
 fn support_rom_changing(pinky: Rc<RefCell<RsNesWeb>>) {
@@ -411,11 +413,3 @@ fn main() {
 
     stdweb::event_loop();
 }
-
-/// Returns the list of selected files. **Only for inputs of type `file`**.
-    #[inline]
-    pub fn files( input: &InputElement ) -> Option< FileList > {
-            js! (
-            return @{input}.files;
-        ).try_into().ok()
-            }

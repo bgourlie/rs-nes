@@ -1,8 +1,0 @@
-[package]
-name = "real_time"
-version = "0.1.0"
-authors = ["W. Brian Gourlie"]
-
-[dependencies]
-sdl2 = {version = "^0.31", features = ["bundled"]}
-rs_nes = { path = "../../"}
