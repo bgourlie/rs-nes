@@ -3,7 +3,6 @@ mod spec_tests;
 
 mod background_renderer;
 mod control_register;
-mod cycle_table;
 mod mask_register;
 mod palette;
 mod sprite_renderer;
@@ -15,7 +14,6 @@ use self::write_latch::WriteLatch;
 use cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
-use ppu::cycle_table::CYCLE_TABLE;
 use ppu::mask_register::MaskRegister;
 use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer, SpriteRendererBase};
 use ppu::status_register::StatusRegister;
@@ -26,9 +24,9 @@ use screen::{NesScreen, Screen};
 use std::io::Write;
 use std::rc::Rc;
 
-const SCANLINES: u64 = 262;
-const CYCLES_PER_SCANLINE: u64 = 341;
-const CYCLES_PER_FRAME: u64 = SCANLINES * CYCLES_PER_SCANLINE;
+const SCANLINES: usize = 262;
+const CYCLES_PER_SCANLINE: usize = 341;
+const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
 
 pub type PpuImpl = PpuBase<VramBase, SpriteRendererBase>;
 
@@ -56,7 +54,7 @@ impl Default for SpriteSize {
 }
 
 pub struct PpuBase<V: Vram, S: SpriteRenderer> {
-    cycles: u64,
+    cycles: usize,
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
