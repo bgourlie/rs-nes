@@ -9,6 +9,7 @@ native_client = ["sdl2"]
 web_client = ["stdweb", "serde", "serde_derive"]
 
 [dependencies]
+rs-nes-macros = { path = "rs-nes-macros" }
 sdl2 = { version = "^0.31", features = ["bundled", "static-link"], optional = true }
 stdweb = { path = "../stdweb", optional = true }
 serde = { version = "1", optional = true }

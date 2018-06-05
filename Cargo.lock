@@ -622,11 +622,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rs-nes-macros"
+version = "0.0.1"
+dependencies = [
+ "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "rs_nes"
 version = "0.0.1"
 dependencies = [
  "asm6502 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rs-nes-macros 0.0.1",
  "sdl2 0.31.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
