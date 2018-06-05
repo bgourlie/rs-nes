@@ -10,6 +10,7 @@ extern crate quote;
 
 use proc_macro::TokenStream;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 // Bit flags indicating what occurs on a particular cycle
 const DRAW_PIXEL: u32 = 1;
@@ -46,8 +47,8 @@ enum Action {
 }
 
 fn ppu_loop_impl() -> proc_macro2::TokenStream {
-    let mut match_arms: Vec<proc_macro2::TokenStream> =
-        Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
+    let mut cycle_number_map: HashMap<u32, Vec<usize>> = HashMap::new();
+    let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
             let cycle_number = scanline * CYCLES_PER_SCANLINE + x;
@@ -122,28 +123,50 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
                 flags |= START_SPRITE_EVALUATION
             }
 
-            let actions = actions(flags);
-            let lines = compile_cycle_actions(actions);
-            let arm = quote! {
-                #cycle_number => {
-                    #(#lines)*
-                }
-            };
-            match_arms.push(arm.into());
+            if !cycle_type_map.contains_key(&flags) {
+                    let actions = actions(flags);
+                    let cycle_impl = compile_cycle_actions(actions);
+                    cycle_type_map.insert(flags, cycle_impl);
+            }
+
+            let mut insert_required = true;
+            if let Some(cycles) = cycle_number_map.get_mut(&flags) {
+                cycles.push(cycle_number);
+                insert_required = false;
+            }
+
+            if insert_required {
+                cycle_number_map.insert(flags, vec![cycle_number]);
+            }
+
+//            let arm = quote! {
+//                #cycle_number => {
+//                    #(#lines)*
+//                }
+//            };
+//            match_arms.push(arm.into());
         }
     }
+
+    println!("There are {} distinct cycle implementations", cycle_type_map.len());
+    let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(flags, cycle_impl)| {
+        let cycles = cycle_number_map.get(flags).unwrap();
+        let match_arm = quote! { #(#cycles)|* => { #cycle_impl } };
+        match_arm.into()
+    }).collect();
+
 
     let loop_fn = quote! {
         fn step(&mut self) -> Interrupt {
             let frame_cycle = self.cycles % CYCLES_PER_FRAME;
+            let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
+            let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
+
             self.cycles += 1;
 
             match frame_cycle {
                 #(#match_arms),*
-                _ => {
-                    println!("unexpected cycle {}", frame_cycle);
-                    unreachable!()
-                }
+                _ => unreachable!()
             }
         }
     };
@@ -222,7 +245,7 @@ fn draw_pixel(scanline: usize, x: usize) -> bool {
     x >= 2 && x <= 257 && scanline < 240
 }
 
-fn compile_cycle_actions(actions: Vec<Action>) -> Vec<proc_macro2::TokenStream> {
+fn compile_cycle_actions(actions: Vec<Action>) -> proc_macro2::TokenStream {
     let mut no_return: Vec<Action> = Vec::new();
     let mut when_rendering_enabled: Vec<Action> = Vec::new();
     let mut returns: Option<Action> = None;
@@ -230,7 +253,7 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<proc_macro2::TokenStream> 
     for action in actions {
         match action {
             Action::ReturnExpression(_) => {
-                if let Some(_) = returns {
+                if returns.is_some() {
                     panic!("cannot have two return actions")
                 } else {
                     returns = Some(action.clone());
@@ -294,7 +317,8 @@ fn compile_cycle_actions(actions: Vec<Action>) -> Vec<proc_macro2::TokenStream> 
         lines.push(line.into())
     }
 
-    lines
+    let cycle_impl = quote!{ #(#lines)* };
+    cycle_impl.into()
 }
 
 fn actions(cycle_type: u32) -> Vec<Action> {
