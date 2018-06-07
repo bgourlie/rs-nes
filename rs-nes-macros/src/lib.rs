@@ -138,16 +138,10 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
             if insert_required {
                 cycle_number_map.insert(flags, vec![cycle_number]);
             }
-
-//            let arm = quote! {
-//                #cycle_number => {
-//                    #(#lines)*
-//                }
-//            };
-//            match_arms.push(arm.into());
         }
     }
 
+    // TODO: Have cycles that do nothing fall back, which will return Interrupt::None
     println!("There are {} distinct cycle implementations", cycle_type_map.len());
     let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(flags, cycle_impl)| {
         let cycles = cycle_number_map.get(flags).unwrap();
