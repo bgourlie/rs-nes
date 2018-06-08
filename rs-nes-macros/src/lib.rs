@@ -47,12 +47,10 @@ enum Action {
 }
 
 fn ppu_loop_impl() -> proc_macro2::TokenStream {
-    let mut cycle_number_map: HashMap<u32, Vec<usize>> = HashMap::new();
+    let mut cycle_number_map: Vec<u32> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
     let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
-    let mut noop_cycles = 0;
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
-            let cycle_number = scanline * CYCLES_PER_SCANLINE + x;
             let mut flags = 0;
 
             // Check for specific cycle actions
@@ -124,54 +122,39 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
                 flags |= START_SPRITE_EVALUATION
             }
 
-            if flags == 0 {
-                noop_cycles += 1;
-                continue
-            }
+            cycle_number_map.push(flags);
 
             if !cycle_type_map.contains_key(&flags) {
                     let actions = actions(flags);
                     let cycle_impl = compile_cycle_actions(actions);
                     cycle_type_map.insert(flags, cycle_impl);
             }
-
-            let mut insert_required = true;
-            if let Some(cycles) = cycle_number_map.get_mut(&flags) {
-                cycles.push(cycle_number);
-                insert_required = false;
-            }
-
-            if insert_required {
-                cycle_number_map.insert(flags, vec![cycle_number]);
-            }
         }
     }
 
-    println!("There are {} distinct cycle implementations and {} noop cycles", cycle_type_map.len(), noop_cycles);
-
     let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(flags, cycle_impl)| {
-        let cycles = cycle_number_map.get(flags).unwrap();
-        let match_arm = quote! { #(#cycles)|* => { #cycle_impl } };
+        let match_arm = quote! { #flags => { #cycle_impl } };
         match_arm.into()
     }).collect();
 
-
-    let loop_fn = quote! {
+    let total_cycles = SCANLINES * CYCLES_PER_SCANLINE;
+    let step_fn = quote! {
         fn step(&mut self) -> Interrupt {
+            const CYCLES_MAP: [u32; #total_cycles] = [#(#cycle_number_map),*];
             let frame_cycle = self.cycles % CYCLES_PER_FRAME;
             let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
             let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
             self.cycles += 1;
 
-            match frame_cycle {
+            match CYCLES_MAP[frame_cycle] {
                 #(#match_arms),*
                 _ => Interrupt::None
             }
         }
     };
 
-    loop_fn.into()
+    step_fn.into()
 }
 
 fn sprite_dec_x(scanline: usize, x: usize) -> bool {
