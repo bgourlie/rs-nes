@@ -6,14 +6,10 @@ authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
 [features]
 default = []
 native_client = ["sdl2"]
-web_client = ["stdweb", "serde", "serde_derive"]
 
 [dependencies]
 rs-nes-macros = { path = "rs-nes-macros" }
 sdl2 = { version = "^0.31", features = ["bundled", "static-link"], optional = true }
-stdweb = { path = "../stdweb", optional = true }
-serde = { version = "1", optional = true }
-serde_derive = { version = "1", optional = true }
 
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
@@ -24,12 +20,8 @@ time = "*"
 name = "native_client"
 required-features = ["native_client"]
 
-[[bin]]
-name = "web_client"
-required-features = ["web_client"]
-
 [profile.release]
 opt-level = 3
 lto = true
-debug = false
+debug = true
 debug-assertions = false
