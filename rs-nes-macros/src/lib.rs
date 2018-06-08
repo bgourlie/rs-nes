@@ -49,6 +49,7 @@ enum Action {
 fn ppu_loop_impl() -> proc_macro2::TokenStream {
     let mut cycle_number_map: HashMap<u32, Vec<usize>> = HashMap::new();
     let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
+    let mut noop_cycles = 0;
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
             let cycle_number = scanline * CYCLES_PER_SCANLINE + x;
@@ -123,6 +124,11 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
                 flags |= START_SPRITE_EVALUATION
             }
 
+            if flags == 0 {
+                noop_cycles += 1;
+                continue
+            }
+
             if !cycle_type_map.contains_key(&flags) {
                     let actions = actions(flags);
                     let cycle_impl = compile_cycle_actions(actions);
@@ -141,8 +147,8 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
         }
     }
 
-    // TODO: Have cycles that do nothing fall back, which will return Interrupt::None
-    println!("There are {} distinct cycle implementations", cycle_type_map.len());
+    println!("There are {} distinct cycle implementations and {} noop cycles", cycle_type_map.len(), noop_cycles);
+
     let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(flags, cycle_impl)| {
         let cycles = cycle_number_map.get(flags).unwrap();
         let match_arm = quote! { #(#cycles)|* => { #cycle_impl } };
@@ -160,7 +166,7 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
 
             match frame_cycle {
                 #(#match_arms),*
-                _ => unreachable!()
+                _ => Interrupt::None
             }
         }
     };
@@ -293,7 +299,7 @@ fn compile_cycle_actions(actions: Vec<Action>) -> proc_macro2::TokenStream {
 
         let rendering_enabled_body = quote! {
             if self.mask.rendering_enabled() {
-                #(rendering_enabled_tokens)*
+                #(#rendering_enabled_tokens)*
             }
         };
 
@@ -480,10 +486,11 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
 
 #[proc_macro_attribute]
 pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
+    println!("Generating PPU loop...");
     let input: proc_macro2::TokenStream = input.into();
     let item: syn::Item = syn::parse2(input).unwrap();
 
-    match item {
+    let tokens = match item {
         syn::Item::Fn(ref function) => match function.decl.output {
             syn::ReturnType::Type(_, ref ty) => match ty {
                 box syn::Type::Path(_) => ppu_loop_impl().into(),
@@ -492,5 +499,8 @@ pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
             _ => panic!("It's not a type!"),
         },
         _ => panic!("`#[ppu_loop]` attached to an unsupported element!"),
-    }
+    };
+
+    println!("Finished generating PPU loop");
+    tokens
 }
