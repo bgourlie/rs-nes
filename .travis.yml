@@ -4,7 +4,7 @@ rust:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y sndio
+  - sudo apt-get install -y sndio-tools
 
 script:
 - cargo build --verbose --examples --tests --all-features
