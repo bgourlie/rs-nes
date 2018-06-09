@@ -3,9 +3,8 @@ rust:
   - nightly
 
 before_install:
-  - sudo add-apt-repository ppa:ubuntu/ppa -y
   - sudo apt-get update
-  - sudo apt-get install -y sndio
+  - sudo apt-get install -y libsndio-dev
 
 script:
 - cargo build --verbose --examples --tests --all-features
