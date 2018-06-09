@@ -45,7 +45,6 @@ fn main() {
     let window = video_subsystem
         .window("RS-NES!", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
         .position_centered()
-        .opengl()
         .build()
         .expect("Unable to initialize window");
 
@@ -55,6 +54,9 @@ fn main() {
         .present_vsync()
         .build()
         .expect("Unable to initialize canvas");
+
+    println!("Using SDL_Renderer \"{}\"", canvas.info().name);
+
     let texture_creator = canvas.texture_creator();
 
     let mut texture = texture_creator
