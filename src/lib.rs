@@ -1,4 +1,5 @@
 #![feature(proc_macro)]
+#![feature(test)]
 #![allow(unknown_lints)]
 #![allow(cast_lossless)]
 
@@ -7,6 +8,9 @@ extern crate asm6502;
 
 #[cfg(test)]
 extern crate rand;
+
+#[cfg(test)]
+extern crate test;
 
 extern crate rs_nes_macros;
 
