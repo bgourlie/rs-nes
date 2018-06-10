@@ -20,7 +20,7 @@ const SCREEN_HEIGHT: u32 = 240;
 
 fn main() {
     // INIT NES
-    let file = env::args().last().unwrap();
+    let file = env::args().last().expect("unable to read input rom file");
     let rom = Rc::new(Box::new(
         NesRom::read(format!("{}", file)).expect("Couldn't find rom file"),
     ));
@@ -37,29 +37,35 @@ fn main() {
     let mut cpu = Cpu::new(mem);
     cpu.reset();
 
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+    let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
+    let video_subsystem = sdl_context
+        .video()
+        .expect("Unable to initialize SDL2 video subsystem");
 
     let window = video_subsystem
         .window("RS-NES!", SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2)
         .position_centered()
-        .opengl()
         .build()
-        .unwrap();
+        .expect("Unable to initialize window");
 
     let mut canvas = window
         .into_canvas()
         .accelerated()
         .present_vsync()
         .build()
-        .unwrap();
+        .expect("Unable to initialize canvas");
+
+    println!("Using SDL_Renderer \"{}\"", canvas.info().name);
+
     let texture_creator = canvas.texture_creator();
 
     let mut texture = texture_creator
         .create_texture_streaming(PixelFormatEnum::RGB24, SCREEN_WIDTH, SCREEN_HEIGHT)
-        .unwrap();
+        .expect("Unable to create texture");
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_pump = sdl_context
+        .event_pump()
+        .expect("Unable to initialize event pump");
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
     let fixed_time_stamp = Duration::new(0, 16666667);
@@ -119,9 +125,11 @@ fn main() {
                     let screen_buffer = &*cpu.memory.screen().screen_buffer;
                     texture
                         .update(None, screen_buffer, SCREEN_WIDTH as usize * 3)
-                        .unwrap();
+                        .expect("unable to update texture");
                     canvas.clear();
-                    canvas.copy(&texture, None, None).unwrap();
+                    canvas
+                        .copy(&texture, None, None)
+                        .expect("Unable to copy texture");
                     canvas.present();
                     break;
                 }

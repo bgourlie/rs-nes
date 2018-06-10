@@ -7,9 +7,6 @@ mod functional_tests;
 #[cfg(test)]
 mod length_and_timing_tests;
 
-#[cfg(feature = "debugger")]
-pub mod debugger;
-
 mod opcodes;
 mod registers;
 

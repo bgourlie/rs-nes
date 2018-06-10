@@ -97,7 +97,7 @@ impl Vram for VramBase {
         let addr = self.address.get();
 
         if addr < 0x2000 {
-            panic!("write to cart ram not implemented")
+            //panic!("write to cart ram not implemented")
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {
@@ -112,7 +112,7 @@ impl Vram for VramBase {
             };
             self.palette[addr] = val;
         } else {
-            panic!("Invalid VRAM write");
+            //panic!("Invalid VRAM write");
         }
 
         match inc_amount {
