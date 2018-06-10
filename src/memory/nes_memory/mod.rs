@@ -8,8 +8,6 @@ use input::{Input, InputBase};
 use ppu::{Ppu, PpuImpl};
 use rom::NesRom;
 use screen::NesScreen;
-#[cfg(feature = "debugger")]
-use seahash;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -145,12 +143,6 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Memory<I, NesScreen> for NesMemo
             writer.write_all(&self.rom.prg).unwrap();
             writer.write_all(&self.rom.prg).unwrap();
         }
-    }
-
-    #[cfg(feature = "debugger")]
-    fn hash(&self) -> u64 {
-        // Hashing just the ram will suffice for now...
-        seahash::hash(&self.ram)
     }
 
     fn screen(&self) -> &NesScreen {

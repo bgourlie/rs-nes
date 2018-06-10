@@ -1,8 +1,6 @@
 use super::{Memory, ADDRESSABLE_MEMORY};
 use input::NoInput;
 use screen::NoScreen;
-#[cfg(feature = "debugger")]
-use seahash;
 use std::io::Write;
 
 pub struct SimpleMemory {
@@ -47,11 +45,6 @@ impl Memory<NoInput, NoScreen> for SimpleMemory {
 
     fn dump<T: Write>(&self, writer: &mut T) {
         writer.write_all(&self.addr).unwrap();
-    }
-
-    #[cfg(feature = "debugger")]
-    fn hash(&self) -> u64 {
-        seahash::hash(&self.addr)
     }
 
     fn screen(&self) -> &NoScreen {
