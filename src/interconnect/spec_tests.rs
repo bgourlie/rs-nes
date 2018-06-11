@@ -111,7 +111,7 @@ mod mocks {
     use apu::Apu;
     use cpu6502::cpu::Interrupt;
     use input::{Button, Input};
-    use interconnect::NesInterconnectBase;
+    use interconnect::NesInterconnect;
     use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::*;
     use std::rc::Rc;
@@ -220,7 +220,7 @@ mod mocks {
         }
     }
 
-    pub type NesInterconnectFixture = NesInterconnectBase<PpuMock, ApuMock, InputMock>;
+    pub type NesInterconnectFixture = NesInterconnect<PpuMock, ApuMock, InputMock>;
 
     pub fn new_fixture() -> NesInterconnectFixture {
         let rom = Rc::new(Box::new(NesRom {
@@ -240,7 +240,7 @@ mod mocks {
             prg: Vec::new(),
         }));
 
-        NesInterconnectBase {
+        NesInterconnect {
             ram: [0_u8; 0x800],
             rom,
             ppu: PpuMock::default(),

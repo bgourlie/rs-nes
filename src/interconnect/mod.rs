@@ -8,38 +8,18 @@ use ppu::Ppu;
 use rom::NesRom;
 use std::rc::Rc;
 
-trait NesInterconnect<P: Ppu, A: Apu, I: Input>: Interconnect {
-    fn ppu(&self) -> &P;
-    fn input(&self) -> &I;
-    fn apu(&self) -> &A;
-}
-
-pub struct NesInterconnectBase<P: Ppu, A: Apu, I: Input> {
+pub struct NesInterconnect<P: Ppu, A: Apu, I: Input> {
     ram: [u8; 0x800],
     rom: Rc<Box<NesRom>>,
-    ppu: P,
-    apu: A,
-    input: I,
+    pub ppu: P,
+    pub apu: A,
+    pub input: I,
     elapsed_cycles: usize,
 }
 
-impl<P: Ppu, A: Apu, I: Input> NesInterconnect<P, A, I> for NesInterconnectBase<P, A, I> {
-    fn ppu(&self) -> &P {
-        &self.ppu
-    }
-
-    fn input(&self) -> &I {
-        &self.input
-    }
-
-    fn apu(&self) -> &A {
-        &self.apu
-    }
-}
-
-impl<P: Ppu, A: Apu, I: Input> NesInterconnectBase<P, A, I> {
+impl<P: Ppu, A: Apu, I: Input> NesInterconnect<P, A, I> {
     pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I, apu: A) -> Self {
-        NesInterconnectBase {
+        NesInterconnect {
             ram: [0_u8; 0x800],
             rom,
             ppu,
@@ -70,7 +50,7 @@ impl<P: Ppu, A: Apu, I: Input> NesInterconnectBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu, A: Apu, I: Input> Interconnect for NesInterconnectBase<P, A, I> {
+impl<P: Ppu, A: Apu, I: Input> Interconnect for NesInterconnect<P, A, I> {
     fn read(&self, address: u16) -> u8 {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
