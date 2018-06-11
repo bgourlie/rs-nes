@@ -469,7 +469,6 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
 
 #[proc_macro_attribute]
 pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
-    println!("Generating PPU loop...");
     let input: proc_macro2::TokenStream = input.into();
     let item: syn::Item = syn::parse2(input).unwrap();
 
@@ -484,6 +483,5 @@ pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
         _ => panic!("`#[ppu_loop]` attached to an unsupported element!"),
     };
 
-    println!("Finished generating PPU loop");
     tokens
 }
