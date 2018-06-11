@@ -1,8 +1,11 @@
+extern crate cpu6502;
 extern crate rs_nes;
 extern crate sdl2;
 
+use cpu6502::cpu::Interrupt;
+use rs_nes::apu::ApuBase;
 use rs_nes::input::{Button, Input, InputBase};
-use rs_nes::memory::NesMemoryImpl;
+use rs_nes::interconnect::NesInterconnect;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use rs_nes::Cpu;
@@ -32,7 +35,8 @@ fn main() {
 
     let ppu = PpuImpl::new(rom.clone());
     let input = InputBase::default();
-    let mem = NesMemoryImpl::new(rom, ppu, input);
+    let apu = ApuBase::default();
+    let mem = NesInterconnect::new(rom, ppu, input, apu);
     let mut cpu = Cpu::new(mem, 0x00);
     cpu.reset();
 
@@ -85,32 +89,32 @@ fn main() {
                     keycode: Some(keycode),
                     ..
                 } => match keycode {
-                    Keycode::W => cpu.interconnect().input().player1_press(Button::Up),
-                    Keycode::A => cpu.interconnect().input().player1_press(Button::Left),
-                    Keycode::S => cpu.interconnect().input().player1_press(Button::Down),
-                    Keycode::D => cpu.interconnect().input().player1_press(Button::Right),
+                    Keycode::W => cpu.interconnect.input.player1_press(Button::Up),
+                    Keycode::A => cpu.interconnect.input.player1_press(Button::Left),
+                    Keycode::S => cpu.interconnect.input.player1_press(Button::Down),
+                    Keycode::D => cpu.interconnect.input.player1_press(Button::Right),
                     Keycode::LShift | Keycode::RShift => {
-                        cpu.interconnect().input().player1_press(Button::Select)
+                        cpu.interconnect.input.player1_press(Button::Select)
                     }
-                    Keycode::Return => cpu.interconnect().input().player1_press(Button::Start),
-                    Keycode::J => cpu.interconnect().input().player1_press(Button::B),
-                    Keycode::K => cpu.interconnect().input().player1_press(Button::A),
+                    Keycode::Return => cpu.interconnect.input.player1_press(Button::Start),
+                    Keycode::J => cpu.interconnect.input.player1_press(Button::B),
+                    Keycode::K => cpu.interconnect.input.player1_press(Button::A),
                     _ => (),
                 },
                 Event::KeyUp {
                     keycode: Some(keycode),
                     ..
                 } => match keycode {
-                    Keycode::W => cpu.interconnect().input().player1_release(Button::Up),
-                    Keycode::A => cpu.interconnect().input().player1_release(Button::Left),
-                    Keycode::S => cpu.interconnect().input().player1_release(Button::Down),
-                    Keycode::D => cpu.interconnect().input().player1_release(Button::Right),
+                    Keycode::W => cpu.interconnect.input.player1_release(Button::Up),
+                    Keycode::A => cpu.interconnect.input.player1_release(Button::Left),
+                    Keycode::S => cpu.interconnect.input.player1_release(Button::Down),
+                    Keycode::D => cpu.interconnect.input.player1_release(Button::Right),
                     Keycode::LShift | Keycode::RShift => {
-                        cpu.interconnect().input().player1_release(Button::Select)
+                        cpu.interconnect.input.player1_release(Button::Select)
                     }
-                    Keycode::Return => cpu.interconnect().input().player1_release(Button::Start),
-                    Keycode::J => cpu.memory.interconnect().player1_release(Button::B),
-                    Keycode::K => cpu.memory.interconnect().player1_release(Button::A),
+                    Keycode::Return => cpu.interconnect.input.player1_release(Button::Start),
+                    Keycode::J => cpu.interconnect.input.player1_release(Button::B),
+                    Keycode::K => cpu.interconnect.input.player1_release(Button::A),
                     _ => (),
                 },
                 _ => (),
@@ -121,9 +125,17 @@ fn main() {
             accumulator -= fixed_time_stamp;
             loop {
                 if cpu.step() == Interrupt::Nmi {
-                    let screen_buffer = &*cpu.memory.screen().screen_buffer;
+                    let screen_buffer = &*cpu.interconnect.ppu.screen();
+                    let mut real_buffer: Vec<u8> =
+                        Vec::with_capacity(SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize * 3);
+                    for i in 0..SCREEN_WIDTH * SCREEN_HEIGHT {
+                        let i = i as usize;
+                        real_buffer.push(screen_buffer[i]);
+                        real_buffer.push(screen_buffer[i]);
+                        real_buffer.push(screen_buffer[i]);
+                    }
                     texture
-                        .update(None, screen_buffer, SCREEN_WIDTH as usize * 3)
+                        .update(None, &real_buffer, SCREEN_WIDTH as usize * 3)
                         .expect("unable to update texture");
                     canvas.clear();
                     canvas

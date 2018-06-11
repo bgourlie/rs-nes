@@ -16,7 +16,7 @@ extern crate cpu6502;
 
 extern crate rs_nes_macros;
 
-mod apu;
+pub mod apu;
 pub mod input;
 pub mod interconnect;
 pub mod ppu;
