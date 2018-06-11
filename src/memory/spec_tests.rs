@@ -1,4 +1,5 @@
 use self::mocks::new_fixture;
+use cpu6502::cpu::Interconnect;
 
 #[test]
 fn ram_memory_mapped_read() {
@@ -20,7 +21,7 @@ fn ram_memory_mapped_write() {
     let mut fixture = new_fixture();
     for addr in 0..0x2000_u16 {
         let ram_index = (addr & 0x7ff) as usize;
-        fixture.write(addr, 0xff, 0);
+        fixture.write(addr, 0xff);
         assert_eq!(0xff, fixture.ram[ram_index]);
         fixture.ram[ram_index] = 0; // reset it after asserting it was written correctly
     }
@@ -40,7 +41,7 @@ fn ppu_memory_mapped_read() {
 fn ppu_memory_mapped_write() {
     let mut fixture = new_fixture();
     for addr in 0x2000..0x2008_u16 {
-        fixture.write(addr, 0xff, 0);
+        fixture.write(addr, 0xff);
         assert_eq!(addr, fixture.ppu.addr());
         assert_eq!(0xff, fixture.ppu.value());
     }
@@ -60,20 +61,20 @@ fn apu_memory_mapped_write() {
     let mut fixture = new_fixture();
 
     for addr in 0x4000..0x4014_u16 {
-        fixture.write(addr, 0xff, 0);
+        fixture.write(addr, 0xff);
         assert_eq!(addr, fixture.apu.write_addr());
         assert_eq!(0xff, fixture.apu.write_value());
     }
     // Skip 0x4014, since it's ppu DMA address
 
-    fixture.write(0x4015, 0xff, 0);
+    fixture.write(0x4015, 0xff);
     assert_eq!(0x4015, fixture.apu.write_addr());
     assert_eq!(0xff, fixture.apu.write_value());
 
     // Skip 0x4016 since it's input probe register
 
     for addr in 0x4017..0x4018_u16 {
-        fixture.write(addr, 0xff, 0);
+        fixture.write(addr, 0xff);
         assert_eq!(addr, fixture.apu.write_addr());
         assert_eq!(0xff, fixture.apu.write_value());
     }
@@ -93,12 +94,13 @@ fn input_memory_mapped_write() {
 
 #[test]
 fn oam_dma_timing() {
-    let mut fixture = new_fixture();
-    let addl_cycles = fixture.write(0x4014, 0x02, 0);
-    assert_eq!(513, addl_cycles);
-
-    let addl_cycles = fixture.write(0x4014, 0x02, 1);
-    assert_eq!(514, addl_cycles);
+    panic!("reimplement")
+    //    let mut fixture = new_fixture();
+    //    let addl_cycles = fixture.write(0x4014, 0x02);
+    //    assert_eq!(513, addl_cycles);
+    //
+    //    let addl_cycles = fixture.write(0x4014, 0x02);
+    //    assert_eq!(514, addl_cycles);
 }
 
 mod mocks {
@@ -106,10 +108,8 @@ mod mocks {
     use cpu6502::cpu::Interrupt;
     use input::{Button, Input};
     use memory::NesMemoryBase;
-    use ppu::Ppu;
+    use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::*;
-    use screen::NesScreen;
-    use std::io::Write;
     use std::rc::Rc;
 
     #[derive(Default)]
@@ -163,11 +163,20 @@ mod mocks {
         }
     }
 
-    #[derive(Default)]
     pub struct PpuMock {
         addr: u16,
         value: u8,
-        screen: NesScreen,
+        screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT],
+    }
+
+    impl Default for PpuMock {
+        fn default() -> Self {
+            PpuMock {
+                addr: 0,
+                value: 0,
+                screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
+            }
+        }
     }
 
     impl PpuMock {
@@ -185,7 +194,9 @@ mod mocks {
     }
 
     impl Ppu for PpuMock {
-        type Scr = NesScreen;
+        fn new(_: Rc<Box<NesRom>>) -> Self {
+            unimplemented!()
+        }
 
         fn write(&mut self, addr: u16, val: u8) {
             self.addr = addr;
@@ -200,11 +211,7 @@ mod mocks {
             Interrupt::None
         }
 
-        fn new(_: Rc<Box<NesRom>>) -> Self {
-            unimplemented!()
-        }
-
-        fn screen(&self) -> &NesScreen {
+        fn screen(&self) -> &[u8; 61440] {
             &self.screen
         }
     }
@@ -231,7 +238,7 @@ mod mocks {
 
         NesMemoryBase {
             ram: [0_u8; 0x800],
-            rom: rom,
+            rom,
             ppu: PpuMock::default(),
             apu: ApuMock::default(),
             input: InputMock::default(),

@@ -4,12 +4,11 @@
 mod spec_tests;
 
 use ppu::control_register::ControlRegister;
-use ppu::palette::{Color, PALETTE};
 use ppu::vram::Vram;
 
 #[derive(Default)]
 pub struct BackgroundRenderer {
-    palettes: [Color; 16],
+    palettes: [u8; 16],
     shift_registers: [u16; 4], // [pattern_low, pattern_high, palette_low, palette_high]
     attr_latch: u8,
     nametable_latch: u8,
@@ -19,28 +18,28 @@ pub struct BackgroundRenderer {
 
 impl BackgroundRenderer {
     pub fn update_palettes<V: Vram>(&mut self, vram: &V) {
-        let bg = vram.read(0x3f00) as usize;
+        let bg = vram.read(0x3f00);
         self.palettes = [
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f01) as usize],
-            PALETTE[vram.read(0x3f02) as usize],
-            PALETTE[vram.read(0x3f03) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f05) as usize],
-            PALETTE[vram.read(0x3f06) as usize],
-            PALETTE[vram.read(0x3f07) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f09) as usize],
-            PALETTE[vram.read(0x3f0a) as usize],
-            PALETTE[vram.read(0x3f0b) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f0d) as usize],
-            PALETTE[vram.read(0x3f0e) as usize],
-            PALETTE[vram.read(0x3f0f) as usize],
+            bg,
+            vram.read(0x3f01),
+            vram.read(0x3f02),
+            vram.read(0x3f03),
+            bg,
+            vram.read(0x3f05),
+            vram.read(0x3f06),
+            vram.read(0x3f07),
+            bg,
+            vram.read(0x3f09),
+            vram.read(0x3f0a),
+            vram.read(0x3f0b),
+            bg,
+            vram.read(0x3f0d),
+            vram.read(0x3f0e),
+            vram.read(0x3f0f),
         ];
     }
 
-    pub fn current_pixel(&self, fine_x: u8) -> (u8, Color) {
+    pub fn current_pixel(&self, fine_x: u8) -> (u8, u8) {
         let pattern_low = self.shift_registers[0] << fine_x;
         let pattern_high = self.shift_registers[1] << fine_x;
         let palette_low = self.shift_registers[2] << fine_x;

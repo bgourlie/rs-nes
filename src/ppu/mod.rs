@@ -7,7 +7,6 @@ mod bench_test;
 mod background_renderer;
 mod control_register;
 mod mask_register;
-mod palette;
 mod sprite_renderer;
 mod status_register;
 mod vram;
@@ -23,23 +22,22 @@ use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
 use rs_nes_macros::ppu_loop;
-use screen::{NesScreen, Screen};
 use std::rc::Rc;
 
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
 const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
+pub const SCREEN_WIDTH: usize = 256;
+pub const SCREEN_HEIGHT: usize = 240;
 
 pub type PpuImpl = PpuBase<VramBase, SpriteRendererBase>;
 
 pub trait Ppu {
-    type Scr: Screen;
-
     fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
-    fn screen(&self) -> &NesScreen;
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT];
 }
 
 #[derive(Debug, PartialEq)]
@@ -61,7 +59,7 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
     status: StatusRegister,
     vram: V,
     sprite_renderer: S,
-    screen: NesScreen,
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT],
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
@@ -75,9 +73,9 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
 
         let color = match (bg_pixel, sprite_pixel.value) {
             (0, 0) | (_, 0) => bg_color,
-            (0, _) => sprite_pixel.color,
+            (0, _) => sprite_pixel.color_index,
             _ => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
-                sprite_pixel.color
+                sprite_pixel.color_index
             } else {
                 bg_color
             },
@@ -89,7 +87,8 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
             self.status.set_sprite_zero_hit()
         }
 
-        self.screen.put_pixel((x - 2) as _, scanline as _, color);
+        let i = (scanline as usize) * SCREEN_WIDTH + ((x - 2) as usize);
+        self.screen[i] = color;
     }
 
     // TODO: tests
@@ -102,8 +101,6 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
 }
 
 impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
-    type Scr = NesScreen;
-
     fn new(rom: Rc<Box<NesRom>>) -> Self {
         PpuBase {
             cycles: 0,
@@ -112,7 +109,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             status: StatusRegister::default(),
             vram: V::new(rom),
             sprite_renderer: S::default(),
-            screen: Self::Scr::default(),
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -189,7 +186,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
         Interrupt::None
     }
 
-    fn screen(&self) -> &NesScreen {
+    fn screen(&self) -> &[u8; 61440] {
         &self.screen
     }
 }

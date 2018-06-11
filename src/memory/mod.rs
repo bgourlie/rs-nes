@@ -1,12 +1,11 @@
 #[cfg(test)]
 mod spec_tests;
 
-use apu::{Apu, ApuBase};
+use apu::Apu;
 use cpu6502::cpu::{Interconnect, Interrupt};
-use input::{Input, InputBase};
-use ppu::{Ppu, PpuImpl};
+use input::Input;
+use ppu::Ppu;
 use rom::NesRom;
-use screen::NesScreen;
 use std::io::Write;
 use std::rc::Rc;
 
@@ -19,9 +18,10 @@ macro_rules! dma_tick {
     }};
 }
 
-trait NesMemory<P: Ppu, A: Apu, I: Input> {
-    fn screen(&self) -> &NesScreen;
-    fn input(&self) -> &impl Input;
+trait NesMemory<P: Ppu, A: Apu, I: Input>: Interconnect {
+    fn ppu(&self) -> &P;
+    fn input(&self) -> &I;
+    fn apu(&self) -> &A;
 }
 
 pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
@@ -32,23 +32,27 @@ pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
     input: I,
 }
 
-impl NesMemory for NesMemoryBase {
-    fn screen(&self) -> &NesScreen {
-        self.ppu.screen()
+impl<P: Ppu, A: Apu, I: Input> NesMemory<P, A, I> for NesMemoryBase<P, A, I> {
+    fn ppu(&self) -> &P {
+        &self.ppu
     }
 
     fn input(&self) -> &I {
         &self.input
     }
+
+    fn apu(&self) -> &A {
+        &self.apu
+    }
 }
 
-impl <P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
-    pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I) -> Self {
+impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
+    pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I, apu: A) -> Self {
         NesMemoryBase {
             ram: [0_u8; 0x800],
             rom,
             ppu,
-            apu: A::default(),
+            apu,
             input,
         }
     }
@@ -68,7 +72,9 @@ impl <P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
         for i in 0..0x100 {
             let val = self.read(i + start);
             dma_tick!(self);
-            self.write(0x2004, val, cycles + 1);
+            // TODO: reimplement
+            //self.write(0x2004, val, cycles + 1);
+            self.write(0x2004, val);
             dma_tick!(self);
         }
         elapsed_cycles
@@ -76,19 +82,25 @@ impl <P: Ppu<Scr = NesScreen>, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
-    fn tick(&mut self) -> Interrupt {
-        let mut tick_action = Interrupt::None;
-        // For every CPU cycle, the PPU steps 3 times
-        for _ in 0..3 {
-            let ppu_step_action = self.ppu.step();
-            if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
-                tick_action = Interrupt::Nmi;
-            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
-                panic!("Two different interrupt requests during PPU step");
-            };
+impl<P: Ppu, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
+    fn read(&self, address: u16) -> u8 {
+        if address < 0x2000 {
+            self.ram[address as usize & 0x7ff]
+        } else if address < 0x4000 {
+            self.ppu.read(address)
+        } else if address == 0x4015 {
+            self.apu.read_control()
+        } else if address == 0x4016 {
+            self.input.read(address)
+        } else if address < 0x4018 {
+            0
+        } else if address < 0x8000 {
+            panic!("Read from 0x{:0>4X}", address)
+        } else if self.rom.prg.len() > 16_384 {
+            self.rom.prg[address as usize & 0x7fff]
+        } else {
+            self.rom.prg[address as usize & 0x3fff]
         }
-        tick_action
     }
 
     fn write(&mut self, address: u16, value: u8) {
@@ -109,23 +121,17 @@ impl<P: Ppu<Scr = NesScreen>, A: Apu, I: Input> Interconnect for NesMemoryBase<P
         }
     }
 
-    fn read(&self, address: u16) -> u8 {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff]
-        } else if address < 0x4000 {
-            self.ppu.read(address)
-        } else if address == 0x4015 {
-            self.apu.read_control()
-        } else if address == 0x4016 {
-            self.input.read(address)
-        } else if address < 0x4018 {
-            0
-        } else if address < 0x8000 {
-            panic!("Read from 0x{:0>4X}", address)
-        } else if self.rom.prg.len() > 16_384 {
-            self.rom.prg[address as usize & 0x7fff]
-        } else {
-            self.rom.prg[address as usize & 0x3fff]
+    fn tick(&mut self) -> Interrupt {
+        let mut tick_action = Interrupt::None;
+        // For every CPU cycle, the PPU steps 3 times
+        for _ in 0..3 {
+            let ppu_step_action = self.ppu.step();
+            if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
+                tick_action = Interrupt::Nmi;
+            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
+                panic!("Two different interrupt requests during PPU step");
+            };
         }
+        tick_action
     }
 }

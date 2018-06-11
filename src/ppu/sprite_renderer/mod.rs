@@ -9,7 +9,6 @@ mod sprite_evaluation;
 mod spec_tests;
 
 use ppu::control_register::ControlRegister;
-use ppu::palette::{self, Color, PALETTE};
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
 use ppu::vram::Vram;
 use ppu::SpriteSize;
@@ -49,7 +48,7 @@ struct SpriteAttributes(u8);
 pub struct SpritePixel {
     pub value: u8,
     pub priority: SpritePriority,
-    pub color: Color,
+    pub color_index: u8,
     pub is_sprite_zero: bool,
 }
 
@@ -101,7 +100,7 @@ pub trait SpriteRenderer: Default {
 pub struct SpriteRendererBase {
     primary_oam: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
-    palettes: [Color; 16],
+    palettes: [u8; 16],
     pattern_low_shift_registers: [u8; 8],
     pattern_high_shift_registers: [u8; 8],
     attribute_latches: [SpriteAttributes; 8],
@@ -115,7 +114,7 @@ impl Default for SpriteRendererBase {
         SpriteRendererBase {
             primary_oam: [0; 0x100],
             address: Cell::new(0),
-            palettes: palette::EMPTY,
+            palettes: [0; 16],
             pattern_low_shift_registers: [0; 8],
             pattern_high_shift_registers: [0; 8],
             attribute_latches: [SpriteAttributes::default(); 8],
@@ -155,24 +154,24 @@ impl SpriteRenderer for SpriteRendererBase {
     }
 
     fn update_palettes<V: Vram>(&mut self, vram: &V) {
-        let bg = vram.read(0x3f00) as usize;
+        let bg = vram.read(0x3f00);
         self.palettes = [
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f11) as usize],
-            PALETTE[vram.read(0x3f12) as usize],
-            PALETTE[vram.read(0x3f13) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f15) as usize],
-            PALETTE[vram.read(0x3f16) as usize],
-            PALETTE[vram.read(0x3f17) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f19) as usize],
-            PALETTE[vram.read(0x3f1a) as usize],
-            PALETTE[vram.read(0x3f1b) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f1d) as usize],
-            PALETTE[vram.read(0x3f1e) as usize],
-            PALETTE[vram.read(0x3f1f) as usize],
+            bg,
+            vram.read(0x3f11),
+            vram.read(0x3f12),
+            vram.read(0x3f13),
+            bg,
+            vram.read(0x3f15),
+            vram.read(0x3f16),
+            vram.read(0x3f17),
+            bg,
+            vram.read(0x3f19),
+            vram.read(0x3f1a),
+            vram.read(0x3f1b),
+            bg,
+            vram.read(0x3f1d),
+            vram.read(0x3f1e),
+            vram.read(0x3f1f),
         ];
     }
 
@@ -185,6 +184,11 @@ impl SpriteRenderer for SpriteRendererBase {
                 self.pattern_high_shift_registers[i] <<= 1;
             }
         }
+    }
+
+    fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {
+        // Current scanline is passed in, we evaluate the sprites for the next scanline
+        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
     }
 
     fn tick_sprite_evaluation(&mut self) {
@@ -247,11 +251,6 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprite_zero_map = self.sprite_evaluation.sprite_zero_map();
     }
 
-    fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {
-        // Current scanline is passed in, we evaluate the sprites for the next scanline
-        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
-    }
-
     fn current_pixel(&self) -> SpritePixel {
         let mut pixel = 0;
         let mut attributes = SpriteAttributes::default();
@@ -267,12 +266,12 @@ impl SpriteRenderer for SpriteRendererBase {
             }
         }
         let palette = attributes.palette() << 2;
-        let palette_index = (palette | pixel) as usize;
+        let palette_index = palette | pixel;
         SpritePixel {
             value: pixel,
             priority: attributes.priority(),
-            color: self.palettes[palette_index],
-            is_sprite_zero: is_sprite_zero,
+            color_index: self.palettes[palette_index as usize],
+            is_sprite_zero,
         }
     }
 }

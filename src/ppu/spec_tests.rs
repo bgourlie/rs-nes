@@ -431,14 +431,12 @@ mod mocks {
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
-    use ppu::palette::Color;
     use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer};
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
-    use ppu::PpuBase;
+    use ppu::{PpuBase, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::NesRom;
-    use screen::NesScreen;
     use std::cell::Cell;
     use std::rc::Rc;
 
@@ -452,9 +450,9 @@ mod mocks {
             status: StatusRegister::default(),
             vram: MockVram::new(Rc::new(Box::new(NesRom::default()))),
             sprite_renderer: MockSpriteRenderer::default(),
-            screen: NesScreen::default(),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
             odd_frame: false,
         }
     }
@@ -490,15 +488,17 @@ mod mocks {
 
         fn dec_x_counters(&mut self) {}
 
+        fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
+
         fn tick_sprite_evaluation(&mut self) {}
 
-        fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
         fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) {}
+
         fn current_pixel(&self) -> SpritePixel {
             SpritePixel {
                 value: 0,
+                color_index: 0,
                 priority: SpritePriority::OnTopOfBackground,
-                color: Color(0, 0, 0),
                 is_sprite_zero: false,
             }
         }
@@ -583,9 +583,11 @@ mod mocks {
         fn copy_horizontal_pos_to_addr(&self) {
             self.copy_horizontal_pos_to_addr_called.set(true)
         }
+
         fn copy_vertical_pos_to_addr(&self) {
             self.copy_vertical_pos_to_addr_called.set(true)
         }
+
         fn fine_x(&self) -> u8 {
             0
         }

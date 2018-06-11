@@ -61,6 +61,7 @@ impl StatusRegister {
         let cleared = self.reg.get() & !SPRITE_ZERO;
         self.reg.set(cleared);
     }
+
     /// Sprite overflow. The intent was for this flag to be set
     /// whenever more than eight sprites appear on a scanline, but a
     /// hardware bug causes the actual behavior to be more complicated

@@ -1,11 +1,11 @@
 extern crate rs_nes;
 extern crate sdl2;
 
-use rs_nes::Cpu;
 use rs_nes::input::{Button, Input, InputBase};
 use rs_nes::memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
+use rs_nes::Cpu;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;

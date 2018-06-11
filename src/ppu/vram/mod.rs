@@ -167,6 +167,7 @@ impl Vram for VramBase {
             }
         }
     }
+
     fn control_write(&self, val: u8) {
         // t: ...BA.. ........ = d: ......BA
         let t = self.t.get() & 0b0111_0011_1111_1111;
