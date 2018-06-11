@@ -1,5 +1,4 @@
 use self::mocks::new_fixture;
-use memory::Memory;
 
 #[test]
 fn ram_memory_mapped_read() {
@@ -104,9 +103,9 @@ fn oam_dma_timing() {
 
 mod mocks {
     use apu::Apu;
-    use cpu::Interrupt;
+    use cpu6502::cpu::Interrupt;
     use input::{Button, Input};
-    use memory::nes_memory::NesMemoryBase;
+    use memory::NesMemoryBase;
     use ppu::Ppu;
     use rom::*;
     use screen::NesScreen;
@@ -199,10 +198,6 @@ mod mocks {
 
         fn step(&mut self) -> Interrupt {
             Interrupt::None
-        }
-
-        fn dump_registers<T: Write>(&self, _: &mut T) {
-            unimplemented!()
         }
 
         fn new(_: Rc<Box<NesRom>>) -> Self {

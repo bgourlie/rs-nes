@@ -106,6 +106,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cpu6502"
+version = "0.1.0"
+
+[[package]]
 name = "crc"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -609,6 +613,7 @@ name = "rs_nes"
 version = "0.0.1"
 dependencies = [
  "asm6502 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cpu6502 0.1.0",
  "rand 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rs-nes-macros 0.0.1",
  "sdl2 0.31.0 (git+https://github.com/bgourlie/rust-sdl2?branch=sdl-upgrade)",

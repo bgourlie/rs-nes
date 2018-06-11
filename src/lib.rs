@@ -12,13 +12,15 @@ extern crate rand;
 #[cfg(test)]
 extern crate test;
 
+extern crate cpu6502;
+
 extern crate rs_nes_macros;
 
 mod apu;
-mod byte_utils;
-pub mod cpu;
-pub mod input;
 pub mod memory;
+pub mod input;
 pub mod ppu;
 pub mod rom;
 pub mod screen;
+
+pub use cpu6502::cpu::Cpu;

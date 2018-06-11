@@ -1,10 +1,9 @@
 extern crate rs_nes;
 extern crate sdl2;
 
-use rs_nes::cpu::*;
+use rs_nes::Cpu;
 use rs_nes::input::{Button, Input, InputBase};
-use rs_nes::memory::nes_memory::NesMemoryImpl;
-use rs_nes::memory::Memory;
+use rs_nes::memory::NesMemoryImpl;
 use rs_nes::ppu::{Ppu, PpuImpl};
 use rs_nes::rom::NesRom;
 use sdl2::event::Event;
@@ -34,7 +33,7 @@ fn main() {
     let ppu = PpuImpl::new(rom.clone());
     let input = InputBase::default();
     let mem = NesMemoryImpl::new(rom, ppu, input);
-    let mut cpu = Cpu::new(mem);
+    let mut cpu = Cpu::new(mem, 0x00);
     cpu.reset();
 
     let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
@@ -86,32 +85,32 @@ fn main() {
                     keycode: Some(keycode),
                     ..
                 } => match keycode {
-                    Keycode::W => cpu.memory.input().player1_press(Button::Up),
-                    Keycode::A => cpu.memory.input().player1_press(Button::Left),
-                    Keycode::S => cpu.memory.input().player1_press(Button::Down),
-                    Keycode::D => cpu.memory.input().player1_press(Button::Right),
+                    Keycode::W => cpu.interconnect().input().player1_press(Button::Up),
+                    Keycode::A => cpu.interconnect().input().player1_press(Button::Left),
+                    Keycode::S => cpu.interconnect().input().player1_press(Button::Down),
+                    Keycode::D => cpu.interconnect().input().player1_press(Button::Right),
                     Keycode::LShift | Keycode::RShift => {
-                        cpu.memory.input().player1_press(Button::Select)
+                        cpu.interconnect().input().player1_press(Button::Select)
                     }
-                    Keycode::Return => cpu.memory.input().player1_press(Button::Start),
-                    Keycode::J => cpu.memory.input().player1_press(Button::B),
-                    Keycode::K => cpu.memory.input().player1_press(Button::A),
+                    Keycode::Return => cpu.interconnect().input().player1_press(Button::Start),
+                    Keycode::J => cpu.interconnect().input().player1_press(Button::B),
+                    Keycode::K => cpu.interconnect().input().player1_press(Button::A),
                     _ => (),
                 },
                 Event::KeyUp {
                     keycode: Some(keycode),
                     ..
                 } => match keycode {
-                    Keycode::W => cpu.memory.input().player1_release(Button::Up),
-                    Keycode::A => cpu.memory.input().player1_release(Button::Left),
-                    Keycode::S => cpu.memory.input().player1_release(Button::Down),
-                    Keycode::D => cpu.memory.input().player1_release(Button::Right),
+                    Keycode::W => cpu.interconnect().input().player1_release(Button::Up),
+                    Keycode::A => cpu.interconnect().input().player1_release(Button::Left),
+                    Keycode::S => cpu.interconnect().input().player1_release(Button::Down),
+                    Keycode::D => cpu.interconnect().input().player1_release(Button::Right),
                     Keycode::LShift | Keycode::RShift => {
-                        cpu.memory.input().player1_release(Button::Select)
+                        cpu.interconnect().input().player1_release(Button::Select)
                     }
-                    Keycode::Return => cpu.memory.input().player1_release(Button::Start),
-                    Keycode::J => cpu.memory.input().player1_release(Button::B),
-                    Keycode::K => cpu.memory.input().player1_release(Button::A),
+                    Keycode::Return => cpu.interconnect().input().player1_release(Button::Start),
+                    Keycode::J => cpu.memory.interconnect().player1_release(Button::B),
+                    Keycode::K => cpu.memory.interconnect().player1_release(Button::A),
                     _ => (),
                 },
                 _ => (),

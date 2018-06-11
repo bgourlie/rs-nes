@@ -14,7 +14,7 @@ mod vram;
 mod write_latch;
 
 use self::write_latch::WriteLatch;
-use cpu::Interrupt;
+use cpu6502::cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
@@ -24,7 +24,6 @@ use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
 use rs_nes_macros::ppu_loop;
 use screen::{NesScreen, Screen};
-use std::io::Write;
 use std::rc::Rc;
 
 const SCANLINES: usize = 262;
@@ -41,7 +40,6 @@ pub trait Ppu {
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
     fn screen(&self) -> &NesScreen;
-    fn dump_registers<T: Write>(&self, writer: &mut T);
 }
 
 #[derive(Debug, PartialEq)]
@@ -193,21 +191,5 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
 
     fn screen(&self) -> &NesScreen {
         &self.screen
-    }
-
-    /// Dump register memory
-    fn dump_registers<T: Write>(&self, writer: &mut T) {
-        let regs = [
-            *self.control,
-            *self.mask,
-            self.status.read(),
-            0, // Write-only
-            self.sprite_renderer.read_data(),
-            0, // Write-only
-            0, // Write-only
-            0,
-        ];
-
-        writer.write_all(&regs).unwrap()
     }
 }
