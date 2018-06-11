@@ -17,7 +17,7 @@ use cpu6502::cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
-use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer, SpriteRendererBase};
+use ppu::sprite_renderer::{SpritePixel, SpriteRenderer, SpriteRendererBase};
 use ppu::status_register::StatusRegister;
 use ppu::vram::{Vram, VramBase};
 use rom::NesRom;
@@ -74,7 +74,7 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
         let color = match (bg_pixel, sprite_pixel.value) {
             (0, 0) | (_, 0) => bg_color,
             (0, _) => sprite_pixel.color_index,
-            _ => if sprite_pixel.priority == SpritePriority::OnTopOfBackground {
+            _ => if sprite_pixel.has_priority {
                 sprite_pixel.color_index
             } else {
                 bg_color

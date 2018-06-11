@@ -36,18 +36,12 @@ static REVERSE_LOOKUP: [u8; 256] =
      0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f,
      0xff];
 
-#[derive(Eq, PartialEq)]
-pub enum SpritePriority {
-    OnTopOfBackground,
-    BehindBackground,
-}
-
 #[derive(Copy, Clone)]
 struct SpriteAttributes(u8);
 
 pub struct SpritePixel {
     pub value: u8,
-    pub priority: SpritePriority,
+    pub has_priority: bool,
     pub color_index: u8,
     pub is_sprite_zero: bool,
 }
@@ -68,13 +62,9 @@ impl SpriteAttributes {
         val & 0b1000_0000 > 0
     }
 
-    fn priority(&self) -> SpritePriority {
+    fn priority(&self) -> bool {
         let SpriteAttributes(val) = *self;
-        if val & 0b0010_0000 == 0 {
-            SpritePriority::OnTopOfBackground
-        } else {
-            SpritePriority::BehindBackground
-        }
+        val & 0b0010_0000 == 0
     }
 }
 
@@ -269,7 +259,7 @@ impl SpriteRenderer for SpriteRendererBase {
         let palette_index = palette | pixel;
         SpritePixel {
             value: pixel,
-            priority: attributes.priority(),
+            has_priority: attributes.priority(),
             color_index: self.palettes[palette_index as usize],
             is_sprite_zero,
         }

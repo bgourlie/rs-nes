@@ -431,7 +431,7 @@ mod mocks {
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
-    use ppu::sprite_renderer::{SpritePixel, SpritePriority, SpriteRenderer};
+    use ppu::sprite_renderer::{SpritePixel, SpriteRenderer};
     use ppu::status_register::StatusRegister;
     use ppu::vram::Vram;
     use ppu::write_latch::{LatchState, WriteLatch};
@@ -498,7 +498,7 @@ mod mocks {
             SpritePixel {
                 value: 0,
                 color_index: 0,
-                priority: SpritePriority::OnTopOfBackground,
+                has_priority: true,
                 is_sprite_zero: false,
             }
         }
