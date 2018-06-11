@@ -4,7 +4,7 @@
 mod spec_tests;
 
 use ppu::control_register::ControlRegister;
-use ppu::vram::Vram;
+use ppu::vram::IVram;
 
 #[derive(Default)]
 pub struct BackgroundRenderer {
@@ -17,7 +17,7 @@ pub struct BackgroundRenderer {
 }
 
 impl BackgroundRenderer {
-    pub fn update_palettes<V: Vram>(&mut self, vram: &V) {
+    pub fn update_palettes<V: IVram>(&mut self, vram: &V) {
         let bg = vram.read(0x3f00);
         self.palettes = [
             bg,
@@ -83,27 +83,27 @@ impl BackgroundRenderer {
     }
 
     // TODO: Tests
-    pub fn fetch_attribute_byte<V: Vram>(&mut self, vram: &V) {
+    pub fn fetch_attribute_byte<V: IVram>(&mut self, vram: &V) {
         let v = vram.addr();
         let attribute_address = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
         self.attr_latch = vram.read(attribute_address);
     }
 
     // TODO: Tests
-    pub fn fetch_nametable_byte<V: Vram>(&mut self, vram: &V) {
+    pub fn fetch_nametable_byte<V: IVram>(&mut self, vram: &V) {
         let nametable_address = 0x2000 | (vram.addr() & 0x0FFF);
         self.nametable_latch = vram.read(nametable_address);
     }
 
     // TODO: Tests
-    pub fn fetch_pattern_low_byte<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
+    pub fn fetch_pattern_low_byte<V: IVram>(&mut self, vram: &V, control: ControlRegister) {
         let v = vram.addr();
         let pattern_addr = Self::pattern_offset(v, self.nametable_latch, control, true);
         self.pattern_low_latch = vram.read(pattern_addr);
     }
 
     // TODO: Tests
-    pub fn fetch_pattern_high_byte<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
+    pub fn fetch_pattern_high_byte<V: IVram>(&mut self, vram: &V, control: ControlRegister) {
         let v = vram.addr();
         let pattern_addr = Self::pattern_offset(v, self.nametable_latch, control, false);
         self.pattern_high_latch = vram.read(pattern_addr);

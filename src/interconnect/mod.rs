@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod spec_tests;
 
-use apu::Apu;
+use apu::IApu;
 use cpu6502::cpu::{Interconnect, Interrupt};
-use input::Input;
-use ppu::Ppu;
+use input::IInput;
+use ppu::IPpu;
 use rom::NesRom;
 use std::rc::Rc;
 
-pub struct NesInterconnect<P: Ppu, A: Apu, I: Input> {
+pub struct NesInterconnect<P: IPpu, A: IApu, I: IInput> {
     ram: [u8; 0x800],
     rom: Rc<Box<NesRom>>,
     pub ppu: P,
@@ -17,7 +17,7 @@ pub struct NesInterconnect<P: Ppu, A: Apu, I: Input> {
     elapsed_cycles: usize,
 }
 
-impl<P: Ppu, A: Apu, I: Input> NesInterconnect<P, A, I> {
+impl<P: IPpu, A: IApu, I: IInput> NesInterconnect<P, A, I> {
     pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I, apu: A) -> Self {
         NesInterconnect {
             ram: [0_u8; 0x800],
@@ -50,7 +50,7 @@ impl<P: Ppu, A: Apu, I: Input> NesInterconnect<P, A, I> {
 }
 
 // Currently NROM only
-impl<P: Ppu, A: Apu, I: Input> Interconnect for NesInterconnect<P, A, I> {
+impl<P: IPpu, A: IApu, I: IInput> Interconnect for NesInterconnect<P, A, I> {
     fn read(&self, address: u16) -> u8 {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff]

@@ -17,9 +17,9 @@ use cpu6502::cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
-use ppu::sprite_renderer::{SpritePixel, SpriteRenderer, SpriteRendererBase};
+use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel, SpriteRenderer};
 use ppu::status_register::StatusRegister;
-use ppu::vram::{Vram, VramBase};
+use ppu::vram::{IVram, Vram};
 use rom::NesRom;
 use rs_nes_macros::ppu_loop;
 use std::rc::Rc;
@@ -30,9 +30,9 @@ const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
 pub const SCREEN_WIDTH: usize = 256;
 pub const SCREEN_HEIGHT: usize = 240;
 
-pub type PpuImpl = PpuBase<VramBase, SpriteRendererBase>;
+pub type PpuImpl = Ppu<Vram, SpriteRenderer>;
 
-pub trait Ppu {
+pub trait IPpu {
     fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
@@ -52,7 +52,7 @@ impl Default for SpriteSize {
     }
 }
 
-pub struct PpuBase<V: Vram, S: SpriteRenderer> {
+pub struct Ppu<V: IVram, S: ISpriteRenderer> {
     cycles: usize,
     control: ControlRegister,
     mask: MaskRegister,
@@ -65,7 +65,7 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
     odd_frame: bool,
 }
 
-impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
+impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
     /// Outputs pixel information to a buffer. Each pixel is encoded as two bytes, as follows:
     ///
     /// **Byte 1 (palette indices)**: `bbbb ssss`
@@ -75,10 +75,11 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     ///
     /// **Byte 2 (pixel properties)**: `bbss rgbp`
     ///
-    /// - `x`: Unused
-    /// - `r`: Emphasize red
-    /// - `g`: Emphasize green
-    /// - `b`: Emphasize blue
+    /// - `b`: 2-bit pixel value
+    /// - `s`: 2-bit pixel value
+    /// - `r`: Emphasize red (not yet implemented)
+    /// - `g`: Emphasize green (not yet implemented)
+    /// - `b`: Emphasize blue (not yet implemented)
     /// - `p`: Sprite pixel priority
     ///
     /// This format will need to be decoded and properly displayed by the front-end.
@@ -110,9 +111,9 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
     }
 }
 
-impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
+impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
     fn new(rom: Rc<Box<NesRom>>) -> Self {
-        PpuBase {
+        Ppu {
             cycles: 0,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
@@ -182,11 +183,11 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
                     self.sprite_renderer.read_data_increment_addr()
                 }
             }
+            0x3 | 0x5 | 0x6 => 0, // Write-only
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();
                 self.vram.read_ppu_data(inc_amount)
             }
-            0x3 | 0x5 | 0x6 => 0, // Write-only
             _ => unreachable!(),
         }
     }

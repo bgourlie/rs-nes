@@ -21,19 +21,19 @@ pub enum Button {
 }
 
 #[derive(Default)]
-pub struct InputBase {
+pub struct Input {
     strobe: Cell<u8>,
     state: Cell<u8>,
 }
 
-pub trait Input: Default {
+pub trait IInput: Default {
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn player1_press(&self, button: Button);
     fn player1_release(&self, button: Button);
 }
 
-impl Input for InputBase {
+impl IInput for Input {
     fn write(&mut self, addr: u16, _: u8) {
         if addr == 4016 {
             self.strobe.set(STROBE_A)
@@ -94,7 +94,7 @@ impl Input for InputBase {
 #[derive(Default)]
 pub struct NoInput;
 
-impl Input for NoInput {
+impl IInput for NoInput {
     fn write(&mut self, _: u16, _: u8) {}
 
     fn read(&self, _: u16) -> u8 {

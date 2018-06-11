@@ -108,18 +108,18 @@ fn oam_dma_timing_odd_cycle() {
 }
 
 mod mocks {
-    use apu::Apu;
+    use apu::IApu;
     use cpu6502::cpu::Interrupt;
-    use input::{Button, Input};
+    use input::{Button, IInput};
     use interconnect::NesInterconnect;
-    use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
+    use ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::*;
     use std::rc::Rc;
 
     #[derive(Default)]
     pub struct InputMock;
 
-    impl Input for InputMock {
+    impl IInput for InputMock {
         fn write(&mut self, _: u16, _: u8) {}
 
         fn read(&self, _: u16) -> u8 {
@@ -156,7 +156,7 @@ mod mocks {
         }
     }
 
-    impl Apu for ApuMock {
+    impl IApu for ApuMock {
         fn write(&mut self, addr: u16, value: u8) {
             self.write_addr = addr;
             self.write_value = value;
@@ -197,7 +197,7 @@ mod mocks {
         }
     }
 
-    impl Ppu for PpuMock {
+    impl IPpu for PpuMock {
         fn new(_: Rc<Box<NesRom>>) -> Self {
             unimplemented!()
         }

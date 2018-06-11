@@ -27,12 +27,12 @@ fn write_and_read_increment() {
     assert_eq!(0x1, oam.address.get())
 }
 
-fn fixture(initial_values: &[u8]) -> SpriteRendererBase {
+fn fixture(initial_values: &[u8]) -> SpriteRenderer {
     let mut mem = [0_u8; 0x100];
     for (i, byte) in initial_values.iter().enumerate() {
         mem[i] = *byte;
     }
-    let mut fixture = SpriteRendererBase::default();
+    let mut fixture = SpriteRenderer::default();
     fixture.primary_oam = mem;
     fixture
 }

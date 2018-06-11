@@ -431,19 +431,19 @@ mod mocks {
     use ppu::background_renderer::BackgroundRenderer;
     use ppu::control_register::{ControlRegister, IncrementAmount};
     use ppu::mask_register::MaskRegister;
-    use ppu::sprite_renderer::{SpritePixel, SpriteRenderer};
+    use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
     use ppu::status_register::StatusRegister;
-    use ppu::vram::Vram;
+    use ppu::vram::IVram;
     use ppu::write_latch::{LatchState, WriteLatch};
-    use ppu::{PpuBase, SCREEN_HEIGHT, SCREEN_WIDTH};
+    use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::NesRom;
     use std::cell::Cell;
     use std::rc::Rc;
 
-    pub type TestPpu = PpuBase<MockVram, MockSpriteRenderer>;
+    pub type TestPpu = Ppu<MockVram, MockSpriteRenderer>;
 
     pub fn mock_ppu() -> TestPpu {
-        PpuBase {
+        Ppu {
             cycles: 0,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
@@ -465,7 +465,7 @@ mod mocks {
         pub mock_data: Cell<u8>,
     }
 
-    impl SpriteRenderer for MockSpriteRenderer {
+    impl ISpriteRenderer for MockSpriteRenderer {
         fn read_data(&self) -> u8 {
             self.read_data_called.set(true);
             self.mock_data.get()
@@ -484,7 +484,7 @@ mod mocks {
             self.mock_data.set(val)
         }
 
-        fn update_palettes<V: Vram>(&mut self, _: &V) {}
+        fn update_palettes<V: IVram>(&mut self, _: &V) {}
 
         fn dec_x_counters(&mut self) {}
 
@@ -492,7 +492,7 @@ mod mocks {
 
         fn tick_sprite_evaluation(&mut self) {}
 
-        fn fill_registers<V: Vram>(&mut self, _: &V, _: ControlRegister) {}
+        fn fill_registers<V: IVram>(&mut self, _: &V, _: ControlRegister) {}
 
         fn current_pixel(&self) -> SpritePixel {
             SpritePixel {
@@ -529,7 +529,7 @@ mod mocks {
         }
     }
 
-    impl Vram for MockVram {
+    impl IVram for MockVram {
         fn write_ppu_addr(&self, latch_state: LatchState) {
             let val = match latch_state {
                 LatchState::FirstWrite(val) => val,

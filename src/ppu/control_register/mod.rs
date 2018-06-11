@@ -47,7 +47,7 @@ impl ControlRegister {
 
     /// Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)
     pub fn nmi_on_vblank_start(&self) -> bool {
-        !(self.reg & 0b1000_0000 == 0)
+        self.reg & 0b1000_0000 != 0
     }
 
     pub fn write(&mut self, val: u8) {

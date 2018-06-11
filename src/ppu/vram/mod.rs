@@ -7,7 +7,7 @@ use std::rc::Rc;
 #[cfg(test)]
 mod spec_tests;
 
-pub trait Vram {
+pub trait IVram {
     fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write_ppu_addr(&self, latch_state: LatchState);
     fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
@@ -24,7 +24,7 @@ pub trait Vram {
     fn fine_x(&self) -> u8;
 }
 
-pub struct VramBase {
+pub struct Vram {
     address: Cell<u16>,
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
@@ -34,13 +34,13 @@ pub struct VramBase {
     fine_x: Cell<u8>,
 }
 
-impl Vram for VramBase {
+impl IVram for Vram {
     fn new(rom: Rc<Box<NesRom>>) -> Self {
-        VramBase {
+        Vram {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
             palette: [0; 0x20],
-            rom: rom,
+            rom,
             ppu_data_buffer: Cell::new(0),
             t: Cell::new(0),
             fine_x: Cell::new(0),
@@ -63,33 +63,6 @@ impl Vram for VramBase {
                 self.t.set(t);
                 self.address.set(t);
             }
-        }
-    }
-
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8 {
-        let val = self.ppu_data();
-        match inc_amount {
-            IncrementAmount::One => self.address.set(self.address.get() + 1),
-            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
-        }
-        val
-    }
-
-    fn ppu_data(&self) -> u8 {
-        let addr = self.address.get();
-        let val = self.read(addr);
-
-        // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
-        // the read will return the contents of an internal read buffer. This internal buffer is
-        // updated only when reading PPUDATA, and so is preserved across frames. After the CPU reads
-        // and gets the contents of the internal buffer, the PPU will immediately update the
-        // internal buffer with the byte at the current VRAM address
-        if addr < 0x3f00 {
-            let buffered_val = self.ppu_data_buffer.get();
-            self.ppu_data_buffer.set(val);
-            buffered_val
-        } else {
-            val
         }
     }
 
@@ -121,8 +94,33 @@ impl Vram for VramBase {
         }
     }
 
-    #[allow(inline_always)]
-    #[inline(always)]
+    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8 {
+        let val = self.ppu_data();
+        match inc_amount {
+            IncrementAmount::One => self.address.set(self.address.get() + 1),
+            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
+        }
+        val
+    }
+
+    fn ppu_data(&self) -> u8 {
+        let addr = self.address.get();
+        let val = self.read(addr);
+
+        // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
+        // the read will return the contents of an internal read buffer. This internal buffer is
+        // updated only when reading PPUDATA, and so is preserved across frames. After the CPU reads
+        // and gets the contents of the internal buffer, the PPU will immediately update the
+        // internal buffer with the byte at the current VRAM address
+        if addr < 0x3f00 {
+            let buffered_val = self.ppu_data_buffer.get();
+            self.ppu_data_buffer.set(val);
+            buffered_val
+        } else {
+            val
+        }
+    }
+
     fn read(&self, addr: u16) -> u8 {
         if addr < 0x2000 {
             self.rom.chr[addr as usize]

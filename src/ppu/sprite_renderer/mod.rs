@@ -10,7 +10,7 @@ mod spec_tests;
 
 use ppu::control_register::ControlRegister;
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
-use ppu::vram::Vram;
+use ppu::vram::IVram;
 use ppu::SpriteSize;
 use std::cell::Cell;
 use std::num::Wrapping;
@@ -74,20 +74,20 @@ impl Default for SpriteAttributes {
     }
 }
 
-pub trait SpriteRenderer: Default {
+pub trait ISpriteRenderer: Default {
     fn read_data(&self) -> u8;
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
-    fn update_palettes<V: Vram>(&mut self, vram: &V);
+    fn update_palettes<V: IVram>(&mut self, vram: &V);
     fn dec_x_counters(&mut self);
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister);
+    fn fill_registers<V: IVram>(&mut self, vram: &V, control: ControlRegister);
     fn current_pixel(&self) -> SpritePixel;
 }
 
-pub struct SpriteRendererBase {
+pub struct SpriteRenderer {
     primary_oam: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
     palettes: [u8; 16],
@@ -99,9 +99,9 @@ pub struct SpriteRendererBase {
     sprite_zero_map: u8,
 }
 
-impl Default for SpriteRendererBase {
+impl Default for SpriteRenderer {
     fn default() -> Self {
-        SpriteRendererBase {
+        SpriteRenderer {
             primary_oam: [0; 0x100],
             address: Cell::new(0),
             palettes: [0; 16],
@@ -115,14 +115,14 @@ impl Default for SpriteRendererBase {
     }
 }
 
-impl SpriteRendererBase {
+impl SpriteRenderer {
     fn inc_address(&self) {
         let new_addr = (Wrapping(self.address.get()) + Wrapping(1_u8)).0;
         self.address.set(new_addr)
     }
 }
 
-impl SpriteRenderer for SpriteRendererBase {
+impl ISpriteRenderer for SpriteRenderer {
     // Maps to the PPU's oam_data register
     fn read_data(&self) -> u8 {
         self.primary_oam[self.address.get() as usize]
@@ -143,7 +143,7 @@ impl SpriteRenderer for SpriteRendererBase {
         self.inc_address();
     }
 
-    fn update_palettes<V: Vram>(&mut self, vram: &V) {
+    fn update_palettes<V: IVram>(&mut self, vram: &V) {
         let bg = vram.read(0x3f00);
         self.palettes = [
             bg,
@@ -185,7 +185,7 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprite_evaluation.tick(&self.primary_oam)
     }
 
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
+    fn fill_registers<V: IVram>(&mut self, vram: &V, control: ControlRegister) {
         for sprites_fetched in 0..8 {
             let sprite_base = sprites_fetched * 4;
 

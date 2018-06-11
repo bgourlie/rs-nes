@@ -1,8 +1,8 @@
-use apu::ApuBase;
+use apu::Apu;
 use cpu6502::cpu::{Cpu, Interrupt};
-use input::InputBase;
+use input::Input;
 use interconnect::NesInterconnect;
-use ppu::{Ppu, PpuImpl};
+use ppu::{IPpu, PpuImpl};
 use rom::NesRom;
 use std::rc::Rc;
 use test::{black_box, Bencher};
@@ -13,8 +13,8 @@ fn bench_frame_time(b: &mut Bencher) {
         NesRom::read(format!("{}", "test_roms/lawn_mower.nes")).expect("Couldn't find rom file"),
     ));
     let ppu = PpuImpl::new(rom.clone());
-    let input = InputBase::default();
-    let apu = ApuBase::default();
+    let input = Input::default();
+    let apu = Apu::default();
     let mem = NesInterconnect::new(rom, ppu, input, apu);
     let mut cpu = Cpu::new(mem, 0x0);
     cpu.reset();

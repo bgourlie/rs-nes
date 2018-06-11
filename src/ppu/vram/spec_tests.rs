@@ -337,12 +337,12 @@ fn fine_y_increment() {
     }
 }
 
-fn vram_fixture_with_chr(chr: Vec<u8>) -> VramBase {
+fn vram_fixture_with_chr(chr: Vec<u8>) -> Vram {
     let mut rom = NesRom::default();
     rom.chr = chr;
-    VramBase::new(Rc::new(Box::new(rom)))
+    Vram::new(Rc::new(Box::new(rom)))
 }
 
-fn vram_fixture() -> VramBase {
+fn vram_fixture() -> Vram {
     vram_fixture_with_chr(vec![0; 0x2000])
 }

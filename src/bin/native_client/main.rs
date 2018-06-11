@@ -3,10 +3,10 @@ extern crate rs_nes;
 extern crate sdl2;
 
 use cpu6502::cpu::Interrupt;
-use rs_nes::apu::ApuBase;
-use rs_nes::input::{Button, Input, InputBase};
+use rs_nes::apu::Apu;
+use rs_nes::input::{Button, IInput, Input};
 use rs_nes::interconnect::NesInterconnect;
-use rs_nes::ppu::{Ppu, PpuImpl};
+use rs_nes::ppu::{IPpu, PpuImpl};
 use rs_nes::rom::NesRom;
 use rs_nes::Cpu;
 use sdl2::event::Event;
@@ -34,8 +34,8 @@ fn main() {
     );
 
     let ppu = PpuImpl::new(rom.clone());
-    let input = InputBase::default();
-    let apu = ApuBase::default();
+    let input = Input::default();
+    let apu = Apu::default();
     let mem = NesInterconnect::new(rom, ppu, input, apu);
     let mut cpu = Cpu::new(mem, 0x00);
     cpu.reset();
