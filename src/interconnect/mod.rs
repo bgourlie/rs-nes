@@ -6,33 +6,24 @@ use cpu6502::cpu::{Interconnect, Interrupt};
 use input::Input;
 use ppu::Ppu;
 use rom::NesRom;
-use std::io::Write;
 use std::rc::Rc;
 
-macro_rules! dma_tick {
-    ($mem:expr) => {{
-        let tick_action = $mem.tick();
-        if tick_action != Interrupt::None {
-            panic!("unimplemented: nmi during dma")
-        }
-    }};
-}
-
-trait NesMemory<P: Ppu, A: Apu, I: Input>: Interconnect {
+trait NesInterconnect<P: Ppu, A: Apu, I: Input>: Interconnect {
     fn ppu(&self) -> &P;
     fn input(&self) -> &I;
     fn apu(&self) -> &A;
 }
 
-pub struct NesMemoryBase<P: Ppu, A: Apu, I: Input> {
+pub struct NesInterconnectBase<P: Ppu, A: Apu, I: Input> {
     ram: [u8; 0x800],
     rom: Rc<Box<NesRom>>,
     ppu: P,
     apu: A,
     input: I,
+    elapsed_cycles: usize,
 }
 
-impl<P: Ppu, A: Apu, I: Input> NesMemory<P, A, I> for NesMemoryBase<P, A, I> {
+impl<P: Ppu, A: Apu, I: Input> NesInterconnect<P, A, I> for NesInterconnectBase<P, A, I> {
     fn ppu(&self) -> &P {
         &self.ppu
     }
@@ -46,24 +37,24 @@ impl<P: Ppu, A: Apu, I: Input> NesMemory<P, A, I> for NesMemoryBase<P, A, I> {
     }
 }
 
-impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
+impl<P: Ppu, A: Apu, I: Input> NesInterconnectBase<P, A, I> {
     pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I, apu: A) -> Self {
-        NesMemoryBase {
+        NesInterconnectBase {
             ram: [0_u8; 0x800],
             rom,
             ppu,
             apu,
             input,
+            elapsed_cycles: 0,
         }
     }
 
-    fn dma_write(&mut self, value: u8, cycles: u64) -> u64 {
-        let mut elapsed_cycles = 513;
-        dma_tick!(self);
+    fn dma_write(&mut self, value: u8) {
+        let is_odd_cycle = self.elapsed_cycles % 2 == 1;
+        self.tick();
 
-        if cycles % 2 == 1 {
-            dma_tick!(self);
-            elapsed_cycles += 1;
+        if is_odd_cycle {
+            self.tick();
         }
 
         #[allow(cast_lossless)]
@@ -71,18 +62,15 @@ impl<P: Ppu, A: Apu, I: Input> NesMemoryBase<P, A, I> {
 
         for i in 0..0x100 {
             let val = self.read(i + start);
-            dma_tick!(self);
-            // TODO: reimplement
-            //self.write(0x2004, val, cycles + 1);
+            self.tick();
             self.write(0x2004, val);
-            dma_tick!(self);
+            self.tick();
         }
-        elapsed_cycles
     }
 }
 
 // Currently NROM only
-impl<P: Ppu, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
+impl<P: Ppu, A: Apu, I: Input> Interconnect for NesInterconnectBase<P, A, I> {
     fn read(&self, address: u16) -> u8 {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
@@ -104,14 +92,12 @@ impl<P: Ppu, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
     }
 
     fn write(&mut self, address: u16, value: u8) {
-        let mut addl_cycles = 0_u64;
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
             self.ppu.write(address, value)
         } else if address == 0x4014 {
-            // addl_cycles = self.dma_write(value, cycles)
-            panic!("reimplement")
+            self.dma_write(value)
         } else if address == 0x4016 {
             self.input.write(address, value)
         } else if address < 0x4018 {
@@ -122,6 +108,7 @@ impl<P: Ppu, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
     }
 
     fn tick(&mut self) -> Interrupt {
+        self.elapsed_cycles += 1;
         let mut tick_action = Interrupt::None;
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
@@ -133,5 +120,9 @@ impl<P: Ppu, A: Apu, I: Input> Interconnect for NesMemoryBase<P, A, I> {
             };
         }
         tick_action
+    }
+
+    fn elapsed_cycles(&self) -> usize {
+        self.elapsed_cycles
     }
 }

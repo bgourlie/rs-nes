@@ -93,21 +93,25 @@ fn input_memory_mapped_write() {
 }
 
 #[test]
-fn oam_dma_timing() {
-    panic!("reimplement")
-    //    let mut fixture = new_fixture();
-    //    let addl_cycles = fixture.write(0x4014, 0x02);
-    //    assert_eq!(513, addl_cycles);
-    //
-    //    let addl_cycles = fixture.write(0x4014, 0x02);
-    //    assert_eq!(514, addl_cycles);
+fn oam_dma_timing_even_cycle() {
+    let mut fixture = new_fixture();
+    fixture.write(0x4014, 0x02);
+    assert_eq!(513, fixture.elapsed_cycles());
+}
+
+#[test]
+fn oam_dma_timing_odd_cycle() {
+    let mut fixture = new_fixture();
+    fixture.tick();
+    fixture.write(0x4014, 0x02);
+    assert_eq!(514, fixture.elapsed_cycles() - 1);
 }
 
 mod mocks {
     use apu::Apu;
     use cpu6502::cpu::Interrupt;
     use input::{Button, Input};
-    use memory::NesMemoryBase;
+    use interconnect::NesInterconnectBase;
     use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
     use rom::*;
     use std::rc::Rc;
@@ -216,9 +220,9 @@ mod mocks {
         }
     }
 
-    pub type NesMemoryFixture = NesMemoryBase<PpuMock, ApuMock, InputMock>;
+    pub type NesInterconnectFixture = NesInterconnectBase<PpuMock, ApuMock, InputMock>;
 
-    pub fn new_fixture() -> NesMemoryFixture {
+    pub fn new_fixture() -> NesInterconnectFixture {
         let rom = Rc::new(Box::new(NesRom {
             format: RomFormat::INes,
             video_standard: VideoStandard::Ntsc,
@@ -236,12 +240,13 @@ mod mocks {
             prg: Vec::new(),
         }));
 
-        NesMemoryBase {
+        NesInterconnectBase {
             ram: [0_u8; 0x800],
             rom,
             ppu: PpuMock::default(),
             apu: ApuMock::default(),
             input: InputMock::default(),
+            elapsed_cycles: 0,
         }
     }
 }

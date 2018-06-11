@@ -18,7 +18,7 @@ extern crate rs_nes_macros;
 
 mod apu;
 pub mod input;
-pub mod memory;
+pub mod interconnect;
 pub mod ppu;
 pub mod rom;
 

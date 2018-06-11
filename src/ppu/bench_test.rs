@@ -1,7 +1,7 @@
 use apu::ApuBase;
 use cpu6502::cpu::{Cpu, Interrupt};
 use input::InputBase;
-use memory::NesMemoryBase;
+use interconnect::NesInterconnectBase;
 use ppu::{Ppu, PpuImpl};
 use rom::NesRom;
 use std::rc::Rc;
@@ -15,7 +15,7 @@ fn bench_frame_time(b: &mut Bencher) {
     let ppu = PpuImpl::new(rom.clone());
     let input = InputBase::default();
     let apu = ApuBase::default();
-    let mem = NesMemoryBase::new(rom, ppu, input, apu);
+    let mem = NesInterconnectBase::new(rom, ppu, input, apu);
     let mut cpu = Cpu::new(mem, 0x0);
     cpu.reset();
 
