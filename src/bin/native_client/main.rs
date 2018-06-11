@@ -129,10 +129,10 @@ fn main() {
                     let mut real_buffer: Vec<u8> =
                         Vec::with_capacity(SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize * 3);
                     for i in 0..SCREEN_WIDTH * SCREEN_HEIGHT {
-                        let i = i as usize;
+                        let i = (i * 2) as usize;
                         real_buffer.push(screen_buffer[i]);
-                        real_buffer.push(screen_buffer[i]);
-                        real_buffer.push(screen_buffer[i]);
+                        real_buffer.push(screen_buffer[i + 1]);
+                        real_buffer.push(0);
                     }
                     texture
                         .update(None, &real_buffer, SCREEN_WIDTH as usize * 3)

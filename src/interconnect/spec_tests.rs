@@ -170,7 +170,7 @@ mod mocks {
     pub struct PpuMock {
         addr: u16,
         value: u8,
-        screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT],
+        screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
     }
 
     impl Default for PpuMock {
@@ -178,7 +178,7 @@ mod mocks {
             PpuMock {
                 addr: 0,
                 value: 0,
-                screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
+                screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
             }
         }
     }
@@ -215,7 +215,7 @@ mod mocks {
             Interrupt::None
         }
 
-        fn screen(&self) -> &[u8; 61440] {
+        fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2] {
             &self.screen
         }
     }

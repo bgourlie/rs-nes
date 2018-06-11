@@ -452,7 +452,7 @@ mod mocks {
             sprite_renderer: MockSpriteRenderer::default(),
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
             odd_frame: false,
         }
     }

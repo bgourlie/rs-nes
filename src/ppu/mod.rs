@@ -37,7 +37,7 @@ pub trait Ppu {
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT];
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2];
 }
 
 #[derive(Debug, PartialEq)]
@@ -59,27 +59,36 @@ pub struct PpuBase<V: Vram, S: SpriteRenderer> {
     status: StatusRegister,
     vram: V,
     sprite_renderer: S,
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT],
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
 }
 
 impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
+    /// Outputs pixel information to a buffer. Each pixel is encoded as two bytes, as follows:
+    ///
+    /// **Byte 1 (palette indices)**: `bbbb ssss`
+    ///
+    /// - `b`: Background pixel palette index
+    /// - `s`: Sprite pixel palette index
+    ///
+    /// **Byte 2 (pixel properties)**: `bbss rgbp`
+    ///
+    /// - `x`: Unused
+    /// - `r`: Emphasize red
+    /// - `g`: Emphasize green
+    /// - `b`: Emphasize blue
+    /// - `p`: Sprite pixel priority
+    ///
+    /// This format will need to be decoded and properly displayed by the front-end.
     fn draw_pixel(&mut self, x: u16, scanline: u16) {
         let fine_x = self.vram.fine_x();
         let (bg_pixel, bg_color) = self.background_renderer.current_pixel(fine_x);
         let sprite_pixel = self.sprite_renderer.current_pixel();
-
-        let color = match (bg_pixel, sprite_pixel.value) {
-            (0, 0) | (_, 0) => bg_color,
-            (0, _) => sprite_pixel.color_index,
-            _ => if sprite_pixel.has_priority {
-                sprite_pixel.color_index
-            } else {
-                bg_color
-            },
-        };
+        let color_byte = (bg_color << 4) | sprite_pixel.color_index;
+        let property_byte =
+            sprite_pixel.has_priority as u8 | bg_pixel << 6 | sprite_pixel.color_index << 4;
 
         // TODO: Is it appropriate to evaluate sprite zero hit here considering the cycles
         // draw_pixel() is called on?
@@ -87,8 +96,9 @@ impl<V: Vram, S: SpriteRenderer> PpuBase<V, S> {
             self.status.set_sprite_zero_hit()
         }
 
-        let i = (scanline as usize) * SCREEN_WIDTH + ((x - 2) as usize);
-        self.screen[i] = color;
+        let i = ((scanline as usize) * SCREEN_WIDTH + ((x - 2) as usize)) * 2;
+        self.screen[i] = color_byte;
+        self.screen[i + 1] = property_byte;
     }
 
     // TODO: tests
@@ -109,7 +119,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
             status: StatusRegister::default(),
             vram: V::new(rom),
             sprite_renderer: S::default(),
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT],
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -186,7 +196,7 @@ impl<V: Vram, S: SpriteRenderer> Ppu for PpuBase<V, S> {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; 61440] {
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2] {
         &self.screen
     }
 }
