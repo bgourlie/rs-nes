@@ -10,7 +10,7 @@ use test::{black_box, Bencher};
 #[bench]
 fn bench_frame_time(b: &mut Bencher) {
     let rom = Rc::new(Box::new(
-        NesRom::read(format!("{}", "test_roms/lawn_mower.nes")).expect("Couldn't find rom file"),
+        NesRom::load(format!("{}", "test_roms/lawn_mower.nes")).expect("Couldn't find rom file"),
     ));
     let ppu = PpuImpl::new(rom.clone());
     let input = Input::default();

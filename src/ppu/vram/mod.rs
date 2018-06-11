@@ -123,7 +123,7 @@ impl IVram for Vram {
 
     fn read(&self, addr: u16) -> u8 {
         if addr < 0x2000 {
-            self.rom.chr[addr as usize]
+            self.rom.read_chr(addr)
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {

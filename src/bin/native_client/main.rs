@@ -24,7 +24,7 @@ fn main() {
     // INIT NES
     let file = env::args().last().expect("unable to read input rom file");
     let rom = Rc::new(Box::new(
-        NesRom::read(format!("{}", file)).expect("Couldn't find rom file"),
+        NesRom::load(format!("{}", file)).expect("Couldn't find rom file"),
     ));
     println!(
         "ROM Mapper: {} CHR banks: {} CHR size: {}",

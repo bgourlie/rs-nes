@@ -36,8 +36,8 @@ pub struct NesRom {
     pub is_pc10: bool,
     pub is_vs_unisystem: bool,
     pub trainer: Vec<u8>,
-    pub chr: Vec<u8>,
-    pub prg: Vec<u8>,
+    pub chr: Vec<u8>, // todo: make private
+    pub prg: Vec<u8>, // todo: make private
 }
 
 impl Default for NesRom {
@@ -62,7 +62,7 @@ impl Default for NesRom {
 }
 
 impl NesRom {
-    pub fn read(path: String) -> Result<NesRom, &'static str> {
+    pub fn load(path: String) -> Result<NesRom, &'static str> {
         let mut f = match File::open(path) {
             Ok(file) => file,
             Err(_) => return Err("Unable to open file."),
@@ -223,6 +223,15 @@ impl NesRom {
             RomFormat::INes
         } else {
             RomFormat::INesArchaic
+        }
+    }
+
+    pub fn read_chr(&self, addr: u16) -> u8 {
+        let addr = addr as usize;
+        if addr < self.chr.len() {
+            self.chr[addr]
+        } else {
+            0
         }
     }
 }
