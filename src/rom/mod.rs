@@ -63,28 +63,22 @@ impl Default for NesRom {
 
 impl NesRom {
     pub fn load(path: String) -> Result<NesRom, &'static str> {
-        let mut f = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => return Err("Unable to open file."),
-        };
-
-        let mut vec = Vec::<u8>::new();
-        let bytes_read = match f.read_to_end(&mut vec) {
-            Ok(read) => read,
-            Err(_) => return Err("An error occurred reading the file."),
-        };
+        let mut f = File::open(path).map_err(|_| "Unable to open ROM file")?;
+        let mut vec: Vec<u8> = Vec::new();
+        f.read_to_end(&mut vec)
+            .map_err(|_| "Unable to read ROM file")?;
 
         // assert that we at least read enough to check the header for now...
-        if bytes_read < 16 {
+        if vec.len() < 16 {
             return Err("Invalid ROM format - Unexpected file size.");
         }
 
         // Check file header: NES<EOF>
-        if vec[0] != 0x4e || vec[1] != 0x45 || vec[2] != 0x53 || vec[3] != 0x1a {
-            panic!("Not a valid nes rom.");
+        if &vec[0..4] != &[0x4e, 0x45, 0x53, 0x1a] {
+            return Err("Not a valid nes rom");
         }
 
-        let rom_format = NesRom::determine_format(&vec, bytes_read);
+        let rom_format = NesRom::determine_format(&vec);
         match rom_format {
             RomFormat::INesArchaic => NesRom::load_ines_archaic(&vec),
             RomFormat::INes => NesRom::load_ines(&vec),
@@ -179,7 +173,7 @@ impl NesRom {
         let chr_size: usize = chr_rom_banks as usize * 8192;
 
         if has_trainer {
-            trainer.extend(bytes[16..528].iter().cloned());
+            trainer.extend_from_slice(&bytes[16..528]);
             prg_start = 529;
         } else {
             prg_start = 16;
@@ -187,8 +181,8 @@ impl NesRom {
 
         let chr_start = prg_start + prg_size;
 
-        prg.extend(bytes[prg_start..(prg_start + prg_size)].iter().cloned());
-        chr.extend(bytes[chr_start..(chr_start + chr_size)].iter().cloned());
+        prg.extend_from_slice(&bytes[prg_start..(prg_start + prg_size)]);
+        chr.extend_from_slice(&bytes[chr_start..(chr_start + chr_size)]);
 
         Ok(NesRom {
             format: RomFormat::INes,
@@ -210,16 +204,11 @@ impl NesRom {
 
     // See http://wiki.nesdev.com/w/index.php/INES#Variant_comparison for
     // explanation of rom format detection.
-    fn determine_format(bytes: &[u8], bytes_read: usize) -> RomFormat {
+    fn determine_format(bytes: &[u8]) -> RomFormat {
         // FIXME: Logic for determining Nes20 format is most certainly wrong.
-        if bytes[7] & 0x0c == 0x08 && bytes[9] as usize <= bytes_read {
+        if bytes[7] & 0x0c == 0x08 && bytes[9] as usize <= bytes.len() {
             RomFormat::Nes20
-        } else if bytes[7] & 0x0c == 0x00
-            && bytes[12] == 0
-            && bytes[13] == 0
-            && bytes[14] == 0
-            && bytes[15] == 0
-        {
+        } else if bytes[7] & 0x0c == 0x00 && bytes[12..16].iter().all(|byte| *byte == 0) {
             RomFormat::INes
         } else {
             RomFormat::INesArchaic
