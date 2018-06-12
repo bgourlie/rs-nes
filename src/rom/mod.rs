@@ -40,6 +40,15 @@ pub struct NesRom {
     pub prg: Vec<u8>, // todo: make private
 }
 
+struct CommonFields {
+    prg_rom_banks: u8,
+    chr_rom_banks: u8,
+    mapper: u8,
+    has_trainer: bool,
+    has_sram: bool,
+    mirroring: Mirroring,
+}
+
 impl Default for NesRom {
     fn default() -> Self {
         NesRom {
@@ -86,7 +95,7 @@ impl NesRom {
         }
     }
 
-    fn load_common(bytes: &[u8]) -> (u8, u8, u8, bool, bool, Mirroring) {
+    fn load_common(bytes: &[u8]) -> CommonFields {
         let prg_rom_banks = bytes[4];
         let chr_rom_banks = bytes[5];
         let flags = bytes[6];
@@ -102,14 +111,14 @@ impl NesRom {
             Mirroring::Vertical
         };
 
-        (
+        CommonFields {
             prg_rom_banks,
             chr_rom_banks,
             mapper,
             has_trainer,
             has_sram,
             mirroring,
-        )
+        }
     }
 
     fn load_ines_archaic(bytes: &[u8]) -> Result<NesRom, &'static str> {
@@ -118,19 +127,18 @@ impl NesRom {
             return Err("Invalid Legacy INes format - bytes 7-15 must be zeroed.");
         }
 
-        let (prg_rom_banks, chr_rom_banks, mapper_lo, has_trainer, has_sram, mirroring) =
-            NesRom::load_common(bytes);
+        let common_fields = NesRom::load_common(bytes);
 
         Ok(NesRom {
             format: RomFormat::INesArchaic,
             video_standard: VideoStandard::Indeterminite,
-            mapper: mapper_lo,
-            mirroring,
-            prg_rom_banks,
-            prg_ram_banks: 1,
-            chr_rom_banks,
-            has_sram,
-            has_trainer,
+            mapper: common_fields.mapper,
+            mirroring: common_fields.mirroring,
+            prg_rom_banks: common_fields.prg_rom_banks,
+            prg_ram_banks: 0,
+            chr_rom_banks: common_fields.chr_rom_banks,
+            has_sram: common_fields.has_sram,
+            has_trainer: common_fields.has_trainer,
             is_pc10: false,
             is_vs_unisystem: false,
             trainer: Vec::new(), // TODO
@@ -140,14 +148,10 @@ impl NesRom {
     }
 
     fn load_ines(bytes: &[u8]) -> Result<NesRom, &'static str> {
-        let (prg_rom_banks, chr_rom_banks, mapper_lo, has_trainer, has_sram, mirroring) =
-            NesRom::load_common(bytes);
-
+        let common_fields = NesRom::load_common(bytes);
         let flags = bytes[7];
-        let mapper = (flags & 0xf0) | mapper_lo;
-
-        #[allow(bad_bit_mask)] // This appears to be a false positive
-        let is_pc10 = (flags & 0x2) == 1; // FIXME: See clippy warning
+        let mapper = (flags & 0xf0) | common_fields.mapper;
+        let is_pc10 = (flags & 0x2) == 1;
         let is_vs_unisystem = (flags & 0x1) == 1;
         let prg_ram_banks = if bytes[8] == 0 { 1 } else { bytes[8] };
         let video_standard = if bytes[9] & 0x01 == 0 {
@@ -169,10 +173,10 @@ impl NesRom {
         let mut chr = Vec::new();
         let mut prg = Vec::new();
         let prg_start: usize;
-        let prg_size: usize = prg_rom_banks as usize * 16_384;
-        let chr_size: usize = chr_rom_banks as usize * 8192;
+        let prg_size: usize = common_fields.prg_rom_banks as usize * 16_384;
+        let chr_size: usize = common_fields.chr_rom_banks as usize * 8192;
 
-        if has_trainer {
+        if common_fields.has_trainer {
             trainer.extend_from_slice(&bytes[16..528]);
             prg_start = 529;
         } else {
@@ -188,12 +192,12 @@ impl NesRom {
             format: RomFormat::INes,
             video_standard,
             mapper,
-            mirroring,
-            prg_rom_banks,
+            mirroring: common_fields.mirroring,
+            prg_rom_banks: common_fields.prg_rom_banks,
             prg_ram_banks,
-            chr_rom_banks,
-            has_sram,
-            has_trainer,
+            chr_rom_banks: common_fields.chr_rom_banks,
+            has_sram: common_fields.has_sram,
+            has_trainer: common_fields.has_trainer,
             is_pc10,
             is_vs_unisystem,
             trainer,
