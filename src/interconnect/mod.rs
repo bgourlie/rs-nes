@@ -2,23 +2,23 @@
 mod spec_tests;
 
 use apu::IApu;
+use cart::Cart;
 use cpu6502::cpu::{Interconnect, Interrupt};
 use input::IInput;
 use ppu::IPpu;
-use rom::NesRom;
 use std::rc::Rc;
 
-pub struct NesInterconnect<P: IPpu, A: IApu, I: IInput> {
+pub struct NesInterconnect<P: IPpu, A: IApu, I: IInput, C: Cart> {
     ram: [u8; 0x800],
-    rom: Rc<Box<NesRom>>,
+    rom: Rc<Box<C>>,
     pub ppu: P,
     pub apu: A,
     pub input: I,
     elapsed_cycles: usize,
 }
 
-impl<P: IPpu, A: IApu, I: IInput> NesInterconnect<P, A, I> {
-    pub fn new(rom: Rc<Box<NesRom>>, ppu: P, input: I, apu: A) -> Self {
+impl<P: IPpu, A: IApu, I: IInput, C: Cart> NesInterconnect<P, A, I, C> {
+    pub fn new(rom: Rc<Box<C>>, ppu: P, input: I, apu: A) -> Self {
         NesInterconnect {
             ram: [0_u8; 0x800],
             rom,
@@ -37,7 +37,6 @@ impl<P: IPpu, A: IApu, I: IInput> NesInterconnect<P, A, I> {
             self.tick();
         }
 
-        #[allow(cast_lossless)]
         let start = (value as u16) << 8;
 
         for i in 0..0x100 {
@@ -49,8 +48,7 @@ impl<P: IPpu, A: IApu, I: IInput> NesInterconnect<P, A, I> {
     }
 }
 
-// Currently NROM only
-impl<P: IPpu, A: IApu, I: IInput> Interconnect for NesInterconnect<P, A, I> {
+impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A, I, C> {
     fn read(&self, address: u16) -> u8 {
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff]
@@ -64,10 +62,8 @@ impl<P: IPpu, A: IApu, I: IInput> Interconnect for NesInterconnect<P, A, I> {
             0
         } else if address < 0x8000 {
             panic!("Read from 0x{:0>4X}", address)
-        } else if self.rom.prg.len() > 16_384 {
-            self.rom.prg[address as usize & 0x7fff]
         } else {
-            self.rom.prg[address as usize & 0x3fff]
+            self.rom.read_prg(address)
         }
     }
 
@@ -93,11 +89,13 @@ impl<P: IPpu, A: IApu, I: IInput> Interconnect for NesInterconnect<P, A, I> {
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
             let ppu_step_action = self.ppu.step();
+            debug_assert!(
+                tick_action != Interrupt::None && ppu_step_action != Interrupt::None,
+                "Two different interrupt requests during PPU step"
+            );
             if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
                 tick_action = Interrupt::Nmi;
-            } else if tick_action != Interrupt::None && ppu_step_action != Interrupt::None {
-                panic!("Two different interrupt requests during PPU step");
-            };
+            }
         }
         tick_action
     }

@@ -17,12 +17,12 @@ use cpu6502::cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
 use ppu::mask_register::MaskRegister;
-use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel, SpriteRenderer};
+pub use ppu::sprite_renderer::SpriteRenderer;
+use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
 use ppu::status_register::StatusRegister;
-use ppu::vram::{IVram, Vram};
-use rom::NesRom;
+use ppu::vram::IVram;
+pub use ppu::vram::Vram;
 use rs_nes_macros::ppu_loop;
-use std::rc::Rc;
 
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
@@ -30,10 +30,7 @@ const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
 pub const SCREEN_WIDTH: usize = 256;
 pub const SCREEN_HEIGHT: usize = 240;
 
-pub type PpuImpl = Ppu<Vram, SpriteRenderer>;
-
 pub trait IPpu {
-    fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write(&mut self, addr: u16, val: u8);
     fn read(&self, addr: u16) -> u8;
     fn step(&mut self) -> Interrupt;
@@ -66,6 +63,21 @@ pub struct Ppu<V: IVram, S: ISpriteRenderer> {
 }
 
 impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
+    pub fn new(vram: V) -> Self {
+        Ppu {
+            cycles: 0,
+            control: ControlRegister::default(),
+            mask: MaskRegister::default(),
+            status: StatusRegister::default(),
+            vram,
+            sprite_renderer: S::default(),
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
+            write_latch: WriteLatch::default(),
+            background_renderer: BackgroundRenderer::default(),
+            odd_frame: false,
+        }
+    }
+
     /// Outputs pixel information to a buffer. Each pixel is encoded as two bytes, as follows:
     ///
     /// **Byte 1 (palette indices)**: `bbbb ssss`
@@ -112,21 +124,6 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
 }
 
 impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
-    fn new(rom: Rc<Box<NesRom>>) -> Self {
-        Ppu {
-            cycles: 0,
-            control: ControlRegister::default(),
-            mask: MaskRegister::default(),
-            status: StatusRegister::default(),
-            vram: V::new(rom),
-            sprite_renderer: S::default(),
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
-            write_latch: WriteLatch::default(),
-            background_renderer: BackgroundRenderer::default(),
-            odd_frame: false,
-        }
-    }
-
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
     fn write(&mut self, addr: u16, val: u8) {
         debug_assert!(

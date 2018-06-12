@@ -1,6 +1,6 @@
 use super::control_register::IncrementAmount;
+use cart::Cart;
 use ppu::write_latch::LatchState;
-use rom::NesRom;
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -8,7 +8,6 @@ use std::rc::Rc;
 mod spec_tests;
 
 pub trait IVram {
-    fn new(rom: Rc<Box<NesRom>>) -> Self;
     fn write_ppu_addr(&self, latch_state: LatchState);
     fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
     fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8;
@@ -24,18 +23,18 @@ pub trait IVram {
     fn fine_x(&self) -> u8;
 }
 
-pub struct Vram {
+pub struct Vram<C: Cart> {
     address: Cell<u16>,
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
-    rom: Rc<Box<NesRom>>, // TODO: mapper
+    rom: Rc<Box<C>>,
     ppu_data_buffer: Cell<u8>,
     t: Cell<u16>,
     fine_x: Cell<u8>,
 }
 
-impl IVram for Vram {
-    fn new(rom: Rc<Box<NesRom>>) -> Self {
+impl<C: Cart> Vram<C> {
+    pub fn new(rom: Rc<Box<C>>) -> Self {
         Vram {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
@@ -46,7 +45,9 @@ impl IVram for Vram {
             fine_x: Cell::new(0),
         }
     }
+}
 
+impl<C: Cart> IVram for Vram<C> {
     fn write_ppu_addr(&self, latch_state: LatchState) {
         // Addresses greater than 0x3fff are mirrored down
         match latch_state {

@@ -1,5 +1,7 @@
-use std::fs::File;
 use std::io::Read;
+
+pub const PRG_BANK_SIZE: usize = 16384;
+pub const CHR_BANK_SIZE: usize = 8192;
 
 #[derive(Copy, Clone, Debug)]
 pub enum VideoStandard {
@@ -71,15 +73,15 @@ impl Default for NesRom {
 }
 
 impl NesRom {
-    pub fn load(path: String) -> Result<NesRom, &'static str> {
-        let mut f = File::open(path).map_err(|_| "Unable to open ROM file")?;
+    pub fn load<R: Read>(mut input: R) -> Result<NesRom, &'static str> {
         let mut vec: Vec<u8> = Vec::new();
-        f.read_to_end(&mut vec)
-            .map_err(|_| "Unable to read ROM file")?;
+        input
+            .read_to_end(&mut vec)
+            .map_err(|_| "Unable to read ROM")?;
 
         // assert that we at least read enough to check the header for now...
         if vec.len() < 16 {
-            return Err("Invalid ROM format - Unexpected file size.");
+            return Err("Invalid ROM format - Unexpected input size");
         }
 
         // Check file header: NES<EOF>
@@ -173,8 +175,8 @@ impl NesRom {
         let mut chr = Vec::new();
         let mut prg = Vec::new();
         let prg_start: usize;
-        let prg_size: usize = common_fields.prg_rom_banks as usize * 16_384;
-        let chr_size: usize = common_fields.chr_rom_banks as usize * 8192;
+        let prg_size: usize = common_fields.prg_rom_banks as usize * PRG_BANK_SIZE;
+        let chr_size: usize = common_fields.chr_rom_banks as usize * CHR_BANK_SIZE;
 
         if common_fields.has_trainer {
             trainer.extend_from_slice(&bytes[16..528]);

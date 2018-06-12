@@ -3,17 +3,12 @@ extern crate rs_nes;
 extern crate sdl2;
 
 use cpu6502::cpu::Interrupt;
-use rs_nes::apu::Apu;
-use rs_nes::input::{Button, IInput, Input};
-use rs_nes::interconnect::NesInterconnect;
-use rs_nes::ppu::{IPpu, PpuImpl};
-use rs_nes::rom::NesRom;
-use rs_nes::Cpu;
+use rs_nes::{load_cart, Button, IInput, IPpu};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use std::env;
-use std::rc::Rc;
+use std::fs::File;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -22,23 +17,9 @@ const SCREEN_HEIGHT: u32 = 240;
 
 fn main() {
     // INIT NES
-    let file = env::args().last().expect("unable to read input rom file");
-    let rom = Rc::new(Box::new(
-        NesRom::load(format!("{}", file)).expect("Couldn't find rom file"),
-    ));
-    println!(
-        "ROM Mapper: {} CHR banks: {} CHR size: {}",
-        rom.mapper,
-        rom.chr_rom_banks,
-        rom.chr.len()
-    );
-
-    let ppu = PpuImpl::new(rom.clone());
-    let input = Input::default();
-    let apu = Apu::default();
-    let mem = NesInterconnect::new(rom, ppu, input, apu);
-    let mut cpu = Cpu::new(mem, 0x00);
-    cpu.reset();
+    let rom_path = env::args().last().expect("Unable to determine rom path");
+    let rom_file = File::open(rom_path).expect("Unable to open ROM file");
+    let mut cpu = load_cart(rom_file).expect("Unable to load cart");
 
     let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
     let video_subsystem = sdl_context
