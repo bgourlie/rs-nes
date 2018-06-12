@@ -85,7 +85,7 @@ impl NesRom {
         }
 
         // Check file header: NES<EOF>
-        if &vec[0..4] != &[0x4e, 0x45, 0x53, 0x1a] {
+        if vec[0..4] != [0x4e, 0x45, 0x53, 0x1a] {
             return Err("Not a valid nes rom");
         }
 
@@ -153,7 +153,7 @@ impl NesRom {
         let common_fields = NesRom::load_common(bytes);
         let flags = bytes[7];
         let mapper = (flags & 0xf0) | common_fields.mapper;
-        let is_pc10 = (flags & 0x2) == 1;
+        let is_pc10 = flags & 0x2 > 0;
         let is_vs_unisystem = (flags & 0x1) == 1;
         let prg_ram_banks = if bytes[8] == 0 { 1 } else { bytes[8] };
         let video_standard = if bytes[9] & 0x01 == 0 {

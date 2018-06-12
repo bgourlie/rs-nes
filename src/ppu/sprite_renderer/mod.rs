@@ -1,12 +1,10 @@
-#![allow(dead_code)]
-
-// TODO: Explore SIMD
-// TODO: Tests
-
-mod sprite_evaluation;
+#[cfg(test)]
+pub mod mocks;
 
 #[cfg(test)]
 mod spec_tests;
+
+mod sprite_evaluation;
 
 use ppu::control_register::ControlRegister;
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;

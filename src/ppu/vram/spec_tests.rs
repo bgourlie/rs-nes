@@ -1,7 +1,8 @@
-use super::*;
+use mocks::CartMock;
 use ppu::control_register::IncrementAmount;
+use ppu::vram::{IVram, Vram};
 use ppu::write_latch::LatchState;
-use rom::NesRom;
+use std::rc::Rc;
 
 #[test]
 fn write_address() {
@@ -337,12 +338,12 @@ fn fine_y_increment() {
     }
 }
 
-fn vram_fixture_with_chr(chr: Vec<u8>) -> Vram {
-    let mut rom = NesRom::default();
-    rom.chr = chr;
-    Vram::new(Rc::new(Box::new(rom)))
+fn vram_fixture_with_chr(chr: Vec<u8>) -> Vram<CartMock> {
+    let mut cart = CartMock::default();
+    cart.chr.copy_from_slice(&chr[..]);
+    Vram::new(Rc::new(Box::new(cart)))
 }
 
-fn vram_fixture() -> Vram {
+fn vram_fixture() -> Vram<CartMock> {
     vram_fixture_with_chr(vec![0; 0x2000])
 }

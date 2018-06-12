@@ -1,5 +1,7 @@
-use self::mocks::new_fixture;
 use cpu6502::cpu::Interconnect;
+use interconnect::NesInterconnect;
+use mocks::{ApuMock, CartMock, InputMock, PpuMock};
+use std::rc::Rc;
 
 #[test]
 fn ram_memory_mapped_read() {
@@ -107,146 +109,13 @@ fn oam_dma_timing_odd_cycle() {
     assert_eq!(514, fixture.elapsed_cycles() - 1);
 }
 
-mod mocks {
-    use apu::IApu;
-    use cpu6502::cpu::Interrupt;
-    use input::{Button, IInput};
-    use interconnect::NesInterconnect;
-    use ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH};
-    use rom::*;
-    use std::rc::Rc;
-
-    #[derive(Default)]
-    pub struct InputMock;
-
-    impl IInput for InputMock {
-        fn write(&mut self, _: u16, _: u8) {}
-
-        fn read(&self, _: u16) -> u8 {
-            0
-        }
-
-        fn player1_press(&self, _: Button) {
-            unimplemented!()
-        }
-
-        fn player1_release(&self, _: Button) {
-            unimplemented!()
-        }
-    }
-
-    #[derive(Default)]
-    pub struct ApuMock {
-        write_addr: u16,
-        write_value: u8,
-        control: u8,
-    }
-
-    impl ApuMock {
-        pub fn write_addr(&self) -> u16 {
-            self.write_addr
-        }
-
-        pub fn write_value(&self) -> u8 {
-            self.write_value
-        }
-
-        pub fn set_control(&mut self, val: u8) {
-            self.control = val;
-        }
-    }
-
-    impl IApu for ApuMock {
-        fn write(&mut self, addr: u16, value: u8) {
-            self.write_addr = addr;
-            self.write_value = value;
-        }
-
-        fn read_control(&self) -> u8 {
-            self.control
-        }
-    }
-
-    pub struct PpuMock {
-        addr: u16,
-        value: u8,
-        screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
-    }
-
-    impl Default for PpuMock {
-        fn default() -> Self {
-            PpuMock {
-                addr: 0,
-                value: 0,
-                screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
-            }
-        }
-    }
-
-    impl PpuMock {
-        pub fn addr(&self) -> u16 {
-            self.addr
-        }
-
-        pub fn value(&self) -> u8 {
-            self.value
-        }
-
-        pub fn set_value(&mut self, value: u8) {
-            self.value = value;
-        }
-    }
-
-    impl IPpu for PpuMock {
-        fn new(_: Rc<Box<NesRom>>) -> Self {
-            unimplemented!()
-        }
-
-        fn write(&mut self, addr: u16, val: u8) {
-            self.addr = addr;
-            self.value = val;
-        }
-
-        fn read(&self, _: u16) -> u8 {
-            self.value
-        }
-
-        fn step(&mut self) -> Interrupt {
-            Interrupt::None
-        }
-
-        fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2] {
-            &self.screen
-        }
-    }
-
-    pub type NesInterconnectFixture = NesInterconnect<PpuMock, ApuMock, InputMock>;
-
-    pub fn new_fixture() -> NesInterconnectFixture {
-        let rom = Rc::new(Box::new(NesRom {
-            format: RomFormat::INes,
-            video_standard: VideoStandard::Ntsc,
-            mapper: 0,
-            mirroring: Mirroring::Horizontal,
-            prg_rom_banks: 1,
-            prg_ram_banks: 1,
-            chr_rom_banks: 1,
-            has_sram: false,
-            has_trainer: false,
-            is_pc10: false,
-            is_vs_unisystem: false,
-            trainer: Vec::new(),
-            chr: Vec::new(),
-            prg: Vec::new(),
-        }));
-
-        NesInterconnect {
-            ram: [0_u8; 0x800],
-            rom,
-            ppu: PpuMock::default(),
-            apu: ApuMock::default(),
-            input: InputMock::default(),
-            elapsed_cycles: 0,
-        }
+fn new_fixture() -> NesInterconnect<PpuMock, ApuMock, InputMock, CartMock> {
+    NesInterconnect {
+        ram: [0_u8; 0x800],
+        rom: Rc::new(Box::new(CartMock::default())),
+        ppu: PpuMock::default(),
+        apu: ApuMock::default(),
+        input: InputMock::default(),
+        elapsed_cycles: 0,
     }
 }

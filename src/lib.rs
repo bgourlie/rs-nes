@@ -24,7 +24,8 @@ mod ppu;
 mod rom;
 
 use apu::Apu;
-use cart::{Cart, Nrom128Cart};
+use cart::Cart;
+pub use cart::{Nrom128Cart, Nrom256Cart};
 use cpu6502::cpu::Cpu;
 use input::Input;
 pub use input::{Button, IInput};
@@ -35,11 +36,19 @@ use rom::NesRom;
 use std::io::Read;
 use std::rc::Rc;
 
-type NesCpu = Cpu<NesInterconnect<Ppu<Vram<Nrom128Cart>, SpriteRenderer>, Apu, Input, Nrom128Cart>>;
+#[cfg(test)]
+mod mocks {
+    pub use apu::mocks::ApuMock;
+    pub use cart::mocks::CartMock;
+    pub use input::mocks::InputMock;
+    pub use ppu::mocks::{MockSpriteRenderer, MockVram, PpuMock};
+}
 
-pub fn load_cart<R: Read>(input: R) -> Result<NesCpu, &'static str> {
+pub fn load_cart<C: Cart, R: Read>(
+    input: R,
+) -> Result<Cpu<NesInterconnect<Ppu<Vram<C>, SpriteRenderer>, Apu, Input, C>>, &'static str> {
     let rom = NesRom::load(input)?;
-    let cart = Rc::new(Box::new(Nrom128Cart::new(rom)?));
+    let cart = Rc::new(Box::new(C::new(rom)?));
     let vram = Vram::new(cart.clone());
     let ppu = Ppu::new(vram);
     let input = Input::default();

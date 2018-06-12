@@ -1,3 +1,6 @@
+#[cfg(test)]
+pub mod mocks;
+
 #[derive(Default)]
 pub struct Apu;
 

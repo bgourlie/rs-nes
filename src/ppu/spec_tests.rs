@@ -1,9 +1,14 @@
-use super::status_register::StatusRegister;
-use super::*;
+use mocks::{MockSpriteRenderer, MockVram};
+use ppu::background_renderer::BackgroundRenderer;
+use ppu::control_register::ControlRegister;
+use ppu::mask_register::MaskRegister;
+use ppu::status_register::StatusRegister;
+use ppu::write_latch::WriteLatch;
+use ppu::{IPpu, Ppu, CYCLES_PER_SCANLINE, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 #[test]
 fn write() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
 
     // Writes to 0x2000 write the control register
     ppu.write(0x2000, 0x1);
@@ -85,7 +90,7 @@ fn write() {
 
 #[test]
 fn memory_mapped_register_read() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
 
     ppu.control.write(0xf0);
     assert_eq!(0xf0, ppu.read(0x2000));
@@ -169,7 +174,7 @@ fn increment_coarse_x_called() {
     // dots across the scanline until 256). The effective X scroll coordinate is incremented, which
     // will wrap to the next nametable appropriately. See Wrapping around below.
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00011000); // Enable rendering
                                 // Render 5 frames and assert that the VRAM coarse x increment function is called
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
@@ -199,7 +204,7 @@ fn increment_coarse_x_called() {
 
     // Verify not called if rendering is disabled
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step();
@@ -211,7 +216,7 @@ fn increment_coarse_x_called() {
 fn copy_horizontal_pos_to_addr_called() {
     // At dot 257 of each scanline, if rendering is enabled, VRAM copy_horizontal_pos_to_addr()
     // should be called
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00011000); // Enable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -228,7 +233,7 @@ fn copy_horizontal_pos_to_addr_called() {
 
     // Verify not called if rendering is disabled
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00000000); //
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step();
@@ -240,7 +245,7 @@ fn copy_horizontal_pos_to_addr_called() {
 fn copy_vertical_pos_to_addr_called() {
     // During dots 280 to 304 of the pre-render scanline (end of vblank), if rendering is enabled,
     // vram copy_vertical_pos_addr should be called
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00011000); // Enable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -257,7 +262,7 @@ fn copy_vertical_pos_to_addr_called() {
 
     // Verify not called if rendering is disabled
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00000000); //
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step();
@@ -268,7 +273,7 @@ fn copy_vertical_pos_to_addr_called() {
 #[test]
 fn increment_fine_y_called() {
     // If rendering is enabled, VRAM increment_find_y should be called at dot 256 of each scanline
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00011000); // Enable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -285,7 +290,7 @@ fn increment_fine_y_called() {
 
     // Verify not called if rendering is disabled
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         ppu.step();
@@ -315,7 +320,7 @@ fn vblank_set_and_clear_cycles() {
     const CLEAR_VBLANK_CYCLE: u64 = CYCLES_PER_SCANLINE * LAST_SCANLINE + 1;
     const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
 
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
 
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         match ppu.cycles % super::CYCLES_PER_FRAME {
@@ -330,7 +335,7 @@ fn vblank_set_and_clear_cycles() {
 
 #[test]
 fn vblank_clear_after_status_read() {
-    let ppu = mocks::mock_ppu();
+    let ppu = ppu_fixture();
     ppu.status.set_in_vblank();
     let status = ppu.read(0x2002);
     assert_eq!(true, status & 0b10000000 > 0);
@@ -339,7 +344,7 @@ fn vblank_clear_after_status_read() {
 
 #[test]
 fn oam_read_non_blanking_increments_addr() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004);
@@ -352,7 +357,7 @@ fn oam_read_non_blanking_increments_addr() {
 
 #[test]
 fn oam_read_v_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.status.set_in_vblank();
     ppu.mask.write(0xff); // Enable rendering
     ppu.read(0x2004);
@@ -365,7 +370,7 @@ fn oam_read_v_blanking_doesnt_increments_addr() {
 
 #[test]
 fn oam_read_forced_blanking_doesnt_increments_addr() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.status.clear_in_vblank();
     ppu.mask.write(0);
     ppu.read(0x2004);
@@ -378,7 +383,7 @@ fn oam_read_forced_blanking_doesnt_increments_addr() {
 
 #[test]
 fn odd_frame_cycle_skip() {
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00001000); // Enable background rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 10 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -408,7 +413,7 @@ fn odd_frame_cycle_skip() {
     }
 
     // Verify no skipped frame if background rendering is disabled
-    let mut ppu = mocks::mock_ppu();
+    let mut ppu = ppu_fixture();
     ppu.mask.write(0b00000000); // Disable rendering
     while ppu.cycles < super::CYCLES_PER_FRAME * 10 {
         let frame_cycle = ppu.cycles % super::CYCLES_PER_FRAME;
@@ -426,170 +431,17 @@ fn odd_frame_cycle_skip() {
     }
 }
 
-mod mocks {
-
-    use ppu::background_renderer::BackgroundRenderer;
-    use ppu::control_register::{ControlRegister, IncrementAmount};
-    use ppu::mask_register::MaskRegister;
-    use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
-    use ppu::status_register::StatusRegister;
-    use ppu::vram::IVram;
-    use ppu::write_latch::{LatchState, WriteLatch};
-    use ppu::{Ppu, SCREEN_HEIGHT, SCREEN_WIDTH};
-    use rom::NesRom;
-    use std::cell::Cell;
-    use std::rc::Rc;
-
-    pub type TestPpu = Ppu<MockVram, MockSpriteRenderer>;
-
-    pub fn mock_ppu() -> TestPpu {
-        Ppu {
-            cycles: 0,
-            control: ControlRegister::default(),
-            mask: MaskRegister::default(),
-            status: StatusRegister::default(),
-            vram: MockVram::new(Rc::new(Box::new(NesRom::default()))),
-            sprite_renderer: MockSpriteRenderer::default(),
-            write_latch: WriteLatch::default(),
-            background_renderer: BackgroundRenderer::default(),
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
-            odd_frame: false,
-        }
-    }
-
-    #[derive(Default)]
-    pub struct MockSpriteRenderer {
-        pub read_data_called: Cell<bool>,
-        pub read_data_increment_addr_called: Cell<bool>,
-        pub mock_addr: Cell<u8>,
-        pub mock_data: Cell<u8>,
-    }
-
-    impl ISpriteRenderer for MockSpriteRenderer {
-        fn read_data(&self) -> u8 {
-            self.read_data_called.set(true);
-            self.mock_data.get()
-        }
-
-        fn read_data_increment_addr(&self) -> u8 {
-            self.read_data_increment_addr_called.set(true);
-            self.mock_data.get()
-        }
-
-        fn write_address(&mut self, addr: u8) {
-            self.mock_addr.set(addr)
-        }
-
-        fn write_data(&mut self, val: u8) {
-            self.mock_data.set(val)
-        }
-
-        fn update_palettes<V: IVram>(&mut self, _: &V) {}
-
-        fn dec_x_counters(&mut self) {}
-
-        fn start_sprite_evaluation(&mut self, _: u16, _: ControlRegister) {}
-
-        fn tick_sprite_evaluation(&mut self) {}
-
-        fn fill_registers<V: IVram>(&mut self, _: &V, _: ControlRegister) {}
-
-        fn current_pixel(&self) -> SpritePixel {
-            SpritePixel {
-                value: 0,
-                color_index: 0,
-                has_priority: true,
-                is_sprite_zero: false,
-            }
-        }
-    }
-
-    #[derive(Default)]
-    pub struct MockVram {
-        pub mock_addr: Cell<u8>,
-        pub mock_data: Cell<u8>,
-        pub scroll_write_called: Cell<bool>,
-        pub control_write_called: Cell<bool>,
-        pub coarse_x_increment_called: Cell<bool>,
-        pub fine_y_increment_called: Cell<bool>,
-        pub copy_horizontal_pos_to_addr_called: Cell<bool>,
-        pub copy_vertical_pos_to_addr_called: Cell<bool>,
-    }
-
-    impl MockVram {
-        pub fn reset_mock(&self) {
-            self.mock_addr.set(0);
-            self.mock_data.set(0);
-            self.scroll_write_called.set(false);
-            self.control_write_called.set(false);
-            self.coarse_x_increment_called.set(false);
-            self.fine_y_increment_called.set(false);
-            self.copy_horizontal_pos_to_addr_called.set(false);
-            self.copy_vertical_pos_to_addr_called.set(false);
-        }
-    }
-
-    impl IVram for MockVram {
-        fn write_ppu_addr(&self, latch_state: LatchState) {
-            let val = match latch_state {
-                LatchState::FirstWrite(val) => val,
-                LatchState::SecondWrite(val) => val,
-            };
-
-            self.mock_addr.set(val)
-        }
-
-        fn read_ppu_data(&self, _: IncrementAmount) -> u8 {
-            self.mock_data.get()
-        }
-
-        fn ppu_data(&self) -> u8 {
-            self.mock_data.get()
-        }
-
-        fn write_ppu_data(&mut self, val: u8, _: IncrementAmount) {
-            self.mock_data.set(val);;
-
-        }
-
-        fn read(&self, _: u16) -> u8 {
-            0
-        }
-
-        fn new(_: Rc<Box<NesRom>>) -> Self {
-            Self::default()
-        }
-
-        fn addr(&self) -> u16 {
-            0
-        }
-
-        fn scroll_write(&self, _: LatchState) {
-            self.scroll_write_called.set(true)
-        }
-
-        fn control_write(&self, _: u8) {
-            self.control_write_called.set(true)
-        }
-
-        fn coarse_x_increment(&self) {
-            self.coarse_x_increment_called.set(true)
-        }
-
-        fn fine_y_increment(&self) {
-            self.fine_y_increment_called.set(true)
-        }
-
-        fn copy_horizontal_pos_to_addr(&self) {
-            self.copy_horizontal_pos_to_addr_called.set(true)
-        }
-
-        fn copy_vertical_pos_to_addr(&self) {
-            self.copy_vertical_pos_to_addr_called.set(true)
-        }
-
-        fn fine_x(&self) -> u8 {
-            0
-        }
+pub fn ppu_fixture() -> Ppu<MockVram, MockSpriteRenderer> {
+    Ppu {
+        cycles: 0,
+        control: ControlRegister::default(),
+        mask: MaskRegister::default(),
+        status: StatusRegister::default(),
+        vram: MockVram::default(),
+        sprite_renderer: MockSpriteRenderer::default(),
+        write_latch: WriteLatch::default(),
+        background_renderer: BackgroundRenderer::default(),
+        screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
+        odd_frame: false,
     }
 }

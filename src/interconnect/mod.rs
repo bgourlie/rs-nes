@@ -89,10 +89,10 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A
         // For every CPU cycle, the PPU steps 3 times
         for _ in 0..3 {
             let ppu_step_action = self.ppu.step();
-            debug_assert!(
-                tick_action != Interrupt::None && ppu_step_action != Interrupt::None,
-                "Two different interrupt requests during PPU step"
-            );
+            //            debug_assert!(
+            //                tick_action != Interrupt::None && ppu_step_action != Interrupt::None,
+            //                "Two different interrupt requests during PPU step"
+            //            );
             if tick_action == Interrupt::None && ppu_step_action == Interrupt::Nmi {
                 tick_action = Interrupt::Nmi;
             }

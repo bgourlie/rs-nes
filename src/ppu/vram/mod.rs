@@ -1,11 +1,14 @@
-use super::control_register::IncrementAmount;
-use cart::Cart;
-use ppu::write_latch::LatchState;
-use std::cell::Cell;
-use std::rc::Rc;
+#[cfg(test)]
+pub mod mocks;
 
 #[cfg(test)]
 mod spec_tests;
+
+use cart::Cart;
+use ppu::control_register::IncrementAmount;
+use ppu::write_latch::LatchState;
+use std::cell::Cell;
+use std::rc::Rc;
 
 pub trait IVram {
     fn write_ppu_addr(&self, latch_state: LatchState);

@@ -1,3 +1,6 @@
+#[cfg(test)]
+pub mod mocks;
+
 use std::cell::Cell;
 
 const STROBE_A: u8 = 0;

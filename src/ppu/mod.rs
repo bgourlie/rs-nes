@@ -1,4 +1,7 @@
 #[cfg(test)]
+pub mod mocks;
+
+#[cfg(test)]
 mod spec_tests;
 
 #[cfg(test)]
