@@ -1,7 +1,5 @@
 #![feature(proc_macro)]
 #![feature(test)]
-#![allow(unknown_lints)]
-#![allow(cast_lossless)]
 
 #[cfg(test)]
 extern crate asm6502;
