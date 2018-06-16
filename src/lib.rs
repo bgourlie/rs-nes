@@ -23,7 +23,7 @@ mod rom;
 
 use apu::Apu;
 use cart::Cart;
-pub use cart::{Nrom128Cart, Nrom256Cart};
+pub use cart::{Nrom128, Nrom256};
 use cpu6502::cpu::Cpu;
 use input::Input;
 pub use input::{Button, IInput};

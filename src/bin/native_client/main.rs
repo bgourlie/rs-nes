@@ -3,7 +3,7 @@ extern crate rs_nes;
 extern crate sdl2;
 
 use cpu6502::cpu::Interrupt;
-use rs_nes::{load_cart, Button, IInput, IPpu, Nrom256Cart};
+use rs_nes::{load_cart, Button, IInput, IPpu, Nrom256};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
@@ -19,7 +19,7 @@ fn main() {
     // INIT NES
     let rom_path = env::args().last().expect("Unable to determine rom path");
     let rom_file = File::open(rom_path).expect("Unable to open ROM file");
-    let mut cpu = load_cart::<Nrom256Cart, File>(rom_file).expect("Unable to load cart");
+    let mut cpu = load_cart::<Nrom256, File>(rom_file).expect("Unable to load cart");
 
     let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
     let video_subsystem = sdl_context
