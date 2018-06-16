@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 
 const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
+const SCREEN_BUFFER_SIZE: usize = (SCREEN_WIDTH as usize) * (SCREEN_HEIGHT as usize) * 3;
 
 fn main() {
     // INIT NES
@@ -53,7 +54,7 @@ fn main() {
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
     let fixed_time_stamp = Duration::new(0, 16666667);
-
+    let mut screen_buffer: [u8; SCREEN_BUFFER_SIZE] = [0; SCREEN_BUFFER_SIZE];
     'running: loop {
         let now = Instant::now();
         accumulator += now - previous_clock;
@@ -106,17 +107,16 @@ fn main() {
             accumulator -= fixed_time_stamp;
             loop {
                 if cpu.step() == Interrupt::Nmi {
-                    let screen_buffer = &*cpu.interconnect.ppu.screen();
-                    let mut real_buffer: Vec<u8> =
-                        Vec::with_capacity(SCREEN_WIDTH as usize * SCREEN_HEIGHT as usize * 3);
+                    let nes_screen_buffer = &*cpu.interconnect.ppu.screen();
                     for i in 0..SCREEN_WIDTH * SCREEN_HEIGHT {
-                        let i = (i * 2) as usize;
-                        real_buffer.push(screen_buffer[i]);
-                        real_buffer.push(screen_buffer[i + 1]);
-                        real_buffer.push(0);
+                        let nes_i = (i * 2) as usize;
+                        let screen_i = (i * 3) as usize;
+                        screen_buffer[screen_i] = nes_screen_buffer[nes_i];
+                        screen_buffer[screen_i + 1] = nes_screen_buffer[nes_i + 1];
+                        screen_buffer[screen_i + 2] = 0;
                     }
                     texture
-                        .update(None, &real_buffer, SCREEN_WIDTH as usize * 3)
+                        .update(None, &screen_buffer, SCREEN_WIDTH as usize * 3)
                         .expect("unable to update texture");
                     canvas.clear();
                     canvas
