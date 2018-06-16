@@ -6,7 +6,7 @@ use ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH};
 pub struct PpuMock {
     addr: u16,
     value: u8,
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
 }
 
 impl Default for PpuMock {
@@ -14,7 +14,7 @@ impl Default for PpuMock {
         PpuMock {
             addr: 0,
             value: 0,
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 2],
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
         }
     }
 }
@@ -47,7 +47,7 @@ impl IPpu for PpuMock {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 2] {
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3] {
         &self.screen
     }
 }
