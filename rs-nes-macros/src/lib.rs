@@ -47,9 +47,10 @@ enum Action {
 }
 
 fn ppu_loop_impl() -> proc_macro2::TokenStream {
-    let mut cycle_number_map: Vec<u32> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
+    let mut cycle_number_map: Vec<Vec<u32>> = Vec::with_capacity(SCANLINES);
     let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
     for scanline in 0..SCANLINES {
+        let mut line_cycle_map = Vec::with_capacity(CYCLES_PER_SCANLINE);
         for x in 0..CYCLES_PER_SCANLINE {
             let mut cycle_type = 0;
 
@@ -122,7 +123,7 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
                 cycle_type |= START_SPRITE_EVALUATION
             }
 
-            cycle_number_map.push(cycle_type);
+            line_cycle_map.push(cycle_type);
 
             if !cycle_type_map.contains_key(&cycle_type) {
                     let actions = actions(cycle_type);
@@ -130,6 +131,8 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
                     cycle_type_map.insert(cycle_type, cycle_impl);
             }
         }
+
+        cycle_number_map.push(line_cycle_map);
     }
 
     // Remap the cycle type to a sequential number that can be represented by a single byte
@@ -141,9 +144,13 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
         compact_cycle_type += 1;
     }
 
-    let mut compact_cycle_number_map: Vec<u8> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
-    for cycle_type in cycle_number_map {
-        compact_cycle_number_map.push(*compact_cycle_type_map.get(&cycle_type).unwrap());
+    let mut compact_cycle_number_map: Vec<Vec<u8>> = Vec::with_capacity(SCANLINES);
+    for line_cycles in cycle_number_map {
+        let mut compact_line_cycle_map = Vec::with_capacity(CYCLES_PER_SCANLINE);
+        for cycle_type in line_cycles {
+            compact_line_cycle_map.push(*compact_cycle_type_map.get(&cycle_type).unwrap());
+        }
+        compact_cycle_number_map.push(compact_line_cycle_map);
     }
 
     let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(cycle_type, cycle_impl)| {
@@ -152,17 +159,16 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
         match_arm.into()
     }).collect();
 
-    let total_cycles = SCANLINES * CYCLES_PER_SCANLINE;
     let step_fn = quote! {
         fn step(&mut self) -> Interrupt {
-            const CYCLES_MAP: [u8; #total_cycles] = [#(#compact_cycle_number_map),*];
+            const CYCLES_MAP: [[u8; #CYCLES_PER_SCANLINE]; #SCANLINES] = [#([#(#compact_cycle_number_map),*]),*];
             let frame_cycle = self.cycles % CYCLES_PER_FRAME;
             let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
             let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
 
             self.cycles += 1;
 
-            match CYCLES_MAP[frame_cycle] {
+            match CYCLES_MAP[scanline as usize][x as usize] {
                 #(#match_arms),*
                 _ => Interrupt::None
             }
