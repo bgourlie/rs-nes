@@ -1,5 +1,4 @@
 use cart::Cart;
-use rom::NesRom;
 use rom::{CHR_BANK_SIZE, PRG_BANK_SIZE};
 
 pub struct CartMock {
@@ -17,10 +16,6 @@ impl Default for CartMock {
 }
 
 impl Cart for CartMock {
-    fn new(_: NesRom) -> Result<Self, &'static str> {
-        unimplemented!()
-    }
-
     fn read_prg(&self, addr: u16) -> u8 {
         self.prg[addr as usize]
     }

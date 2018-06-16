@@ -1,3 +1,4 @@
+use std::fmt::{self, Debug, Formatter};
 use std::io::Read;
 
 pub const PRG_BANK_SIZE: usize = 16384;
@@ -69,6 +70,20 @@ impl Default for NesRom {
             chr: Vec::new(),
             prg: Vec::new(),
         }
+    }
+}
+
+impl Debug for NesRom {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        writeln!(f, "Format: {:?}", self.format)?;
+        writeln!(f, "Video Standard: {:?}", self.video_standard)?;
+        writeln!(f, "Mapper: {:?}", self.mapper)?;
+        writeln!(f, "Mirroring: {:?}", self.mirroring)?;
+        writeln!(f, "PRG ROM Banks: {}", self.prg_rom_banks)?;
+        writeln!(f, "PRG RAM Banks: {}", self.prg_ram_banks)?;
+        writeln!(f, "CHR ROM Banks: {}", self.chr_rom_banks)?;
+        writeln!(f, "Has SRAM: {}", self.has_sram)?;
+        writeln!(f, "Has trainer: {}", self.has_trainer)
     }
 }
 

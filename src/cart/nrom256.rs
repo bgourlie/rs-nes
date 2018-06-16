@@ -6,8 +6,8 @@ pub struct Nrom256 {
     chr_rom: [u8; CHR_BANK_SIZE],
 }
 
-impl Cart for Nrom256 {
-    fn new(rom: NesRom) -> Result<Self, &'static str> {
+impl Nrom256 {
+    pub fn new(rom: NesRom) -> Result<Self, &'static str> {
         if rom.prg.len() != PRG_BANK_SIZE * 2 {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size: {}")
@@ -23,7 +23,9 @@ impl Cart for Nrom256 {
             Ok(cart)
         }
     }
+}
 
+impl Cart for Nrom256 {
     fn read_prg(&self, addr: u16) -> u8 {
         debug_assert!(addr >= 0x8000);
         self.prg_rom[addr as usize & 0x7fff]
