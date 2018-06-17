@@ -1,3 +1,4 @@
+use cart::Cart;
 use ppu::control_register::IncrementAmount;
 use ppu::vram::IVram;
 use ppu::write_latch::LatchState;
@@ -38,19 +39,19 @@ impl IVram for MockVram {
         self.mock_addr.set(val)
     }
 
-    fn write_ppu_data(&mut self, val: u8, _: IncrementAmount) {
+    fn write_ppu_data<C: Cart>(&mut self, val: u8, _: IncrementAmount, _: &mut C) {
         self.mock_data.set(val);
     }
 
-    fn read_ppu_data(&self, _: IncrementAmount) -> u8 {
+    fn read_ppu_data<C: Cart>(&self, _: IncrementAmount, _: &C) -> u8 {
         self.mock_data.get()
     }
 
-    fn ppu_data(&self) -> u8 {
+    fn ppu_data<C: Cart>(&self, _: &C) -> u8 {
         self.mock_data.get()
     }
 
-    fn read(&self, _: u16) -> u8 {
+    fn read<C: Cart>(&self, _: u16, _: &C) -> u8 {
         0
     }
 

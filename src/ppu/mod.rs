@@ -168,7 +168,6 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
                 self.vram.write_ppu_addr(latch_state);
             }
             0x7 => {
-                // TODO: Does the increment need to come after the write?
                 let inc_amount = self.control.vram_addr_increment();
                 self.vram.write_ppu_data(val, inc_amount, cart)
             }

@@ -85,8 +85,6 @@ impl IVram for Vram {
                 _ => addr,
             };
             self.palette[addr] = val;
-        } else {
-            //panic!("Invalid VRAM write");
         }
 
         match inc_amount {

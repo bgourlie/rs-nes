@@ -1,3 +1,4 @@
+use cart::Cart;
 use ppu::control_register::ControlRegister;
 use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
 use ppu::vram::IVram;
@@ -30,7 +31,7 @@ impl ISpriteRenderer for MockSpriteRenderer {
         self.mock_data.set(val)
     }
 
-    fn update_palettes<V: IVram>(&mut self, _: &V) {}
+    fn update_palettes<V: IVram, C: Cart>(&mut self, _: &V, _: &C) {}
 
     fn dec_x_counters(&mut self) {}
 
@@ -38,7 +39,7 @@ impl ISpriteRenderer for MockSpriteRenderer {
 
     fn tick_sprite_evaluation(&mut self) {}
 
-    fn fill_registers<V: IVram>(&mut self, _: &V, _: ControlRegister) {}
+    fn fill_registers<V: IVram, C: Cart>(&mut self, _: &V, _: ControlRegister, _: &C) {}
 
     fn current_pixel(&self) -> SpritePixel {
         SpritePixel {

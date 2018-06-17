@@ -1,3 +1,4 @@
+use cart::Cart;
 use cpu6502::cpu::Interrupt;
 pub use ppu::sprite_renderer::mocks::MockSpriteRenderer;
 pub use ppu::vram::mocks::MockVram;
@@ -34,16 +35,16 @@ impl PpuMock {
 }
 
 impl IPpu for PpuMock {
-    fn write(&mut self, addr: u16, val: u8) {
+    fn write<C: Cart>(&mut self, addr: u16, val: u8, _: &mut C) {
         self.addr = addr;
         self.value = val;
     }
 
-    fn read(&self, _: u16) -> u8 {
+    fn read<C: Cart>(&self, _: u16, _: &C) -> u8 {
         self.value
     }
 
-    fn step(&mut self) -> Interrupt {
+    fn step<C: Cart>(&mut self, _: &C) -> Interrupt {
         Interrupt::None
     }
 

@@ -7,7 +7,7 @@ pub struct Nrom128 {
 }
 
 impl Nrom128 {
-    pub fn new(rom: NesRom) -> Result<Self, &'static str> {
+    pub fn new(rom: &NesRom) -> Result<Self, &'static str> {
         if rom.prg.len() != PRG_BANK_SIZE {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size")

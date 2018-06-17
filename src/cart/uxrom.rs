@@ -8,7 +8,7 @@ pub struct Uxrom {
 }
 
 impl Uxrom {
-    pub fn new(rom: NesRom) -> Result<Self, &'static str> {
+    pub fn new(rom: &NesRom) -> Result<Self, &'static str> {
         if rom.prg.len() != PRG_BANK_SIZE * 8 {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size")
