@@ -8,14 +8,13 @@ use cart::Cart;
 use ppu::control_register::IncrementAmount;
 use ppu::write_latch::LatchState;
 use std::cell::Cell;
-use std::rc::Rc;
 
 pub trait IVram {
     fn write_ppu_addr(&self, latch_state: LatchState);
     fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8;
-    fn ppu_data(&self) -> u8;
-    fn read(&self, addr: u16) -> u8;
+    fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8;
+    fn ppu_data<C: Cart>(&self, cart: &C) -> u8;
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
@@ -26,23 +25,21 @@ pub trait IVram {
     fn fine_x(&self) -> u8;
 }
 
-pub struct Vram<C: Cart> {
+pub struct Vram {
     address: Cell<u16>,
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
-    rom: Rc<Box<C>>,
     ppu_data_buffer: Cell<u8>,
     t: Cell<u16>,
     fine_x: Cell<u8>,
 }
 
-impl<C: Cart> Vram<C> {
-    pub fn new(rom: Rc<Box<C>>) -> Self {
+impl Vram {
+    pub fn new() -> Self {
         Vram {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
             palette: [0; 0x20],
-            rom,
             ppu_data_buffer: Cell::new(0),
             t: Cell::new(0),
             fine_x: Cell::new(0),
@@ -50,7 +47,7 @@ impl<C: Cart> Vram<C> {
     }
 }
 
-impl<C: Cart> IVram for Vram<C> {
+impl IVram for Vram {
     fn write_ppu_addr(&self, latch_state: LatchState) {
         // Addresses greater than 0x3fff are mirrored down
         match latch_state {
@@ -98,8 +95,8 @@ impl<C: Cart> IVram for Vram<C> {
         }
     }
 
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8 {
-        let val = self.ppu_data();
+    fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8 {
+        let val = self.ppu_data(cart);
         match inc_amount {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
@@ -107,9 +104,9 @@ impl<C: Cart> IVram for Vram<C> {
         val
     }
 
-    fn ppu_data(&self) -> u8 {
+    fn ppu_data<C: Cart>(&self, cart: &C) -> u8 {
         let addr = self.address.get();
-        let val = self.read(addr);
+        let val = self.read(addr, cart);
 
         // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
         // the read will return the contents of an internal read buffer. This internal buffer is
@@ -125,9 +122,9 @@ impl<C: Cart> IVram for Vram<C> {
         }
     }
 
-    fn read(&self, addr: u16) -> u8 {
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8 {
         if addr < 0x2000 {
-            self.rom.read_chr(addr)
+            cart.read_chr(addr)
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {

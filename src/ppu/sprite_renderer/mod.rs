@@ -6,6 +6,7 @@ mod spec_tests;
 
 mod sprite_evaluation;
 
+use cart::Cart;
 use ppu::control_register::ControlRegister;
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
 use ppu::vram::IVram;
@@ -77,11 +78,11 @@ pub trait ISpriteRenderer: Default {
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
-    fn update_palettes<V: IVram>(&mut self, vram: &V);
+    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C);
     fn dec_x_counters(&mut self);
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
-    fn fill_registers<V: IVram>(&mut self, vram: &V, control: ControlRegister);
+    fn fill_registers<V: IVram, C: Cart>(&mut self, vram: &V, control: ControlRegister, cart: &C);
     fn current_pixel(&self) -> SpritePixel;
 }
 
@@ -141,25 +142,25 @@ impl ISpriteRenderer for SpriteRenderer {
         self.inc_address();
     }
 
-    fn update_palettes<V: IVram>(&mut self, vram: &V) {
-        let bg = vram.read(0x3f00);
+    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C) {
+        let bg = vram.read(0x3f00, cart);
         self.palettes = [
             bg,
-            vram.read(0x3f11),
-            vram.read(0x3f12),
-            vram.read(0x3f13),
+            vram.read(0x3f11, cart),
+            vram.read(0x3f12, cart),
+            vram.read(0x3f13, cart),
             bg,
-            vram.read(0x3f15),
-            vram.read(0x3f16),
-            vram.read(0x3f17),
+            vram.read(0x3f15, cart),
+            vram.read(0x3f16, cart),
+            vram.read(0x3f17, cart),
             bg,
-            vram.read(0x3f19),
-            vram.read(0x3f1a),
-            vram.read(0x3f1b),
+            vram.read(0x3f19, cart),
+            vram.read(0x3f1a, cart),
+            vram.read(0x3f1b, cart),
             bg,
-            vram.read(0x3f1d),
-            vram.read(0x3f1e),
-            vram.read(0x3f1f),
+            vram.read(0x3f1d, cart),
+            vram.read(0x3f1e, cart),
+            vram.read(0x3f1f, cart),
         ];
     }
 
@@ -183,7 +184,7 @@ impl ISpriteRenderer for SpriteRenderer {
         self.sprite_evaluation.tick(&self.primary_oam)
     }
 
-    fn fill_registers<V: IVram>(&mut self, vram: &V, control: ControlRegister) {
+    fn fill_registers<V: IVram, C: Cart>(&mut self, vram: &V, control: ControlRegister, cart: &C) {
         for sprites_fetched in 0..8 {
             let sprite_base = sprites_fetched * 4;
 
@@ -216,8 +217,8 @@ impl ISpriteRenderer for SpriteRenderer {
                     }
                 } + fine_y as u16;
 
-                let pattern_low = vram.read(tile_offset);
-                let pattern_high = vram.read(tile_offset + 8);
+                let pattern_low = vram.read(tile_offset, cart);
+                let pattern_high = vram.read(tile_offset + 8, cart);
 
                 if attribute.flip_horizontally() {
                     (

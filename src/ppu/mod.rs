@@ -16,6 +16,7 @@ mod vram;
 mod write_latch;
 
 use self::write_latch::WriteLatch;
+use cart::Cart;
 use cpu6502::cpu::Interrupt;
 use ppu::background_renderer::BackgroundRenderer;
 use ppu::control_register::ControlRegister;
@@ -35,8 +36,8 @@ pub const SCREEN_HEIGHT: usize = 240;
 
 pub trait IPpu {
     fn write(&mut self, addr: u16, val: u8);
-    fn read(&self, addr: u16) -> u8;
-    fn step(&mut self) -> Interrupt;
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
+    fn step<C: Cart>(&mut self, cart: &C) -> Interrupt;
     fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3];
 }
 
@@ -175,7 +176,7 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
     }
 
     /// Accepts a PPU memory mapped address and returns the value
-    fn read(&self, addr: u16) -> u8 {
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8 {
         debug_assert!(
             addr >= 0x2000 && addr < 0x4000,
             "Invalid memory mapped ppu address"
@@ -201,14 +202,14 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
             0x3 | 0x5 | 0x6 => 0, // Write-only
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();
-                self.vram.read_ppu_data(inc_amount)
+                self.vram.read_ppu_data(inc_amount, cart)
             }
             _ => unreachable!(),
         }
     }
 
     #[ppu_loop]
-    fn step(&mut self) -> Interrupt {
+    fn step<C: Cart>(&mut self, cart: &C) -> Interrupt {
         Interrupt::None
     }
 

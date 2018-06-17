@@ -31,7 +31,6 @@ use interconnect::NesInterconnect;
 pub use ppu::IPpu;
 use ppu::{Ppu, SpriteRenderer, Vram};
 pub use rom::NesRom;
-use std::rc::Rc;
 
 #[cfg(test)]
 mod mocks {
@@ -42,9 +41,9 @@ mod mocks {
 }
 
 pub fn load_cart<C: Cart>(
-    cart: Rc<Box<C>>,
-) -> Result<Cpu<NesInterconnect<Ppu<Vram<C>, SpriteRenderer>, Apu, Input, C>>, &'static str> {
-    let vram = Vram::new(cart.clone());
+    cart: Box<C>,
+) -> Result<Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>, &'static str> {
+    let vram = Vram::new();
     let ppu = Ppu::new(vram);
     let input = Input::default();
     let apu = Apu::default();

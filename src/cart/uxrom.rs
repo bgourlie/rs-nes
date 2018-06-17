@@ -1,9 +1,9 @@
 use cart::Cart;
-use rom::{NesRom, CHR_BANK_SIZE, PRG_BANK_SIZE};
+use rom::{NesRom, PRG_BANK_SIZE};
 
 pub struct Uxrom {
     prg_bank: [[u8; PRG_BANK_SIZE]; 8],
-    chr_rom: [u8; CHR_BANK_SIZE],
+    //chr_rom: [u8; CHR_BANK_SIZE],
     bank_select: u8,
 }
 
@@ -12,12 +12,12 @@ impl Uxrom {
         if rom.prg.len() != PRG_BANK_SIZE * 8 {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size")
-        } else if rom.chr.len() != CHR_BANK_SIZE {
-            Err("Unexpected CHR ROM size")
+        //        } else if rom.chr.len() != CHR_BANK_SIZE {
+        //            Err("Unexpected CHR ROM size")
         } else {
             let mut cart = Uxrom {
                 prg_bank: [[0; PRG_BANK_SIZE]; 8],
-                chr_rom: [0; CHR_BANK_SIZE],
+                //chr_rom: [0; CHR_BANK_SIZE],
                 bank_select: 0,
             };
 
@@ -26,7 +26,7 @@ impl Uxrom {
                 let end_offset = start_offset + PRG_BANK_SIZE;
                 cart.prg_bank[i].copy_from_slice(&rom.prg[start_offset..end_offset]);
             }
-            cart.chr_rom.copy_from_slice(&rom.chr);
+            //cart.chr_rom.copy_from_slice(&rom.chr);
             Ok(cart)
         }
     }
@@ -51,7 +51,7 @@ impl Cart for Uxrom {
     }
 
     fn read_chr(&self, addr: u16) -> u8 {
-        self.chr_rom[addr as usize]
+        0
     }
 
     fn write_chr(&mut self, _: u16, _: u8) {}
