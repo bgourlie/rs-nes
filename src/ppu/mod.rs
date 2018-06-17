@@ -183,8 +183,6 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
         );
 
         match addr & 7 {
-            0x0 => *self.control,
-            0x1 => *self.mask,
             0x2 => {
                 let status = self.status.read();
                 self.status.clear_in_vblank();
@@ -199,12 +197,11 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
                     self.sprite_renderer.read_data_increment_addr()
                 }
             }
-            0x3 | 0x5 | 0x6 => 0, // Write-only
             0x7 => {
                 let inc_amount = self.control.vram_addr_increment();
                 self.vram.read_ppu_data(inc_amount, cart)
             }
-            _ => unreachable!(),
+            _ => 0,
         }
     }
 

@@ -94,12 +94,6 @@ fn memory_mapped_register_read() {
     let mut ppu = ppu_fixture();
     let mock_cart = CartMock::default();
 
-    ppu.control.write(0xf0);
-    assert_eq!(0xf0, ppu.read(0x2000, &mock_cart));
-
-    ppu.mask.write(0xf1);
-    assert_eq!(0xf1, ppu.read(0x2001, &mock_cart));
-
     ppu.status = StatusRegister::new(0xf2);
     assert_eq!(0xf2, ppu.read(0x2002, &mock_cart));
 
@@ -119,12 +113,6 @@ fn memory_mapped_register_read() {
 
     // Test mirroring: 0x2000-0x2007 are mirrored every 8 bytes to 0x3fff
 
-    ppu.control.write(0xe0);
-    assert_eq!(0xe0, ppu.read(0x2008, &mock_cart));
-
-    ppu.mask.write(0xe1);
-    assert_eq!(0xe1, ppu.read(0x2009, &mock_cart));
-
     ppu.status = StatusRegister::new(0xe2);
     assert_eq!(0xe2, ppu.read(0x200a, &mock_cart));
 
@@ -143,12 +131,6 @@ fn memory_mapped_register_read() {
     assert_eq!(0xfb, ppu.read(0x200f, &mock_cart));
 
     // Test mirroring on the tail end of the valid address space
-
-    ppu.control.write(0xd0);
-    assert_eq!(0xd0, ppu.read(0x3ff8, &mock_cart));
-
-    ppu.mask.write(0xd1);
-    assert_eq!(0xd1, ppu.read(0x3ff9, &mock_cart));
 
     ppu.status = StatusRegister::new(0xd2);
     assert_eq!(0xd2, ppu.read(0x3ffa, &mock_cart));
