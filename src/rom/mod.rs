@@ -27,31 +27,13 @@ pub struct NesRom {
     pub prg_rom_banks: u8,
     pub prg_ram_banks: u8,
     pub chr_rom_banks: u8,
+    pub has_chr_ram: bool,
     pub has_sram: bool,
     pub has_trainer: bool,
     pub is_pc10: bool,
     pub is_vs_unisystem: bool,
     pub chr: Vec<u8>, // todo: make private
     pub prg: Vec<u8>, // todo: make private
-}
-
-impl Default for NesRom {
-    fn default() -> Self {
-        NesRom {
-            video_standard: VideoStandard::Ntsc,
-            mapper: 0,
-            mirroring: Mirroring::Horizontal,
-            prg_rom_banks: 2,
-            prg_ram_banks: 0,
-            chr_rom_banks: 2,
-            has_sram: false,
-            has_trainer: false,
-            is_pc10: false,
-            is_vs_unisystem: false,
-            chr: Vec::new(),
-            prg: Vec::new(),
-        }
-    }
 }
 
 impl Debug for NesRom {
@@ -62,6 +44,7 @@ impl Debug for NesRom {
         writeln!(f, "PRG ROM Banks: {}", self.prg_rom_banks)?;
         writeln!(f, "PRG RAM Banks: {}", self.prg_ram_banks)?;
         writeln!(f, "CHR ROM Banks: {}", self.chr_rom_banks)?;
+        writeln!(f, "Has CHR RAM: {}", self.has_chr_ram)?;
         writeln!(f, "Has SRAM: {}", self.has_sram)?;
         writeln!(f, "Has trainer: {}", self.has_trainer)
     }
@@ -99,7 +82,7 @@ impl NesRom {
         let mut remaining_header_bytes: [u8; 6] = [0; 6];
         input
             .read(&mut remaining_header_bytes)
-            .map_err(|_| "Unble to read remaining header bytes")?;
+            .map_err(|_| "Unable to read remaining header bytes")?;
 
         let has_trainer = header_byte_6 & 0b0000_0100 > 0;
         if has_trainer {
@@ -151,6 +134,7 @@ impl NesRom {
             prg_rom_banks: header_byte_4,
             prg_ram_banks,
             chr_rom_banks: header_byte_5,
+            has_chr_ram: header_byte_5 == 0,
             has_sram,
             has_trainer,
             is_pc10,

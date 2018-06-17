@@ -35,7 +35,7 @@ pub const SCREEN_WIDTH: usize = 256;
 pub const SCREEN_HEIGHT: usize = 240;
 
 pub trait IPpu {
-    fn write(&mut self, addr: u16, val: u8);
+    fn write<C: Cart>(&mut self, addr: u16, val: u8, cart: &mut C);
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn step<C: Cart>(&mut self, cart: &C) -> Interrupt;
     fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3];
@@ -144,7 +144,7 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
 
 impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
     /// Accepts a PPU memory mapped address and writes it to the appropriate register
-    fn write(&mut self, addr: u16, val: u8) {
+    fn write<C: Cart>(&mut self, addr: u16, val: u8, cart: &mut C) {
         debug_assert!(
             addr >= 0x2000 && addr < 0x4000,
             "Invalid memory mapped ppu address"
@@ -168,8 +168,9 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
                 self.vram.write_ppu_addr(latch_state);
             }
             0x7 => {
+                // TODO: Does the increment need to come after the write?
                 let inc_amount = self.control.vram_addr_increment();
-                self.vram.write_ppu_data(val, inc_amount)
+                self.vram.write_ppu_data(val, inc_amount, cart)
             }
             _ => unreachable!(),
         }

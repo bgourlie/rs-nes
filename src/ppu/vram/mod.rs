@@ -11,7 +11,7 @@ use std::cell::Cell;
 
 pub trait IVram {
     fn write_ppu_addr(&self, latch_state: LatchState);
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
+    fn write_ppu_data<C: Cart>(&mut self, val: u8, inc_amount: IncrementAmount, cart: &mut C);
     fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8;
     fn ppu_data<C: Cart>(&self, cart: &C) -> u8;
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
@@ -67,11 +67,11 @@ impl IVram for Vram {
         }
     }
 
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) {
+    fn write_ppu_data<C: Cart>(&mut self, val: u8, inc_amount: IncrementAmount, cart: &mut C) {
         let addr = self.address.get();
 
         if addr < 0x2000 {
-            //panic!("write to cart ram not implemented")
+            cart.write_chr(addr, val);
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {

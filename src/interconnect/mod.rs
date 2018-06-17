@@ -70,7 +70,7 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A
         if address < 0x2000 {
             self.ram[address as usize & 0x7ff] = value
         } else if address < 0x4000 {
-            self.ppu.write(address, value)
+            self.ppu.write(address, value, self.rom.as_mut())
         } else if address == 0x4014 {
             self.dma_write(value)
         } else if address == 0x4016 {
