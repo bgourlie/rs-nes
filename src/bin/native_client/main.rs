@@ -2,8 +2,11 @@ extern crate cpu6502;
 extern crate rs_nes;
 extern crate sdl2;
 
-use cpu6502::cpu::Interrupt;
-use rs_nes::{load_cart, Button, IInput, IPpu, NesRom, Uxrom};
+use cpu6502::cpu::{Cpu, Interrupt};
+use rs_nes::{
+    load_cart, Apu, Button, Cart, IInput, IPpu, Input, NesInterconnect, NesRom, Nrom128, Nrom256,
+    Ppu, SpriteRenderer, Uxrom, Vram,
+};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
@@ -39,9 +42,30 @@ fn main() {
     let rom = NesRom::load(&mut rom_file).expect("Unable to load ROM");
     println!("ROM INFORMATION");
     println!("{:?}", rom);
-    let cart = Uxrom::new(&rom).expect("Unable to map ROM to cart");
-    let mut cpu = load_cart(cart).expect("Unable to load cart");
+    match rom.mapper {
+        0 => match rom.prg_rom_banks {
+            1 => {
+                let cart = Nrom128::new(&rom).expect("Unable to map ROM to cart");
+                let cpu = load_cart(cart).expect("Unable to load cart");
+                run(cpu);
+            }
+            2 => {
+                let cart = Nrom256::new(&rom).expect("Unable to map ROM to cart");
+                let cpu = load_cart(cart).expect("Unable to load cart");
+                run(cpu);
+            }
+            _ => panic!("Unsupported NROM cart"),
+        },
+        2 => {
+            let cart = Uxrom::new(&rom).expect("Unable to map ROM to cart");
+            let cpu = load_cart(cart).expect("Unable to load cart");
+            run(cpu);
+        }
+        _ => panic!("Mapper {} not supported", rom.mapper),
+    }
+}
 
+fn run<C: Cart>(mut cpu: Box<Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>>) {
     let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
     let video_subsystem = sdl_context
         .video()

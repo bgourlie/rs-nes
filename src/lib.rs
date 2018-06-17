@@ -21,15 +21,14 @@ mod interconnect;
 mod ppu;
 mod rom;
 
-use apu::Apu;
-use cart::Cart;
-pub use cart::{Nrom128, Nrom256, Uxrom};
+pub use apu::Apu;
+pub use cart::{Cart, Nrom128, Nrom256, Uxrom};
 use cpu6502::cpu::Cpu;
-use input::Input;
-pub use input::{Button, IInput};
-use interconnect::NesInterconnect;
+pub use input::{Button, IInput, Input};
+pub use interconnect::NesInterconnect;
 pub use ppu::IPpu;
-use ppu::{Ppu, SpriteRenderer, Vram};
+pub use ppu::Ppu;
+pub use ppu::{SpriteRenderer, Vram};
 pub use rom::NesRom;
 
 #[cfg(test)]
