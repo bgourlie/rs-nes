@@ -1,11 +1,11 @@
-use super::*;
+use mocks::CartMock;
 use ppu::control_register::IncrementAmount;
+use ppu::vram::{IVram, Vram};
 use ppu::write_latch::LatchState;
-use rom::NesRom;
 
 #[test]
 fn write_address() {
-    let vram = vram_fixture();
+    let vram = Vram::new();
     assert_eq!(0, vram.address.get());
     assert_eq!(0, vram.address.get());
 
@@ -21,18 +21,19 @@ fn write_address() {
 #[test]
 #[ignore] // TODO: Fix once we have a mapping mechanism in place
 fn internal_memory_mapping_read() {
-    let mut vram = vram_fixture();
-    vram_fixture_with_chr(vec![1; 0x2000]);
+    let mut vram = Vram::new();
+    let cart = mock_cart();
+    mock_cart_with_chr(vec![1; 0x2000]);
     vram.name_tables = [2; 0x1000];
 
     vram.ppu_data_buffer.set(1);
     for _ in 0..0x2000 {
-        assert_eq!(1, vram.read_ppu_data(IncrementAmount::One))
+        assert_eq!(1, vram.read_ppu_data(IncrementAmount::One, &cart))
     }
 
     vram.ppu_data_buffer.set(2);
     for _ in 0x2000..0x3f00 {
-        assert_eq!(2, vram.read_ppu_data(IncrementAmount::One))
+        assert_eq!(2, vram.read_ppu_data(IncrementAmount::One, &cart))
     }
 }
 
@@ -43,7 +44,8 @@ fn vram_read_buffering_behavior() {
     // only when reading PPUDATA, and so is preserved across frames. After the CPU reads and gets
     // the contents of the internal buffer, the PPU will immediately update the internal buffer with
     // the byte at the current VRAM address
-    let mut vram = vram_fixture();
+    let mut vram = Vram::new();
+    let cart = mock_cart();
 
     vram.address.set(0);
 
@@ -51,7 +53,7 @@ fn vram_read_buffering_behavior() {
     for i in 0..0x3f00 as u16 {
         let i = i as u8;
         vram.ppu_data_buffer.set(i);
-        assert_eq!(i, vram.read_ppu_data(IncrementAmount::One))
+        assert_eq!(i, vram.read_ppu_data(IncrementAmount::One, &cart))
     }
 
     // Do not read from buffer when address >= 0x3f00
@@ -59,7 +61,7 @@ fn vram_read_buffering_behavior() {
     for i in 0x3f00..0x4000 as u16 {
         let i = i as u8;
         vram.ppu_data_buffer.set(i);
-        assert_eq!(0xcc, vram.read_ppu_data(IncrementAmount::One))
+        assert_eq!(0xcc, vram.read_ppu_data(IncrementAmount::One, &cart))
     }
 }
 
@@ -68,14 +70,15 @@ fn vram_read_buffering_behavior() {
 fn write_mapping() {
     // Tests pattern and nametable write mappings, palette mapping tested separately
 
-    let mut vram = vram_fixture();
+    let mut vram = Vram::new();
+    let mut cart = mock_cart();
 
     for _ in 0..0x2000 {
-        vram.write_ppu_data(1, IncrementAmount::One)
+        vram.write_ppu_data(1, IncrementAmount::One, &mut cart)
     }
 
     for _ in 0x2000..0x3f00 {
-        vram.write_ppu_data(2, IncrementAmount::One)
+        vram.write_ppu_data(2, IncrementAmount::One, &mut cart)
     }
 
     //assert_eq!(true, vram.rom.chr.into_iter().all(|val| val == 1));
@@ -84,7 +87,7 @@ fn write_mapping() {
 
 #[test]
 fn ppu_addr_mirroring() {
-    let vram = vram_fixture();
+    let vram = Vram::new();
 
     vram.write_ppu_addr(LatchState::FirstWrite(0x10));
     vram.write_ppu_addr(LatchState::SecondWrite(0x20));
@@ -124,16 +127,17 @@ fn palette_read_mapping() {
     // Verifying the following:
     // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C for reads and writes
 
-    let mut vram = vram_fixture();
+    let mut vram = Vram::new();
+    let cart = mock_cart();
 
     for i in 0..0x20 {
         vram.palette[i] = (0x20 - i) as _;
     }
 
-    assert_eq!(0x20, vram.read(0x3f10));
-    assert_eq!(0x1c, vram.read(0x3f14));
-    assert_eq!(0x18, vram.read(0x3f18));
-    assert_eq!(0x14, vram.read(0x3f1c));
+    assert_eq!(0x20, vram.read(0x3f10, &cart));
+    assert_eq!(0x1c, vram.read(0x3f14, &cart));
+    assert_eq!(0x18, vram.read(0x3f18, &cart));
+    assert_eq!(0x14, vram.read(0x3f1c, &cart));
 }
 
 #[test]
@@ -142,7 +146,7 @@ fn addr_first_write() {
     // t: ..FEDCBA ........ = d: ..FEDCBA
     // t: .X...... ........ = 0
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.t.set(0b0100_0000_0000_0000);
     vram.write_ppu_addr(LatchState::FirstWrite(0b1111_1111));
     assert_eq!(0b0011_1111_0000_0000, vram.t.get());
@@ -158,7 +162,7 @@ fn addr_second_write() {
     // t: ....... HGFEDCBA = d: HGFEDCBA
     // v                   = t
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.t.set(0);
     vram.write_ppu_addr(LatchState::SecondWrite(0b1111_1111));
     assert_eq!(0b0000_0000_1111_1111, vram.t.get());
@@ -174,7 +178,7 @@ fn addr_second_write() {
 fn copy_horizontal_pos_to_addr() {
     // Test scanline cycle 257 behavior
     // v: ....F.. ...EDCBA = t: ....F.. ...EDCBA
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.t.set(0xffff);
     vram.address.set(0);
     vram.copy_horizontal_pos_to_addr();
@@ -190,7 +194,7 @@ fn copy_horizontal_pos_to_addr() {
 fn copy_vertical_pos_to_addr() {
     // Test scanline cycle 280-304 behavior
     // v: IHGF.ED CBA..... = t: IHGF.ED CBA.....
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.t.set(0xffff);
     vram.address.set(0);
     vram.copy_vertical_pos_to_addr();
@@ -208,7 +212,7 @@ fn scroll_first_write() {
     //x:              CBA = d: .....CBA
     // t: ....... ...HGFED = d: HGFED...
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.scroll_write(LatchState::FirstWrite(0b1111_1111));
     assert_eq!(0b111, vram.fine_x.get());
 
@@ -233,7 +237,7 @@ fn scroll_second_write() {
     // Verify correct temporary VRAM address changes during second scroll register writes:
     // t: CBA..HG FED..... = d: HGFEDCBA
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.t.set(0);
     vram.scroll_write(LatchState::SecondWrite(0b0000_0111));
     assert_eq!(0b0111_0000_0000_0000, vram.t.get());
@@ -251,7 +255,7 @@ fn scroll_second_write() {
 fn control_write() {
     // Verify correct temporary VRAM address changes during control register writes:
     // t: ...BA.. ........ = d: ......BA
-    let vram = vram_fixture();
+    let vram = Vram::new();
 
     vram.t.set(0b0000_0000_0000_0000);
     vram.control_write(0b0000_0011);
@@ -275,11 +279,12 @@ fn palette_write_mapping() {
     // Verifying the following:
     // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C for reads and writes
 
-    let mut vram = vram_fixture();
+    let mut vram = Vram::new();
+    let mut cart = mock_cart();
     vram.write_ppu_addr(LatchState::FirstWrite(0x3f));
     vram.write_ppu_addr(LatchState::SecondWrite(0x00));
     for i in 0..0x20 {
-        vram.write_ppu_data(i, IncrementAmount::One);
+        vram.write_ppu_data(i, IncrementAmount::One, &mut cart);
     }
 
     assert_eq!(0x10, vram.palette[0x0]);
@@ -294,7 +299,7 @@ fn coarse_x_increment() {
     // are incremented, with overflow toggling bit 10. This means that bits 0-4 count from 0 to 31
     // across a single nametable, and bit 10 selects the current nametable horizontally.
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.address.set(0);
 
     for _ in 0..2 {
@@ -317,7 +322,7 @@ fn fine_y_increment() {
     // coarse Y, and finally adjusted to wrap among the nametables vertically. Bits 12-14 are fine
     // Y. Bits 5-9 are coarse Y. Bit 11 selects the vertical nametable.
 
-    let vram = vram_fixture();
+    let vram = Vram::new();
     vram.address.set(0);
 
     for _ in 0..2 {
@@ -337,12 +342,12 @@ fn fine_y_increment() {
     }
 }
 
-fn vram_fixture_with_chr(chr: Vec<u8>) -> VramBase {
-    let mut rom = NesRom::default();
-    rom.chr = chr;
-    VramBase::new(Rc::new(Box::new(rom)))
+fn mock_cart_with_chr(chr: Vec<u8>) -> CartMock {
+    let mut cart = CartMock::default();
+    cart.chr.copy_from_slice(&chr[..]);
+    cart
 }
 
-fn vram_fixture() -> VramBase {
-    vram_fixture_with_chr(vec![0; 0x2000])
+fn mock_cart() -> CartMock {
+    mock_cart_with_chr(vec![0; 0x2000])
 }

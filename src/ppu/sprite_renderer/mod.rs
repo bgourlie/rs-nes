@@ -1,17 +1,15 @@
-#![allow(dead_code)]
-
-// TODO: Explore SIMD
-// TODO: Tests
-
-mod sprite_evaluation;
+#[cfg(test)]
+pub mod mocks;
 
 #[cfg(test)]
 mod spec_tests;
 
+mod sprite_evaluation;
+
+use cart::Cart;
 use ppu::control_register::ControlRegister;
-use ppu::palette::{self, Color, PALETTE};
 use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
-use ppu::vram::Vram;
+use ppu::vram::IVram;
 use ppu::SpriteSize;
 use std::cell::Cell;
 use std::num::Wrapping;
@@ -37,19 +35,13 @@ static REVERSE_LOOKUP: [u8; 256] =
      0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f,
      0xff];
 
-#[derive(Eq, PartialEq)]
-pub enum SpritePriority {
-    OnTopOfBackground,
-    BehindBackground,
-}
-
 #[derive(Copy, Clone)]
 struct SpriteAttributes(u8);
 
 pub struct SpritePixel {
     pub value: u8,
-    pub priority: SpritePriority,
-    pub color: Color,
+    pub has_priority: bool,
+    pub color_index: u8,
     pub is_sprite_zero: bool,
 }
 
@@ -69,13 +61,9 @@ impl SpriteAttributes {
         val & 0b1000_0000 > 0
     }
 
-    fn priority(&self) -> SpritePriority {
+    fn priority(&self) -> bool {
         let SpriteAttributes(val) = *self;
-        if val & 0b0010_0000 == 0 {
-            SpritePriority::OnTopOfBackground
-        } else {
-            SpritePriority::BehindBackground
-        }
+        val & 0b0010_0000 == 0
     }
 }
 
@@ -85,23 +73,23 @@ impl Default for SpriteAttributes {
     }
 }
 
-pub trait SpriteRenderer: Default {
+pub trait ISpriteRenderer: Default {
     fn read_data(&self) -> u8;
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
-    fn update_palettes<V: Vram>(&mut self, vram: &V);
+    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C);
     fn dec_x_counters(&mut self);
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister);
+    fn fill_registers<V: IVram, C: Cart>(&mut self, vram: &V, control: ControlRegister, cart: &C);
     fn current_pixel(&self) -> SpritePixel;
 }
 
-pub struct SpriteRendererBase {
+pub struct SpriteRenderer {
     primary_oam: [u8; 0x100],
     address: Cell<u8>, // Maps to the PPU's oam_addr register
-    palettes: [Color; 16],
+    palettes: [u8; 16],
     pattern_low_shift_registers: [u8; 8],
     pattern_high_shift_registers: [u8; 8],
     attribute_latches: [SpriteAttributes; 8],
@@ -110,12 +98,12 @@ pub struct SpriteRendererBase {
     sprite_zero_map: u8,
 }
 
-impl Default for SpriteRendererBase {
+impl Default for SpriteRenderer {
     fn default() -> Self {
-        SpriteRendererBase {
+        SpriteRenderer {
             primary_oam: [0; 0x100],
             address: Cell::new(0),
-            palettes: palette::EMPTY,
+            palettes: [0; 16],
             pattern_low_shift_registers: [0; 8],
             pattern_high_shift_registers: [0; 8],
             attribute_latches: [SpriteAttributes::default(); 8],
@@ -126,14 +114,14 @@ impl Default for SpriteRendererBase {
     }
 }
 
-impl SpriteRendererBase {
+impl SpriteRenderer {
     fn inc_address(&self) {
         let new_addr = (Wrapping(self.address.get()) + Wrapping(1_u8)).0;
         self.address.set(new_addr)
     }
 }
 
-impl SpriteRenderer for SpriteRendererBase {
+impl ISpriteRenderer for SpriteRenderer {
     // Maps to the PPU's oam_data register
     fn read_data(&self) -> u8 {
         self.primary_oam[self.address.get() as usize]
@@ -154,25 +142,25 @@ impl SpriteRenderer for SpriteRendererBase {
         self.inc_address();
     }
 
-    fn update_palettes<V: Vram>(&mut self, vram: &V) {
-        let bg = vram.read(0x3f00) as usize;
+    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C) {
+        let bg = vram.read(0x3f00, cart);
         self.palettes = [
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f11) as usize],
-            PALETTE[vram.read(0x3f12) as usize],
-            PALETTE[vram.read(0x3f13) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f15) as usize],
-            PALETTE[vram.read(0x3f16) as usize],
-            PALETTE[vram.read(0x3f17) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f19) as usize],
-            PALETTE[vram.read(0x3f1a) as usize],
-            PALETTE[vram.read(0x3f1b) as usize],
-            PALETTE[bg],
-            PALETTE[vram.read(0x3f1d) as usize],
-            PALETTE[vram.read(0x3f1e) as usize],
-            PALETTE[vram.read(0x3f1f) as usize],
+            bg,
+            vram.read(0x3f11, cart),
+            vram.read(0x3f12, cart),
+            vram.read(0x3f13, cart),
+            bg,
+            vram.read(0x3f15, cart),
+            vram.read(0x3f16, cart),
+            vram.read(0x3f17, cart),
+            bg,
+            vram.read(0x3f19, cart),
+            vram.read(0x3f1a, cart),
+            vram.read(0x3f1b, cart),
+            bg,
+            vram.read(0x3f1d, cart),
+            vram.read(0x3f1e, cart),
+            vram.read(0x3f1f, cart),
         ];
     }
 
@@ -187,11 +175,16 @@ impl SpriteRenderer for SpriteRendererBase {
         }
     }
 
+    fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {
+        // Current scanline is passed in, we evaluate the sprites for the next scanline
+        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
+    }
+
     fn tick_sprite_evaluation(&mut self) {
         self.sprite_evaluation.tick(&self.primary_oam)
     }
 
-    fn fill_registers<V: Vram>(&mut self, vram: &V, control: ControlRegister) {
+    fn fill_registers<V: IVram, C: Cart>(&mut self, vram: &V, control: ControlRegister, cart: &C) {
         for sprites_fetched in 0..8 {
             let sprite_base = sprites_fetched * 4;
 
@@ -224,8 +217,8 @@ impl SpriteRenderer for SpriteRendererBase {
                     }
                 } + fine_y as u16;
 
-                let pattern_low = vram.read(tile_offset);
-                let pattern_high = vram.read(tile_offset + 8);
+                let pattern_low = vram.read(tile_offset, cart);
+                let pattern_high = vram.read(tile_offset + 8, cart);
 
                 if attribute.flip_horizontally() {
                     (
@@ -247,11 +240,6 @@ impl SpriteRenderer for SpriteRendererBase {
         self.sprite_zero_map = self.sprite_evaluation.sprite_zero_map();
     }
 
-    fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister) {
-        // Current scanline is passed in, we evaluate the sprites for the next scanline
-        self.sprite_evaluation = SpriteEvaluation::new(scanline as u8, control.sprite_size());
-    }
-
     fn current_pixel(&self) -> SpritePixel {
         let mut pixel = 0;
         let mut attributes = SpriteAttributes::default();
@@ -267,12 +255,12 @@ impl SpriteRenderer for SpriteRendererBase {
             }
         }
         let palette = attributes.palette() << 2;
-        let palette_index = (palette | pixel) as usize;
+        let palette_index = palette | pixel;
         SpritePixel {
             value: pixel,
-            priority: attributes.priority(),
-            color: self.palettes[palette_index],
-            is_sprite_zero: is_sprite_zero,
+            has_priority: attributes.priority(),
+            color_index: self.palettes[palette_index as usize],
+            is_sprite_zero,
         }
     }
 }

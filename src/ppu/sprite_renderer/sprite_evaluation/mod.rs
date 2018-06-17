@@ -22,14 +22,14 @@ pub struct SpriteEvaluation {
 impl SpriteEvaluation {
     pub fn new(scanline: u8, sprite_size: SpriteSize) -> Self {
         SpriteEvaluation {
-            scanline: scanline,
+            scanline,
             sprites_found: 0,
             secondary_oam: [0xff; 32],
             sprite_zero_map: 0,
             read_buffer: 0,
             n: 0,
             m: 0,
-            sprite_size: sprite_size,
+            sprite_size,
             sprite_overflow: false,
             cycle: 0,
         }

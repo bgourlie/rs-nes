@@ -6,7 +6,7 @@ mod spec_tests;
 use std::ops::Deref;
 
 /// $2001, Write Only
-/// This register controls the rendering of sprites and backgrounds, as well as colour effects.
+/// This register controls the rendering of sprites and backgrounds, as well as color effects.
 #[derive(Default)]
 pub struct MaskRegister {
     reg: u8,

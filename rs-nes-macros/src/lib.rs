@@ -51,96 +51,111 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
     let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
     for scanline in 0..SCANLINES {
         for x in 0..CYCLES_PER_SCANLINE {
-            let mut flags = 0;
+            let mut cycle_type = 0;
 
             // Check for specific cycle actions
             match (x, scanline) {
-                (1, VBLANK_SCANLINE) => flags |= SET_VBLANK,
-                (1, LAST_SCANLINE) => flags |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
-                (339, LAST_SCANLINE) => flags |= ODD_FRAME_SKIP_CYCLE,
-                (340, LAST_SCANLINE) => flags |= FRAME_INC,
+                (1, VBLANK_SCANLINE) => cycle_type |= SET_VBLANK,
+                (1, LAST_SCANLINE) => cycle_type |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
+                (339, LAST_SCANLINE) => cycle_type |= ODD_FRAME_SKIP_CYCLE,
+                (340, LAST_SCANLINE) => cycle_type |= FRAME_INC,
                 (_, _) => (),
             }
 
             if nt_fetch_cycle(scanline, x) {
-                flags |= FETCH_NT
+                cycle_type |= FETCH_NT
             }
 
             if at_fetch_cycle(scanline, x) {
-                flags |= FETCH_AT
+                cycle_type |= FETCH_AT
             }
 
             if bg_low_fetch_cycle(scanline, x) {
-                flags |= FETCH_BG_LOW
+                cycle_type |= FETCH_BG_LOW
             }
 
             if bg_high_fetch_cycle(scanline, x) {
-                flags |= FETCH_BG_HIGH
+                cycle_type |= FETCH_BG_HIGH
             }
 
             if fill_bg_shift_registers(scanline, x) {
-                flags |= FILL_BG_REGISTERS;
+                cycle_type |= FILL_BG_REGISTERS;
             }
 
             if inc_hori_v_cycle(scanline, x) {
-                flags |= INC_COARSE_X
+                cycle_type |= INC_COARSE_X
             }
 
             if inc_vert_v_cycle(scanline, x) {
-                flags |= INC_FINE_Y
+                cycle_type |= INC_FINE_Y
             }
 
             if hori_v_eq_hori_t_cycle(scanline, x) {
-                flags |= HORI_V_EQ_HORI_T
+                cycle_type |= HORI_V_EQ_HORI_T
             }
 
             if vert_v_eq_vert_t_cycle(scanline, x) {
-                flags |= VERT_V_EQ_VERT_T
+                cycle_type |= VERT_V_EQ_VERT_T
             }
 
             if bg_shift_cycle(scanline, x) {
-                flags |= SHIFT_BG_REGISTERS
+                cycle_type |= SHIFT_BG_REGISTERS
             }
 
             if draw_pixel(scanline, x) {
-                flags |= DRAW_PIXEL
+                cycle_type |= DRAW_PIXEL
             }
 
             if tick_sprite_evaluation(scanline, x) {
-                flags |= TICK_SPRITE_EVALUATION
+                cycle_type |= TICK_SPRITE_EVALUATION
             }
 
             if fill_sprite_evaluation_registers(scanline, x) {
-                flags |= FILL_SPRITE_REGISTERS
+                cycle_type |= FILL_SPRITE_REGISTERS
             }
 
             if sprite_dec_x(scanline, x) {
-                flags |= SPRITE_DEC_X
+                cycle_type |= SPRITE_DEC_X
             }
 
             if start_sprite_evaluation(scanline, x) {
-                flags |= START_SPRITE_EVALUATION
+                cycle_type |= START_SPRITE_EVALUATION
             }
 
-            cycle_number_map.push(flags);
+            cycle_number_map.push(cycle_type);
 
-            if !cycle_type_map.contains_key(&flags) {
-                    let actions = actions(flags);
+            if !cycle_type_map.contains_key(&cycle_type) {
+                    let actions = actions(cycle_type);
                     let cycle_impl = compile_cycle_actions(actions);
-                    cycle_type_map.insert(flags, cycle_impl);
+                    cycle_type_map.insert(cycle_type, cycle_impl);
             }
         }
     }
 
-    let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(flags, cycle_impl)| {
-        let match_arm = quote! { #flags => { #cycle_impl } };
+    // Remap the cycle type to a sequential number that can be represented by a single byte
+    let mut compact_cycle_type_map: HashMap<u32, u8> = HashMap::new();
+
+    let mut compact_cycle_type = 0_u8;
+    for cycle_type in cycle_type_map.keys() {
+        compact_cycle_type_map.insert(*cycle_type, compact_cycle_type);
+        compact_cycle_type += 1;
+    }
+
+    let mut compact_cycle_number_map: Vec<u8> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
+    for cycle_type in cycle_number_map {
+        compact_cycle_number_map.push(*compact_cycle_type_map.get(&cycle_type).unwrap());
+    }
+
+    let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(cycle_type, cycle_impl)| {
+        let compact_cycle_type = compact_cycle_type_map.get(cycle_type);
+        let match_arm = quote! { #compact_cycle_type => { #cycle_impl } };
         match_arm.into()
     }).collect();
 
     let total_cycles = SCANLINES * CYCLES_PER_SCANLINE;
     let step_fn = quote! {
-        fn step(&mut self) -> Interrupt {
-            const CYCLES_MAP: [u32; #total_cycles] = [#(#cycle_number_map),*];
+        fn step<C: Cart>(&mut self, cart: &C) -> Interrupt {
+            const CYCLES_MAP: [u8; #total_cycles] = [#(#compact_cycle_number_map),*];
             let frame_cycle = self.cycles % CYCLES_PER_FRAME;
             let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
             let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
@@ -326,7 +341,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let lines = quote! {
-            self.sprite_renderer.fill_registers(&self.vram, self.control);
+            self.sprite_renderer.fill_registers(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
@@ -359,8 +374,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let lines = quote! {
             // Updating palettes here isn't accurate, but should suffice for now
-            self.background_renderer.update_palettes(&self.vram);
-            self.sprite_renderer.update_palettes(&self.vram);
+            self.background_renderer.update_palettes(&self.vram, cart);
+            self.sprite_renderer.update_palettes(&self.vram, cart);
             self.status.clear_in_vblank();
             self.status.clear_sprite_zero_hit();
         };
@@ -387,25 +402,25 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & FETCH_AT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_attribute_byte(&self.vram);
+            self.background_renderer.fetch_attribute_byte(&self.vram, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_NT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_nametable_byte(&self.vram);
+            self.background_renderer.fetch_nametable_byte(&self.vram, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control);
+            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control);
+            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
@@ -469,7 +484,6 @@ fn cmp_action(a: &Action, b: &Action) -> Ordering {
 
 #[proc_macro_attribute]
 pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
-    println!("Generating PPU loop...");
     let input: proc_macro2::TokenStream = input.into();
     let item: syn::Item = syn::parse2(input).unwrap();
 
@@ -484,6 +498,5 @@ pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
         _ => panic!("`#[ppu_loop]` attached to an unsupported element!"),
     };
 
-    println!("Finished generating PPU loop");
     tokens
 }

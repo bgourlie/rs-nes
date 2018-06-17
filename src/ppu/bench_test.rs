@@ -1,21 +1,14 @@
-use cpu::*;
-use input::InputBase;
-use memory::nes_memory::NesMemoryImpl;
-use ppu::{Ppu, PpuImpl};
-use rom::NesRom;
-use std::rc::Rc;
+use cpu6502::cpu::Interrupt;
+use std::fs::File;
 use test::{black_box, Bencher};
+use {load_cart, NesRom, Nrom128};
 
 #[bench]
 fn bench_frame_time(b: &mut Bencher) {
-    let rom = Rc::new(Box::new(
-        NesRom::read(format!("{}", "test_roms/lawn_mower.nes")).expect("Couldn't find rom file"),
-    ));
-    let ppu = PpuImpl::new(rom.clone());
-    let input = InputBase::default();
-    let mem = NesMemoryImpl::new(rom, ppu, input);
-    let mut cpu = Cpu::new(mem);
-    cpu.reset();
+    let mut rom_file = File::open("test_roms/lawn_mower.nes").expect("Unable to open ROM file");
+    let rom = NesRom::load(&mut rom_file).expect("Unable to load ROM");
+    let cart = Nrom128::new(&rom).expect("Unable to map ROM to cart");
+    let mut cpu = load_cart(cart).expect("Unable to load cart");
 
     b.iter(|| {
         let mut interrupt = black_box(Interrupt::None);

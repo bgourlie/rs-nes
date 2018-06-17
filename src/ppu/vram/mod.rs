@@ -1,19 +1,20 @@
-use super::control_register::IncrementAmount;
-use ppu::write_latch::LatchState;
-use rom::NesRom;
-use std::cell::Cell;
-use std::rc::Rc;
+#[cfg(test)]
+pub mod mocks;
 
 #[cfg(test)]
 mod spec_tests;
 
-pub trait Vram {
-    fn new(rom: Rc<Box<NesRom>>) -> Self;
+use cart::Cart;
+use ppu::control_register::IncrementAmount;
+use ppu::write_latch::LatchState;
+use std::cell::Cell;
+
+pub trait IVram {
     fn write_ppu_addr(&self, latch_state: LatchState);
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount);
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8;
-    fn ppu_data(&self) -> u8;
-    fn read(&self, addr: u16) -> u8;
+    fn write_ppu_data<C: Cart>(&mut self, val: u8, inc_amount: IncrementAmount, cart: &mut C);
+    fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8;
+    fn ppu_data<C: Cart>(&self, cart: &C) -> u8;
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
@@ -24,29 +25,29 @@ pub trait Vram {
     fn fine_x(&self) -> u8;
 }
 
-pub struct VramBase {
+pub struct Vram {
     address: Cell<u16>,
     name_tables: [u8; 0x1000],
     palette: [u8; 0x20],
-    rom: Rc<Box<NesRom>>, // TODO: mapper
     ppu_data_buffer: Cell<u8>,
     t: Cell<u16>,
     fine_x: Cell<u8>,
 }
 
-impl Vram for VramBase {
-    fn new(rom: Rc<Box<NesRom>>) -> Self {
-        VramBase {
+impl Vram {
+    pub fn new() -> Self {
+        Vram {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
             palette: [0; 0x20],
-            rom: rom,
             ppu_data_buffer: Cell::new(0),
             t: Cell::new(0),
             fine_x: Cell::new(0),
         }
     }
+}
 
+impl IVram for Vram {
     fn write_ppu_addr(&self, latch_state: LatchState) {
         // Addresses greater than 0x3fff are mirrored down
         match latch_state {
@@ -66,8 +67,34 @@ impl Vram for VramBase {
         }
     }
 
-    fn read_ppu_data(&self, inc_amount: IncrementAmount) -> u8 {
-        let val = self.ppu_data();
+    fn write_ppu_data<C: Cart>(&mut self, val: u8, inc_amount: IncrementAmount, cart: &mut C) {
+        let addr = self.address.get();
+
+        if addr < 0x2000 {
+            cart.write_chr(addr, val);
+        } else if addr < 0x3f00 {
+            self.name_tables[addr as usize & 0x0fff] = val;
+        } else if addr < 0x4000 {
+            let addr = addr as usize & 0x1f;
+            // Certain sprite addresses are mirrored back into background addresses
+            let addr = match addr & 0xf {
+                0x0 => 0x0,
+                0x4 => 0x4,
+                0x8 => 0x8,
+                0xc => 0xc,
+                _ => addr,
+            };
+            self.palette[addr] = val;
+        }
+
+        match inc_amount {
+            IncrementAmount::One => self.address.set(self.address.get() + 1),
+            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
+        }
+    }
+
+    fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8 {
+        let val = self.ppu_data(cart);
         match inc_amount {
             IncrementAmount::One => self.address.set(self.address.get() + 1),
             IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
@@ -75,9 +102,9 @@ impl Vram for VramBase {
         val
     }
 
-    fn ppu_data(&self) -> u8 {
+    fn ppu_data<C: Cart>(&self, cart: &C) -> u8 {
         let addr = self.address.get();
-        let val = self.read(addr);
+        let val = self.read(addr, cart);
 
         // When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes),
         // the read will return the contents of an internal read buffer. This internal buffer is
@@ -93,39 +120,9 @@ impl Vram for VramBase {
         }
     }
 
-    fn write_ppu_data(&mut self, val: u8, inc_amount: IncrementAmount) {
-        let addr = self.address.get();
-
+    fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8 {
         if addr < 0x2000 {
-            //panic!("write to cart ram not implemented")
-        } else if addr < 0x3f00 {
-            self.name_tables[addr as usize & 0x0fff] = val;
-        } else if addr < 0x4000 {
-            let addr = addr as usize & 0x1f;
-            // Certain sprite addresses are mirrored back into background addresses
-            let addr = match addr & 0xf {
-                0x0 => 0x0,
-                0x4 => 0x4,
-                0x8 => 0x8,
-                0xc => 0xc,
-                _ => addr,
-            };
-            self.palette[addr] = val;
-        } else {
-            //panic!("Invalid VRAM write");
-        }
-
-        match inc_amount {
-            IncrementAmount::One => self.address.set(self.address.get() + 1),
-            IncrementAmount::ThirtyTwo => self.address.set(self.address.get() + 32),
-        }
-    }
-
-    #[allow(inline_always)]
-    #[inline(always)]
-    fn read(&self, addr: u16) -> u8 {
-        if addr < 0x2000 {
-            self.rom.chr[addr as usize]
+            cart.read_chr(addr)
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {
@@ -167,6 +164,7 @@ impl Vram for VramBase {
             }
         }
     }
+
     fn control_write(&self, val: u8) {
         // t: ...BA.. ........ = d: ......BA
         let t = self.t.get() & 0b0111_0011_1111_1111;
