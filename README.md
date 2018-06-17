@@ -3,21 +3,20 @@ A work-in-progress NES emulator written in rust.
 
 ### Debugger
 
-The emulator can be compiled with debugger support. The debugger exposes HTTP endpoints and a websocket endpoint that the debugger front-end interfaces with. You can find the debugger front-end [here](https://github.com/bgourlie/rs-nes-debugger-frontend). You can see it in action on [youtube](https://www.youtube.com/watch?v=YC2FvozglPc).
+The old debugger has been removed as I refactor the code. Checkout [this](https://github.com/bgourlie/rs-nes/commit/178a96a514f0f49d25842c86e83a8b7617be78a7) commit to use the debugger. The demo for the debugger can be seen on [youtube](https://www.youtube.com/watch?v=YC2FvozglPc).
 
 ### Running
 
-The examples folder contains the actual entrypoint files that I use to run and test the emulator. The three hastily named files and their purpose are:
-
-- **functional_test_rom.rs** runs a headless emulator in debugger mode and is hardcoded to execute the functional test rom located at `/test_roms/6502_function_test.bin`. You can invoke this example using the following command: `RUST_LOG=rs_nes cargo run --example functional_test_rom --all-features`.
-
-- **nes_rom.rs** runs a headless emulator in debugger mode that takes as a command line argument the location of the rom you want to execute. You can invoke this example using the following command: `RUST_LOG=rs_nes cargo run --example nes_rom --all-features -- /path/to/rom.nes`.
-
-- **real_time.rs** runs the emulator real-time and takes as a command line argument the location of the rom you want to execute. You can invoke this example using the following command: `RUST_LOG=rs_nes cargo run --example real_time --all-features --release -- /path/to/rom.nes`.
+`cargo run --bin native_client --release --features="native_client"  -- path/to/rom.nes`
 
 ### Current Status
 
-The CPU is fully-implemented and tested. The PPU is fairly accurately emulated but has a few minor bugs. Audio is not implemented yet. It can only run games using mapper 0, or NROM, so only early games (Mario Bros., Super Mario Bros., Excite Bike, etc) will run.
+- The CPU is fully-implemented and well-tested.
+- The PPU is fairly accurately emulated but has a few minor bugs.
+- Audio is not implemented yet.
+- Mappers
+  - NROM (Mario Bros., Super Mario Bros., Excite Bike, etc)
+  - UxROM is partially implemented (Mega Man, Castlevania, Contra, etc)
 
 ### Controls
 
