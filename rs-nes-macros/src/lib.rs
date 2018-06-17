@@ -154,7 +154,7 @@ fn ppu_loop_impl() -> proc_macro2::TokenStream {
 
     let total_cycles = SCANLINES * CYCLES_PER_SCANLINE;
     let step_fn = quote! {
-        fn step(&mut self) -> Interrupt {
+        fn step<C: Cart>(&mut self, cart: &C) -> Interrupt {
             const CYCLES_MAP: [u8; #total_cycles] = [#(#compact_cycle_number_map),*];
             let frame_cycle = self.cycles % CYCLES_PER_FRAME;
             let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
@@ -341,7 +341,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let lines = quote! {
-            self.sprite_renderer.fill_registers(&self.vram, self.control);
+            self.sprite_renderer.fill_registers(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
@@ -374,8 +374,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let lines = quote! {
             // Updating palettes here isn't accurate, but should suffice for now
-            self.background_renderer.update_palettes(&self.vram);
-            self.sprite_renderer.update_palettes(&self.vram);
+            self.background_renderer.update_palettes(&self.vram, cart);
+            self.sprite_renderer.update_palettes(&self.vram, cart);
             self.status.clear_in_vblank();
             self.status.clear_sprite_zero_hit();
         };
@@ -402,25 +402,25 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & FETCH_AT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_attribute_byte(&self.vram);
+            self.background_renderer.fetch_attribute_byte(&self.vram, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_NT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_nametable_byte(&self.vram);
+            self.background_renderer.fetch_nametable_byte(&self.vram, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control);
+            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control);
+            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }

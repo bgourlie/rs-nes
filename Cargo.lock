@@ -614,6 +614,7 @@ name = "rs_nes"
 version = "0.0.1"
 dependencies = [
  "asm6502 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cpu6502 0.1.0 (git+https://github.com/bgourlie/cpu6502)",
  "rand 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rs-nes-macros 0.0.1",

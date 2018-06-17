@@ -3,13 +3,12 @@ extern crate rs_nes;
 extern crate sdl2;
 
 use cpu6502::cpu::Interrupt;
-use rs_nes::{load_cart, Button, IInput, IPpu, NesRom, Nrom256};
+use rs_nes::{load_cart, Button, IInput, IPpu, NesRom, Uxrom};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use std::env;
 use std::fs::File;
-use std::rc::Rc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -36,14 +35,12 @@ pub const PALETTE: [u8; 192] = [
 fn main() {
     // INIT NES
     let rom_path = env::args().last().expect("Unable to determine rom path");
-    let rom_file = File::open(rom_path).expect("Unable to open ROM file");
-    let rom = NesRom::load(rom_file).expect("Unable to load ROM");
+    let mut rom_file = File::open(rom_path).expect("Unable to open ROM file");
+    let rom = NesRom::load(&mut rom_file).expect("Unable to load ROM");
     println!("ROM INFORMATION");
     println!("{:?}", rom);
-    let cart = Rc::new(Box::new(
-        Nrom256::new(rom).expect("Unable to map ROM to cart"),
-    ));
-    let mut cpu = load_cart::<Nrom256>(cart).expect("Unable to load cart");
+    let cart = Uxrom::new(&rom).expect("Unable to map ROM to cart");
+    let mut cpu = load_cart(cart).expect("Unable to load cart");
 
     let sdl_context = sdl2::init().expect("Unable to initialize SDL2");
     let video_subsystem = sdl_context

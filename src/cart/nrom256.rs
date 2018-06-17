@@ -7,10 +7,10 @@ pub struct Nrom256 {
 }
 
 impl Nrom256 {
-    pub fn new(rom: NesRom) -> Result<Self, &'static str> {
+    pub fn new(rom: &NesRom) -> Result<Self, &'static str> {
         if rom.prg.len() != PRG_BANK_SIZE * 2 {
             println!("{}", rom.prg.len());
-            Err("Unexpected PRG ROM size: {}")
+            Err("Unexpected PRG ROM size")
         } else if rom.chr.len() != CHR_BANK_SIZE {
             Err("Unexpected CHR ROM size")
         } else {

@@ -1,7 +1,6 @@
 use cpu6502::cpu::Interconnect;
 use interconnect::NesInterconnect;
 use mocks::{ApuMock, CartMock, InputMock, PpuMock};
-use std::rc::Rc;
 
 #[test]
 fn ram_memory_mapped_read() {
@@ -112,7 +111,7 @@ fn oam_dma_timing_odd_cycle() {
 fn new_fixture() -> NesInterconnect<PpuMock, ApuMock, InputMock, CartMock> {
     NesInterconnect {
         ram: [0_u8; 0x800],
-        rom: Rc::new(Box::new(CartMock::default())),
+        rom: CartMock::default(),
         ppu: PpuMock::default(),
         apu: ApuMock::default(),
         input: InputMock::default(),
