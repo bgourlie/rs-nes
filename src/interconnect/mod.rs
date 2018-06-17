@@ -49,36 +49,49 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> NesInterconnect<P, A, I, C> {
 
 impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A, I, C> {
     fn read(&self, address: u16) -> u8 {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff]
-        } else if address < 0x4000 {
-            self.ppu.read(address, &self.rom)
-        } else if address == 0x4015 {
-            self.apu.read_control()
-        } else if address == 0x4016 {
-            self.input.read(address)
-        } else if address < 0x4018 {
-            0
-        } else if address < 0x8000 {
-            panic!("Read from 0x{:0>4X}", address)
-        } else {
-            self.rom.read_prg(address)
+        match address >> 13 {
+            0b000 => self.ram[address as usize & 0x7ff],
+            0b001 => self.ppu.read(address, &self.rom),
+            0b010 => {
+                if address < 0x4020 {
+                    match address & 0x1f {
+                        0...20 => 0,
+                        21 => self.apu.read_control(),
+                        22 | 23 => self.input.read(address),
+                        24...31 => 0,
+                        _ => unreachable!(),
+                    }
+                } else {
+                    0 // TODO: expansion rom
+                }
+            }
+            0b011 => 0, // TODO: save ram
+            0b100 | 0b101 | 0b110 | 0b111 => self.rom.read_prg(address),
+            _ => unreachable!(),
         }
     }
 
     fn write(&mut self, address: u16, value: u8) {
-        if address < 0x2000 {
-            self.ram[address as usize & 0x7ff] = value
-        } else if address < 0x4000 {
-            self.ppu.write(address, value, &mut self.rom)
-        } else if address == 0x4014 {
-            self.dma_write(value)
-        } else if address == 0x4016 {
-            self.input.write(address, value)
-        } else if address < 0x4018 {
-            self.apu.write(address, value)
-        } else {
-            self.rom.write_prg(address, value);
+        match address >> 13 {
+            0b000 => self.ram[address as usize & 0x7ff] = value,
+            0b001 => self.ppu.write(address, value, &mut self.rom),
+            0b010 => {
+                if address < 0x4020 {
+                    match address & 0x1f {
+                        0...19 => self.apu.write(address, value),
+                        20 => self.dma_write(value),
+                        21 => self.apu.write(address, value),
+                        22 => self.input.write(address, value),
+                        23 => self.apu.write(address, value),
+                        _ => (),
+                    }
+                } else {
+                    () // TODO: expansion rom
+                }
+            }
+            0b011 => (), // TODO: save ram
+            0b100 | 0b101 | 0b110 | 0b111 => self.rom.write_prg(address, value),
+            _ => unreachable!(),
         }
     }
 
