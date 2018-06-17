@@ -10,8 +10,8 @@ extern crate rand;
 #[cfg(test)]
 extern crate test;
 
+extern crate byteorder;
 extern crate cpu6502;
-
 extern crate rs_nes_macros;
 
 mod apu;

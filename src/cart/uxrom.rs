@@ -2,34 +2,30 @@ use cart::Cart;
 use rom::{NesRom, CHR_BANK_SIZE, PRG_BANK_SIZE};
 
 pub struct Uxrom {
-    prg_bank_switchable_1: [u8; PRG_BANK_SIZE],
-    prg_bank_switchable_2: [u8; PRG_BANK_SIZE],
-    prg_bank_fixed: [u8; PRG_BANK_SIZE],
+    prg_bank: [[u8; PRG_BANK_SIZE]; 8],
     chr_rom: [u8; CHR_BANK_SIZE],
-    bank_2_select: bool,
+    bank_select: u8,
 }
 
 impl Uxrom {
     pub fn new(rom: NesRom) -> Result<Self, &'static str> {
-        if rom.prg.len() != PRG_BANK_SIZE * 3 {
+        if rom.prg.len() != PRG_BANK_SIZE * 8 {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size")
         } else if rom.chr.len() != CHR_BANK_SIZE {
             Err("Unexpected CHR ROM size")
         } else {
             let mut cart = Uxrom {
-                prg_bank_switchable_1: [0; PRG_BANK_SIZE],
-                prg_bank_switchable_2: [0; PRG_BANK_SIZE],
-                prg_bank_fixed: [0; PRG_BANK_SIZE],
+                prg_bank: [[0; PRG_BANK_SIZE]; 8],
                 chr_rom: [0; CHR_BANK_SIZE],
-                bank_2_select: false,
+                bank_select: 0,
             };
-            cart.prg_bank_switchable_1
-                .copy_from_slice(&rom.prg[0..PRG_BANK_SIZE]);
-            cart.prg_bank_switchable_2
-                .copy_from_slice(&rom.prg[PRG_BANK_SIZE..(PRG_BANK_SIZE * 2)]);
-            cart.prg_bank_fixed
-                .copy_from_slice(&rom.prg[(PRG_BANK_SIZE * 2)..(PRG_BANK_SIZE * 3)]);
+
+            for i in 0..8 {
+                let start_offset = i * PRG_BANK_SIZE;
+                let end_offset = start_offset + PRG_BANK_SIZE;
+                cart.prg_bank[i].copy_from_slice(&rom.prg[start_offset..end_offset]);
+            }
             cart.chr_rom.copy_from_slice(&rom.chr);
             Ok(cart)
         }
@@ -41,19 +37,16 @@ impl Cart for Uxrom {
         debug_assert!(addr >= 0x8000);
         let addr = addr as usize;
         if addr & 0xc000 == 0x8000 {
-            if self.bank_2_select {
-                self.prg_bank_switchable_2[addr & 0x3fff]
-            } else {
-                self.prg_bank_switchable_1[addr & 0x3fff]
-            }
+            let bank_select = self.bank_select as usize;
+            self.prg_bank[bank_select][addr & 0x3fff]
         } else {
-            self.prg_bank_fixed[addr & 0x3fff]
+            self.prg_bank[7][addr & 0x3fff]
         }
     }
 
     fn write_prg(&mut self, addr: u16, value: u8) {
         if addr & 0x8000 > 0 {
-            self.bank_2_select = value & 0x0f > 0
+            self.bank_select = value & 0x0f
         }
     }
 

@@ -10,6 +10,7 @@ native_client = ["sdl2"]
 [dependencies]
 rs-nes-macros = { path = "rs-nes-macros" }
 cpu6502 = { git = "https://github.com/bgourlie/cpu6502" }
+byteorder = "^1.2.3"
 sdl2 = { git = "https://github.com/bgourlie/rust-sdl2", branch = "sdl-upgrade", features = ["bundled", "static-link"], optional = true }
 
 [dev-dependencies]
