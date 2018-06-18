@@ -11,7 +11,7 @@ impl Nrom256 {
         if rom.prg.len() != PRG_BANK_SIZE * 2 {
             println!("{}", rom.prg.len());
             Err("Unexpected PRG ROM size")
-        } else if rom.chr.len() != CHR_BANK_SIZE {
+        } else if rom.chr_rom_banks > 0 && rom.chr.len() != CHR_BANK_SIZE {
             Err("Unexpected CHR ROM size")
         } else {
             let mut cart = Nrom256 {
@@ -19,7 +19,11 @@ impl Nrom256 {
                 chr_rom: [0; CHR_BANK_SIZE],
             };
             cart.prg_rom.copy_from_slice(&rom.prg);
-            cart.chr_rom.copy_from_slice(&rom.chr);
+
+            if rom.chr_rom_banks > 0 {
+                cart.chr_rom.copy_from_slice(&rom.chr);
+            }
+
             Ok(cart)
         }
     }
@@ -37,5 +41,7 @@ impl Cart for Nrom256 {
         self.chr_rom[addr as usize]
     }
 
-    fn write_chr(&mut self, _: u16, _: u8) {}
+    fn write_chr(&mut self, addr: u16, value: u8) {
+        self.chr_rom[addr as usize] = value
+    }
 }
