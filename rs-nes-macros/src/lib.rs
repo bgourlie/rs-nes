@@ -374,8 +374,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let lines = quote! {
             // Updating palettes here isn't accurate, but should suffice for now
-            self.background_renderer.update_palettes(&self.vram, cart);
-            self.sprite_renderer.update_palettes(&self.vram, cart);
+            self.background_renderer.update_palettes(&self.vram);
+            self.sprite_renderer.update_palettes(&self.vram);
             self.status.clear_in_vblank();
             self.status.clear_sprite_zero_hit();
         };

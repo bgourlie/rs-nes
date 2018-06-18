@@ -18,25 +18,25 @@ pub struct BackgroundRenderer {
 }
 
 impl BackgroundRenderer {
-    pub fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C) {
-        let bg = vram.read::<C>(0x3f00, cart);
+    pub fn update_palettes<V: IVram>(&mut self, vram: &V) {
+        let bg = vram.read_palette(0);
         self.palettes = [
             bg,
-            vram.read::<C>(0x3f01, cart),
-            vram.read::<C>(0x3f02, cart),
-            vram.read::<C>(0x3f03, cart),
+            vram.read_palette(1),
+            vram.read_palette(2),
+            vram.read_palette(3),
             bg,
-            vram.read::<C>(0x3f05, cart),
-            vram.read::<C>(0x3f06, cart),
-            vram.read::<C>(0x3f07, cart),
+            vram.read_palette(5),
+            vram.read_palette(6),
+            vram.read_palette(7),
             bg,
-            vram.read::<C>(0x3f09, cart),
-            vram.read::<C>(0x3f0a, cart),
-            vram.read::<C>(0x3f0b, cart),
+            vram.read_palette(9),
+            vram.read_palette(10),
+            vram.read_palette(11),
             bg,
-            vram.read::<C>(0x3f0d, cart),
-            vram.read::<C>(0x3f0e, cart),
-            vram.read::<C>(0x3f0f, cart),
+            vram.read_palette(13),
+            vram.read_palette(14),
+            vram.read_palette(15),
         ];
     }
 

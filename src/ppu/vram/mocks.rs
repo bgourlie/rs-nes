@@ -55,6 +55,10 @@ impl IVram for MockVram {
         0
     }
 
+    fn read_palette(&self, _: u16) -> u8 {
+        0
+    }
+
     fn addr(&self) -> u16 {
         0
     }
