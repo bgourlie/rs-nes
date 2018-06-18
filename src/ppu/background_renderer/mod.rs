@@ -41,13 +41,14 @@ impl BackgroundRenderer {
     }
 
     pub fn current_pixel(&self, fine_x: u8) -> (u8, u8) {
-        let pattern_low = self.shift_registers[0] << fine_x;
-        let pattern_high = self.shift_registers[1] << fine_x;
-        let palette_low = self.shift_registers[2] << fine_x;
-        let palette_high = self.shift_registers[3] << fine_x;
-        let pattern_bits = (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11;
-        let palette_bits = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
-        let palette_index = (palette_bits | pattern_bits) as usize;
+        let shift = 15 - fine_x;
+        let pattern_low = (self.shift_registers[0] >> shift) as u8 & 1;
+        let pattern_high = (self.shift_registers[1] >> shift) as u8 & 1;
+        let palette_low = (self.shift_registers[2] >> shift) as u8 & 1;
+        let palette_high = (self.shift_registers[3] >> shift) as u8 & 1;
+        let pattern_bits = (pattern_high << 1) | pattern_low;
+        let palette_bits = (palette_high << 1) | palette_low;
+        let palette_index = ((palette_bits << 2) | pattern_bits) as usize;
         let color = self.palettes[palette_index];
         (pattern_bits, color)
     }
