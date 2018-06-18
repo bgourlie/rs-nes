@@ -45,12 +45,11 @@ impl BackgroundRenderer {
         let pattern_high = self.shift_registers[1] << fine_x;
         let palette_low = self.shift_registers[2] << fine_x;
         let palette_high = self.shift_registers[3] << fine_x;
-        let pixel = (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11;
-
-        let palette = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
-        let palette_index = (palette | pixel) as usize;
+        let pattern_bits = (((pattern_high & 0x8000) >> 14) | ((pattern_low & 0x8000) >> 15)) as u8 & 0b11;
+        let palette_bits = (((palette_high & 0x8000) >> 12) | ((palette_low & 0x8000) >> 13)) as u8;
+        let palette_index = (palette_bits | pattern_bits) as usize;
         let color = self.palettes[palette_index];
-        (pixel, color)
+        (pattern_bits, color)
     }
 
     pub fn fill_shift_registers(&mut self, v: u16) {
