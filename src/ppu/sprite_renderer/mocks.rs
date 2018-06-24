@@ -31,7 +31,7 @@ impl ISpriteRenderer for MockSpriteRenderer {
         self.mock_data.set(val)
     }
 
-    fn update_palettes<V: IVram, C: Cart>(&mut self, _: &V, _: &C) {}
+    fn update_palettes<V: IVram>(&mut self, _: &V) {}
 
     fn dec_x_counters(&mut self) {}
 

@@ -15,6 +15,7 @@ pub trait IVram {
     fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8;
     fn ppu_data<C: Cart>(&self, cart: &C) -> u8;
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
+    fn read_palette(&self, addr: u16) -> u8;
     fn addr(&self) -> u16;
     fn scroll_write(&self, latch_state: LatchState);
     fn control_write(&self, val: u8);
@@ -126,19 +127,23 @@ impl IVram for Vram {
         } else if addr < 0x3f00 {
             self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {
-            let addr = addr as usize & 0x1f;
-            // Certain sprite addresses are mirrored back into background addresses
-            let addr = match addr & 0xf {
-                0x0 => 0x0,
-                0x4 => 0x4,
-                0x8 => 0x8,
-                0xc => 0xc,
-                _ => addr,
-            };
-            self.palette[addr]
+            let addr = addr & 0x1f;
+            self.read_palette(addr)
         } else {
             panic!("Invalid vram read")
         }
+    }
+
+    fn read_palette(&self, addr: u16) -> u8 {
+        // Certain sprite addresses are mirrored back into background addresses
+        let addr = match addr & 0xf {
+            0x0 => 0x0,
+            0x4 => 0x4,
+            0x8 => 0x8,
+            0xc => 0xc,
+            _ => addr,
+        };
+        self.palette[addr as usize]
     }
 
     fn addr(&self) -> u16 {

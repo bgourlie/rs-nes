@@ -78,7 +78,7 @@ pub trait ISpriteRenderer: Default {
     fn read_data_increment_addr(&self) -> u8;
     fn write_address(&mut self, addr: u8);
     fn write_data(&mut self, val: u8);
-    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C);
+    fn update_palettes<V: IVram>(&mut self, vram: &V);
     fn dec_x_counters(&mut self);
     fn start_sprite_evaluation(&mut self, scanline: u16, control: ControlRegister);
     fn tick_sprite_evaluation(&mut self);
@@ -142,25 +142,25 @@ impl ISpriteRenderer for SpriteRenderer {
         self.inc_address();
     }
 
-    fn update_palettes<V: IVram, C: Cart>(&mut self, vram: &V, cart: &C) {
-        let bg = vram.read(0x3f00, cart);
+    fn update_palettes<V: IVram>(&mut self, vram: &V) {
+        let bg = vram.read_palette(0);
         self.palettes = [
             bg,
-            vram.read(0x3f11, cart),
-            vram.read(0x3f12, cart),
-            vram.read(0x3f13, cart),
+            vram.read_palette(17),
+            vram.read_palette(18),
+            vram.read_palette(19),
             bg,
-            vram.read(0x3f15, cart),
-            vram.read(0x3f16, cart),
-            vram.read(0x3f17, cart),
+            vram.read_palette(21),
+            vram.read_palette(22),
+            vram.read_palette(23),
             bg,
-            vram.read(0x3f19, cart),
-            vram.read(0x3f1a, cart),
-            vram.read(0x3f1b, cart),
+            vram.read_palette(25),
+            vram.read_palette(26),
+            vram.read_palette(27),
             bg,
-            vram.read(0x3f1d, cart),
-            vram.read(0x3f1e, cart),
-            vram.read(0x3f1f, cart),
+            vram.read_palette(29),
+            vram.read_palette(30),
+            vram.read_palette(31),
         ];
     }
 
