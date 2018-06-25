@@ -2,501 +2,238 @@
 #![feature(proc_macro)]
 #![recursion_limit = "256"]
 
-extern crate proc_macro;
-extern crate proc_macro2;
-extern crate syn;
 #[macro_use]
 extern crate quote;
+#[macro_use]
+extern crate tera;
+#[macro_use]
+extern crate serde_derive;
 
-use proc_macro::TokenStream;
-use std::cmp::Ordering;
-use std::collections::HashMap;
+extern crate proc_macro;
+extern crate proc_macro2;
+extern crate serde;
+extern crate syn;
 
-// Bit flags indicating what occurs on a particular cycle
-const DRAW_PIXEL: u32 = 1;
-const SPRITE_DEC_X: u32 = 1 << 1;
-const SHIFT_BG_REGISTERS: u32 = 1 << 2;
-const FETCH_NT: u32 = 1 << 3;
-const FETCH_AT: u32 = 1 << 4;
-const FETCH_BG_LOW: u32 = 1 << 5;
-const FETCH_BG_HIGH: u32 = 1 << 6;
-const FILL_BG_REGISTERS: u32 = 1 << 7;
-const INC_COARSE_X: u32 = 1 << 8;
-const INC_FINE_Y: u32 = 1 << 9;
-const HORI_V_EQ_HORI_T: u32 = 1 << 10;
-const SET_VBLANK: u32 = 1 << 11;
-const CLEAR_VBLANK_AND_SPRITE_ZERO_HIT: u32 = 1 << 12;
-const VERT_V_EQ_VERT_T: u32 = 1 << 13;
-const ODD_FRAME_SKIP_CYCLE: u32 = 1 << 14;
-const FRAME_INC: u32 = 1 << 15;
-const START_SPRITE_EVALUATION: u32 = 1 << 16;
-const TICK_SPRITE_EVALUATION: u32 = 1 << 17;
-const FILL_SPRITE_REGISTERS: u32 = 1 << 18;
+use serde::ser::SerializeStruct;
+use serde::{Serialize, Serializer};
+use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::prelude::*;
+use std::iter::FromIterator;
+use std::path::Path;
 
-// Timing
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
-const VBLANK_SCANLINE: usize = 241;
-const LAST_SCANLINE: usize = 261;
 
-#[derive(Clone)]
-enum Action {
-    WhenRenderingEnabled(proc_macro2::TokenStream, isize),
-    NoReturnExpression(proc_macro2::TokenStream),
-    ReturnExpression(proc_macro2::TokenStream),
+#[derive(Serialize)]
+enum BlockType {
+    PpuState,
+    BackgroundRendering,
+    SpriteRendering,
 }
 
-fn ppu_loop_impl() -> proc_macro2::TokenStream {
-    let mut cycle_number_map: Vec<u32> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
-    let mut cycle_type_map: HashMap<u32, proc_macro2::TokenStream> = HashMap::new();
+struct Block {
+    block_type: BlockType,
+    short_name: &'static str,
+    description: &'static str,
+    tokens: proc_macro2::TokenStream,
+}
+
+impl Serialize for Block {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Block", 3)?;
+        state.serialize_field("block_type", &self.block_type)?;
+        state.serialize_field("short_name", &self.short_name)?;
+        state.serialize_field("description", &self.description)?;
+        state.serialize_field("tokens", &format!("{}", self.tokens))?;
+        state.end()
+    }
+}
+
+struct BlockDescriptor {
+    cycle_matcher: CycleMatcher,
+    block: Block,
+}
+
+struct CycleMatcher {
+    scanlines: HashSet<usize>,
+    pixels: HashSet<usize>,
+}
+
+#[derive(Serialize)]
+struct Pixel<'a> {
+    blocks: Vec<&'a Block>,
+}
+
+impl CycleMatcher {
+    fn new() -> Self {
+        CycleMatcher {
+            scanlines: HashSet::from_iter(0..SCANLINES),
+            pixels: HashSet::from_iter(0..CYCLES_PER_SCANLINE),
+        }
+    }
+
+    fn on_scanlines<F>(mut self, scanline_matcher: F) -> Self
+    where
+        for<'r> F: FnMut(&'r usize) -> bool,
+    {
+        self.scanlines.retain(scanline_matcher);
+        self
+    }
+
+    fn on_pixels<F>(mut self, pixel_matcher: F) -> Self
+    where
+        for<'r> F: FnMut(&'r usize) -> bool,
+    {
+        self.pixels.retain(pixel_matcher);
+        self
+    }
+
+    fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
+        self.scanlines.contains(&scanline) && self.pixels.contains(&pixel)
+    }
+
+    fn with_block(
+        self,
+        block_type: BlockType,
+        short_name: &'static str,
+        description: &'static str,
+        tokens: proc_macro2::TokenStream,
+    ) -> BlockDescriptor {
+        let block = Block {
+            block_type,
+            short_name,
+            description,
+            tokens,
+        };
+
+        BlockDescriptor {
+            cycle_matcher: self,
+            block,
+        }
+    }
+}
+
+fn build_cycle_legend() {
+    let tera = compile_templates!("rs-nes-macros/templates/**/*");
+    let mut cycle_matchers = Vec::new();
+    cycle_matchers.push(
+        CycleMatcher::new()
+            .on_scanlines(|scanline| scanline < &240)
+            .on_pixels(|pixel| pixel < &256)
+            .with_block(
+                BlockType::PpuState,
+                "output_pixel",
+                "Output Pixel",
+                quote! {
+                    let _ = "OUTPUT PIXEL";
+                },
+            ),
+    );
+
+    cycle_matchers.push(
+        CycleMatcher::new()
+            .on_pixels(|pixel| pixel == &340)
+            .with_block(
+                BlockType::PpuState,
+                "scanline_inc",
+                "Scanline Increment/Pixel Reset",
+                quote! {
+                    let _ = "SCANLINE INCREMENT/PIXEL RESET";
+                },
+            ),
+    );
+
+    cycle_matchers.push(
+        CycleMatcher::new()
+            .on_scanlines(|scanline| scanline == &261)
+            .on_pixels(|pixel| pixel == &340)
+            .with_block(
+                BlockType::PpuState,
+                "scanline_reset",
+                "Scanline Reset/Pixel Reset",
+                quote! {
+                    let _ = "SCANLINE RESET/PIXEL RESET";
+                },
+            ),
+    );
+
+    cycle_matchers.push(
+        CycleMatcher::new()
+            .on_pixels(|pixel| pixel < &340)
+            .with_block(
+                BlockType::PpuState,
+                "pixel_inc",
+                "Pixel Increment",
+                quote! {
+                    let _ = "PIXEL_INCREMENT";
+                },
+            ),
+    );
+
+    let mut block_map: HashMap<&'static str, &Block> = HashMap::new();
+    cycle_matchers.iter().for_each(|matcher| {
+        block_map.insert(matcher.block.description, &matcher.block);
+    });
+
+    let mut scanlines: Vec<Vec<Pixel>> = Vec::with_capacity(SCANLINES);
+
     for scanline in 0..SCANLINES {
-        for x in 0..CYCLES_PER_SCANLINE {
-            let mut cycle_type = 0;
+        println!("processing scanline {}", scanline);
+        let mut pixels: Vec<Pixel> = Vec::with_capacity(CYCLES_PER_SCANLINE);
+        for pixel in 0..CYCLES_PER_SCANLINE {
+            let blocks = cycle_matchers
+                .iter()
+                .filter(|matcher| matcher.cycle_matcher.applies_to(scanline, pixel))
+                .map(|matcher| &matcher.block)
+                .collect();
 
-            // Check for specific cycle actions
-            match (x, scanline) {
-                (1, VBLANK_SCANLINE) => cycle_type |= SET_VBLANK,
-                (1, LAST_SCANLINE) => cycle_type |= CLEAR_VBLANK_AND_SPRITE_ZERO_HIT,
-                (339, LAST_SCANLINE) => cycle_type |= ODD_FRAME_SKIP_CYCLE,
-                (340, LAST_SCANLINE) => cycle_type |= FRAME_INC,
-                (_, _) => (),
-            }
-
-            if nt_fetch_cycle(scanline, x) {
-                cycle_type |= FETCH_NT
-            }
-
-            if at_fetch_cycle(scanline, x) {
-                cycle_type |= FETCH_AT
-            }
-
-            if bg_low_fetch_cycle(scanline, x) {
-                cycle_type |= FETCH_BG_LOW
-            }
-
-            if bg_high_fetch_cycle(scanline, x) {
-                cycle_type |= FETCH_BG_HIGH
-            }
-
-            if fill_bg_shift_registers(scanline, x) {
-                cycle_type |= FILL_BG_REGISTERS;
-            }
-
-            if inc_hori_v_cycle(scanline, x) {
-                cycle_type |= INC_COARSE_X
-            }
-
-            if inc_vert_v_cycle(scanline, x) {
-                cycle_type |= INC_FINE_Y
-            }
-
-            if hori_v_eq_hori_t_cycle(scanline, x) {
-                cycle_type |= HORI_V_EQ_HORI_T
-            }
-
-            if vert_v_eq_vert_t_cycle(scanline, x) {
-                cycle_type |= VERT_V_EQ_VERT_T
-            }
-
-            if bg_shift_cycle(scanline, x) {
-                cycle_type |= SHIFT_BG_REGISTERS
-            }
-
-            if draw_pixel(scanline, x) {
-                cycle_type |= DRAW_PIXEL
-            }
-
-            if tick_sprite_evaluation(scanline, x) {
-                cycle_type |= TICK_SPRITE_EVALUATION
-            }
-
-            if fill_sprite_evaluation_registers(scanline, x) {
-                cycle_type |= FILL_SPRITE_REGISTERS
-            }
-
-            if sprite_dec_x(scanline, x) {
-                cycle_type |= SPRITE_DEC_X
-            }
-
-            if start_sprite_evaluation(scanline, x) {
-                cycle_type |= START_SPRITE_EVALUATION
-            }
-
-            cycle_number_map.push(cycle_type);
-
-            if !cycle_type_map.contains_key(&cycle_type) {
-                    let actions = actions(cycle_type);
-                    let cycle_impl = compile_cycle_actions(actions);
-                    cycle_type_map.insert(cycle_type, cycle_impl);
-            }
+            pixels.push(Pixel { blocks });
         }
+        scanlines.push(pixels);
     }
 
-    // Remap the cycle type to a sequential number that can be represented by a single byte
-    let mut compact_cycle_type_map: HashMap<u32, u8> = HashMap::new();
+    println!("Done processing cycles");
+    let mut context = tera::Context::new();
+    context.add("scanlines", &scanlines);
+    context.add("block_map", &block_map);
 
-    let mut compact_cycle_type = 0_u8;
-    for cycle_type in cycle_type_map.keys() {
-        compact_cycle_type_map.insert(*cycle_type, compact_cycle_type);
-        compact_cycle_type += 1;
-    }
+    println!("rendering legend");
+    let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
+    let legend_dest = Path::new("ppu_cycle_map.html");
 
-    let mut compact_cycle_number_map: Vec<u8> = Vec::with_capacity(SCANLINES * CYCLES_PER_SCANLINE);
-    for cycle_type in cycle_number_map {
-        compact_cycle_number_map.push(*compact_cycle_type_map.get(&cycle_type).unwrap());
-    }
+    println!("writing legend");
+    let mut f = File::create(&legend_dest).expect("Unable to create legend file");
+    f.write(legend_html.as_bytes())
+        .expect("Unable to write legend file");
 
-    let match_arms: Vec<proc_macro2::TokenStream> = cycle_type_map.iter().map(|(cycle_type, cycle_impl)| {
-        let compact_cycle_type = compact_cycle_type_map.get(cycle_type);
-        let match_arm = quote! { #compact_cycle_type => { #cycle_impl } };
-        match_arm.into()
-    }).collect();
-
-    let total_cycles = SCANLINES * CYCLES_PER_SCANLINE;
-    let step_fn = quote! {
-        fn step<C: Cart>(&mut self, cart: &C) -> Interrupt {
-            const CYCLES_MAP: [u8; #total_cycles] = [#(#compact_cycle_number_map),*];
-            let frame_cycle = self.cycles % CYCLES_PER_FRAME;
-            let scanline = (frame_cycle / CYCLES_PER_SCANLINE) as u16;
-            let x = (frame_cycle % CYCLES_PER_SCANLINE) as u16;
-
-            self.cycles += 1;
-
-            match CYCLES_MAP[frame_cycle] {
-                #(#match_arms),*
-                _ => Interrupt::None
-            }
-        }
-    };
-
-    step_fn.into()
-}
-
-fn sprite_dec_x(scanline: usize, x: usize) -> bool {
-    // TODO: Determine for sure which cycles the sprite x counters are decremented
-    (scanline < 240 || scanline == LAST_SCANLINE) && x >= 2 && x <= 256
-}
-
-// This is an approximation, skipping all individual sprite pattern fetches
-fn fill_sprite_evaluation_registers(scanline: usize, x: usize) -> bool {
-    (scanline < 240 || scanline == LAST_SCANLINE) && x == 320
-}
-
-fn start_sprite_evaluation(scanline: usize, x: usize) -> bool {
-    scanline < 240 && x == 65
-}
-
-fn tick_sprite_evaluation(scanline: usize, x: usize) -> bool {
-    scanline < 240 && x > 64 && x <= 256
-}
-
-fn nt_fetch_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_cycle(scanline, x) && !(scanline == LAST_SCANLINE && x > 336) && x % 8 == 1
-}
-
-fn at_fetch_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_cycle(scanline, x) && !(scanline == LAST_SCANLINE && x > 336) && x % 8 == 3
-}
-
-fn bg_low_fetch_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_cycle(scanline, x) && !(scanline == LAST_SCANLINE && x > 336) && x % 8 == 5
-}
-
-fn bg_high_fetch_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_cycle(scanline, x) && !(scanline == LAST_SCANLINE && x > 336) && x % 8 == 7
-}
-
-fn bg_rendering_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && ((x > 0 && x < 258) || x > 320)
-}
-
-fn bg_rendering_scanline(scanline: usize) -> bool {
-    scanline < 240 || scanline == 261
-}
-
-fn inc_hori_v_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_cycle(scanline, x) && (x < 256 || x > 320) && x % 8 == 0
-}
-
-fn inc_vert_v_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && x == 256
-}
-
-fn hori_v_eq_hori_t_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && x == 257
-}
-
-fn vert_v_eq_vert_t_cycle(scanline: usize, x: usize) -> bool {
-    scanline == 261 && (x >= 280 && x <= 304)
-}
-
-fn bg_shift_cycle(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && (x >= 2 && x <= 257) || (x >= 322 && x <= 337)
-}
-
-fn fill_bg_shift_registers(scanline: usize, x: usize) -> bool {
-    bg_rendering_scanline(scanline) && ((x > 8 && x <= 257) && (x - 1) % 8 == 0)
-        || (x == 329 || x == 337)
-}
-
-fn draw_pixel(scanline: usize, x: usize) -> bool {
-    x >= 2 && x <= 257 && scanline < 240
-}
-
-fn compile_cycle_actions(actions: Vec<Action>) -> proc_macro2::TokenStream {
-    let mut no_return: Vec<Action> = Vec::new();
-    let mut when_rendering_enabled: Vec<Action> = Vec::new();
-    let mut returns: Option<Action> = None;
-
-    for action in actions {
-        match action {
-            Action::ReturnExpression(_) => {
-                if returns.is_some() {
-                    panic!("cannot have two return actions")
-                } else {
-                    returns = Some(action.clone());
-                }
-            }
-            Action::WhenRenderingEnabled(_, _) => when_rendering_enabled.push(action.clone()),
-            Action::NoReturnExpression(_) => no_return.push(action.clone()),
-        }
-    }
-
-    let mut lines = Vec::<proc_macro2::TokenStream>::new();
-    for action in no_return {
-        if let Action::NoReturnExpression(token_stream) = action {
-            lines.push(token_stream);
-        } else {
-            panic!("only no return items should be in here")
-        }
-    }
-
-    if when_rendering_enabled.len() > 0 {
-        let mut rendering_enabled_tokens = Vec::<proc_macro2::TokenStream>::new();
-        when_rendering_enabled.sort_by(|a, b| {
-            let a = match a {
-                &Action::WhenRenderingEnabled(_, order) => order,
-                _ => 0,
-            };
-
-            let b = match b {
-                &Action::WhenRenderingEnabled(_, order) => order,
-                _ => 0,
-            };
-
-            a.cmp(&b)
-        });
-
-        for action in when_rendering_enabled {
-            if let Action::WhenRenderingEnabled(action_lines, _) = action {
-                rendering_enabled_tokens.push(action_lines);
-            } else {
-                panic!("only no return items should be in here")
-            }
-        }
-
-        let rendering_enabled_body = quote! {
-            if self.mask.rendering_enabled() {
-                #(#rendering_enabled_tokens)*
-            }
-        };
-
-        lines.push(rendering_enabled_body.into());
-    }
-
-    if let Some(action) = returns {
-        if let Action::ReturnExpression(action_lines) = action {
-            lines.push(action_lines);
-        } else {
-            panic!("only no return items should be in here")
-        }
-    } else {
-        let line = quote! { Interrupt::None };
-        lines.push(line.into())
-    }
-
-    let cycle_impl = quote!{ #(#lines)* };
-    cycle_impl.into()
-}
-
-fn actions(cycle_type: u32) -> Vec<Action> {
-    let mut actions = Vec::new();
-
-    if cycle_type == 0 {
-        let lines = quote!{};
-        actions.push(Action::NoReturnExpression(lines.into()))
-    }
-
-    if cycle_type & START_SPRITE_EVALUATION > 0 {
-        let lines = quote! {
-            self.sprite_renderer.start_sprite_evaluation(scanline, self.control);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 10))
-    }
-
-    if cycle_type & SPRITE_DEC_X > 0 {
-        let output = quote! { self.sprite_renderer.dec_x_counters(); };
-        actions.push(Action::WhenRenderingEnabled(output.into(), 0))
-    }
-
-    if cycle_type & FILL_SPRITE_REGISTERS > 0 {
-        let lines = quote! {
-            self.sprite_renderer.fill_registers(&self.vram, self.control, cart);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-
-    if cycle_type & TICK_SPRITE_EVALUATION > 0 {
-        let lines = quote! {
-            self.sprite_renderer.tick_sprite_evaluation();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 100))
-    }
-
-    if cycle_type & DRAW_PIXEL > 0 {
-        let lines = quote! {
-            self.draw_pixel(x, scanline);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), -10000))
-    }
-
-    if cycle_type & SET_VBLANK > 0 {
-        let lines = quote! {
-            self.status.set_in_vblank();
-            if self.control.nmi_on_vblank_start() {
-                Interrupt::Nmi
-            } else {
-               Interrupt::None
-            }
-        };
-        actions.push(Action::ReturnExpression(lines.into()))
-    }
-    if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
-        let lines = quote! {
-            // Updating palettes here isn't accurate, but should suffice for now
-            self.background_renderer.update_palettes(&self.vram, cart);
-            self.sprite_renderer.update_palettes(&self.vram, cart);
-            self.status.clear_in_vblank();
-            self.status.clear_sprite_zero_hit();
-        };
-
-        actions.push(Action::NoReturnExpression(lines.into()))
-    }
-    if cycle_type & INC_COARSE_X > 0 {
-        let lines = quote! {
-            self.vram.coarse_x_increment();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & INC_FINE_Y > 0 {
-        let lines = quote! {
-            self.vram.fine_y_increment();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & HORI_V_EQ_HORI_T > 0 {
-        let lines = quote! {
-            self.vram.copy_horizontal_pos_to_addr();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & FETCH_AT > 0 {
-        let lines = quote! {
-            self.background_renderer.fetch_attribute_byte(&self.vram, cart);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & FETCH_NT > 0 {
-        let lines = quote! {
-            self.background_renderer.fetch_nametable_byte(&self.vram, cart);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & FETCH_BG_LOW > 0 {
-        let lines = quote! {
-            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control, cart);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & FETCH_BG_HIGH > 0 {
-        let lines = quote! {
-            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control, cart);
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & ODD_FRAME_SKIP_CYCLE > 0 {
-        let lines = quote! {
-            // This is the last cycle for odd frames
-            // The additional cycle increment puts us to pixel 0,0
-            if self.odd_frame && self.mask.show_background() {
-                self.cycles += 1;
-                self.odd_frame = false;
-            }
-        };
-        actions.push(Action::NoReturnExpression(lines.into()))
-    }
-    if cycle_type & FRAME_INC > 0 {
-        let lines = quote! {
-            // This is the last cycle for even frames and when rendering disabled
-            self.odd_frame = !self.odd_frame;
-        };
-        actions.push(Action::NoReturnExpression(lines.into()))
-    }
-    if cycle_type & SHIFT_BG_REGISTERS > 0 {
-        let lines = quote! {
-            self.background_renderer.tick_shifters();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & VERT_V_EQ_VERT_T > 0 {
-        let lines = quote! {
-            self.vram.copy_vertical_pos_to_addr();
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    if cycle_type & FILL_BG_REGISTERS > 0 {
-        let lines = quote! {
-            self.background_renderer.fill_shift_registers(self.vram.addr());
-        };
-        actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
-    }
-    actions.sort_by(cmp_action);
-    actions
-}
-
-fn cmp_action(a: &Action, b: &Action) -> Ordering {
-    match a {
-        &Action::NoReturnExpression(_) => match b {
-            &Action::NoReturnExpression(_) => Ordering::Equal,
-            _ => Ordering::Less,
-        },
-        &Action::ReturnExpression(_) => match b {
-            &Action::ReturnExpression(_) => Ordering::Equal,
-            _ => Ordering::Greater,
-        },
-        &Action::WhenRenderingEnabled(_, order_a) => match b {
-            &Action::WhenRenderingEnabled(_, order_b) => order_a.cmp(&order_b),
-            &Action::NoReturnExpression(_) => Ordering::Greater,
-            &Action::ReturnExpression(_) => Ordering::Less,
-        },
-    }
+    println!("done!");
 }
 
 #[proc_macro_attribute]
-pub fn ppu_loop(_: TokenStream, input: TokenStream) -> TokenStream {
-    let input: proc_macro2::TokenStream = input.into();
-    let item: syn::Item = syn::parse2(input).unwrap();
+pub fn ppu_loop(
+    _: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    build_cycle_legend();
+    //    let input: proc_macro2::TokenStream = input.into();
+    //    let item: syn::Item = syn::parse2(input).unwrap();
+    //
+    //    let tokens = match item {
+    //        syn::Item::Fn(ref function) => match function.decl.output {
+    //            syn::ReturnType::Type(_, ref ty) => match ty {
+    //                box syn::Type::Path(_) => ppu_loop_impl().into(),
+    //                _ => panic!("it's not path!"),
+    //            },
+    //            _ => panic!("It's not a type!"),
+    //        },
+    //        _ => panic!("`#[ppu_loop]` attached to an unsupported element!"),
+    //    };
+    //
+    //    tokens
 
-    let tokens = match item {
-        syn::Item::Fn(ref function) => match function.decl.output {
-            syn::ReturnType::Type(_, ref ty) => match ty {
-                box syn::Type::Path(_) => ppu_loop_impl().into(),
-                _ => panic!("it's not path!"),
-            },
-            _ => panic!("It's not a type!"),
-        },
-        _ => panic!("`#[ppu_loop]` attached to an unsupported element!"),
-    };
-
-    tokens
+    input
 }

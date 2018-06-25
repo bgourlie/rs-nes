@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PPU Cycle Legend</title>
+    <style type="text/css">
+        .r { /* row */
+            display: flex;
+        }
+
+        .p { /* pixel */
+            display: flex;
+            height: 4px;
+            width: 4px;
+            margin: 0 1px 1px 0;
+            background-color: black;
+            opacity: 0.5;
+        }
+
+        .output_pixel { /* visible */
+            opacity: 1
+        }
+    </style>
+</head>
+<body>
+{% for scanline in scanlines %}
+    <div class="r">
+    {% for pixel in scanline %}
+        <div class="p {% for block in pixel.blocks %}{{block.short_name}} {% endfor %}"></div>
+    {% endfor %}
+    </div>
+{% endfor %}
+
+{% for description, block in block_map %}
+<div>
+    <h4>{{description}}</h4>
+    <pre>{{block.tokens}}</pre>
+</div>
+{% endfor %}
+</body>
+</html>
