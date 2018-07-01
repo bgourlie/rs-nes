@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <title>PPU Cycle Legend</title>
     <style type="text/css">
-        .r { /* row */
-            display: flex;
+        #scanlines {
+            white-space: nowrap;
+        }
+
+        .r {
+            height: 4px;
+            margin: 0 0 1px 0;
         }
 
         .p { /* pixel */
-            display: flex;
+            display: inline-block;
             height: 4px;
             width: 4px;
-            margin: 0 1px 1px 0;
+            margin: 0 1px 0 0;
             background-color: black;
             opacity: 0.5;
         }
@@ -23,13 +28,17 @@
     </style>
 </head>
 <body>
-{% for scanline in scanlines %}
+
+<div id="scanlines">
+    {%- for scanline in scanlines -%}
     <div class="r">
-    {% for pixel in scanline %}
-        <div class="p {% for block in pixel.blocks %}{{block.short_name}} {% endfor %}"></div>
-    {% endfor %}
+        {%- for pixel in scanline -%}
+        <div id="{{pixel.scanline}}-{{pixel.pixel}}"
+             class="p {% for block in pixel.blocks %}{{block.short_name}} {% endfor %}"></div>
+        {%- endfor -%}
     </div>
-{% endfor %}
+    {%- endfor -%}
+</div>
 
 {% for description, block in block_map %}
 <div>
@@ -37,5 +46,17 @@
     <pre>{{block.tokens}}</pre>
 </div>
 {% endfor %}
+
+<script>
+    const scanlineContainer = document.getElementById("scanlines");
+    scanlineContainer.addEventListener("mouseover", (e) => {
+        if (!e.target.classList.contains("p")) {
+            return
+        }
+
+        const [scanline, pixel] = e.target.id.split("-");
+        console.log(`Scanline ${scanline} Pixel ${pixel}`);
+    });
+</script>
 </body>
 </html>

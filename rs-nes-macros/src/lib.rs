@@ -65,6 +65,8 @@ struct CycleMatcher {
 
 #[derive(Serialize)]
 struct Pixel<'a> {
+    scanline: usize,
+    pixel: usize,
     blocks: Vec<&'a Block>,
 }
 
@@ -191,7 +193,7 @@ fn build_cycle_legend() {
                 .map(|matcher| &matcher.block)
                 .collect();
 
-            pixels.push(Pixel { blocks });
+            pixels.push(Pixel { scanline, pixel, blocks });
         }
         scanlines.push(pixels);
     }
