@@ -16,8 +16,10 @@ extern crate syn;
 
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
+use std::cmp::{Eq, PartialEq};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::prelude::*;
 use std::iter::FromIterator;
 use std::path::Path;
@@ -25,18 +27,48 @@ use std::path::Path;
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
 
-#[derive(Serialize)]
+#[derive(Serialize, Hash, Eq, PartialEq, Debug)]
 enum BlockType {
     PpuState,
     BackgroundRendering,
     SpriteRendering,
 }
 
+impl ToString for BlockType {
+    fn to_string(&self) -> String {
+        match *self {
+            BlockType::PpuState => "PPU State".to_string(),
+            BlockType::BackgroundRendering => "Background Rendering".to_string(),
+            BlockType::SpriteRendering => "Sprite Rendering".to_string(),
+        }
+    }
+}
+
 struct Block {
     block_type: BlockType,
-    short_name: &'static str,
-    description: &'static str,
     tokens: proc_macro2::TokenStream,
+}
+
+impl ToString for Block {
+    fn to_string(&self) -> String {
+        format!("{}", self.tokens)
+    }
+}
+
+impl PartialEq for Block {
+    fn eq(&self, other: &Block) -> bool {
+        self.block_type == other.block_type
+            && format!("{}", self.tokens) == format!("{}", other.tokens)
+    }
+}
+
+impl Eq for Block {}
+
+impl Hash for Block {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.block_type.hash(state);
+        format!("{}", self.tokens).hash(state);
+    }
 }
 
 impl Serialize for Block {
@@ -44,37 +76,27 @@ impl Serialize for Block {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Block", 3)?;
+        let mut state = serializer.serialize_struct("Block", 2)?;
         state.serialize_field("block_type", &self.block_type)?;
-        state.serialize_field("short_name", &self.short_name)?;
-        state.serialize_field("description", &self.description)?;
         state.serialize_field("tokens", &format!("{}", self.tokens))?;
         state.end()
     }
 }
 
-struct BlockDescriptor {
-    cycle_matcher: CycleMatcher,
-    block: Block,
-}
-
-struct CycleMatcher {
+struct BlockDescriptorBuilder {
     scanlines: HashSet<usize>,
     pixels: HashSet<usize>,
+    tags: Vec<&'static str>,
+    block: Option<Block>,
 }
 
-#[derive(Serialize)]
-struct Pixel<'a> {
-    scanline: usize,
-    pixel: usize,
-    blocks: Vec<&'a Block>,
-}
-
-impl CycleMatcher {
+impl BlockDescriptorBuilder {
     fn new() -> Self {
-        CycleMatcher {
+        BlockDescriptorBuilder {
             scanlines: HashSet::from_iter(0..SCANLINES),
             pixels: HashSet::from_iter(0..CYCLES_PER_SCANLINE),
+            tags: Vec::new(),
+            block: None,
         }
     }
 
@@ -94,114 +116,219 @@ impl CycleMatcher {
         self
     }
 
-    fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
-        self.scanlines.contains(&scanline) && self.pixels.contains(&pixel)
+    fn excluding(mut self, other_matcher: &BlockDescriptor) -> Self {
+        self.scanlines
+            .retain(|s| !other_matcher.scanlines.contains(s));
+        self.pixels.retain(|p| !other_matcher.pixels.contains(p));
+        self
     }
 
     fn with_block(
-        self,
+        mut self,
         block_type: BlockType,
-        short_name: &'static str,
-        description: &'static str,
         tokens: proc_macro2::TokenStream,
-    ) -> BlockDescriptor {
-        let block = Block {
-            block_type,
-            short_name,
-            description,
-            tokens,
-        };
+    ) -> BlockDescriptorBuilder {
+        let block = Block { block_type, tokens };
+        self.block = Some(block);
+        self
+    }
 
+    fn build(self) -> BlockDescriptor {
         BlockDescriptor {
-            cycle_matcher: self,
-            block,
+            scanlines: self.scanlines,
+            pixels: self.pixels,
+            tags: self.tags,
+            block: self
+                .block
+                .expect("You must specify a block before building"),
         }
     }
 }
 
+struct BlockDescriptor {
+    scanlines: HashSet<usize>,
+    pixels: HashSet<usize>,
+    tags: Vec<&'static str>,
+    block: Block,
+}
+
+impl BlockDescriptor {
+    fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
+        self.scanlines.contains(&scanline) && self.pixels.contains(&pixel)
+    }
+}
+
+#[derive(Serialize, Hash, PartialEq, Eq)]
+struct CycleImplementation<'a> {
+    cycle_id: usize,
+    blocks: Vec<&'a Block>,
+}
+
+#[derive(Serialize)]
+struct Pixel<'a> {
+    scanline: usize,
+    pixel: usize,
+    cycle_implementation: CycleImplementation<'a>,
+}
+
 fn build_cycle_legend() {
-    let tera = compile_templates!("rs-nes-macros/templates/**/*");
-    let mut cycle_matchers = Vec::new();
-    cycle_matchers.push(
-        CycleMatcher::new()
+    let cycle_descriptors = {
+        let output_pixel_descriptor = BlockDescriptorBuilder::new()
             .on_scanlines(|scanline| scanline < &240)
             .on_pixels(|pixel| pixel < &256)
             .with_block(
                 BlockType::PpuState,
-                "output_pixel",
-                "Output Pixel",
                 quote! {
                     let _ = "OUTPUT PIXEL";
                 },
-            ),
-    );
+            )
+            .build();
 
-    cycle_matchers.push(
-        CycleMatcher::new()
-            .on_pixels(|pixel| pixel == &340)
-            .with_block(
-                BlockType::PpuState,
-                "scanline_inc",
-                "Scanline Increment/Pixel Reset",
-                quote! {
-                    let _ = "SCANLINE INCREMENT/PIXEL RESET";
-                },
-            ),
-    );
-
-    cycle_matchers.push(
-        CycleMatcher::new()
+        let scanline_reset_descriptor = BlockDescriptorBuilder::new()
             .on_scanlines(|scanline| scanline == &261)
             .on_pixels(|pixel| pixel == &340)
             .with_block(
                 BlockType::PpuState,
-                "scanline_reset",
-                "Scanline Reset/Pixel Reset",
                 quote! {
                     let _ = "SCANLINE RESET/PIXEL RESET";
                 },
-            ),
-    );
+            )
+            .build();
 
-    cycle_matchers.push(
-        CycleMatcher::new()
+        let scanline_inc_descriptor = BlockDescriptorBuilder::new()
+            .on_pixels(|pixel| pixel == &340)
+            .excluding(&scanline_reset_descriptor)
+            .with_block(
+                BlockType::PpuState,
+                quote! {
+                    let _ = "SCANLINE INCREMENT/PIXEL RESET";
+                },
+            )
+            .build();
+
+        let pixel_increment_descriptor = BlockDescriptorBuilder::new()
             .on_pixels(|pixel| pixel < &340)
             .with_block(
                 BlockType::PpuState,
-                "pixel_inc",
-                "Pixel Increment",
                 quote! {
                     let _ = "PIXEL_INCREMENT";
                 },
-            ),
-    );
+            )
+            .build();
 
-    let mut block_map: HashMap<&'static str, &Block> = HashMap::new();
-    cycle_matchers.iter().for_each(|matcher| {
-        block_map.insert(matcher.block.description, &matcher.block);
-    });
+        let mut descriptors = Vec::new();
+        descriptors.push(output_pixel_descriptor);
+        descriptors.push(scanline_inc_descriptor);
+        descriptors.push(scanline_reset_descriptor);
+        descriptors.push(pixel_increment_descriptor);
 
+        descriptors
+    };
+
+    let mut cycle_id_map: HashMap<Vec<&Block>, usize> = HashMap::new();
+    let mut current_block_id = 0;
     let mut scanlines: Vec<Vec<Pixel>> = Vec::with_capacity(SCANLINES);
-
     for scanline in 0..SCANLINES {
         println!("processing scanline {}", scanline);
         let mut pixels: Vec<Pixel> = Vec::with_capacity(CYCLES_PER_SCANLINE);
         for pixel in 0..CYCLES_PER_SCANLINE {
-            let blocks = cycle_matchers
+            let blocks = cycle_descriptors
                 .iter()
-                .filter(|matcher| matcher.cycle_matcher.applies_to(scanline, pixel))
-                .map(|matcher| &matcher.block)
-                .collect();
+                .filter(|descriptor| descriptor.applies_to(scanline, pixel))
+                .map(|descriptor| &descriptor.block)
+                .collect::<Vec<&Block>>();
 
-            pixels.push(Pixel { scanline, pixel, blocks });
+            if !cycle_id_map.contains_key(&blocks) {
+                cycle_id_map.insert(blocks.clone(), current_block_id);
+                current_block_id += 1;
+            }
+
+            let cycle_id = *cycle_id_map.get(&blocks).unwrap();
+
+            let cycle_implementation = CycleImplementation { cycle_id, blocks };
+
+            pixels.push(Pixel {
+                scanline,
+                pixel,
+                cycle_implementation,
+            });
         }
         scanlines.push(pixels);
     }
 
-    println!("Done processing cycles");
+    println!(
+        "Done processing cycles, {} distinct blocks",
+        cycle_id_map.len()
+    );
+
+    let cycle_code_map = {
+        let mut map: HashMap<usize, String> = HashMap::new();
+
+        for (blocks, cycle_id) in cycle_id_map.iter() {
+            let bg_code = {
+                let mut code = String::new();
+                blocks
+                    .iter()
+                    .filter(|b| b.block_type == BlockType::BackgroundRendering)
+                    .for_each(|b| {
+                        code.push_str(&b.to_string());
+                        code.push_str("\n");
+                    });
+                code
+            };
+            let sprite_code = {
+                let mut code = String::new();
+                blocks
+                    .iter()
+                    .filter(|b| b.block_type == BlockType::SpriteRendering)
+                    .for_each(|b| {
+                        code.push_str(&b.to_string());
+                        code.push_str("\n");
+                    });
+
+                code
+            };
+
+            let state_code = {
+                let mut code = String::new();
+                blocks
+                    .iter()
+                    .filter(|b| b.block_type == BlockType::PpuState)
+                    .for_each(|b| {
+                        code.push_str(&b.to_string());
+                        code.push_str("\n");
+                    });
+
+                code
+            };
+
+            let mut code = String::new();
+
+            if bg_code.len() > 0 {
+                code.push_str("// BACKGROUND RENDERING\n\n");
+                code.push_str(&bg_code);
+            }
+
+            if sprite_code.len() > 0 {
+                code.push_str("// SPRITE RENDERING\n\n");
+                code.push_str(&sprite_code);
+            }
+
+            if state_code.len() > 0 {
+                code.push_str("// PPU STATE\n\n");
+                code.push_str(&state_code);
+            }
+
+            map.insert(*cycle_id, code);
+        }
+
+        map
+    };
+
+    let tera = compile_templates!("rs-nes-macros/templates/**/*");
     let mut context = tera::Context::new();
     context.add("scanlines", &scanlines);
-    context.add("block_map", &block_map);
+    context.add("cycle_code_map", &cycle_code_map);
 
     println!("rendering legend");
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();

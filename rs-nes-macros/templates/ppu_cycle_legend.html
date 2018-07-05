@@ -34,16 +34,16 @@
     <div class="r">
         {%- for pixel in scanline -%}
         <div id="{{pixel.scanline}}-{{pixel.pixel}}"
-             class="p {% for block in pixel.blocks %}{{block.short_name}} {% endfor %}"></div>
+             class="p {% for block in pixel.cycle_implementation.blocks %}{% endfor %}"></div>
         {%- endfor -%}
     </div>
     {%- endfor -%}
 </div>
 
-{% for description, block in block_map %}
+{% for cycle_id, code in cycle_code_map %}
 <div>
-    <h4>{{description}}</h4>
-    <pre>{{block.tokens}}</pre>
+    <h4>Cycle {{cycle_id}}</h4>
+    <pre>{{code}}</pre>
 </div>
 {% endfor %}
 
