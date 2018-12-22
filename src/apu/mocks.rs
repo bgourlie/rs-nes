@@ -1,4 +1,4 @@
-use apu::IApu;
+use crate::apu::IApu;
 
 #[derive(Default)]
 pub struct ApuMock {

@@ -4,9 +4,9 @@ pub mod mocks;
 #[cfg(test)]
 mod spec_tests;
 
-use cart::Cart;
-use ppu::control_register::IncrementAmount;
-use ppu::write_latch::LatchState;
+use crate::cart::Cart;
+use crate::ppu::control_register::IncrementAmount;
+use crate::ppu::write_latch::LatchState;
 use std::cell::Cell;
 
 pub trait IVram {

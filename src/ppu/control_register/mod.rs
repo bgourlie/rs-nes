@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod spec_tests;
 
-use ppu::SpriteSize;
+use crate::ppu::SpriteSize;
 use std::ops::Deref;
 
 #[derive(Debug, PartialEq)]

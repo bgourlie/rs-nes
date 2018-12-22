@@ -1,6 +1,6 @@
 use cpu6502::cpu::Interconnect;
-use interconnect::NesInterconnect;
-use mocks::{ApuMock, CartMock, InputMock, PpuMock};
+use crate::interconnect::NesInterconnect;
+use crate::mocks::{ApuMock, CartMock, InputMock, PpuMock};
 
 #[test]
 fn ram_memory_mapped_read() {

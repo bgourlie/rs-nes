@@ -1,7 +1,7 @@
 #![cfg_attr(rustfmt, rustfmt_skip)]
 
 use super::*;
-use ppu::SpriteSize;
+use crate::ppu::SpriteSize;
 
 #[test]
 fn sprite_evaluation() {

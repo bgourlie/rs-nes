@@ -1,4 +1,4 @@
-use input::{Button, IInput};
+use crate::input::{Button, IInput};
 
 #[derive(Default)]
 pub struct InputMock;

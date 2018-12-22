@@ -6,11 +6,11 @@ mod spec_tests;
 
 mod sprite_evaluation;
 
-use cart::Cart;
-use ppu::control_register::ControlRegister;
-use ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
-use ppu::vram::IVram;
-use ppu::SpriteSize;
+use crate::cart::Cart;
+use crate::ppu::control_register::ControlRegister;
+use crate::ppu::sprite_renderer::sprite_evaluation::SpriteEvaluation;
+use crate::ppu::vram::IVram;
+use crate::ppu::SpriteSize;
 use std::cell::Cell;
 use std::num::Wrapping;
 

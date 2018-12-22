@@ -1,10 +1,10 @@
-use mocks::{CartMock, MockSpriteRenderer, MockVram};
-use ppu::background_renderer::BackgroundRenderer;
-use ppu::control_register::ControlRegister;
-use ppu::mask_register::MaskRegister;
-use ppu::status_register::StatusRegister;
-use ppu::write_latch::WriteLatch;
-use ppu::{IPpu, Ppu, CYCLES_PER_SCANLINE, SCREEN_HEIGHT, SCREEN_WIDTH};
+use crate::mocks::{CartMock, MockSpriteRenderer, MockVram};
+use crate::ppu::background_renderer::BackgroundRenderer;
+use crate::ppu::control_register::ControlRegister;
+use crate::ppu::mask_register::MaskRegister;
+use crate::ppu::status_register::StatusRegister;
+use crate::ppu::write_latch::WriteLatch;
+use crate::ppu::{IPpu, Ppu, CYCLES_PER_SCANLINE, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 #[test]
 fn write() {

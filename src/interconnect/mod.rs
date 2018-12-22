@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod spec_tests;
 
-use apu::IApu;
-use cart::Cart;
+use crate::apu::IApu;
+use crate::cart::Cart;
 use cpu6502::cpu::{Interconnect, Interrupt};
-use input::IInput;
-use ppu::IPpu;
+use crate::input::IInput;
+use crate::ppu::IPpu;
 
 pub struct NesInterconnect<P: IPpu, A: IApu, I: IInput, C: Cart> {
     ram: [u8; 0x800],

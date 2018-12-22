@@ -16,16 +16,16 @@ mod vram;
 mod write_latch;
 
 use self::write_latch::WriteLatch;
-use cart::Cart;
+use crate::cart::Cart;
 use cpu6502::cpu::Interrupt;
-use ppu::background_renderer::BackgroundRenderer;
-use ppu::control_register::ControlRegister;
-use ppu::mask_register::MaskRegister;
-pub use ppu::sprite_renderer::SpriteRenderer;
-use ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
-use ppu::status_register::StatusRegister;
-use ppu::vram::IVram;
-pub use ppu::vram::Vram;
+use crate::ppu::background_renderer::BackgroundRenderer;
+use crate::ppu::control_register::ControlRegister;
+use crate::ppu::mask_register::MaskRegister;
+pub use crate::ppu::sprite_renderer::SpriteRenderer;
+use crate::ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
+use crate::ppu::status_register::StatusRegister;
+use crate::ppu::vram::IVram;
+pub use crate::ppu::vram::Vram;
 use rs_nes_macros::ppu_loop;
 
 const SCANLINES: usize = 262;

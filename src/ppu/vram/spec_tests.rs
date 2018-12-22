@@ -1,7 +1,7 @@
-use mocks::CartMock;
-use ppu::control_register::IncrementAmount;
-use ppu::vram::{IVram, Vram};
-use ppu::write_latch::LatchState;
+use crate::mocks::CartMock;
+use crate::ppu::control_register::IncrementAmount;
+use crate::ppu::vram::{IVram, Vram};
+use crate::ppu::write_latch::LatchState;
 
 #[test]
 fn write_address() {

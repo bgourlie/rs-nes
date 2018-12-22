@@ -1,4 +1,3 @@
-#![feature(proc_macro)]
 #![feature(test)]
 
 #[cfg(test)]
@@ -21,22 +20,22 @@ mod interconnect;
 mod ppu;
 mod rom;
 
-pub use apu::Apu;
-pub use cart::{Cart, Nrom128, Nrom256, Uxrom};
+pub use crate::apu::Apu;
+pub use crate::cart::{Cart, Nrom128, Nrom256, Uxrom};
 use cpu6502::cpu::Cpu;
-pub use input::{Button, IInput, Input};
-pub use interconnect::NesInterconnect;
-pub use ppu::IPpu;
-pub use ppu::Ppu;
-pub use ppu::{SpriteRenderer, Vram};
-pub use rom::NesRom;
+pub use crate::input::{Button, IInput, Input};
+pub use crate::interconnect::NesInterconnect;
+pub use crate::ppu::IPpu;
+pub use crate::ppu::Ppu;
+pub use crate::ppu::{SpriteRenderer, Vram};
+pub use crate::rom::NesRom;
 
 #[cfg(test)]
 mod mocks {
-    pub use apu::mocks::ApuMock;
-    pub use cart::mocks::CartMock;
-    pub use input::mocks::InputMock;
-    pub use ppu::mocks::{MockSpriteRenderer, MockVram, PpuMock};
+    pub use crate::apu::mocks::ApuMock;
+    pub use crate::cart::mocks::CartMock;
+    pub use crate::input::mocks::InputMock;
+    pub use crate::ppu::mocks::{MockSpriteRenderer, MockVram, PpuMock};
 }
 
 pub fn load_cart<C: Cart>(

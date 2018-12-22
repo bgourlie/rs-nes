@@ -1,4 +1,4 @@
-use ppu::mask_register::MaskRegister;
+use crate::ppu::mask_register::MaskRegister;
 
 #[test]
 fn background_render_leftmost_8_px() {
