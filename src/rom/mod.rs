@@ -1,6 +1,8 @@
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::fmt::{self, Debug, Formatter};
-use std::io::{Read, Seek, SeekFrom};
+use std::{
+    fmt::{self, Debug, Formatter},
+    io::{Read, Seek, SeekFrom},
+};
 
 pub const PRG_BANK_SIZE: usize = 16384;
 pub const CHR_BANK_SIZE: usize = 8192;

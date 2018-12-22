@@ -7,13 +7,13 @@ use rs_nes::{
     load_cart, Apu, Button, Cart, IInput, IPpu, Input, NesInterconnect, NesRom, Nrom128, Nrom256,
     Ppu, SpriteRenderer, Uxrom, Vram,
 };
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::PixelFormatEnum;
-use std::env;
-use std::fs::File;
-use std::thread;
-use std::time::{Duration, Instant};
+use sdl2::{event::Event, keyboard::Keycode, pixels::PixelFormatEnum};
+use std::{
+    env,
+    fs::File,
+    thread,
+    time::{Duration, Instant},
+};
 
 const SCREEN_WIDTH: u32 = 256;
 const SCREEN_HEIGHT: u32 = 240;
@@ -161,11 +161,13 @@ fn run<C: Cart>(mut cpu: Box<Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu,
                         let palette_index = match (bg_pixel_value, sprite_pixel_value) {
                             (0, 0) | (_, 0) => bg_palette_index,
                             (0, _) => sprite_palette_index,
-                            _ => if sprite_has_priority {
-                                sprite_palette_index
-                            } else {
-                                bg_palette_index
-                            },
+                            _ => {
+                                if sprite_has_priority {
+                                    sprite_palette_index
+                                } else {
+                                    bg_palette_index
+                                }
+                            }
                         } as usize;
 
                         screen_buffer[i] = PALETTE[palette_index];

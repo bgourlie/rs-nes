@@ -20,22 +20,24 @@ mod interconnect;
 mod ppu;
 mod rom;
 
-pub use crate::apu::Apu;
-pub use crate::cart::{Cart, Nrom128, Nrom256, Uxrom};
+pub use crate::{
+    apu::Apu,
+    cart::{Cart, Nrom128, Nrom256, Uxrom},
+    input::{Button, IInput, Input},
+    interconnect::NesInterconnect,
+    ppu::{IPpu, Ppu, SpriteRenderer, Vram},
+    rom::NesRom,
+};
 use cpu6502::cpu::Cpu;
-pub use crate::input::{Button, IInput, Input};
-pub use crate::interconnect::NesInterconnect;
-pub use crate::ppu::IPpu;
-pub use crate::ppu::Ppu;
-pub use crate::ppu::{SpriteRenderer, Vram};
-pub use crate::rom::NesRom;
 
 #[cfg(test)]
 mod mocks {
-    pub use crate::apu::mocks::ApuMock;
-    pub use crate::cart::mocks::CartMock;
-    pub use crate::input::mocks::InputMock;
-    pub use crate::ppu::mocks::{MockSpriteRenderer, MockVram, PpuMock};
+    pub use crate::{
+        apu::mocks::ApuMock,
+        cart::mocks::CartMock,
+        input::mocks::InputMock,
+        ppu::mocks::{MockSpriteRenderer, MockVram, PpuMock},
+    };
 }
 
 pub fn load_cart<C: Cart>(

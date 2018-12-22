@@ -1,5 +1,7 @@
-use crate::cart::Cart;
-use crate::rom::{CHR_BANK_SIZE, PRG_BANK_SIZE};
+use crate::{
+    cart::Cart,
+    rom::{CHR_BANK_SIZE, PRG_BANK_SIZE},
+};
 
 pub struct CartMock {
     pub prg: [u8; PRG_BANK_SIZE],

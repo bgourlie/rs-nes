@@ -1,7 +1,7 @@
-use crate::cart::Cart;
-use crate::ppu::control_register::IncrementAmount;
-use crate::ppu::vram::IVram;
-use crate::ppu::write_latch::LatchState;
+use crate::{
+    cart::Cart,
+    ppu::{control_register::IncrementAmount, vram::IVram, write_latch::LatchState},
+};
 use std::cell::Cell;
 
 #[derive(Default)]

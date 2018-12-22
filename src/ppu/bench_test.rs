@@ -1,7 +1,7 @@
+use crate::{load_cart, NesRom, Nrom128};
 use cpu6502::cpu::Interrupt;
 use std::fs::File;
 use test::{black_box, Bencher};
-use crate::{load_cart, NesRom, Nrom128};
 
 #[bench]
 fn bench_frame_time(b: &mut Bencher) {

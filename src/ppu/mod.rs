@@ -16,16 +16,19 @@ mod vram;
 mod write_latch;
 
 use self::write_latch::WriteLatch;
-use crate::cart::Cart;
+pub use crate::ppu::{sprite_renderer::SpriteRenderer, vram::Vram};
+use crate::{
+    cart::Cart,
+    ppu::{
+        background_renderer::BackgroundRenderer,
+        control_register::ControlRegister,
+        mask_register::MaskRegister,
+        sprite_renderer::{ISpriteRenderer, SpritePixel},
+        status_register::StatusRegister,
+        vram::IVram,
+    },
+};
 use cpu6502::cpu::Interrupt;
-use crate::ppu::background_renderer::BackgroundRenderer;
-use crate::ppu::control_register::ControlRegister;
-use crate::ppu::mask_register::MaskRegister;
-pub use crate::ppu::sprite_renderer::SpriteRenderer;
-use crate::ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
-use crate::ppu::status_register::StatusRegister;
-use crate::ppu::vram::IVram;
-pub use crate::ppu::vram::Vram;
 use rs_nes_macros::ppu_loop;
 
 const SCANLINES: usize = 262;
@@ -135,10 +138,14 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
 
     // TODO: tests
     fn sprite_zero_hit(&self, x: u16, bg_pixel: u8, sprite_pixel: &SpritePixel) -> bool {
-        !self.status.sprite_zero_hit() && (self.mask.show_background() && self.mask.show_sprites())
+        !self.status.sprite_zero_hit()
+            && (self.mask.show_background() && self.mask.show_sprites())
             && ((self.mask.background_render_leftmost_8_px()
-                && self.mask.sprites_render_leftmost_8_px()) || x > 7) && x != 255
-            && (bg_pixel > 0 && sprite_pixel.value > 0) && sprite_pixel.is_sprite_zero
+                && self.mask.sprites_render_leftmost_8_px())
+                || x > 7)
+            && x != 255
+            && (bg_pixel > 0 && sprite_pixel.value > 0)
+            && sprite_pixel.is_sprite_zero
     }
 }
 

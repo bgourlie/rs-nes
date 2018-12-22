@@ -1,7 +1,11 @@
-use crate::cart::Cart;
-use crate::ppu::control_register::ControlRegister;
-use crate::ppu::sprite_renderer::{ISpriteRenderer, SpritePixel};
-use crate::ppu::vram::IVram;
+use crate::{
+    cart::Cart,
+    ppu::{
+        control_register::ControlRegister,
+        sprite_renderer::{ISpriteRenderer, SpritePixel},
+        vram::IVram,
+    },
+};
 use std::cell::Cell;
 
 #[derive(Default)]

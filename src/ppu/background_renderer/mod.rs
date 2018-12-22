@@ -3,9 +3,10 @@
 #[cfg(test)]
 mod spec_tests;
 
-use crate::cart::Cart;
-use crate::ppu::control_register::ControlRegister;
-use crate::ppu::vram::IVram;
+use crate::{
+    cart::Cart,
+    ppu::{control_register::ControlRegister, vram::IVram},
+};
 
 #[derive(Default)]
 pub struct BackgroundRenderer {

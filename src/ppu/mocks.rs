@@ -1,8 +1,9 @@
-use crate::cart::Cart;
+pub use crate::ppu::{sprite_renderer::mocks::MockSpriteRenderer, vram::mocks::MockVram};
+use crate::{
+    cart::Cart,
+    ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH},
+};
 use cpu6502::cpu::Interrupt;
-pub use crate::ppu::sprite_renderer::mocks::MockSpriteRenderer;
-pub use crate::ppu::vram::mocks::MockVram;
-use crate::ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub struct PpuMock {
     addr: u16,

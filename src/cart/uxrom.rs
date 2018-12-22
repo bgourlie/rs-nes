@@ -1,5 +1,7 @@
-use crate::cart::Cart;
-use crate::rom::{NesRom, CHR_BANK_SIZE, PRG_BANK_SIZE};
+use crate::{
+    cart::Cart,
+    rom::{NesRom, CHR_BANK_SIZE, PRG_BANK_SIZE},
+};
 
 pub struct Uxrom {
     prg_bank: Vec<u8>,
