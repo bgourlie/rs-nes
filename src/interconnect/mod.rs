@@ -47,7 +47,12 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> NesInterconnect<P, A, I, C> {
 impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A, I, C> {
     fn read(&self, address: u16) -> u8 {
         match address >> 13 {
-            0b000 => self.ram[address as usize & 0x7ff],
+            0b000 => {
+                unsafe {
+                    // Safe since the AND normalizes the index to a valid range
+                    *self.ram.get_unchecked(address as usize & 0x7ff)
+                }
+            },
             0b001 => self.ppu.read(address, &self.rom),
             0b010 => {
                 if address < 0x4020 {
@@ -70,7 +75,12 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A
 
     fn write(&mut self, address: u16, value: u8) {
         match address >> 13 {
-            0b000 => self.ram[address as usize & 0x7ff] = value,
+            0b000 => {
+                unsafe {
+                    // Safe since the AND normalizes the index to a valid range
+                    *self.ram.get_unchecked_mut(address as usize & 0x7ff) = value
+                }
+            },
             0b001 => self.ppu.write(address, value, &mut self.rom),
             0b010 => {
                 if address < 0x4020 {
