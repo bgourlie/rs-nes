@@ -75,7 +75,10 @@ impl IVram for Vram {
         if addr < 0x2000 {
             cart.write_chr(addr, val);
         } else if addr < 0x3f00 {
-            self.name_tables[addr as usize & 0x0fff] = val;
+            unsafe {
+                // Safe unchecked access since the AND will normalize to a valid index
+                *self.name_tables.get_unchecked_mut(addr as usize & 0x0fff) = val;
+            }
         } else if addr < 0x4000 {
             let addr = addr as usize & 0x1f;
             // Certain sprite addresses are mirrored back into background addresses
@@ -86,7 +89,10 @@ impl IVram for Vram {
                 0xc => 0xc,
                 _ => addr,
             };
-            self.palette[addr] = val;
+            unsafe {
+                // Safe unchecked access since the AND will normalize to a valid index
+                *self.palette.get_unchecked_mut(addr) = val;
+            }
         }
 
         match inc_amount {
@@ -126,7 +132,10 @@ impl IVram for Vram {
         if addr < 0x2000 {
             cart.read_chr(addr)
         } else if addr < 0x3f00 {
-            self.name_tables[addr as usize & 0x0fff]
+            unsafe {
+                // Safe unchecked access since the AND will normalize to a valid index
+                *self.name_tables.get_unchecked(addr as usize & 0x0fff)
+            }
         } else if addr < 0x4000 {
             let addr = addr & 0x1f;
             self.read_palette(addr)
@@ -144,7 +153,10 @@ impl IVram for Vram {
             0xc => 0xc,
             _ => addr,
         };
-        self.palette[addr as usize]
+        unsafe {
+            // Safe unchecked access since the AND will normalize to a valid index
+            *self.palette.get_unchecked(addr as usize)
+        }
     }
 
     fn addr(&self) -> u16 {
