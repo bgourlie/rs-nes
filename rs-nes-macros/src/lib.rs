@@ -1,5 +1,4 @@
 #![feature(box_patterns)]
-#![feature(proc_macro)]
 #![recursion_limit = "256"]
 
 extern crate proc_macro;
