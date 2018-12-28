@@ -1,4 +1,4 @@
-#![feature(test)]
+#![feature(box_syntax, test)]
 
 #[cfg(test)]
 extern crate asm6502;
@@ -47,8 +47,7 @@ pub fn load_cart<C: Cart>(
     let ppu = Ppu::new(vram);
     let input = Input::default();
     let apu = Apu::default();
-    let mem = NesInterconnect::new(cart, ppu, input, apu);
-    let mut cpu = Box::new(Cpu::new(mem, 0x00));
+    let mut cpu = box Cpu::new(NesInterconnect::new(cart, ppu, input, apu), 0x00);
     cpu.reset();
     Ok(cpu)
 }
