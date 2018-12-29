@@ -12,7 +12,7 @@ native_client = ["sdl2"]
 rs-nes-macros = { path = "rs-nes-macros" }
 cpu6502 = { git = "https://github.com/bgourlie/cpu6502" }
 byteorder = "^1.2.3"
-sdl2 = { version = "0.32.0", features = ["bundled", "static-link"], optional = true }
+sdl2 = { version = "^0.32.1", features = ["bundled", "static-link"], optional = true }
 
 [dev-dependencies]
 asm6502 = {version = "^0.1.2"}
