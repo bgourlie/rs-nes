@@ -61,16 +61,16 @@ pub struct Ppu<V: IVram, S: ISpriteRenderer> {
     control: ControlRegister,
     mask: MaskRegister,
     status: StatusRegister,
-    vram: V,
+    vram: Box<V>,
     sprite_renderer: S,
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+    screen: Box<[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3]>,
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
 }
 
 impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
-    pub fn new(vram: V) -> Self {
+    pub fn new(vram: Box<V>) -> Self {
         Ppu {
             cycles: 0,
             control: ControlRegister::default(),
@@ -78,7 +78,7 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
             status: StatusRegister::default(),
             vram,
             sprite_renderer: S::default(),
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+            screen: box [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,

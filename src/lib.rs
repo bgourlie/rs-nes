@@ -43,7 +43,7 @@ mod mocks {
 pub fn load_cart<C: Cart>(
     cart: C,
 ) -> Result<Box<Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>>, &'static str> {
-    let vram = Vram::new();
+    let vram = box Vram::new();
     let ppu = Ppu::new(vram);
     let input = Input::default();
     let apu = Apu::default();

@@ -340,7 +340,7 @@ fn actions(cycle_type: u32) -> Vec<Action> {
 
     if cycle_type & FILL_SPRITE_REGISTERS > 0 {
         let lines = quote! {
-            self.sprite_renderer.fill_registers(&self.vram, self.control, cart);
+            self.sprite_renderer.fill_registers(self.vram.as_ref(), self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
@@ -373,8 +373,8 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     if cycle_type & CLEAR_VBLANK_AND_SPRITE_ZERO_HIT > 0 {
         let lines = quote! {
             // Updating palettes here isn't accurate, but should suffice for now
-            self.background_renderer.update_palettes(&self.vram);
-            self.sprite_renderer.update_palettes(&self.vram);
+            self.background_renderer.update_palettes(self.vram.as_ref());
+            self.sprite_renderer.update_palettes(self.vram.as_ref());
             self.status.clear_in_vblank();
             self.status.clear_sprite_zero_hit();
         };
@@ -383,43 +383,43 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & INC_COARSE_X > 0 {
         let lines = quote! {
-            self.vram.coarse_x_increment();
+            self.vram.as_ref().coarse_x_increment();
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & INC_FINE_Y > 0 {
         let lines = quote! {
-            self.vram.fine_y_increment();
+            self.vram.as_ref().fine_y_increment();
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & HORI_V_EQ_HORI_T > 0 {
         let lines = quote! {
-            self.vram.copy_horizontal_pos_to_addr();
+            self.vram.as_ref().copy_horizontal_pos_to_addr();
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_AT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_attribute_byte(&self.vram, cart);
+            self.background_renderer.fetch_attribute_byte(self.vram.as_ref(), cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_NT > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_nametable_byte(&self.vram, cart);
+            self.background_renderer.fetch_nametable_byte(self.vram.as_ref(), cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_LOW > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_low_byte(&self.vram, self.control, cart);
+            self.background_renderer.fetch_pattern_low_byte(self.vram.as_ref(), self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FETCH_BG_HIGH > 0 {
         let lines = quote! {
-            self.background_renderer.fetch_pattern_high_byte(&self.vram, self.control, cart);
+            self.background_renderer.fetch_pattern_high_byte(self.vram.as_ref(), self.control, cart);
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
@@ -449,13 +449,13 @@ fn actions(cycle_type: u32) -> Vec<Action> {
     }
     if cycle_type & VERT_V_EQ_VERT_T > 0 {
         let lines = quote! {
-            self.vram.copy_vertical_pos_to_addr();
+            self.vram.as_ref().copy_vertical_pos_to_addr();
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
     if cycle_type & FILL_BG_REGISTERS > 0 {
         let lines = quote! {
-            self.background_renderer.fill_shift_registers(self.vram.addr());
+            self.background_renderer.fill_shift_registers(self.vram.as_ref().addr());
         };
         actions.push(Action::WhenRenderingEnabled(lines.into(), 0))
     }
