@@ -30,6 +30,8 @@ pub use crate::{
 };
 use cpu6502::cpu::Cpu;
 
+pub type Nes<C> = Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>;
+
 #[cfg(test)]
 mod mocks {
     pub use crate::{
@@ -40,9 +42,7 @@ mod mocks {
     };
 }
 
-pub fn load_cart<C: Cart>(
-    cart: C,
-) -> Result<Box<Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>>, &'static str> {
+pub fn load_cart<C: Cart>(cart: C) -> Result<Box<Nes<C>>, &'static str> {
     let interconnect = NesInterconnect::new(cart);
     let mut cpu = box Cpu::new(interconnect, 0x00);
     cpu.reset();
