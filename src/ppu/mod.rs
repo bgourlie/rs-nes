@@ -37,7 +37,7 @@ const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
 pub const SCREEN_WIDTH: usize = 256;
 pub const SCREEN_HEIGHT: usize = 240;
 
-pub trait IPpu {
+pub trait IPpu: Default {
     fn write<C: Cart>(&mut self, addr: u16, val: u8, cart: &mut C);
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn step<C: Cart>(&mut self, cart: &C) -> Interrupt;
@@ -69,14 +69,14 @@ pub struct Ppu<V: IVram, S: ISpriteRenderer> {
     odd_frame: bool,
 }
 
-impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
-    pub fn new(vram: Box<V>) -> Self {
+impl<V: IVram, S: ISpriteRenderer> Default for Ppu<V, S> {
+    fn default() -> Self {
         Ppu {
             cycles: 0,
             control: ControlRegister::default(),
             mask: MaskRegister::default(),
             status: StatusRegister::default(),
-            vram,
+            vram: box V::default(),
             sprite_renderer: S::default(),
             screen: box [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
             write_latch: WriteLatch::default(),
@@ -84,7 +84,9 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
             odd_frame: false,
         }
     }
+}
 
+impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
     /// Outputs pixel information to a buffer. Each pixel is encoded as 3 bytes, as follows:
     ///
     /// **Byte 1 (background)**: `pppp ppvv`

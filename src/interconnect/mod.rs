@@ -14,13 +14,13 @@ pub struct NesInterconnect<P: IPpu, A: IApu, I: IInput, C: Cart> {
 }
 
 impl<P: IPpu, A: IApu, I: IInput, C: Cart> NesInterconnect<P, A, I, C> {
-    pub fn new(rom: C, ppu: P, input: I, apu: A) -> Self {
+    pub fn new(rom: C) -> Self {
         NesInterconnect {
             ram: [0_u8; 0x800],
             rom,
-            ppu,
-            apu,
-            input,
+            ppu: P::default(),
+            apu: A::default(),
+            input: I::default(),
             elapsed_cycles: 0,
         }
     }

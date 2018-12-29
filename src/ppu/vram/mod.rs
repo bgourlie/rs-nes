@@ -10,7 +10,7 @@ use crate::{
 };
 use std::cell::Cell;
 
-pub trait IVram {
+pub trait IVram: Default {
     fn write_ppu_addr(&self, latch_state: LatchState);
     fn write_ppu_data<C: Cart>(&mut self, val: u8, inc_amount: IncrementAmount, cart: &mut C);
     fn read_ppu_data<C: Cart>(&self, inc_amount: IncrementAmount, cart: &C) -> u8;
@@ -36,8 +36,8 @@ pub struct Vram {
     fine_x: Cell<u8>,
 }
 
-impl Vram {
-    pub fn new() -> Self {
+impl Default for Vram {
+    fn default() -> Self {
         Vram {
             address: Cell::new(0),
             name_tables: [0; 0x1000],
