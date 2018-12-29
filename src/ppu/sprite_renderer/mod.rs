@@ -15,7 +15,7 @@ use crate::{
 };
 use std::{cell::Cell, num::Wrapping};
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 static REVERSE_LOOKUP: [u8; 256] =
     [0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0, 0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70,
      0xf0, 0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8, 0x18, 0x98, 0x58, 0xd8, 0x38, 0xb8,
@@ -47,23 +47,23 @@ pub struct SpritePixel {
 }
 
 impl SpriteAttributes {
-    fn palette(&self) -> u8 {
-        let SpriteAttributes(val) = *self;
+    fn palette(self) -> u8 {
+        let SpriteAttributes(val) = self;
         val & 0b11
     }
 
-    fn flip_horizontally(&self) -> bool {
-        let SpriteAttributes(val) = *self;
+    fn flip_horizontally(self) -> bool {
+        let SpriteAttributes(val) = self;
         val & 0b0100_0000 > 0
     }
 
-    fn flip_vertically(&self) -> bool {
-        let SpriteAttributes(val) = *self;
+    fn flip_vertically(self) -> bool {
+        let SpriteAttributes(val) = self;
         val & 0b1000_0000 > 0
     }
 
-    fn priority(&self) -> bool {
-        let SpriteAttributes(val) = *self;
+    fn priority(self) -> bool {
+        let SpriteAttributes(val) = self;
         val & 0b0010_0000 == 0
     }
 }
@@ -209,14 +209,14 @@ impl ISpriteRenderer for SpriteRenderer {
 
                 let tile_offset = match control.sprite_size() {
                     SpriteSize::X8 => {
-                        control.sprite_pattern_table_base() | ((tile_index as u16) << 4)
+                        control.sprite_pattern_table_base() | (u16::from(tile_index) << 4)
                     }
                     SpriteSize::X16 => {
                         let actual_tile_index = tile_index & !1;
-                        let sprite_table_select = (tile_index as u16 & 1) << 12;
-                        sprite_table_select | actual_tile_index as u16
+                        let sprite_table_select = (u16::from(tile_index) & 1) << 12;
+                        sprite_table_select | u16::from(actual_tile_index)
                     }
-                } + fine_y as u16;
+                } + u16::from(fine_y);
 
                 let pattern_low = vram.read(tile_offset, cart);
                 let pattern_high = vram.read(tile_offset + 8, cart);

@@ -33,7 +33,7 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> NesInterconnect<P, A, I, C> {
             self.tick();
         }
 
-        let start = (value as u16) << 8;
+        let start = u16::from(value) << 8;
 
         for i in 0..0x100 {
             let val = self.read(i + start);
@@ -93,7 +93,7 @@ impl<P: IPpu, A: IApu, I: IInput, C: Cart> Interconnect for NesInterconnect<P, A
                         _ => (),
                     }
                 } else {
-                    () // TODO: expansion rom
+                    // TODO: expansion rom
                 }
             }
             0b011 => (), // TODO: save ram

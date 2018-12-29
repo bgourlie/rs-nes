@@ -56,10 +56,10 @@ impl BackgroundRenderer {
 
     pub fn fill_shift_registers(&mut self, v: u16) {
         let (palette_low, palette_high) = Self::palette_shift_bytes(v, self.attr_latch);
-        self.shift_registers[0] |= self.pattern_low_latch as u16;
-        self.shift_registers[1] |= self.pattern_high_latch as u16;
-        self.shift_registers[2] |= palette_low as u16;
-        self.shift_registers[3] |= palette_high as u16;
+        self.shift_registers[0] |= u16::from(self.pattern_low_latch);
+        self.shift_registers[1] |= u16::from(self.pattern_high_latch);
+        self.shift_registers[2] |= u16::from(palette_low);
+        self.shift_registers[3] |= u16::from(palette_high);
     }
 
     fn palette_shift_bytes(v: u16, attr_byte: u8) -> (u8, u8) {
@@ -130,7 +130,7 @@ impl BackgroundRenderer {
     ) -> u16 {
         let fine_y = (v >> 12) & 0b111;
         let plane = if is_lower_plane { 0 } else { 0b1000 };
-        let column_and_row = (nametable_byte as u16) << 4;
+        let column_and_row = u16::from(nametable_byte) << 4;
         control.background_pattern_table_base() | column_and_row | plane | fine_y
     }
 }

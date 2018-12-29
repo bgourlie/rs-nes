@@ -20,7 +20,7 @@ pub struct ControlRegister {
 impl ControlRegister {
     /// VRAM address increment per CPU read/write of PPUDATA
     /// (0: add 1, going across; 1: add 32, going down)
-    pub fn vram_addr_increment(&self) -> IncrementAmount {
+    pub fn vram_addr_increment(self) -> IncrementAmount {
         if self.reg & 0b0000_0100 == 0 {
             IncrementAmount::One
         } else {
@@ -29,7 +29,7 @@ impl ControlRegister {
     }
 
     /// Sprite size (0: 8x8; 1: 8x16)
-    pub fn sprite_size(&self) -> SpriteSize {
+    pub fn sprite_size(self) -> SpriteSize {
         if self.reg & 0b0010_0000 == 0 {
             SpriteSize::X8
         } else {
@@ -37,16 +37,16 @@ impl ControlRegister {
         }
     }
 
-    pub fn background_pattern_table_base(&self) -> u16 {
-        ((self.reg as u16) << 8) & 0x1000
+    pub fn background_pattern_table_base(self) -> u16 {
+        (u16::from(self.reg) << 8) & 0x1000
     }
 
-    pub fn sprite_pattern_table_base(&self) -> u16 {
-        ((self.reg as u16) << 9) & 0x1000
+    pub fn sprite_pattern_table_base(self) -> u16 {
+        (u16::from(self.reg) << 9) & 0x1000
     }
 
     /// Generate an NMI at the start of the vertical blanking interval (0: off; 1: on)
-    pub fn nmi_on_vblank_start(&self) -> bool {
+    pub fn nmi_on_vblank_start(self) -> bool {
         self.reg & 0b1000_0000 != 0
     }
 
