@@ -1,0 +1,24 @@
+[package]
+name = "rs_nes"
+version = "0.0.1"
+authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
+edition = "2018"
+
+[features]
+default = []
+native_client = ["sdl2"]
+
+[dependencies]
+rs-nes-macros = { path = "../rs-nes-macros" }
+cpu6502 = { path = "../cpu6502" }
+byteorder = "^1.2.3"
+sdl2 = { version = "^0.32.1", features = ["bundled", "static-link"], optional = true }
+
+[dev-dependencies]
+asm6502 = {version = "^0.1.2"}
+rand = "*"
+time = "*"
+
+[[bin]]
+name = "native_client"
+required-features = ["native_client"]
