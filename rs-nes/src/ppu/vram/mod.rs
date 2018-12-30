@@ -75,10 +75,7 @@ impl IVram for Vram {
         if addr < 0x2000 {
             cart.write_chr(addr, val);
         } else if addr < 0x3f00 {
-            unsafe {
-                // Safe unchecked access since the AND will normalize to a valid index
-                *self.name_tables.get_unchecked_mut(addr as usize & 0x0fff) = val;
-            }
+            self.name_tables[addr as usize & 0x0fff] = val;
         } else if addr < 0x4000 {
             let addr = addr as usize & 0x1f;
             // Certain sprite addresses are mirrored back into background addresses
@@ -89,10 +86,7 @@ impl IVram for Vram {
                 0xc => 0xc,
                 _ => addr,
             };
-            unsafe {
-                // Safe unchecked access since the AND will normalize to a valid index
-                *self.palette.get_unchecked_mut(addr) = val;
-            }
+            self.palette[addr] = val;
         }
 
         match inc_amount {
