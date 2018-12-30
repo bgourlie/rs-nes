@@ -126,10 +126,7 @@ impl IVram for Vram {
         if addr < 0x2000 {
             cart.read_chr(addr)
         } else if addr < 0x3f00 {
-            unsafe {
-                // Safe unchecked access since the AND will normalize to a valid index
-                *self.name_tables.get_unchecked(addr as usize & 0x0fff)
-            }
+            self.name_tables[addr as usize & 0x0fff]
         } else if addr < 0x4000 {
             let addr = addr & 0x1f;
             self.read_palette(addr)
@@ -147,10 +144,7 @@ impl IVram for Vram {
             0xc => 0xc,
             _ => addr,
         };
-        unsafe {
-            // Safe unchecked access since the AND will normalize to a valid index
-            *self.palette.get_unchecked(addr as usize)
-        }
+        self.palette[addr as usize]
     }
 
     fn addr(&self) -> u16 {
