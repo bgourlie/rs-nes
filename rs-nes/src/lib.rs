@@ -1,13 +1,10 @@
-#![feature(box_syntax, test)]
+#![feature(box_syntax)]
 
 #[cfg(test)]
 extern crate asm6502;
 
 #[cfg(test)]
 extern crate rand;
-
-#[cfg(test)]
-extern crate test;
 
 extern crate byteorder;
 extern crate cpu6502;

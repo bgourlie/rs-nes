@@ -58,9 +58,7 @@ pub fn load_rom(bytes: &[u8]) {
     }
 }
 
-fn _next_frame<C: Cart>(_nes: Nes<C>) {
-
-}
+fn _next_frame<C: Cart>(_nes: Nes<C>) {}
 
 // Called by our JS entry point to run the example.
 #[wasm_bindgen]

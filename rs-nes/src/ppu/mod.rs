@@ -4,9 +4,6 @@ pub mod mocks;
 #[cfg(test)]
 mod spec_tests;
 
-#[cfg(test)]
-mod bench_test;
-
 mod background_renderer;
 mod control_register;
 mod mask_register;

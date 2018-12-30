@@ -292,29 +292,28 @@ fn increment_fine_y_called() {
 }
 
 #[test]
-#[cfg(feature = "slow_tests")]
 fn vblank_set_and_clear_cycles() {
-    const CYCLES_PER_SCANLINE: u64 = 341;
-    const VBLANK_SCANLINE: u64 = 241;
-    const LAST_SCANLINE: u64 = 261;
+    const CYCLES_PER_SCANLINE: usize = 341;
+    const VBLANK_SCANLINE: usize = 241;
+    const LAST_SCANLINE: usize = 261;
 
     // VBLANK is clear until cycle 1 of the 241st scanline (which is the second cycle, as there is a
     // cycle 0). Therefore:
     // - Cycle 0 of scanline 241 = vblank clear
     // - Cycle 1 of scanline 241 = VBLANK set during this cycle, but still considered pre-vblank
     // - Cycle 2 of scanline 241 = post-vblank
-    const VBLANK_OFF: u64 = CYCLES_PER_SCANLINE * VBLANK_SCANLINE + 1;
-    const VBLANK_ON: u64 = VBLANK_OFF + 1;
+    const VBLANK_OFF: usize = CYCLES_PER_SCANLINE * VBLANK_SCANLINE + 1;
+    const VBLANK_ON: usize = VBLANK_OFF + 1;
 
     // VBLANK is set until cycle 1 of the 261st scanline, similar to above. Therefore:
     // - Cycle 0 of scanline 261 = in-vblank
     // - Cycle 1 of scanline 241 = VBLANK cleared during this cycle, but still considered in-vblank
     // - Cycle 2 of scanline 241 = vblank clear
-    const CLEAR_VBLANK_CYCLE: u64 = CYCLES_PER_SCANLINE * LAST_SCANLINE + 1;
-    const VBLANK_OFF_AGAIN: u64 = CLEAR_VBLANK_CYCLE + 1;
+    const CLEAR_VBLANK_CYCLE: usize = CYCLES_PER_SCANLINE * LAST_SCANLINE + 1;
+    const VBLANK_OFF_AGAIN: usize = CLEAR_VBLANK_CYCLE + 1;
 
     let mut ppu = ppu_fixture();
-    let mut mock_cart = CartMock::default();
+    let mock_cart = CartMock::default();
 
     while ppu.cycles < super::CYCLES_PER_FRAME * 5 {
         match ppu.cycles % super::CYCLES_PER_FRAME {

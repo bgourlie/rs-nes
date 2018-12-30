@@ -18,7 +18,12 @@ sdl2 = { version = "^0.32.1", features = ["bundled", "static-link"], optional = 
 asm6502 = {version = "^0.1.2"}
 rand = "*"
 time = "*"
+criterion = "^0.2"
 
 [[bin]]
 name = "native_client"
 required-features = ["native_client"]
+
+[[bench]]
+name = "render_benchmark"
+harness = false
