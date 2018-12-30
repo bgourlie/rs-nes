@@ -3,6 +3,7 @@
 members = [
   "cpu6502",
   "rs-nes",
+  "rs-nes-web",
   "rs-nes-macros",
 ]
 
