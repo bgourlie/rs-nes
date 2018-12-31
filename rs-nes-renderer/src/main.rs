@@ -40,12 +40,22 @@ mod uniform;
 mod vertex;
 mod window_state;
 
+use log::info;
+use rs_nes::{load_cart, Cart, Nes, NesRom, Nrom128, Nrom256, Uxrom};
+use std::{
+    env,
+    fs::File,
+    time::{Duration, Instant},
+};
+
 use crate::{
-    backend_state::create_backend, renderer_state::RendererState, vertex::Vertex,
+    backend_state::create_backend,
+    renderer_state::{InputStatus, RenderStatus, RendererState},
+    vertex::Vertex,
     window_state::WindowState,
 };
 
-use gfx_hal::{format as f, image as i, window::Extent2D, Backend};
+use gfx_hal::{format as f, image as i, window::Extent2D, Backend, Device};
 
 pub const BYTES_PER_PIXEL: usize = 4;
 pub const IMAGE_WIDTH: usize = 256;
@@ -89,7 +99,7 @@ pub const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     layers: 0..1,
 };
 
-pub trait SurfaceTrait {
+trait SurfaceTrait {
     #[cfg(feature = "gl")]
     fn get_window_t(&self) -> &back::glutin::GlWindow;
 }
@@ -110,11 +120,87 @@ impl SurfaceTrait for <back::Backend as Backend>::Surface {
 fn main() {
     env_logger::init();
 
+    let rom_path = env::args().last().expect("Unable to determine rom path");
+    let mut rom_file = File::open(rom_path).expect("Unable to open ROM file");
+    let rom = NesRom::load(&mut rom_file).expect("Unable to load ROM");
+    info!("ROM INFORMATION");
+    info!("{:?}", rom);
+    match rom.mapper {
+        0 => match rom.prg_rom_banks {
+            1 => {
+                let cart = Nrom128::new(&rom).expect("Unable to map ROM to cart");
+                let cpu = load_cart(cart).expect("Unable to load cart");
+                run(cpu);
+            }
+            2 => {
+                let cart = Nrom256::new(&rom).expect("Unable to map ROM to cart");
+                let cpu = load_cart(cart).expect("Unable to load cart");
+                run(cpu);
+            }
+            _ => panic!("Unsupported NROM cart"),
+        },
+        2 => {
+            let cart = Uxrom::new(&rom).expect("Unable to map ROM to cart");
+            let cpu = load_cart(cart).expect("Unable to load cart");
+            run(cpu);
+        }
+        _ => panic!("Mapper {} not supported", rom.mapper),
+    }
+}
+
+fn run<C: Cart>(_cpu: Box<Nes<C>>) {
     let mut window = WindowState::new();
     let (backend, _instance) = create_backend(&mut window);
 
     let mut renderer_state = unsafe { RendererState::new(backend, window) };
-    renderer_state.mainloop();
+    let start_time = Instant::now();
+    let mut recreate_swapchain = false;
+    let mut accumulator = Duration::new(0, 0);
+    let mut previous_clock = Instant::now();
+    let fixed_time_stamp = Duration::new(0, 16666667);
+    'running: loop {
+        let now = Instant::now();
+        accumulator += now - previous_clock;
+        previous_clock = now;
+
+        while accumulator >= fixed_time_stamp {
+            accumulator -= fixed_time_stamp;
+
+            match renderer_state.handle_input() {
+                InputStatus::Close => break 'running,
+                InputStatus::RecreateSwapchain => recreate_swapchain = true,
+                _ => (),
+            }
+
+            renderer_state.image.update_screen_buffer(now - start_time);
+
+            let staging_pool = unsafe {
+                let mut staging_pool = renderer_state.device.borrow().create_command_pool();
+                renderer_state.image.copy_buffer_to_texture(
+                    &mut renderer_state.device.borrow_mut(),
+                    &mut staging_pool,
+                );
+                staging_pool
+            };
+
+            renderer_state.image.wait_for_transfer_completion();
+
+            unsafe {
+                renderer_state
+                    .device
+                    .borrow()
+                    .device
+                    .destroy_command_pool(staging_pool.into_raw());
+            }
+
+            match renderer_state.render_frame(recreate_swapchain) {
+                RenderStatus::RecreateSwapchain => recreate_swapchain = true,
+                RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
+                _ => (),
+            }
+        }
+        std::thread::sleep(fixed_time_stamp - accumulator);
+    }
 }
 
 #[cfg(not(any(

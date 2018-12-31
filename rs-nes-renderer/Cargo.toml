@@ -18,6 +18,7 @@ winit = "^0.18"
 glsl-to-spirv = "^0.1.4"
 gfx-hal = "^0.1.0"
 gfx-backend-empty = "^0.1.0"
+rs_nes = { path = "../rs-nes" }
 
 [dependencies.gfx-backend-gl]
 version = "^0.1.0"

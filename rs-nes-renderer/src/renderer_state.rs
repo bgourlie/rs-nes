@@ -1,9 +1,4 @@
-use std::{
-    cell::RefCell,
-    iter,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::{cell::RefCell, iter, rc::Rc};
 
 use gfx_hal::{
     buffer, command,
@@ -17,16 +12,16 @@ use crate::{
     device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
     pipeline_state::PipelineState, render_pass_state::RenderPassState,
     swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
-    SurfaceTrait, COLOR_RANGE, DIMS, QUAD,
+    COLOR_RANGE, DIMS, QUAD,
 };
 
-enum RenderStatus {
+pub enum RenderStatus {
     Normal,
     NormalAndSwapchainRecreated,
     RecreateSwapchain,
 }
 
-enum InputStatus {
+pub enum InputStatus {
     None,
     Close,
     RecreateSwapchain,
@@ -36,7 +31,7 @@ pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
     swapchain: Option<SwapchainState<B>>,
-    device: Rc<RefCell<DeviceState<B>>>,
+    pub device: Rc<RefCell<DeviceState<B>>>,
     backend: BackendState<B>,
     window: WindowState,
     vertex_buffer: BufferState<B>,
@@ -45,7 +40,7 @@ pub struct RendererState<B: Backend> {
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
-    image: ImageState<B>,
+    pub image: ImageState<B>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -222,58 +217,7 @@ impl<B: Backend> RendererState<B> {
         }
     }
 
-    pub fn mainloop(&mut self)
-    where
-        B::Surface: SurfaceTrait,
-    {
-        let start_time = Instant::now();
-        let mut recreate_swapchain = false;
-        let mut accumulator = Duration::new(0, 0);
-        let mut previous_clock = Instant::now();
-        let fixed_time_stamp = Duration::new(0, 16666667);
-        'running: loop {
-            let now = Instant::now();
-            accumulator += now - previous_clock;
-            previous_clock = now;
-
-            while accumulator >= fixed_time_stamp {
-                accumulator -= fixed_time_stamp;
-
-                match self.handle_input() {
-                    InputStatus::Close => break 'running,
-                    InputStatus::RecreateSwapchain => recreate_swapchain = true,
-                    _ => (),
-                }
-
-                self.image.update_screen_buffer(now - start_time);
-
-                let staging_pool = unsafe {
-                    let mut staging_pool = self.device.borrow().create_command_pool();
-                    self.image
-                        .copy_buffer_to_texture(&mut self.device.borrow_mut(), &mut staging_pool);
-                    staging_pool
-                };
-
-                self.image.wait_for_transfer_completion();
-
-                unsafe {
-                    self.device
-                        .borrow()
-                        .device
-                        .destroy_command_pool(staging_pool.into_raw());
-                }
-
-                match self.render_frame(recreate_swapchain) {
-                    RenderStatus::RecreateSwapchain => recreate_swapchain = true,
-                    RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
-                    _ => (),
-                }
-            }
-            std::thread::sleep(fixed_time_stamp - accumulator);
-        }
-    }
-
-    fn handle_input(&mut self) -> InputStatus {
+    pub fn handle_input(&mut self) -> InputStatus {
         let _uniform = &mut self.uniform;
         #[cfg(feature = "gl")]
         let backend = &self.backend;
@@ -320,7 +264,7 @@ impl<B: Backend> RendererState<B> {
         input_status
     }
 
-    fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
+    pub fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
         let mut render_status = RenderStatus::Normal;
         if recreate_swapchain {
             self.recreate_swapchain();

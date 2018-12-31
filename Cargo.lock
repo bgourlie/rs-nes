@@ -1247,6 +1247,7 @@ dependencies = [
  "gfx-hal 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glsl-to-spirv 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rs_nes 0.0.1",
  "winit 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
