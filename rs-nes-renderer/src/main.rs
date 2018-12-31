@@ -40,7 +40,7 @@ mod vertex;
 mod window_state;
 
 use log::info;
-use rs_nes::{load_cart, Cart, Nes, NesRom, Nrom128, Nrom256, Uxrom};
+use rs_nes::{load_cart, Cart, IPpu, Interrupt, Nes, NesRom, Nrom128, Nrom256, Uxrom};
 use std::{
     env,
     fs::File,
@@ -147,14 +147,11 @@ fn main() {
     }
 }
 
-fn run<C: Cart>(_cpu: &mut Nes<C>) {
-    let mut screen_buffer = vec![255_u8; IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL];
-
+fn run<C: Cart>(cpu: &mut Nes<C>) {
     let mut window = WindowState::new();
     let (backend, _instance) = create_backend(&mut window);
 
     let mut renderer_state = unsafe { RendererState::new(backend, window) };
-    let start_time = Instant::now();
     let mut recreate_swapchain = false;
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
@@ -173,22 +170,17 @@ fn run<C: Cart>(_cpu: &mut Nes<C>) {
                 _ => (),
             }
 
-            let t_mod = ((now - start_time).as_secs() % 255) as usize + 1;
-            for y in 0..IMAGE_HEIGHT {
-                for x in 0..IMAGE_WIDTH {
-                    let i = ((y * IMAGE_WIDTH + x) * BYTES_PER_PIXEL) as usize;
-                    screen_buffer[i] = (y % t_mod) as u8;
-                    screen_buffer[i + 1] = x as u8;
-                    screen_buffer[i + 2] = ((x + y) % 255) as u8;
+            loop {
+                if cpu.step() == Interrupt::Nmi {
+                    renderer_state
+                        .image
+                        .buffer
+                        .as_mut()
+                        .unwrap()
+                        .update_data(&*cpu.interconnect.ppu.screen());
+                    break;
                 }
             }
-
-            renderer_state
-                .image
-                .buffer
-                .as_mut()
-                .unwrap()
-                .update_data(&screen_buffer);
 
             let staging_pool = unsafe {
                 let mut staging_pool = renderer_state.device.borrow().create_command_pool();

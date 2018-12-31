@@ -38,7 +38,7 @@ pub trait IPpu: Default {
     fn write<C: Cart>(&mut self, addr: u16, val: u8, cart: &mut C);
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn step<C: Cart>(&mut self, cart: &C) -> Interrupt;
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3];
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4];
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,7 +60,7 @@ pub struct Ppu<V: IVram, S: ISpriteRenderer> {
     status: StatusRegister,
     vram: Box<V>,
     sprite_renderer: S,
-    screen: Box<[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3]>,
+    screen: Box<[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4]>,
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
@@ -75,7 +75,7 @@ impl<V: IVram, S: ISpriteRenderer> Default for Ppu<V, S> {
             status: StatusRegister::default(),
             vram: box V::default(),
             sprite_renderer: S::default(),
-            screen: box [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+            screen: box [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -103,6 +103,9 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
     /// - `b`: Emphasize blue (not yet implemented)
     /// - `p`: Sprite pixel priority
     ///
+    /// **Byte 4 (unused)**: `1111 1111`
+
+    ///
     /// The color palette index is 6-bit value that represents one of the 64 colors that the nes is
     /// capable of displaying. The pixel value is 2-bit value representing one of 4 pixel values
     /// corresponding to the palette index for the block of 16x16 pixels that the current pixel
@@ -129,7 +132,7 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
             self.status.set_sprite_zero_hit()
         }
 
-        let i = ((scanline as usize) * SCREEN_WIDTH + ((x - 2) as usize)) * 3;
+        let i = ((scanline as usize) * SCREEN_WIDTH + ((x - 2) as usize)) * 4;
         self.screen[i] = background_byte;
         self.screen[i + 1] = sprite_byte;
         self.screen[i + 2] = property_byte;
@@ -216,7 +219,7 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3] {
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4] {
         &self.screen
     }
 }

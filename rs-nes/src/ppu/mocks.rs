@@ -8,7 +8,7 @@ use cpu6502::cpu::Interrupt;
 pub struct PpuMock {
     addr: u16,
     value: u8,
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
 }
 
 impl Default for PpuMock {
@@ -16,7 +16,7 @@ impl Default for PpuMock {
         PpuMock {
             addr: 0,
             value: 0,
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 3],
+            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
         }
     }
 }
@@ -49,7 +49,7 @@ impl IPpu for PpuMock {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 3] {
+    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4] {
         &self.screen
     }
 }

@@ -26,6 +26,7 @@ pub use crate::{
     rom::NesRom,
 };
 use cpu6502::cpu::Cpu;
+pub use cpu6502::cpu::Interrupt;
 
 pub type Nes<C> = Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>;
 

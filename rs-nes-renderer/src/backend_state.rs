@@ -57,3 +57,13 @@ pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Bac
         (),
     )
 }
+
+#[cfg(not(any(
+    feature = "vulkan",
+    feature = "dx12",
+    feature = "metal",
+    feature = "gl"
+)))]
+pub fn create_backend(_window_state: &mut WindowState) -> (BackendState<back::Backend>, ()) {
+    unimplemented!()
+}

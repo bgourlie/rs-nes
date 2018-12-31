@@ -440,7 +440,7 @@ pub fn ppu_fixture() -> Ppu<MockVram, MockSpriteRenderer> {
         sprite_renderer: MockSpriteRenderer::default(),
         write_latch: WriteLatch::default(),
         background_renderer: BackgroundRenderer::default(),
-        screen: Box::new([0; SCREEN_WIDTH * SCREEN_HEIGHT * 3]),
+        screen: Box::new([0; SCREEN_WIDTH * SCREEN_HEIGHT * 4]),
         odd_frame: false,
     }
 }
