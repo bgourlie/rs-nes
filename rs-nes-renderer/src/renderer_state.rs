@@ -11,19 +11,13 @@ use crate::{
     backend_state::BackendState, buffer_state::BufferState, descriptor_set::DescSetLayout,
     device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
     pipeline_state::PipelineState, render_pass_state::RenderPassState,
-    swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
-    BYTES_PER_PIXEL, COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
+    swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, BYTES_PER_PIXEL,
+    COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
 };
 
 pub enum RenderStatus {
     Normal,
     NormalAndSwapchainRecreated,
-    RecreateSwapchain,
-}
-
-pub enum InputStatus {
-    None,
-    Close,
     RecreateSwapchain,
 }
 
@@ -33,7 +27,6 @@ pub struct RendererState<B: Backend> {
     swapchain: Option<SwapchainState<B>>,
     pub device: Rc<RefCell<DeviceState<B>>>,
     backend: BackendState<B>,
-    window: WindowState,
     vertex_buffer: BufferState<B>,
     render_pass: RenderPassState<B>,
     uniform: Uniform<B>,
@@ -44,7 +37,7 @@ pub struct RendererState<B: Backend> {
 }
 
 impl<B: Backend> RendererState<B> {
-    pub unsafe fn new(mut backend: BackendState<B>, window: WindowState) -> Self {
+    pub unsafe fn new(mut backend: BackendState<B>) -> Self {
         let device = Rc::new(RefCell::new(DeviceState::new(
             backend.adapter.adapter.take().unwrap(),
             &backend.surface,
@@ -159,7 +152,6 @@ impl<B: Backend> RendererState<B> {
         let viewport = RendererState::create_viewport(swapchain.as_ref().unwrap());
 
         RendererState {
-            window,
             backend,
             device,
             image,
@@ -217,53 +209,6 @@ impl<B: Backend> RendererState<B> {
             },
             depth: 0.0..1.0,
         }
-    }
-
-    pub fn handle_input(&mut self) -> InputStatus {
-        let _uniform = &mut self.uniform;
-        #[cfg(feature = "gl")]
-        let backend = &self.backend;
-        let mut input_status = InputStatus::None;
-
-        self.window.events_loop.poll_events(|event| {
-            if let winit::Event::WindowEvent { event, .. } = event {
-                #[allow(unused_variables)]
-                match event {
-                    winit::WindowEvent::KeyboardInput {
-                        input:
-                            winit::KeyboardInput {
-                                virtual_keycode: Some(winit::VirtualKeyCode::Escape),
-                                ..
-                            },
-                        ..
-                    }
-                    | winit::WindowEvent::CloseRequested => input_status = InputStatus::Close,
-                    winit::WindowEvent::Resized(dims) => {
-                        #[cfg(feature = "gl")]
-                        backend.surface.get_window_t().resize(
-                            dims.to_physical(backend.surface.get_window_t().get_hidpi_factor()),
-                        );
-                        input_status = InputStatus::RecreateSwapchain;
-                    }
-                    winit::WindowEvent::KeyboardInput {
-                        input:
-                            winit::KeyboardInput {
-                                virtual_keycode,
-                                state: winit::ElementState::Pressed,
-                                ..
-                            },
-                        ..
-                    } => {
-                        if let Some(kc) = virtual_keycode {
-                            // Other Keys
-                        }
-                    }
-                    _ => (),
-                }
-            }
-        });
-
-        input_status
     }
 
     pub fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {

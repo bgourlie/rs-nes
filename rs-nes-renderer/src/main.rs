@@ -40,16 +40,19 @@ mod vertex;
 mod window_state;
 
 use log::info;
-use rs_nes::{load_cart, Cart, IPpu, Interrupt, Nes, NesRom, Nrom128, Nrom256, Uxrom};
+use rs_nes::{
+    load_cart, Button, Cart, IInput, IPpu, Interrupt, Nes, NesRom, Nrom128, Nrom256, Uxrom,
+};
 use std::{
     env,
     fs::File,
     time::{Duration, Instant},
 };
+use winit::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use crate::{
     backend_state::create_backend,
-    renderer_state::{InputStatus, RenderStatus, RendererState},
+    renderer_state::{RenderStatus, RendererState},
     vertex::Vertex,
     window_state::WindowState,
 };
@@ -97,6 +100,12 @@ pub const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     levels: 0..1,
     layers: 0..1,
 };
+
+pub enum InputStatus {
+    None,
+    Close,
+    RecreateSwapchain,
+}
 
 trait SurfaceTrait {
     #[cfg(feature = "gl")]
@@ -147,11 +156,78 @@ fn main() {
     }
 }
 
+fn handle_input<C: Cart>(window: &mut WindowState, nes: &mut Nes<C>) -> InputStatus {
+    #[cfg(feature = "gl")]
+    let backend = &window_state.backend;
+    let mut input_status = InputStatus::None;
+
+    window.events_loop.poll_events(|event| {
+        if let Event::WindowEvent { event, .. } = event {
+            #[allow(unused_variables)]
+            match event {
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode: Some(VirtualKeyCode::Escape),
+                            ..
+                        },
+                    ..
+                }
+                | WindowEvent::CloseRequested => input_status = InputStatus::Close,
+                WindowEvent::Resized(dims) => {
+                    #[cfg(feature = "gl")]
+                    backend.surface.get_window_t().resize(
+                        dims.to_physical(backend.surface.get_window_t().get_hidpi_factor()),
+                    );
+                    input_status = InputStatus::RecreateSwapchain;
+                }
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode,
+                            state,
+                            ..
+                        },
+                    ..
+                } => {
+                    if let Some(kc) = virtual_keycode {
+                        let button = match kc {
+                            VirtualKeyCode::W => Some(Button::Up),
+                            VirtualKeyCode::A => Some(Button::Left),
+                            VirtualKeyCode::S => Some(Button::Down),
+                            VirtualKeyCode::D => Some(Button::Right),
+                            VirtualKeyCode::J => Some(Button::B),
+                            VirtualKeyCode::K => Some(Button::A),
+                            VirtualKeyCode::Return => Some(Button::Start),
+                            VirtualKeyCode::LShift | VirtualKeyCode::RShift => Some(Button::Select),
+                            _ => None,
+                        };
+
+                        if let Some(button) = button {
+                            match state {
+                                ElementState::Pressed => {
+                                    nes.interconnect.input.player1_press(button)
+                                }
+                                ElementState::Released => {
+                                    nes.interconnect.input.player1_release(button)
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
+    });
+
+    input_status
+}
+
 fn run<C: Cart>(cpu: &mut Nes<C>) {
     let mut window = WindowState::new();
     let (backend, _instance) = create_backend(&mut window);
 
-    let mut renderer_state = unsafe { RendererState::new(backend, window) };
+    let mut renderer_state = unsafe { RendererState::new(backend) };
     let mut recreate_swapchain = false;
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
@@ -164,7 +240,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
 
-            match renderer_state.handle_input() {
+            match handle_input(&mut window, cpu) {
                 InputStatus::Close => break 'running,
                 InputStatus::RecreateSwapchain => recreate_swapchain = true,
                 _ => (),
