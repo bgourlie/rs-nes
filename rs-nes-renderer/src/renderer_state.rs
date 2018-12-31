@@ -247,27 +247,35 @@ impl<B: Backend> RendererState<B> {
         B::Surface: SurfaceTrait,
     {
         let mut recreate_swapchain = false;
-
         let mut accumulator = Duration::new(0, 0);
         let mut previous_clock = Instant::now();
         let fixed_time_stamp = Duration::new(0, 16666667);
-        loop {
-            match self.handle_input() {
-                InputStatus::Close => break,
-                InputStatus::RecreateSwapchain => recreate_swapchain = true,
-                _ => (),
-            }
+        'running: loop {
+            let now = Instant::now();
+            accumulator += now - previous_clock;
+            previous_clock = now;
 
-            match self.render_frame(recreate_swapchain) {
-                RenderStatus::RecreateSwapchain => recreate_swapchain = true,
-                RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
-                _ => (),
+            while accumulator >= fixed_time_stamp {
+                accumulator -= fixed_time_stamp;
+
+                match self.handle_input() {
+                    InputStatus::Close => break 'running,
+                    InputStatus::RecreateSwapchain => recreate_swapchain = true,
+                    _ => (),
+                }
+
+                match self.render_frame(recreate_swapchain) {
+                    RenderStatus::RecreateSwapchain => recreate_swapchain = true,
+                    RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
+                    _ => (),
+                }
             }
+            std::thread::sleep(fixed_time_stamp - accumulator);
         }
     }
 
     fn handle_input(&mut self) -> InputStatus {
-        let uniform = &mut self.uniform;
+        let _uniform = &mut self.uniform;
         #[cfg(feature = "gl")]
         let backend = &self.backend;
         let mut input_status = InputStatus::None;
