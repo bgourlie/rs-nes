@@ -1,13 +1,4 @@
-use hal::{
-    buffer, command, format as f, image as i, memory as m,
-    pass::{self, Subpass},
-    pool,
-    pso::{self, PipelineStage, ShaderStageFlags},
-    queue::Submission,
-    window::Extent2D,
-    Adapter, Backbuffer, Backend, DescriptorPool, Device, FrameSync, Instance, Limits, MemoryType,
-    PhysicalDevice, Primitive, QueueGroup, Surface, Swapchain, SwapchainConfig,
-};
+use hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice};
 
 pub struct AdapterState<B: Backend> {
     pub adapter: Option<Adapter<B>>,

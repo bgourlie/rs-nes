@@ -1,17 +1,4 @@
-use std::{cell::RefCell, fs, io::Read, iter, mem::size_of, rc::Rc};
-
-use hal::{
-    buffer, command, format as f,
-    format::{AsFormat, ChannelType, Rgba8Srgb as ColorFormat, Swizzle},
-    image as i, memory as m,
-    pass::{self, Subpass},
-    pool,
-    pso::{self, PipelineStage, ShaderStageFlags},
-    queue::Submission,
-    window::Extent2D,
-    Adapter, Backbuffer, Backend, DescriptorPool, Device, FrameSync, Instance, Limits, MemoryType,
-    PhysicalDevice, Primitive, QueueGroup, Surface, Swapchain, SwapchainConfig,
-};
+use hal::{Adapter, Backend, QueueGroup, Surface};
 
 pub struct DeviceState<B: Backend> {
     pub device: B::Device,

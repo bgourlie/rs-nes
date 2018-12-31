@@ -1,17 +1,6 @@
-use std::{cell::RefCell, fs, iter, mem::size_of, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use hal::{
-    buffer, command, format as f,
-    format::{AsFormat, ChannelType, Rgba8Srgb as ColorFormat, Swizzle},
-    image as i, memory as m,
-    pass::{self, Subpass},
-    pool,
-    pso::{self, PipelineStage, ShaderStageFlags},
-    queue::Submission,
-    window::Extent2D,
-    Adapter, Backbuffer, Backend, DescriptorPool, Device, FrameSync, Instance, Limits, MemoryType,
-    PhysicalDevice, Primitive, QueueGroup, Surface, Swapchain, SwapchainConfig,
-};
+use hal::{format::Swizzle, image as i, pool, Backbuffer, Backend, Device};
 
 use crate::{
     device_state::DeviceState, render_pass_state::RenderPassState, swapchain_state::SwapchainState,
