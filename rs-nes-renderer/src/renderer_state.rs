@@ -1,4 +1,9 @@
-use std::{cell::RefCell, iter, rc::Rc};
+use std::{
+    cell::RefCell,
+    iter,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use hal::{
     buffer, command, pool,
@@ -8,12 +13,18 @@ use hal::{
 };
 
 use crate::{
-    backend_state::BackendState, buffer_state::BufferState, color::Color,
-    descriptor_set::DescSetLayout, device_state::DeviceState, framebuffer_state::FramebufferState,
-    image_state::ImageState, pipeline_state::PipelineState, render_pass_state::RenderPassState,
+    backend_state::BackendState, buffer_state::BufferState, descriptor_set::DescSetLayout,
+    device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
+    pipeline_state::PipelineState, render_pass_state::RenderPassState,
     swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
     SurfaceTrait, COLOR_RANGE, DIMS, QUAD,
 };
+
+enum RenderStatus {
+    Normal,
+    NormalAndSwapchainRecreated,
+    RecreateSwapchain,
+}
 
 pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
@@ -232,27 +243,21 @@ impl<B: Backend> RendererState<B> {
         let mut running = true;
         let mut recreate_swapchain = false;
 
-        let mut r = 1.0f32;
-        let mut g = 1.0f32;
-        let mut b = 1.0f32;
-        let mut a = 1.0f32;
+        let r = 1.0f32;
+        let g = 1.0f32;
+        let b = 1.0f32;
+        let a = 1.0f32;
 
-        let mut cr = 0.8;
-        let mut cg = 0.8;
-        let mut cb = 0.8;
-
-        let mut cur_color = Color::Red;
         let mut cur_value: u32 = 0;
 
         println!("\nInstructions:");
         println!("\tChoose whether to change the (R)ed, (G)reen or (B)lue color by pressing the appropriate key.");
         println!("\tType in the value you want to change it to, where 0 is nothing, 255 is normal and 510 is double, ect.");
         println!("\tThen press C to change the (C)lear colour or (Enter) for the image color.");
-        println!(
-            "\tSet {:?} color to: {} (press enter/C to confirm)",
-            cur_color, cur_value
-        );
 
+        let mut accumulator = Duration::new(0, 0);
+        let mut previous_clock = Instant::now();
+        let fixed_time_stamp = Duration::new(0, 16666667);
         while running {
             {
                 let uniform = &mut self.uniform;
@@ -290,57 +295,7 @@ impl<B: Backend> RendererState<B> {
                             } => {
                                 if let Some(kc) = virtual_keycode {
                                     match kc {
-                                        winit::VirtualKeyCode::Key0 => cur_value *= 10,
-                                        winit::VirtualKeyCode::Key1 => {
-                                            cur_value = cur_value * 10 + 1
-                                        }
-                                        winit::VirtualKeyCode::Key2 => {
-                                            cur_value = cur_value * 10 + 2
-                                        }
-                                        winit::VirtualKeyCode::Key3 => {
-                                            cur_value = cur_value * 10 + 3
-                                        }
-                                        winit::VirtualKeyCode::Key4 => {
-                                            cur_value = cur_value * 10 + 4
-                                        }
-                                        winit::VirtualKeyCode::Key5 => {
-                                            cur_value = cur_value * 10 + 5
-                                        }
-                                        winit::VirtualKeyCode::Key6 => {
-                                            cur_value = cur_value * 10 + 6
-                                        }
-                                        winit::VirtualKeyCode::Key7 => {
-                                            cur_value = cur_value * 10 + 7
-                                        }
-                                        winit::VirtualKeyCode::Key8 => {
-                                            cur_value = cur_value * 10 + 8
-                                        }
-                                        winit::VirtualKeyCode::Key9 => {
-                                            cur_value = cur_value * 10 + 9
-                                        }
-                                        winit::VirtualKeyCode::R => {
-                                            cur_value = 0;
-                                            cur_color = Color::Red
-                                        }
-                                        winit::VirtualKeyCode::G => {
-                                            cur_value = 0;
-                                            cur_color = Color::Green
-                                        }
-                                        winit::VirtualKeyCode::B => {
-                                            cur_value = 0;
-                                            cur_color = Color::Blue
-                                        }
-                                        winit::VirtualKeyCode::A => {
-                                            cur_value = 0;
-                                            cur_color = Color::Alpha
-                                        }
                                         winit::VirtualKeyCode::Return => {
-                                            match cur_color {
-                                                Color::Red => r = cur_value as f32 / 255.0,
-                                                Color::Green => g = cur_value as f32 / 255.0,
-                                                Color::Blue => b = cur_value as f32 / 255.0,
-                                                Color::Alpha => a = cur_value as f32 / 255.0,
-                                            }
                                             uniform
                                                 .buffer
                                                 .as_mut()
@@ -350,28 +305,8 @@ impl<B: Backend> RendererState<B> {
 
                                             println!("Colour updated!");
                                         }
-                                        winit::VirtualKeyCode::C => {
-                                            match cur_color {
-                                                Color::Red => cr = cur_value as f32 / 255.0,
-                                                Color::Green => cg = cur_value as f32 / 255.0,
-                                                Color::Blue => cb = cur_value as f32 / 255.0,
-                                                Color::Alpha => {
-                                                    error!(
-                                                        "Alpha is not valid for the background."
-                                                    );
-                                                    return;
-                                                }
-                                            }
-                                            cur_value = 0;
-
-                                            println!("Background color updated!");
-                                        }
                                         _ => return,
                                     }
-                                    println!(
-                                        "Set {:?} color to: {} (press enter/C to confirm)",
-                                        cur_color, cur_value
-                                    )
                                 }
                             }
                             _ => (),
@@ -380,116 +315,122 @@ impl<B: Backend> RendererState<B> {
                 });
             }
 
-            if recreate_swapchain {
-                self.recreate_swapchain();
-                recreate_swapchain = false;
-            }
-
-            let sem_index = self.framebuffer.next_acq_pre_pair_index();
-
-            let frame: hal::SwapImageIndex = unsafe {
-                let (acquire_semaphore, _) = self
-                    .framebuffer
-                    .get_frame_data(None, Some(sem_index))
-                    .1
-                    .unwrap();
-                match self
-                    .swapchain
-                    .as_mut()
-                    .unwrap()
-                    .swapchain
-                    .as_mut()
-                    .unwrap()
-                    .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
-                {
-                    Ok(image_index) => image_index,
-                    Err(_) => {
-                        recreate_swapchain = true;
-                        continue;
-                    }
-                }
-            };
-
-            let (fid, sid) = self
-                .framebuffer
-                .get_frame_data(Some(frame as usize), Some(sem_index));
-
-            let (framebuffer_fence, framebuffer, command_pool) = fid.unwrap();
-            let (image_acquired, image_present) = sid.unwrap();
-
-            unsafe {
-                self.device
-                    .borrow()
-                    .device
-                    .wait_for_fence(framebuffer_fence, !0)
-                    .unwrap();
-                self.device
-                    .borrow()
-                    .device
-                    .reset_fence(framebuffer_fence)
-                    .unwrap();
-                command_pool.reset();
-
-                // Rendering
-                let mut cmd_buffer = command_pool.acquire_command_buffer::<command::OneShot>();
-                cmd_buffer.begin();
-
-                cmd_buffer.set_viewports(0, &[self.viewport.clone()]);
-                cmd_buffer.set_scissors(0, &[self.viewport.rect]);
-                cmd_buffer.bind_graphics_pipeline(self.pipeline.pipeline.as_ref().unwrap());
-                cmd_buffer.bind_vertex_buffers(0, Some((self.vertex_buffer.get_buffer(), 0)));
-                cmd_buffer.bind_graphics_descriptor_sets(
-                    self.pipeline.pipeline_layout.as_ref().unwrap(),
-                    0,
-                    vec![
-                        self.image.desc.set.as_ref().unwrap(),
-                        self.uniform.desc.as_ref().unwrap().set.as_ref().unwrap(),
-                    ],
-                    &[],
-                ); //TODO
-
-                {
-                    let mut encoder = cmd_buffer.begin_render_pass_inline(
-                        self.render_pass.render_pass.as_ref().unwrap(),
-                        framebuffer,
-                        self.viewport.rect,
-                        &[command::ClearValue::Color(command::ClearColor::Float([
-                            cr, cg, cb, 1.0,
-                        ]))],
-                    );
-                    encoder.draw(0..6, 0..1);
-                }
-                cmd_buffer.finish();
-
-                let submission = Submission {
-                    command_buffers: iter::once(&cmd_buffer),
-                    wait_semaphores: iter::once((&*image_acquired, PipelineStage::BOTTOM_OF_PIPE)),
-                    signal_semaphores: iter::once(&*image_present),
-                };
-
-                self.device.borrow_mut().queues.queues[0]
-                    .submit(submission, Some(framebuffer_fence));
-
-                // present frame
-                if self
-                    .swapchain
-                    .as_ref()
-                    .unwrap()
-                    .swapchain
-                    .as_ref()
-                    .unwrap()
-                    .present(
-                        &mut self.device.borrow_mut().queues.queues[0],
-                        frame,
-                        Some(&*image_present),
-                    )
-                    .is_err()
-                {
-                    recreate_swapchain = true;
-                    continue;
-                }
+            match self.render_frame(recreate_swapchain) {
+                RenderStatus::RecreateSwapchain => recreate_swapchain = true,
+                RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
+                _ => (),
             }
         }
+    }
+
+    fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
+        let mut render_status = RenderStatus::Normal;
+        if recreate_swapchain {
+            self.recreate_swapchain();
+            render_status = RenderStatus::NormalAndSwapchainRecreated;
+        }
+
+        let sem_index = self.framebuffer.next_acq_pre_pair_index();
+
+        let frame: hal::SwapImageIndex = unsafe {
+            let (acquire_semaphore, _) = self
+                .framebuffer
+                .get_frame_data(None, Some(sem_index))
+                .1
+                .unwrap();
+            match self
+                .swapchain
+                .as_mut()
+                .unwrap()
+                .swapchain
+                .as_mut()
+                .unwrap()
+                .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
+            {
+                Ok(image_index) => image_index,
+                Err(_) => return RenderStatus::RecreateSwapchain,
+            }
+        };
+
+        let (fid, sid) = self
+            .framebuffer
+            .get_frame_data(Some(frame as usize), Some(sem_index));
+
+        let (framebuffer_fence, framebuffer, command_pool) = fid.unwrap();
+        let (image_acquired, image_present) = sid.unwrap();
+
+        unsafe {
+            self.device
+                .borrow()
+                .device
+                .wait_for_fence(framebuffer_fence, !0)
+                .unwrap();
+            self.device
+                .borrow()
+                .device
+                .reset_fence(framebuffer_fence)
+                .unwrap();
+            command_pool.reset();
+
+            // Rendering
+            let mut cmd_buffer = command_pool.acquire_command_buffer::<command::OneShot>();
+            cmd_buffer.begin();
+
+            cmd_buffer.set_viewports(0, &[self.viewport.clone()]);
+            cmd_buffer.set_scissors(0, &[self.viewport.rect]);
+            cmd_buffer.bind_graphics_pipeline(self.pipeline.pipeline.as_ref().unwrap());
+            cmd_buffer.bind_vertex_buffers(0, Some((self.vertex_buffer.get_buffer(), 0)));
+            cmd_buffer.bind_graphics_descriptor_sets(
+                self.pipeline.pipeline_layout.as_ref().unwrap(),
+                0,
+                vec![
+                    self.image.desc.set.as_ref().unwrap(),
+                    self.uniform.desc.as_ref().unwrap().set.as_ref().unwrap(),
+                ],
+                &[],
+            ); //TODO
+
+            {
+                let mut encoder = cmd_buffer.begin_render_pass_inline(
+                    self.render_pass.render_pass.as_ref().unwrap(),
+                    framebuffer,
+                    self.viewport.rect,
+                    &[command::ClearValue::Color(command::ClearColor::Float([
+                        0.8, 0.8, 0.8, 1.0,
+                    ]))],
+                );
+                encoder.draw(0..6, 0..1);
+            }
+            cmd_buffer.finish();
+
+            let submission = Submission {
+                command_buffers: iter::once(&cmd_buffer),
+                wait_semaphores: iter::once((&*image_acquired, PipelineStage::BOTTOM_OF_PIPE)),
+                signal_semaphores: iter::once(&*image_present),
+            };
+
+            self.device.borrow_mut().queues.queues[0].submit(submission, Some(framebuffer_fence));
+
+            // present frame
+            if self
+                .swapchain
+                .as_ref()
+                .unwrap()
+                .swapchain
+                .as_ref()
+                .unwrap()
+                .present(
+                    &mut self.device.borrow_mut().queues.queues[0],
+                    frame,
+                    Some(&*image_present),
+                )
+                .is_err()
+            {
+                render_status = RenderStatus::RecreateSwapchain
+            }
+        }
+
+        render_status
     }
 }
 

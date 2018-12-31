@@ -34,7 +34,6 @@ extern crate winit;
 mod adapter_state;
 mod backend_state;
 mod buffer_state;
-mod color;
 mod descriptor_set;
 mod device_state;
 mod dimensions;
