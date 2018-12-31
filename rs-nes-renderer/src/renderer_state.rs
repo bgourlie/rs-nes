@@ -113,13 +113,14 @@ impl<B: Backend> RendererState<B> {
             )
             .expect("Can't create staging command pool");
 
-        let image = ImageState::new::<hal::Graphics>(
+        let mut image = ImageState::new::<hal::Graphics>(
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
         );
 
+        image.update_screen_buffer();
         image.copy_buffer_to_texture(&mut device.borrow_mut(), &mut staging_pool);
 
         let vertex_buffer = BufferState::new::<Vertex>(

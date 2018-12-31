@@ -38,17 +38,7 @@ impl<B: Backend> ImageState<B> {
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
     ) -> Self {
-        let mut screen_buffer = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL);
-
-        for y in 0..IMAGE_HEIGHT {
-            for x in 0..IMAGE_WIDTH {
-                screen_buffer.push(y as u8);
-                screen_buffer.push(x as u8);
-                screen_buffer.push(((x + y) % 255) as u8);
-                screen_buffer.push(255);
-            }
-        }
-
+        let screen_buffer = vec![255_u8; IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL];
         let (buffer, dimensions, row_pitch, stride) = BufferState::new_texture(
             Rc::clone(&desc.layout.device),
             &device_state.device,
@@ -137,6 +127,22 @@ impl<B: Backend> ImageState<B> {
             row_pitch,
             stride,
         }
+    }
+
+    pub fn update_screen_buffer(&mut self) {
+        for y in 0..IMAGE_HEIGHT {
+            for x in 0..IMAGE_WIDTH {
+                let i = (y * IMAGE_WIDTH + x) * BYTES_PER_PIXEL;
+                self.screen_buffer[i] = y as u8;
+                self.screen_buffer[i + 1] = x as u8;
+                self.screen_buffer[i + 2] = ((x + y) % 255) as u8;
+            }
+        }
+
+        self.buffer
+            .as_mut()
+            .unwrap()
+            .update_data(0, &self.screen_buffer);
     }
 
     pub unsafe fn copy_buffer_to_texture(
