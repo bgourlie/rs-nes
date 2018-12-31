@@ -403,9 +403,7 @@ impl<B: Backend> RendererState<B> {
                             } => {
                                 if let Some(kc) = virtual_keycode {
                                     match kc {
-                                        winit::VirtualKeyCode::Key0 => {
-                                            cur_value = cur_value * 10 + 0
-                                        }
+                                        winit::VirtualKeyCode::Key0 => cur_value *= 10,
                                         winit::VirtualKeyCode::Key1 => {
                                             cur_value = cur_value * 10 + 1
                                         }
@@ -517,7 +515,7 @@ impl<B: Backend> RendererState<B> {
                     .unwrap()
                     .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
                 {
-                    Ok(i) => i,
+                    Ok(image_index) => image_index,
                     Err(_) => {
                         recreate_swapchain = true;
                         continue;
@@ -586,7 +584,7 @@ impl<B: Backend> RendererState<B> {
                     .submit(submission, Some(framebuffer_fence));
 
                 // present frame
-                if let Err(_) = self
+                if self
                     .swapchain
                     .as_ref()
                     .unwrap()
@@ -598,6 +596,7 @@ impl<B: Backend> RendererState<B> {
                         frame,
                         Some(&*image_present),
                     )
+                    .is_err()
                 {
                     recreate_swapchain = true;
                     continue;
@@ -635,8 +634,8 @@ impl WindowState {
 
         let wb = winit::WindowBuilder::new()
             .with_dimensions(winit::dpi::LogicalSize::new(
-                DIMS.width as _,
-                DIMS.height as _,
+                f64::from(DIMS.width),
+                f64::from(DIMS.height),
             ))
             .with_title("quad".to_string());
 
@@ -760,7 +759,7 @@ impl<B: Backend> RenderPassState<B> {
     unsafe fn new(swapchain: &SwapchainState<B>, device: Rc<RefCell<DeviceState<B>>>) -> Self {
         let render_pass = {
             let attachment = pass::Attachment {
-                format: Some(swapchain.format.clone()),
+                format: Some(swapchain.format),
                 samples: 1,
                 ops: pass::AttachmentOps::new(
                     pass::AttachmentLoadOp::Clear,
@@ -912,7 +911,7 @@ impl<B: Backend> BufferState<B> {
 
         let row_pitch =
             (IMAGE_WIDTH as u32 * stride as u32 + row_alignment_mask) & !row_alignment_mask;
-        let upload_size = (IMAGE_HEIGHT as u32 * row_pitch) as u64;
+        let upload_size = u64::from(IMAGE_HEIGHT as u32 * row_pitch);
 
         let memory: B::Memory;
         let mut buffer: B::Buffer;
@@ -1131,7 +1130,7 @@ impl<B: Backend> ImageState<B> {
     ) -> Self {
         let (buffer, dims, row_pitch, stride) = BufferState::new_texture(
             Rc::clone(&desc.layout.device),
-            &mut device_state.device,
+            &device_state.device,
             &img,
             adapter,
             usage,
@@ -1197,7 +1196,7 @@ impl<B: Backend> ImageState<B> {
             device,
         );
 
-        let mut transfered_image_fence = device.create_fence(false).expect("Can't create fence");
+        let transfered_image_fence = device.create_fence(false).expect("Can't create fence");
 
         // copy buffer to texture
         {
@@ -1256,7 +1255,7 @@ impl<B: Backend> ImageState<B> {
             cmd_buffer.finish();
 
             device_state.queues.queues[0]
-                .submit_nosemaphores(iter::once(&cmd_buffer), Some(&mut transfered_image_fence));
+                .submit_nosemaphores(iter::once(&cmd_buffer), Some(&transfered_image_fence));
         }
 
         ImageState {
@@ -1353,7 +1352,7 @@ impl<B: Backend> PipelineState<B> {
                         module: &vs_module,
                         specialization: pso::Specialization {
                             constants: &[pso::SpecializationConstant { id: 0, range: 0..4 }],
-                            data: std::mem::transmute::<&f32, &[u8; 4]>(&0.8f32),
+                            data: &*(&0.8f32 as *const f32 as *const [u8; 4]),
                         },
                     },
                     pso::EntryPoint::<B> {
@@ -1455,7 +1454,7 @@ impl<B: Backend> SwapchainState<B> {
             formats
                 .iter()
                 .find(|format| format.base_format().1 == ChannelType::Srgb)
-                .map(|format| *format)
+                .cloned()
                 .unwrap_or(formats[0])
         });
 
@@ -1468,14 +1467,13 @@ impl<B: Backend> SwapchainState<B> {
             .create_swapchain(&mut backend.surface, swap_config, None)
             .expect("Can't create swapchain");
 
-        let swapchain = SwapchainState {
+        SwapchainState {
             swapchain: Some(swapchain),
             backbuffer: Some(backbuffer),
             device,
             extent,
             format,
-        };
-        swapchain
+        }
     }
 }
 
@@ -1550,7 +1548,7 @@ impl<B: Backend> FramebufferState<B> {
             Backbuffer::Framebuffer(fbo) => (Vec::new(), vec![fbo]),
         };
 
-        let iter_count = if frame_images.len() != 0 {
+        let iter_count = if !frame_images.is_empty() {
             frame_images.len()
         } else {
             1 // GL can have zero
@@ -1600,6 +1598,7 @@ impl<B: Backend> FramebufferState<B> {
         ret
     }
 
+    #[allow(clippy::type_complexity)]
     fn get_frame_data(
         &mut self,
         frame_id: Option<usize>,
