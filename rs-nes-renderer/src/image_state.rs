@@ -129,11 +129,12 @@ impl<B: Backend> ImageState<B> {
         }
     }
 
-    pub fn update_screen_buffer(&mut self) {
+    pub fn update_screen_buffer(&mut self, t: std::time::Duration) {
+        let t_mod = (t.as_secs() % 255) as usize + 1;
         for y in 0..IMAGE_HEIGHT {
             for x in 0..IMAGE_WIDTH {
                 let i = (y * IMAGE_WIDTH + x) * BYTES_PER_PIXEL;
-                self.screen_buffer[i] = y as u8;
+                self.screen_buffer[i] = (y % t_mod) as u8;
                 self.screen_buffer[i + 1] = x as u8;
                 self.screen_buffer[i + 2] = ((x + y) % 255) as u8;
             }

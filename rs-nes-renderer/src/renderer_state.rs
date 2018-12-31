@@ -120,17 +120,12 @@ impl<B: Backend> RendererState<B> {
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
         println!("Memory types: {:?}", backend.adapter.memory_types);
-        let mut image = ImageState::new::<hal::Graphics>(
+        let image = ImageState::new::<hal::Graphics>(
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
         );
-
-        let mut staging_pool = device.borrow().create_command_pool();
-
-        image.update_screen_buffer();
-        image.copy_buffer_to_texture(&mut device.borrow_mut(), &mut staging_pool);
 
         let vertex_buffer = BufferState::new::<Vertex>(
             Rc::clone(&device),
@@ -146,13 +141,6 @@ impl<B: Backend> RendererState<B> {
             uniform_desc,
             0,
         );
-
-        image.wait_for_transfer_completion();
-
-        device
-            .borrow()
-            .device
-            .destroy_command_pool(staging_pool.into_raw());
 
         let mut swapchain = Some(SwapchainState::new(&mut backend, Rc::clone(&device), DIMS));
 
@@ -238,6 +226,7 @@ impl<B: Backend> RendererState<B> {
     where
         B::Surface: SurfaceTrait,
     {
+        let start_time = Instant::now();
         let mut recreate_swapchain = false;
         let mut accumulator = Duration::new(0, 0);
         let mut previous_clock = Instant::now();
@@ -256,7 +245,23 @@ impl<B: Backend> RendererState<B> {
                     _ => (),
                 }
 
-                self.image.update_screen_buffer();
+                self.image.update_screen_buffer(now - start_time);
+
+                let staging_pool = unsafe {
+                    let mut staging_pool = self.device.borrow().create_command_pool();
+                    self.image
+                        .copy_buffer_to_texture(&mut self.device.borrow_mut(), &mut staging_pool);
+                    staging_pool
+                };
+
+                self.image.wait_for_transfer_completion();
+
+                unsafe {
+                    self.device
+                        .borrow()
+                        .device
+                        .destroy_command_pool(staging_pool.into_raw());
+                }
 
                 match self.render_frame(recreate_swapchain) {
                     RenderStatus::RecreateSwapchain => recreate_swapchain = true,
