@@ -12,7 +12,7 @@ use crate::{
     device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
     pipeline_state::PipelineState, render_pass_state::RenderPassState,
     swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
-    COLOR_RANGE, DIMS, QUAD,
+    COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
 };
 
 pub enum RenderStatus {
@@ -114,8 +114,9 @@ impl<B: Backend> RendererState<B> {
         let image_desc = image_desc.create_desc_set(img_desc_pool.as_mut().unwrap());
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
-        println!("Memory types: {:?}", backend.adapter.memory_types);
         let image = ImageState::new::<Graphics>(
+            IMAGE_WIDTH as u32,
+            IMAGE_HEIGHT as u32,
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,

@@ -33,16 +33,20 @@ pub struct ImageState<B: Backend> {
 
 impl<B: Backend> ImageState<B> {
     pub unsafe fn new<T: Supports<Transfer>>(
+        image_width: u32,
+        image_height: u32,
         mut desc: DescSet<B>,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
     ) -> Self {
-        let screen_buffer = vec![255_u8; IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL];
+        let screen_buffer =
+            vec![255_u8; image_width as usize * image_height as usize * BYTES_PER_PIXEL];
         let (buffer, dimensions, row_pitch, stride) = BufferState::new_texture(
+            image_width,
+            image_height,
             Rc::clone(&desc.layout.device),
             &device_state.device,
-            &screen_buffer,
             adapter,
             usage,
         );
@@ -143,7 +147,7 @@ impl<B: Backend> ImageState<B> {
         self.buffer
             .as_mut()
             .unwrap()
-            .update_data(0, &self.screen_buffer);
+            .update_data(&self.screen_buffer);
     }
 
     pub unsafe fn copy_buffer_to_texture(
