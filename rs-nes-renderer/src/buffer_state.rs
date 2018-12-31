@@ -1,6 +1,6 @@
 use std::{cell::RefCell, mem::size_of, rc::Rc};
 
-use hal::{buffer, memory as m, Backend, Device, MemoryType};
+use gfx_hal::{buffer, memory as m, Backend, Device, MemoryType};
 
 use crate::{
     adapter_state::AdapterState, device_state::DeviceState, dimensions::Dimensions,

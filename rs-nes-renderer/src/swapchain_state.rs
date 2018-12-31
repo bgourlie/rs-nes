@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use hal::{
+use gfx_hal::{
     format as f,
     format::{AsFormat, ChannelType, Rgba8Srgb as ColorFormat},
     image as i,

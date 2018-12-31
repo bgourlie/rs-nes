@@ -5,11 +5,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use hal::{
+use gfx_hal::{
     buffer, command,
     pso::{self, PipelineStage, ShaderStageFlags},
     queue::Submission,
-    Backend, Device, FrameSync, Swapchain,
+    Backend, Device, FrameSync, Graphics, SwapImageIndex, Swapchain,
 };
 
 use crate::{
@@ -120,7 +120,7 @@ impl<B: Backend> RendererState<B> {
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
         println!("Memory types: {:?}", backend.adapter.memory_types);
-        let image = ImageState::new::<hal::Graphics>(
+        let image = ImageState::new::<Graphics>(
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
@@ -329,7 +329,7 @@ impl<B: Backend> RendererState<B> {
 
         let sem_index = self.framebuffer.next_acq_pre_pair_index();
 
-        let frame: hal::SwapImageIndex = unsafe {
+        let frame: SwapImageIndex = unsafe {
             let (acquire_semaphore, _) = self
                 .framebuffer
                 .get_frame_data(None, Some(sem_index))

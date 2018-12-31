@@ -1,11 +1,11 @@
 use std::{iter, rc::Rc};
 
-use hal::{
+use gfx_hal::{
     buffer, command, format as f,
     format::{AsFormat, Rgba8Srgb as ColorFormat, Swizzle},
     image as i, memory as m,
     pso::{self, PipelineStage},
-    Backend, Device,
+    Backend, CommandPool, Device, Graphics, Supports, Transfer,
 };
 
 use crate::{
@@ -32,7 +32,7 @@ pub struct ImageState<B: Backend> {
 }
 
 impl<B: Backend> ImageState<B> {
-    pub unsafe fn new<T: ::hal::Supports<::hal::Transfer>>(
+    pub unsafe fn new<T: Supports<Transfer>>(
         mut desc: DescSet<B>,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
@@ -149,7 +149,7 @@ impl<B: Backend> ImageState<B> {
     pub unsafe fn copy_buffer_to_texture(
         &self,
         device_state: &mut DeviceState<B>,
-        staging_pool: &mut ::hal::CommandPool<B, ::hal::Graphics>,
+        staging_pool: &mut CommandPool<B, Graphics>,
     ) {
         let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
         cmd_buffer.begin();

@@ -1,4 +1,4 @@
-use hal::{
+use gfx_hal::{
     pool::{CommandPool, CommandPoolCreateFlags},
     Adapter, Backend, Device, Graphics, QueueGroup, Surface,
 };

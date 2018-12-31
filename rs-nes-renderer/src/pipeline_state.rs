@@ -1,6 +1,6 @@
 use std::{cell::RefCell, fs, io::Read, mem::size_of, rc::Rc};
 
-use hal::{format as f, pass::Subpass, pso, Backend, Device, Primitive};
+use gfx_hal::{format as f, pass::Subpass, pso, Backend, Device, Primitive};
 
 use crate::{device_state::DeviceState, vertex::Vertex};
 

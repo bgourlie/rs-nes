@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use hal::{image as i, pass, pso::PipelineStage, Backend, Device};
+use gfx_hal::{image as i, pass, pso::PipelineStage, Backend, Device};
 
 use crate::{device_state::DeviceState, swapchain_state::SwapchainState};
 

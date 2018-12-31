@@ -24,8 +24,6 @@ extern crate gfx_backend_metal as back;
 #[cfg(feature = "vulkan")]
 extern crate gfx_backend_vulkan as back;
 
-extern crate gfx_hal as hal;
-
 mod adapter_state;
 mod backend_state;
 mod buffer_state;
@@ -47,7 +45,7 @@ use crate::{
     window_state::WindowState,
 };
 
-use hal::{format as f, image as i, window::Extent2D};
+use gfx_hal::{format as f, image as i, window::Extent2D, Backend};
 
 pub const BYTES_PER_PIXEL: usize = 4;
 pub const IMAGE_WIDTH: usize = 256;
@@ -96,7 +94,7 @@ pub trait SurfaceTrait {
     fn get_window_t(&self) -> &back::glutin::GlWindow;
 }
 
-impl SurfaceTrait for <back::Backend as hal::Backend>::Surface {
+impl SurfaceTrait for <back::Backend as Backend>::Surface {
     #[cfg(feature = "gl")]
     fn get_window_t(&self) -> &back::glutin::GlWindow {
         self.get_window()

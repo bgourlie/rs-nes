@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use hal::{buffer, pso, Backend, MemoryType};
+use gfx_hal::{buffer, pso, Backend, MemoryType};
 
 use crate::{
     buffer_state::BufferState,

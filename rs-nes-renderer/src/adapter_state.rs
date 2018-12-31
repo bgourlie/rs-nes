@@ -1,4 +1,4 @@
-use hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice};
+use gfx_hal::{Adapter, Backend, Limits, MemoryType, PhysicalDevice};
 
 pub struct AdapterState<B: Backend> {
     pub adapter: Option<Adapter<B>>,

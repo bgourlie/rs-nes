@@ -1,6 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use hal::{format::Swizzle, image as i, pool, Backbuffer, Backend, Device};
+use gfx_hal::{
+    format::Swizzle, image as i, pool, Backbuffer, Backend, CommandPool, Device, Graphics,
+};
 
 use crate::{
     device_state::DeviceState, render_pass_state::RenderPassState, swapchain_state::SwapchainState,
@@ -9,7 +11,7 @@ use crate::{
 pub struct FramebufferState<B: Backend> {
     framebuffers: Option<Vec<B::Framebuffer>>,
     framebuffer_fences: Option<Vec<B::Fence>>,
-    command_pools: Option<Vec<hal::CommandPool<B, hal::Graphics>>>,
+    command_pools: Option<Vec<CommandPool<B, Graphics>>>,
     frame_images: Option<Vec<(B::Image, B::ImageView)>>,
     acquire_semaphores: Option<Vec<B::Semaphore>>,
     present_semaphores: Option<Vec<B::Semaphore>>,
@@ -74,7 +76,7 @@ impl<B: Backend> FramebufferState<B> {
         };
 
         let mut fences: Vec<B::Fence> = vec![];
-        let mut command_pools: Vec<hal::CommandPool<B, hal::Graphics>> = vec![];
+        let mut command_pools: Vec<CommandPool<B, Graphics>> = vec![];
         let mut acquire_semaphores: Vec<B::Semaphore> = vec![];
         let mut present_semaphores: Vec<B::Semaphore> = vec![];
 
@@ -126,7 +128,7 @@ impl<B: Backend> FramebufferState<B> {
         Option<(
             &mut B::Fence,
             &mut B::Framebuffer,
-            &mut hal::CommandPool<B, ::hal::Graphics>,
+            &mut CommandPool<B, Graphics>,
         )>,
         Option<(&mut B::Semaphore, &mut B::Semaphore)>,
     ) {

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use hal::{pso, Backend, DescriptorPool, Device};
+use gfx_hal::{pso, Backend, DescriptorPool, Device};
 
 use crate::device_state::DeviceState;
 

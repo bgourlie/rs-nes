@@ -1,4 +1,4 @@
-use hal::{Backend, Instance};
+use gfx_hal::{Backend, Instance};
 
 use crate::{adapter_state::AdapterState, window_state::WindowState};
 
