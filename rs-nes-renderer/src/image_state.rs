@@ -13,7 +13,8 @@ use crate::{
     buffer_state::BufferState,
     descriptor_set::{DescSet, DescSetWrite},
     device_state::DeviceState,
-    COLOR_RANGE,
+    dimensions::Dimensions,
+    BYTES_PER_PIXEL, COLOR_RANGE, IMAGE_HEIGHT, IMAGE_WIDTH,
 };
 
 pub struct ImageState<B: Backend> {
@@ -24,21 +25,35 @@ pub struct ImageState<B: Backend> {
     image: Option<B::Image>,
     memory: Option<B::Memory>,
     transferred_image_fence: Option<B::Fence>,
+    screen_buffer: Vec<u8>,
+    dimensions: Dimensions<u32>,
+    row_pitch: u32,
+    stride: usize,
 }
 
 impl<B: Backend> ImageState<B> {
     pub unsafe fn new<T: ::hal::Supports<::hal::Transfer>>(
         mut desc: DescSet<B>,
-        img: Vec<u8>,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
         staging_pool: &mut ::hal::CommandPool<B, ::hal::Graphics>,
     ) -> Self {
-        let (buffer, dims, row_pitch, stride) = BufferState::new_texture(
+        let mut screen_buffer = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL);
+
+        for y in 0..IMAGE_HEIGHT {
+            for x in 0..IMAGE_WIDTH {
+                screen_buffer.push(y as u8);
+                screen_buffer.push(x as u8);
+                screen_buffer.push(((x + y) % 255) as u8);
+                screen_buffer.push(255);
+            }
+        }
+
+        let (buffer, dimensions, row_pitch, stride) = BufferState::new_texture(
             Rc::clone(&desc.layout.device),
             &device_state.device,
-            &img,
+            &screen_buffer,
             adapter,
             usage,
         );
@@ -46,7 +61,12 @@ impl<B: Backend> ImageState<B> {
         let buffer = Some(buffer);
         let device = &mut device_state.device;
 
-        let kind = i::Kind::D2(dims.width as i::Size, dims.height as i::Size, 1, 1);
+        let kind = i::Kind::D2(
+            dimensions.width as i::Size,
+            dimensions.height as i::Size,
+            1,
+            1,
+        );
         let mut image = device
             .create_image(
                 kind,
@@ -105,67 +125,7 @@ impl<B: Backend> ImageState<B> {
 
         let transfered_image_fence = device.create_fence(false).expect("Can't create fence");
 
-        // copy buffer to texture
-        {
-            let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
-            cmd_buffer.begin();
-
-            let image_barrier = m::Barrier::Image {
-                states: (i::Access::empty(), i::Layout::Undefined)
-                    ..(i::Access::TRANSFER_WRITE, i::Layout::TransferDstOptimal),
-                target: &image,
-                families: None,
-                range: COLOR_RANGE.clone(),
-            };
-
-            cmd_buffer.pipeline_barrier(
-                PipelineStage::TOP_OF_PIPE..PipelineStage::TRANSFER,
-                m::Dependencies::empty(),
-                &[image_barrier],
-            );
-
-            cmd_buffer.copy_buffer_to_image(
-                buffer.as_ref().unwrap().get_buffer(),
-                &image,
-                i::Layout::TransferDstOptimal,
-                &[command::BufferImageCopy {
-                    buffer_offset: 0,
-                    buffer_width: row_pitch / (stride as u32),
-                    buffer_height: dims.height as u32,
-                    image_layers: i::SubresourceLayers {
-                        aspects: f::Aspects::COLOR,
-                        level: 0,
-                        layers: 0..1,
-                    },
-                    image_offset: i::Offset { x: 0, y: 0, z: 0 },
-                    image_extent: i::Extent {
-                        width: dims.width,
-                        height: dims.height,
-                        depth: 1,
-                    },
-                }],
-            );
-
-            let image_barrier = m::Barrier::Image {
-                states: (i::Access::TRANSFER_WRITE, i::Layout::TransferDstOptimal)
-                    ..(i::Access::SHADER_READ, i::Layout::ShaderReadOnlyOptimal),
-                target: &image,
-                families: None,
-                range: COLOR_RANGE.clone(),
-            };
-            cmd_buffer.pipeline_barrier(
-                PipelineStage::TRANSFER..PipelineStage::FRAGMENT_SHADER,
-                m::Dependencies::empty(),
-                &[image_barrier],
-            );
-
-            cmd_buffer.finish();
-
-            device_state.queues.queues[0]
-                .submit_nosemaphores(iter::once(&cmd_buffer), Some(&transfered_image_fence));
-        }
-
-        ImageState {
+        let image_state = ImageState {
             desc,
             buffer,
             sampler: Some(sampler),
@@ -173,7 +133,80 @@ impl<B: Backend> ImageState<B> {
             image: Some(image),
             memory: Some(memory),
             transferred_image_fence: Some(transfered_image_fence),
-        }
+            screen_buffer,
+            dimensions,
+            row_pitch,
+            stride,
+        };
+
+        image_state.copy_buffer_to_texture(device_state, staging_pool);
+
+        image_state
+    }
+
+    pub unsafe fn copy_buffer_to_texture(
+        &self,
+        device_state: &mut DeviceState<B>,
+        staging_pool: &mut ::hal::CommandPool<B, ::hal::Graphics>,
+    ) {
+        let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
+        cmd_buffer.begin();
+
+        let image_barrier = m::Barrier::Image {
+            states: (i::Access::empty(), i::Layout::Undefined)
+                ..(i::Access::TRANSFER_WRITE, i::Layout::TransferDstOptimal),
+            target: self.image.as_ref().unwrap(),
+            families: None,
+            range: COLOR_RANGE.clone(),
+        };
+
+        cmd_buffer.pipeline_barrier(
+            PipelineStage::TOP_OF_PIPE..PipelineStage::TRANSFER,
+            m::Dependencies::empty(),
+            &[image_barrier],
+        );
+
+        cmd_buffer.copy_buffer_to_image(
+            self.buffer.as_ref().unwrap().get_buffer(),
+            self.image.as_ref().unwrap(),
+            i::Layout::TransferDstOptimal,
+            &[command::BufferImageCopy {
+                buffer_offset: 0,
+                buffer_width: self.row_pitch / (self.stride as u32),
+                buffer_height: self.dimensions.height as u32,
+                image_layers: i::SubresourceLayers {
+                    aspects: f::Aspects::COLOR,
+                    level: 0,
+                    layers: 0..1,
+                },
+                image_offset: i::Offset { x: 0, y: 0, z: 0 },
+                image_extent: i::Extent {
+                    width: self.dimensions.width,
+                    height: self.dimensions.height,
+                    depth: 1,
+                },
+            }],
+        );
+
+        let image_barrier = m::Barrier::Image {
+            states: (i::Access::TRANSFER_WRITE, i::Layout::TransferDstOptimal)
+                ..(i::Access::SHADER_READ, i::Layout::ShaderReadOnlyOptimal),
+            target: self.image.as_ref().unwrap(),
+            families: None,
+            range: COLOR_RANGE.clone(),
+        };
+        cmd_buffer.pipeline_barrier(
+            PipelineStage::TRANSFER..PipelineStage::FRAGMENT_SHADER,
+            m::Dependencies::empty(),
+            &[image_barrier],
+        );
+
+        cmd_buffer.finish();
+
+        device_state.queues.queues[0].submit_nosemaphores(
+            iter::once(&cmd_buffer),
+            self.transferred_image_fence.as_ref(),
+        );
     }
 
     pub fn wait_for_transfer_completion(&self) {

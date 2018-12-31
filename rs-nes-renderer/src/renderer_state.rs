@@ -12,7 +12,7 @@ use crate::{
     descriptor_set::DescSetLayout, device_state::DeviceState, framebuffer_state::FramebufferState,
     image_state::ImageState, pipeline_state::PipelineState, render_pass_state::RenderPassState,
     swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
-    SurfaceTrait, BYTES_PER_PIXEL, COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
+    SurfaceTrait, COLOR_RANGE, DIMS, QUAD,
 };
 
 pub struct RendererState<B: Backend> {
@@ -104,17 +104,6 @@ impl<B: Backend> RendererState<B> {
 
         println!("Memory types: {:?}", backend.adapter.memory_types);
 
-        let mut img_bytes = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL);
-
-        for y in 0..IMAGE_HEIGHT {
-            for x in 0..IMAGE_WIDTH {
-                img_bytes.push(y as u8);
-                img_bytes.push(x as u8);
-                img_bytes.push(((x + y) % 255) as u8);
-                img_bytes.push(255);
-            }
-        }
-
         let mut staging_pool = device
             .borrow()
             .device
@@ -126,7 +115,6 @@ impl<B: Backend> RendererState<B> {
 
         let image = ImageState::new::<hal::Graphics>(
             image_desc,
-            img_bytes,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
