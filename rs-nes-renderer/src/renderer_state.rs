@@ -26,6 +26,12 @@ enum RenderStatus {
     RecreateSwapchain,
 }
 
+enum InputStatus {
+    None,
+    Close,
+    RecreateSwapchain,
+}
+
 pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
@@ -240,79 +246,16 @@ impl<B: Backend> RendererState<B> {
     where
         B::Surface: SurfaceTrait,
     {
-        let mut running = true;
         let mut recreate_swapchain = false;
-
-        let r = 1.0f32;
-        let g = 1.0f32;
-        let b = 1.0f32;
-        let a = 1.0f32;
-
-        let mut cur_value: u32 = 0;
-
-        println!("\nInstructions:");
-        println!("\tChoose whether to change the (R)ed, (G)reen or (B)lue color by pressing the appropriate key.");
-        println!("\tType in the value you want to change it to, where 0 is nothing, 255 is normal and 510 is double, ect.");
-        println!("\tThen press C to change the (C)lear colour or (Enter) for the image color.");
 
         let mut accumulator = Duration::new(0, 0);
         let mut previous_clock = Instant::now();
         let fixed_time_stamp = Duration::new(0, 16666667);
-        while running {
-            {
-                let uniform = &mut self.uniform;
-                #[cfg(feature = "gl")]
-                let backend = &self.backend;
-
-                self.window.events_loop.poll_events(|event| {
-                    if let winit::Event::WindowEvent { event, .. } = event {
-                        #[allow(unused_variables)]
-                        match event {
-                            winit::WindowEvent::KeyboardInput {
-                                input:
-                                    winit::KeyboardInput {
-                                        virtual_keycode: Some(winit::VirtualKeyCode::Escape),
-                                        ..
-                                    },
-                                ..
-                            }
-                            | winit::WindowEvent::CloseRequested => running = false,
-                            winit::WindowEvent::Resized(dims) => {
-                                #[cfg(feature = "gl")]
-                                backend.surface.get_window_t().resize(dims.to_physical(
-                                    backend.surface.get_window_t().get_hidpi_factor(),
-                                ));
-                                recreate_swapchain = true;
-                            }
-                            winit::WindowEvent::KeyboardInput {
-                                input:
-                                    winit::KeyboardInput {
-                                        virtual_keycode,
-                                        state: winit::ElementState::Pressed,
-                                        ..
-                                    },
-                                ..
-                            } => {
-                                if let Some(kc) = virtual_keycode {
-                                    match kc {
-                                        winit::VirtualKeyCode::Return => {
-                                            uniform
-                                                .buffer
-                                                .as_mut()
-                                                .unwrap()
-                                                .update_data(0, &[r, g, b, a]);
-                                            cur_value = 0;
-
-                                            println!("Colour updated!");
-                                        }
-                                        _ => return,
-                                    }
-                                }
-                            }
-                            _ => (),
-                        }
-                    }
-                });
+        loop {
+            match self.handle_input() {
+                InputStatus::Close => break,
+                InputStatus::RecreateSwapchain => recreate_swapchain = true,
+                _ => (),
             }
 
             match self.render_frame(recreate_swapchain) {
@@ -321,6 +264,53 @@ impl<B: Backend> RendererState<B> {
                 _ => (),
             }
         }
+    }
+
+    fn handle_input(&mut self) -> InputStatus {
+        let uniform = &mut self.uniform;
+        #[cfg(feature = "gl")]
+        let backend = &self.backend;
+        let mut input_status = InputStatus::None;
+
+        self.window.events_loop.poll_events(|event| {
+            if let winit::Event::WindowEvent { event, .. } = event {
+                #[allow(unused_variables)]
+                match event {
+                    winit::WindowEvent::KeyboardInput {
+                        input:
+                            winit::KeyboardInput {
+                                virtual_keycode: Some(winit::VirtualKeyCode::Escape),
+                                ..
+                            },
+                        ..
+                    }
+                    | winit::WindowEvent::CloseRequested => input_status = InputStatus::Close,
+                    winit::WindowEvent::Resized(dims) => {
+                        #[cfg(feature = "gl")]
+                        backend.surface.get_window_t().resize(
+                            dims.to_physical(backend.surface.get_window_t().get_hidpi_factor()),
+                        );
+                        input_status = InputStatus::RecreateSwapchain;
+                    }
+                    winit::WindowEvent::KeyboardInput {
+                        input:
+                            winit::KeyboardInput {
+                                virtual_keycode,
+                                state: winit::ElementState::Pressed,
+                                ..
+                            },
+                        ..
+                    } => {
+                        if let Some(kc) = virtual_keycode {
+                            // Other Keys
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        });
+
+        input_status
     }
 
     fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
