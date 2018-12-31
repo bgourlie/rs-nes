@@ -29,7 +29,6 @@ mod backend_state;
 mod buffer_state;
 mod descriptor_set;
 mod device_state;
-mod dimensions;
 mod framebuffer_state;
 mod image_state;
 mod pipeline_state;

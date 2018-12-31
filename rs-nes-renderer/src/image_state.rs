@@ -13,7 +13,6 @@ use crate::{
     buffer_state::BufferState,
     descriptor_set::{DescSet, DescSetWrite},
     device_state::DeviceState,
-    dimensions::Dimensions,
     BYTES_PER_PIXEL, COLOR_RANGE, IMAGE_HEIGHT, IMAGE_WIDTH,
 };
 
@@ -26,7 +25,7 @@ pub struct ImageState<B: Backend> {
     memory: Option<B::Memory>,
     transferred_image_fence: Option<B::Fence>,
     screen_buffer: Vec<u8>,
-    dimensions: Dimensions<u32>,
+    dimensions: (u32, u32),
     row_pitch: u32,
     stride: usize,
 }
@@ -42,7 +41,7 @@ impl<B: Backend> ImageState<B> {
     ) -> Self {
         let screen_buffer =
             vec![255_u8; image_width as usize * image_height as usize * BYTES_PER_PIXEL];
-        let (buffer, dimensions, row_pitch, stride) = BufferState::new_texture(
+        let (buffer, row_pitch, stride) = BufferState::new_texture(
             image_width,
             image_height,
             Rc::clone(&desc.layout.device),
@@ -54,12 +53,7 @@ impl<B: Backend> ImageState<B> {
         let buffer = Some(buffer);
         let device = &mut device_state.device;
 
-        let kind = i::Kind::D2(
-            dimensions.width as i::Size,
-            dimensions.height as i::Size,
-            1,
-            1,
-        );
+        let kind = i::Kind::D2(image_width as i::Size, image_height as i::Size, 1, 1);
         let mut image = device
             .create_image(
                 kind,
@@ -127,7 +121,7 @@ impl<B: Backend> ImageState<B> {
             memory: Some(memory),
             transferred_image_fence: Some(transfered_image_fence),
             screen_buffer,
-            dimensions,
+            dimensions: (image_width, image_height),
             row_pitch,
             stride,
         }
@@ -155,6 +149,7 @@ impl<B: Backend> ImageState<B> {
         device_state: &mut DeviceState<B>,
         staging_pool: &mut CommandPool<B, Graphics>,
     ) {
+        let (image_width, image_height) = self.dimensions;
         let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
         cmd_buffer.begin();
 
@@ -179,7 +174,7 @@ impl<B: Backend> ImageState<B> {
             &[command::BufferImageCopy {
                 buffer_offset: 0,
                 buffer_width: self.row_pitch / (self.stride as u32),
-                buffer_height: self.dimensions.height as u32,
+                buffer_height: image_height as u32,
                 image_layers: i::SubresourceLayers {
                     aspects: f::Aspects::COLOR,
                     level: 0,
@@ -187,8 +182,8 @@ impl<B: Backend> ImageState<B> {
                 },
                 image_offset: i::Offset { x: 0, y: 0, z: 0 },
                 image_extent: i::Extent {
-                    width: self.dimensions.width,
-                    height: self.dimensions.height,
+                    width: image_width,
+                    height: image_height,
                     depth: 1,
                 },
             }],

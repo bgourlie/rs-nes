@@ -2,10 +2,7 @@ use std::{cell::RefCell, mem::size_of, rc::Rc};
 
 use gfx_hal::{buffer, memory as m, Backend, Device, MemoryType};
 
-use crate::{
-    adapter_state::AdapterState, device_state::DeviceState, dimensions::Dimensions,
-    BYTES_PER_PIXEL, IMAGE_HEIGHT, IMAGE_WIDTH,
-};
+use crate::{adapter_state::AdapterState, device_state::DeviceState, BYTES_PER_PIXEL};
 
 pub struct BufferState<B: Backend> {
     memory: Option<B::Memory>,
@@ -103,13 +100,12 @@ impl<B: Backend> BufferState<B> {
         device: &B::Device,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
-    ) -> (Self, Dimensions<u32>, u32, usize) {
+    ) -> (Self, u32, usize) {
         let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
         let stride = BYTES_PER_PIXEL;
 
-        let row_pitch =
-            (IMAGE_WIDTH as u32 * stride as u32 + row_alignment_mask) & !row_alignment_mask;
-        let upload_size = u64::from(IMAGE_HEIGHT as u32 * row_pitch);
+        let row_pitch = (width * stride as u32 + row_alignment_mask) & !row_alignment_mask;
+        let upload_size = u64::from(height * row_pitch);
 
         let mut buffer = device.create_buffer(upload_size, usage).unwrap();
         let mem_reqs = device.get_buffer_requirements(&buffer);
@@ -135,7 +131,6 @@ impl<B: Backend> BufferState<B> {
                 device: device_ptr,
                 size: mem_reqs.size,
             },
-            Dimensions { width, height },
             row_pitch,
             stride,
         )
