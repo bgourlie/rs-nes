@@ -6,7 +6,7 @@ use std::{
 };
 
 use hal::{
-    buffer, command, pool,
+    buffer, command,
     pso::{self, PipelineStage, ShaderStageFlags},
     queue::Submission,
     Backend, Device, FrameSync, Swapchain,
@@ -120,22 +120,14 @@ impl<B: Backend> RendererState<B> {
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
         println!("Memory types: {:?}", backend.adapter.memory_types);
-
-        let mut staging_pool = device
-            .borrow()
-            .device
-            .create_command_pool_typed(
-                &device.borrow().queues,
-                pool::CommandPoolCreateFlags::empty(),
-            )
-            .expect("Can't create staging command pool");
-
         let mut image = ImageState::new::<hal::Graphics>(
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
         );
+
+        let mut staging_pool = device.borrow().create_command_pool();
 
         image.update_screen_buffer();
         image.copy_buffer_to_texture(&mut device.borrow_mut(), &mut staging_pool);
@@ -263,6 +255,8 @@ impl<B: Backend> RendererState<B> {
                     InputStatus::RecreateSwapchain => recreate_swapchain = true,
                     _ => (),
                 }
+
+                self.image.update_screen_buffer();
 
                 match self.render_frame(recreate_swapchain) {
                     RenderStatus::RecreateSwapchain => recreate_swapchain = true,
