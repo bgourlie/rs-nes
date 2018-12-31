@@ -128,26 +128,26 @@ fn main() {
         0 => match rom.prg_rom_banks {
             1 => {
                 let cart = Nrom128::new(&rom).expect("Unable to map ROM to cart");
-                let cpu = load_cart(cart).expect("Unable to load cart");
-                run(cpu);
+                let mut cpu = load_cart(cart).expect("Unable to load cart");
+                run(&mut cpu);
             }
             2 => {
                 let cart = Nrom256::new(&rom).expect("Unable to map ROM to cart");
-                let cpu = load_cart(cart).expect("Unable to load cart");
-                run(cpu);
+                let mut cpu = load_cart(cart).expect("Unable to load cart");
+                run(&mut cpu);
             }
             _ => panic!("Unsupported NROM cart"),
         },
         2 => {
             let cart = Uxrom::new(&rom).expect("Unable to map ROM to cart");
-            let cpu = load_cart(cart).expect("Unable to load cart");
-            run(cpu);
+            let mut cpu = load_cart(cart).expect("Unable to load cart");
+            run(&mut cpu);
         }
         _ => panic!("Mapper {} not supported", rom.mapper),
     }
 }
 
-fn run<C: Cart>(_cpu: Box<Nes<C>>) {
+fn run<C: Cart>(_cpu: &mut Nes<C>) {
     let mut window = WindowState::new();
     let (backend, _instance) = create_backend(&mut window);
 
@@ -156,7 +156,7 @@ fn run<C: Cart>(_cpu: Box<Nes<C>>) {
     let mut recreate_swapchain = false;
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();
-    let fixed_time_stamp = Duration::new(0, 16666667);
+    let fixed_time_stamp = Duration::new(0, 16_666_667);
     'running: loop {
         let now = Instant::now();
         accumulator += now - previous_clock;

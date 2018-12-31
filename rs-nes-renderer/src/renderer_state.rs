@@ -12,7 +12,7 @@ use crate::{
     device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
     pipeline_state::PipelineState, render_pass_state::RenderPassState,
     swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, window_state::WindowState,
-    COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
+    BYTES_PER_PIXEL, COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
 };
 
 pub enum RenderStatus {
@@ -117,6 +117,7 @@ impl<B: Backend> RendererState<B> {
         let image = ImageState::new::<Graphics>(
             IMAGE_WIDTH as u32,
             IMAGE_HEIGHT as u32,
+            BYTES_PER_PIXEL as u32,
             image_desc,
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
@@ -266,11 +267,12 @@ impl<B: Backend> RendererState<B> {
     }
 
     pub fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
-        let mut render_status = RenderStatus::Normal;
-        if recreate_swapchain {
+        let mut render_status = if recreate_swapchain {
             self.recreate_swapchain();
-            render_status = RenderStatus::NormalAndSwapchainRecreated;
-        }
+            RenderStatus::NormalAndSwapchainRecreated
+        } else {
+            RenderStatus::Normal
+        };
 
         let sem_index = self.framebuffer.next_acq_pre_pair_index();
 

@@ -13,7 +13,7 @@ use crate::{
     buffer_state::BufferState,
     descriptor_set::{DescSet, DescSetWrite},
     device_state::DeviceState,
-    BYTES_PER_PIXEL, COLOR_RANGE, IMAGE_HEIGHT, IMAGE_WIDTH,
+    COLOR_RANGE,
 };
 
 pub struct ImageState<B: Backend> {
@@ -27,23 +27,25 @@ pub struct ImageState<B: Backend> {
     screen_buffer: Vec<u8>,
     dimensions: (u32, u32),
     row_pitch: u32,
-    stride: usize,
+    stride: u32,
 }
 
 impl<B: Backend> ImageState<B> {
     pub unsafe fn new<T: Supports<Transfer>>(
         image_width: u32,
         image_height: u32,
+        stride: u32,
         mut desc: DescSet<B>,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
     ) -> Self {
         let screen_buffer =
-            vec![255_u8; image_width as usize * image_height as usize * BYTES_PER_PIXEL];
-        let (buffer, row_pitch, stride) = BufferState::new_texture(
+            vec![255_u8; image_width as usize * image_height as usize * stride as usize];
+        let (buffer, row_pitch) = BufferState::new_texture(
             image_width,
             image_height,
+            stride,
             Rc::clone(&desc.layout.device),
             &device_state.device,
             adapter,
@@ -129,10 +131,11 @@ impl<B: Backend> ImageState<B> {
 
     pub fn update_screen_buffer(&mut self, t: std::time::Duration) {
         let t_mod = (t.as_secs() % 255) as usize + 1;
-        for y in 0..IMAGE_HEIGHT {
-            for x in 0..IMAGE_WIDTH {
-                let i = (y * IMAGE_WIDTH + x) * BYTES_PER_PIXEL;
-                self.screen_buffer[i] = (y % t_mod) as u8;
+        let (image_width, image_height) = self.dimensions;
+        for y in 0..image_height {
+            for x in 0..image_width {
+                let i = ((y * image_width + x) * self.stride) as usize;
+                self.screen_buffer[i] = (y % t_mod as u32) as u8;
                 self.screen_buffer[i + 1] = x as u8;
                 self.screen_buffer[i + 2] = ((x + y) % 255) as u8;
             }

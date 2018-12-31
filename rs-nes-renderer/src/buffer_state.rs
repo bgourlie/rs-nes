@@ -2,7 +2,7 @@ use std::{cell::RefCell, mem::size_of, rc::Rc};
 
 use gfx_hal::{buffer, memory as m, Backend, Device, MemoryType};
 
-use crate::{adapter_state::AdapterState, device_state::DeviceState, BYTES_PER_PIXEL};
+use crate::{adapter_state::AdapterState, device_state::DeviceState};
 
 pub struct BufferState<B: Backend> {
     memory: Option<B::Memory>,
@@ -96,15 +96,15 @@ impl<B: Backend> BufferState<B> {
     pub unsafe fn new_texture(
         width: u32,
         height: u32,
+        stride: u32,
         device_ptr: Rc<RefCell<DeviceState<B>>>,
         device: &B::Device,
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
-    ) -> (Self, u32, usize) {
+    ) -> (Self, u32) {
         let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
-        let stride = BYTES_PER_PIXEL;
 
-        let row_pitch = (width * stride as u32 + row_alignment_mask) & !row_alignment_mask;
+        let row_pitch = (width * stride + row_alignment_mask) & !row_alignment_mask;
         let upload_size = u64::from(height * row_pitch);
 
         let mut buffer = device.create_buffer(upload_size, usage).unwrap();
@@ -132,7 +132,6 @@ impl<B: Backend> BufferState<B> {
                 size: mem_reqs.size,
             },
             row_pitch,
-            stride,
         )
     }
 }
