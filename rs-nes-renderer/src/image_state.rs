@@ -18,13 +18,12 @@ use crate::{
 
 pub struct ImageState<B: Backend> {
     pub desc: DescSet<B>,
-    buffer: Option<BufferState<B>>,
+    pub buffer: Option<BufferState<B>>,
     sampler: Option<B::Sampler>,
     image_view: Option<B::ImageView>,
     image: Option<B::Image>,
     memory: Option<B::Memory>,
     transferred_image_fence: Option<B::Fence>,
-    screen_buffer: Vec<u8>,
     dimensions: (u32, u32),
     row_pitch: u32,
     stride: u32,
@@ -40,8 +39,6 @@ impl<B: Backend> ImageState<B> {
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
     ) -> Self {
-        let screen_buffer =
-            vec![255_u8; image_width as usize * image_height as usize * stride as usize];
         let (buffer, row_pitch) = BufferState::new_texture(
             image_width,
             image_height,
@@ -122,29 +119,10 @@ impl<B: Backend> ImageState<B> {
             image: Some(image),
             memory: Some(memory),
             transferred_image_fence: Some(transfered_image_fence),
-            screen_buffer,
             dimensions: (image_width, image_height),
             row_pitch,
             stride,
         }
-    }
-
-    pub fn update_screen_buffer(&mut self, t: std::time::Duration) {
-        let t_mod = (t.as_secs() % 255) as usize + 1;
-        let (image_width, image_height) = self.dimensions;
-        for y in 0..image_height {
-            for x in 0..image_width {
-                let i = ((y * image_width + x) * self.stride) as usize;
-                self.screen_buffer[i] = (y % t_mod as u32) as u8;
-                self.screen_buffer[i + 1] = x as u8;
-                self.screen_buffer[i + 2] = ((x + y) % 255) as u8;
-            }
-        }
-
-        self.buffer
-            .as_mut()
-            .unwrap()
-            .update_data(&self.screen_buffer);
     }
 
     pub unsafe fn copy_buffer_to_texture(
