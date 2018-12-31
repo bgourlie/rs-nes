@@ -37,7 +37,6 @@ impl<B: Backend> ImageState<B> {
         adapter: &AdapterState<B>,
         usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
-        staging_pool: &mut ::hal::CommandPool<B, ::hal::Graphics>,
     ) -> Self {
         let mut screen_buffer = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT * BYTES_PER_PIXEL);
 
@@ -125,7 +124,7 @@ impl<B: Backend> ImageState<B> {
 
         let transfered_image_fence = device.create_fence(false).expect("Can't create fence");
 
-        let image_state = ImageState {
+        ImageState {
             desc,
             buffer,
             sampler: Some(sampler),
@@ -137,11 +136,7 @@ impl<B: Backend> ImageState<B> {
             dimensions,
             row_pitch,
             stride,
-        };
-
-        image_state.copy_buffer_to_texture(device_state, staging_pool);
-
-        image_state
+        }
     }
 
     pub unsafe fn copy_buffer_to_texture(

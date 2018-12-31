@@ -118,8 +118,9 @@ impl<B: Backend> RendererState<B> {
             &backend.adapter,
             buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
-            &mut staging_pool,
         );
+
+        image.copy_buffer_to_texture(&mut device.borrow_mut(), &mut staging_pool);
 
         let vertex_buffer = BufferState::new::<Vertex>(
             Rc::clone(&device),
