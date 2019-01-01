@@ -125,14 +125,17 @@ impl<B: Backend> ImageState<B> {
         }
     }
 
-    pub unsafe fn copy_buffer_to_texture(
+    pub fn copy_buffer_to_texture(
         &self,
         device_state: &mut DeviceState<B>,
         staging_pool: &mut CommandPool<B, Graphics>,
     ) {
         let (image_width, image_height) = self.dimensions;
         let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
-        cmd_buffer.begin();
+
+        unsafe {
+            cmd_buffer.begin();
+        }
 
         let image_barrier = m::Barrier::Image {
             states: (i::Access::empty(), i::Layout::Undefined)
@@ -142,33 +145,35 @@ impl<B: Backend> ImageState<B> {
             range: COLOR_RANGE.clone(),
         };
 
-        cmd_buffer.pipeline_barrier(
-            PipelineStage::TOP_OF_PIPE..PipelineStage::TRANSFER,
-            m::Dependencies::empty(),
-            &[image_barrier],
-        );
+        unsafe {
+            cmd_buffer.pipeline_barrier(
+                PipelineStage::TOP_OF_PIPE..PipelineStage::TRANSFER,
+                m::Dependencies::empty(),
+                &[image_barrier],
+            );
 
-        cmd_buffer.copy_buffer_to_image(
-            self.buffer.as_ref().unwrap().get_buffer(),
-            self.image.as_ref().unwrap(),
-            i::Layout::TransferDstOptimal,
-            &[command::BufferImageCopy {
-                buffer_offset: 0,
-                buffer_width: self.row_pitch / (self.stride as u32),
-                buffer_height: image_height as u32,
-                image_layers: i::SubresourceLayers {
-                    aspects: f::Aspects::COLOR,
-                    level: 0,
-                    layers: 0..1,
-                },
-                image_offset: i::Offset { x: 0, y: 0, z: 0 },
-                image_extent: i::Extent {
-                    width: image_width,
-                    height: image_height,
-                    depth: 1,
-                },
-            }],
-        );
+            cmd_buffer.copy_buffer_to_image(
+                self.buffer.as_ref().unwrap().get_buffer(),
+                self.image.as_ref().unwrap(),
+                i::Layout::TransferDstOptimal,
+                &[command::BufferImageCopy {
+                    buffer_offset: 0,
+                    buffer_width: self.row_pitch / (self.stride as u32),
+                    buffer_height: image_height as u32,
+                    image_layers: i::SubresourceLayers {
+                        aspects: f::Aspects::COLOR,
+                        level: 0,
+                        layers: 0..1,
+                    },
+                    image_offset: i::Offset { x: 0, y: 0, z: 0 },
+                    image_extent: i::Extent {
+                        width: image_width,
+                        height: image_height,
+                        depth: 1,
+                    },
+                }],
+            );
+        }
 
         let image_barrier = m::Barrier::Image {
             states: (i::Access::TRANSFER_WRITE, i::Layout::TransferDstOptimal)
@@ -177,18 +182,21 @@ impl<B: Backend> ImageState<B> {
             families: None,
             range: COLOR_RANGE.clone(),
         };
-        cmd_buffer.pipeline_barrier(
-            PipelineStage::TRANSFER..PipelineStage::FRAGMENT_SHADER,
-            m::Dependencies::empty(),
-            &[image_barrier],
-        );
 
-        cmd_buffer.finish();
+        unsafe {
+            cmd_buffer.pipeline_barrier(
+                PipelineStage::TRANSFER..PipelineStage::FRAGMENT_SHADER,
+                m::Dependencies::empty(),
+                &[image_barrier],
+            );
 
-        device_state.queues.queues[0].submit_nosemaphores(
-            iter::once(&cmd_buffer),
-            self.transferred_image_fence.as_ref(),
-        );
+            cmd_buffer.finish();
+
+            device_state.queues.queues[0].submit_nosemaphores(
+                iter::once(&cmd_buffer),
+                self.transferred_image_fence.as_ref(),
+            );
+        }
     }
 
     pub fn wait_for_transfer_completion(&self) {

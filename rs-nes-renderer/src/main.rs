@@ -253,7 +253,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                         .buffer
                         .as_mut()
                         .unwrap()
-                        .update_data(&*cpu.interconnect.ppu.screen());
+                        .update_buffer_data(cpu.interconnect.ppu.screen());
                     break;
                 }
             }

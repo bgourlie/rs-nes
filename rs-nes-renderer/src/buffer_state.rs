@@ -75,7 +75,7 @@ impl<B: Backend> BufferState<B> {
         }
     }
 
-    pub fn update_data<T>(&mut self, data_source: &[T])
+    pub fn update_buffer_data<T>(&mut self, data_source: &[T])
     where
         T: Copy,
     {
@@ -83,7 +83,6 @@ impl<B: Backend> BufferState<B> {
         let stride = size_of::<T>() as u64;
         let upload_size = data_source.len() as u64 * stride;
         assert!(upload_size <= self.size);
-
         unsafe {
             let mut data_target = device
                 .acquire_mapping_writer::<T>(self.memory.as_ref().unwrap(), 0..self.size)
