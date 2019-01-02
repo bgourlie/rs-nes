@@ -1,7 +1,7 @@
 use std::{iter, rc::Rc};
 
 use gfx_hal::{
-    buffer, command, format as f,
+    command, format as f,
     format::{AsFormat, Rgba8Srgb as ColorFormat, Swizzle},
     image as i, memory as m,
     pso::{self, PipelineStage},
@@ -36,7 +36,6 @@ impl<B: Backend> ImageState<B> {
         stride: u32,
         mut desc: DescSet<B>,
         adapter: &AdapterState<B>,
-        usage: buffer::Usage,
         device_state: &mut DeviceState<B>,
     ) -> Self {
         let (buffer, row_pitch) = BufferState::new_texture(
@@ -46,7 +45,6 @@ impl<B: Backend> ImageState<B> {
             Rc::clone(&desc.layout.device),
             &device_state.device,
             adapter,
-            usage,
         );
 
         let buffer = Some(buffer);
@@ -109,7 +107,7 @@ impl<B: Backend> ImageState<B> {
             device,
         );
 
-        let transfered_image_fence = device.create_fence(false).expect("Can't create fence");
+        let transferred_image_fence = device.create_fence(false).expect("Can't create fence");
 
         ImageState {
             desc,
@@ -118,7 +116,7 @@ impl<B: Backend> ImageState<B> {
             image_view: Some(image_view),
             image: Some(image),
             memory: Some(memory),
-            transferred_image_fence: Some(transfered_image_fence),
+            transferred_image_fence: Some(transferred_image_fence),
             dimensions: (image_width, image_height),
             row_pitch,
             stride,
@@ -202,9 +200,12 @@ impl<B: Backend> ImageState<B> {
     pub fn wait_for_transfer_completion(&self) {
         let device = &self.desc.layout.device.borrow().device;
         unsafe {
+            let fence = self.transferred_image_fence.as_ref().unwrap();
+            device.wait_for_fence(fence, !0).unwrap();
+
             device
-                .wait_for_fence(self.transferred_image_fence.as_ref().unwrap(), !0)
-                .unwrap();
+                .reset_fence(fence)
+                .expect("Fence to reset successfully");
         }
     }
 

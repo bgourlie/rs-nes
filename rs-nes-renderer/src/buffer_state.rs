@@ -1,6 +1,6 @@
 use std::{cell::RefCell, mem::size_of, rc::Rc};
 
-use gfx_hal::{buffer, memory as m, Backend, Device, MemoryType};
+use gfx_hal::{buffer, memory, Backend, Device, MemoryType};
 
 use crate::{adapter_state::AdapterState, device_state::DeviceState};
 
@@ -43,17 +43,19 @@ impl<B: Backend> BufferState<B> {
             // only be used for small pieces of data that need to be updated very frequently. For something like
             // a vertex buffer that may be much larger and should not change frequently, you should instead
             // use a DEVICE_LOCAL buffer that gets filled by copying data from a CPU_VISIBLE staging buffer.
-            let upload_type = memory_types
+            let memory_type = memory_types
                 .iter()
                 .enumerate()
                 .position(|(id, mem_type)| {
                     mem_req.type_mask & (1 << id) != 0
-                        && mem_type.properties.contains(m::Properties::CPU_VISIBLE)
+                        && mem_type
+                            .properties
+                            .contains(memory::Properties::CPU_VISIBLE)
                 })
                 .unwrap()
                 .into();
 
-            memory = device.allocate_memory(upload_type, mem_req.size).unwrap();
+            memory = device.allocate_memory(memory_type, mem_req.size).unwrap();
             device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
             size = mem_req.size;
 
@@ -99,13 +101,13 @@ impl<B: Backend> BufferState<B> {
         device_ptr: Rc<RefCell<DeviceState<B>>>,
         device: &B::Device,
         adapter: &AdapterState<B>,
-        usage: buffer::Usage,
     ) -> (Self, u32) {
         let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
 
         let row_pitch = (width * stride + row_alignment_mask) & !row_alignment_mask;
         let upload_size = u64::from(height * row_pitch);
 
+        let usage = buffer::Usage::TRANSFER_SRC;
         let mut buffer = device.create_buffer(upload_size, usage).unwrap();
         let mem_reqs = device.get_buffer_requirements(&buffer);
 
@@ -115,7 +117,9 @@ impl<B: Backend> BufferState<B> {
             .enumerate()
             .position(|(id, mem_type)| {
                 mem_reqs.type_mask & (1 << id) != 0
-                    && mem_type.properties.contains(m::Properties::CPU_VISIBLE)
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::CPU_VISIBLE)
             })
             .unwrap()
             .into();

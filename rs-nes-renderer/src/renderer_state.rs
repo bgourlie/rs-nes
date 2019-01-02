@@ -113,7 +113,6 @@ impl<B: Backend> RendererState<B> {
             BYTES_PER_PIXEL as u32,
             image_desc,
             &backend.adapter,
-            buffer::Usage::TRANSFER_SRC,
             &mut device.borrow_mut(),
         );
 
