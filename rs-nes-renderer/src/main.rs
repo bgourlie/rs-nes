@@ -260,6 +260,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
 
             let staging_pool = unsafe {
                 let mut staging_pool = renderer_state.device.borrow().create_command_pool();
+                // FIXME: Following line causing huge memory leak with dx12 backend
                 renderer_state.image.copy_buffer_to_texture(
                     &mut renderer_state.device.borrow_mut(),
                     &mut staging_pool,
