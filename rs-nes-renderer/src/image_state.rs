@@ -220,7 +220,8 @@ impl<B: Backend> Drop for ImageState<B> {
             let device = &self.desc.layout.device.borrow().device;
 
             let fence = self.transferred_image_fence.take().unwrap();
-            device.wait_for_fence(&fence, !0).unwrap();
+            let wait_timeout_ns = 10_000;
+            device.wait_for_fence(&fence, wait_timeout_ns).unwrap();
             device.destroy_fence(fence);
 
             device.destroy_sampler(self.sampler.take().unwrap());

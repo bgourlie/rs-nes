@@ -39,7 +39,6 @@ mod uniform;
 mod vertex;
 mod window_state;
 
-use log::info;
 use rs_nes::{
     load_cart, Button, Cart, IInput, IPpu, Interrupt, Nes, NesRom, Nrom128, Nrom256, Uxrom,
 };
@@ -126,13 +125,9 @@ impl SurfaceTrait for <back::Backend as Backend>::Surface {
     feature = "gl"
 ))]
 fn main() {
-    env_logger::init();
-
     let rom_path = env::args().last().expect("Unable to determine rom path");
     let mut rom_file = File::open(rom_path).expect("Unable to open ROM file");
     let rom = NesRom::load(&mut rom_file).expect("Unable to load ROM");
-    info!("ROM INFORMATION");
-    info!("{:?}", rom);
     match rom.mapper {
         0 => match rom.prg_rom_banks {
             1 => {
