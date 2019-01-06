@@ -1,18 +1,17 @@
-use std::{cell::RefCell, iter, rc::Rc};
+use std::{cell::RefCell, iter, mem::size_of, rc::Rc};
 
 use gfx_hal::{
-    buffer, command,
+    buffer, command, memory,
     pso::{self, PipelineStage, ShaderStageFlags},
     queue::Submission,
     Backend, Device, FrameSync, Graphics, SwapImageIndex, Swapchain,
 };
 
 use crate::{
-    backend_state::BackendState, buffer_state::BufferState, descriptor_set::DescSetLayout,
-    device_state::DeviceState, framebuffer_state::FramebufferState,
-    nes_screen_buffer::NesScreenBuffer, pipeline_state::PipelineState,
-    render_pass_state::RenderPassState, swapchain_state::SwapchainState, uniform::Uniform,
-    vertex::Vertex, COLOR_RANGE, DIMS, QUAD,
+    backend_state::BackendState, descriptor_set::DescSetLayout, device_state::DeviceState,
+    framebuffer_state::FramebufferState, nes_screen_buffer::NesScreenBuffer,
+    pipeline_state::PipelineState, render_pass_state::RenderPassState,
+    swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, COLOR_RANGE, DIMS, QUAD,
 };
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -29,7 +28,8 @@ pub struct RendererState<B: Backend> {
     swapchain: Option<SwapchainState<B>>,
     pub device: Rc<RefCell<DeviceState<B>>>,
     pub backend: BackendState<B>,
-    vertex_buffer: BufferState<B>,
+    pub vertex_memory: Option<B::Memory>,
+    vertex_buffer: Option<B::Buffer>,
     render_pass: RenderPassState<B>,
     uniform: Uniform<B>,
     pipeline: PipelineState<B>,
@@ -117,12 +117,47 @@ impl<B: Backend> RendererState<B> {
             &backend.adapter,
         );
 
-        let vertex_buffer = BufferState::new::<Vertex>(
-            Rc::clone(&device),
-            &QUAD,
-            buffer::Usage::VERTEX,
-            &backend.adapter.memory_types,
-        );
+        let (vertex_memory, vertex_buffer) = {
+            let vertex_stride = size_of::<Vertex>() as u64;
+            let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
+
+            let device = &device.borrow().device;
+
+            let mut buffer = device
+                .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
+                .unwrap();
+            let mem_req = device.get_buffer_requirements(&buffer);
+
+            let memory_type = &backend
+                .adapter
+                .memory_types
+                .iter()
+                .enumerate()
+                .position(|(id, mem_type)| {
+                    mem_req.type_mask & (1 << id) != 0
+                        && mem_type
+                            .properties
+                            .contains(memory::Properties::CPU_VISIBLE)
+                })
+                .expect("Vertex memory type not supported")
+                .into();
+
+            let memory = device.allocate_memory(*memory_type, mem_req.size).unwrap();
+            device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
+            let size = mem_req.size;
+
+            let mut data_target = device
+                .acquire_mapping_writer::<Vertex>(&memory, 0..size)
+                .expect("Unable to acquire mapping writer");
+
+            data_target[0..QUAD.len()].copy_from_slice(&QUAD);
+
+            device
+                .release_mapping_writer(data_target)
+                .expect("Unable to release mapping writer");
+
+            (memory, buffer)
+        };
 
         let uniform = Uniform::new(
             Rc::clone(&device),
@@ -144,7 +179,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let pipeline = PipelineState::new(
-            vec![nes_screen_buffer.get_layout(), uniform.get_layout()],
+            vec![nes_screen_buffer.get_layout(), uniform.layout()],
             render_pass.render_pass.as_ref().unwrap(),
             Rc::clone(&device),
         );
@@ -157,7 +192,8 @@ impl<B: Backend> RendererState<B> {
             nes_screen_buffer,
             img_desc_pool,
             uniform_desc_pool,
-            vertex_buffer,
+            vertex_buffer: Some(vertex_buffer),
+            vertex_memory: Some(vertex_memory),
             uniform,
             render_pass,
             pipeline,
@@ -190,10 +226,7 @@ impl<B: Backend> RendererState<B> {
 
         self.pipeline = unsafe {
             PipelineState::new(
-                vec![
-                    self.nes_screen_buffer.get_layout(),
-                    self.uniform.get_layout(),
-                ],
+                vec![self.nes_screen_buffer.get_layout(), self.uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 Rc::clone(&self.device),
             )
@@ -271,16 +304,24 @@ impl<B: Backend> RendererState<B> {
             cmd_buffer.set_viewports(0, &[self.viewport.clone()]);
             cmd_buffer.set_scissors(0, &[self.viewport.rect]);
             cmd_buffer.bind_graphics_pipeline(self.pipeline.pipeline.as_ref().unwrap());
-            cmd_buffer.bind_vertex_buffers(0, Some((self.vertex_buffer.get_buffer(), 0)));
+            cmd_buffer.bind_vertex_buffers(
+                0,
+                Some((
+                    self.vertex_buffer
+                        .as_ref()
+                        .expect("Vertex buffer shouldn't be None"),
+                    0,
+                )),
+            );
             cmd_buffer.bind_graphics_descriptor_sets(
                 self.pipeline.pipeline_layout.as_ref().unwrap(),
                 0,
                 vec![
                     self.nes_screen_buffer.descriptor_set(),
-                    self.uniform.desc.as_ref().unwrap().set.as_ref().unwrap(),
+                    self.uniform.descriptor_set(),
                 ],
                 &[],
-            ); //TODO
+            );
 
             {
                 let mut encoder = cmd_buffer.begin_render_pass_inline(
@@ -328,16 +369,33 @@ impl<B: Backend> RendererState<B> {
 
 impl<B: Backend> Drop for RendererState<B> {
     fn drop(&mut self) {
-        self.device.borrow().device.wait_idle().unwrap();
+        let device = self.device.borrow();
+        device.device.wait_idle().unwrap();
         unsafe {
-            self.device
-                .borrow()
-                .device
-                .destroy_descriptor_pool(self.img_desc_pool.take().unwrap());
-            self.device
-                .borrow()
-                .device
-                .destroy_descriptor_pool(self.uniform_desc_pool.take().unwrap());
+            device.device.destroy_descriptor_pool(
+                self.img_desc_pool
+                    .take()
+                    .expect("Image descriptor pool shouldn't be None"),
+            );
+
+            device.device.destroy_descriptor_pool(
+                self.uniform_desc_pool
+                    .take()
+                    .expect("Uniform descriptor pool shouldn't be None"),
+            );
+
+            device.device.destroy_buffer(
+                self.vertex_buffer
+                    .take()
+                    .expect("Vertex buffer shouldn't be None"),
+            );
+
+            device.device.free_memory(
+                self.vertex_memory
+                    .take()
+                    .expect("Vertex memory shouldn't be None"),
+            );
+
             self.swapchain.take();
         }
     }

@@ -26,7 +26,6 @@ extern crate gfx_backend_vulkan as back;
 
 mod adapter_state;
 mod backend_state;
-mod buffer_state;
 mod descriptor_set;
 mod device_state;
 mod framebuffer_state;
