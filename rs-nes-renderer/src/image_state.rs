@@ -18,7 +18,7 @@ use crate::{
 
 pub struct ImageState<B: Backend> {
     pub desc: DescSet<B>,
-    pub buffer: Option<BufferState<B>>,
+    staging_buffer: Option<BufferState<B>>,
     sampler: Option<B::Sampler>,
     image_view: Option<B::ImageView>,
     image: Option<B::Image>,
@@ -38,7 +38,7 @@ impl<B: Backend> ImageState<B> {
         adapter: &AdapterState<B>,
         device_state: &mut DeviceState<B>,
     ) -> Self {
-        let (buffer, row_pitch) = BufferState::new_texture(
+        let (staging_buffer, row_pitch) = BufferState::new_texture(
             image_width,
             image_height,
             stride,
@@ -47,7 +47,6 @@ impl<B: Backend> ImageState<B> {
             adapter,
         );
 
-        let buffer = Some(buffer);
         let device = &mut device_state.device;
 
         let kind = i::Kind::D2(image_width as i::Size, image_height as i::Size, 1, 1);
@@ -111,7 +110,7 @@ impl<B: Backend> ImageState<B> {
 
         ImageState {
             desc,
-            buffer,
+            staging_buffer: Some(staging_buffer),
             sampler: Some(sampler),
             image_view: Some(image_view),
             image: Some(image),
@@ -120,6 +119,20 @@ impl<B: Backend> ImageState<B> {
             dimensions: (image_width, image_height),
             row_pitch,
             stride,
+        }
+    }
+
+    pub fn update_buffer_data(&mut self, data_source: &[u8]) {
+        let buffer = self.staging_buffer.as_ref().unwrap();
+        let device = &buffer.device.borrow().device;
+        let upload_size = data_source.len() as u64;
+        assert!(upload_size <= buffer.size);
+        unsafe {
+            let mut data_target = device
+                .acquire_mapping_writer::<u8>(buffer.memory.as_ref().unwrap(), 0..buffer.size)
+                .unwrap();
+            data_target[0..data_source.len()].copy_from_slice(data_source);
+            device.release_mapping_writer(data_target).unwrap();
         }
     }
 
@@ -151,7 +164,7 @@ impl<B: Backend> ImageState<B> {
             );
 
             cmd_buffer.copy_buffer_to_image(
-                self.buffer.as_ref().unwrap().get_buffer(),
+                self.staging_buffer.as_ref().unwrap().get_buffer(),
                 self.image.as_ref().unwrap(),
                 i::Layout::TransferDstOptimal,
                 &[command::BufferImageCopy {
@@ -230,6 +243,6 @@ impl<B: Backend> Drop for ImageState<B> {
             device.free_memory(self.memory.take().unwrap());
         }
 
-        self.buffer.take().unwrap();
+        self.staging_buffer.take().unwrap();
     }
 }

@@ -245,9 +245,6 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                 if cpu.step() == Interrupt::Nmi {
                     renderer_state
                         .image
-                        .buffer
-                        .as_mut()
-                        .unwrap()
                         .update_buffer_data(cpu.interconnect.ppu.screen());
                     break;
                 }

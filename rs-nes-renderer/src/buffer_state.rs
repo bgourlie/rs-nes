@@ -5,10 +5,10 @@ use gfx_hal::{buffer, memory, Backend, Device, MemoryType};
 use crate::{adapter_state::AdapterState, device_state::DeviceState};
 
 pub struct BufferState<B: Backend> {
-    memory: Option<B::Memory>,
+    pub memory: Option<B::Memory>,
     buffer: Option<B::Buffer>,
-    device: Rc<RefCell<DeviceState<B>>>,
-    size: u64,
+    pub device: Rc<RefCell<DeviceState<B>>>,
+    pub size: u64,
 }
 
 impl<B: Backend> BufferState<B> {
@@ -74,23 +74,6 @@ impl<B: Backend> BufferState<B> {
             buffer: Some(buffer),
             device: device_ptr,
             size,
-        }
-    }
-
-    pub fn update_buffer_data<T>(&mut self, data_source: &[T])
-    where
-        T: Copy,
-    {
-        let device = &self.device.borrow().device;
-        let stride = size_of::<T>() as u64;
-        let upload_size = data_source.len() as u64 * stride;
-        assert!(upload_size <= self.size);
-        unsafe {
-            let mut data_target = device
-                .acquire_mapping_writer::<T>(self.memory.as_ref().unwrap(), 0..self.size)
-                .unwrap();
-            data_target[0..data_source.len()].copy_from_slice(data_source);
-            device.release_mapping_writer(data_target).unwrap();
         }
     }
 
