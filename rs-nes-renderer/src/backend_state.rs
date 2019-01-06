@@ -35,6 +35,7 @@ pub fn create_backend(
 
 #[cfg(feature = "gl")]
 pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Backend>, ()) {
+    use gfx_hal::format::AsFormat;
     let window = {
         let builder = back::config_context(
             back::glutin::ContextBuilder::new(),

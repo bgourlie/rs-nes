@@ -26,7 +26,7 @@ pub struct RendererState<B: Backend> {
     img_desc_pool: Option<B::DescriptorPool>,
     swapchain: Option<SwapchainState<B>>,
     pub device: Rc<RefCell<DeviceState<B>>>,
-    backend: BackendState<B>,
+    pub backend: BackendState<B>,
     vertex_buffer: BufferState<B>,
     render_pass: RenderPassState<B>,
     uniform: Uniform<B>,

@@ -50,7 +50,7 @@ use std::{
 use winit::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use crate::{
-    backend_state::create_backend,
+    backend_state::{create_backend, BackendState},
     renderer_state::{RenderStatus, RendererState},
     vertex::Vertex,
     window_state::WindowState,
@@ -154,9 +154,11 @@ fn main() {
     }
 }
 
-fn handle_input<C: Cart>(window: &mut WindowState, nes: &mut Nes<C>) -> InputStatus {
-    #[cfg(feature = "gl")]
-    let backend = &window_state.backend;
+fn handle_input<C: Cart>(
+    _backend: &BackendState<back::Backend>,
+    window: &mut WindowState,
+    nes: &mut Nes<C>,
+) -> InputStatus {
     let mut input_status = InputStatus::None;
 
     window.events_loop.poll_events(|event| {
@@ -174,8 +176,8 @@ fn handle_input<C: Cart>(window: &mut WindowState, nes: &mut Nes<C>) -> InputSta
                 | WindowEvent::CloseRequested => input_status = InputStatus::Close,
                 WindowEvent::Resized(dims) => {
                     #[cfg(feature = "gl")]
-                    backend.surface.get_window_t().resize(
-                        dims.to_physical(backend.surface.get_window_t().get_hidpi_factor()),
+                    _backend.surface.get_window_t().resize(
+                        dims.to_physical(_backend.surface.get_window_t().get_hidpi_factor()),
                     );
                     input_status = InputStatus::RecreateSwapchain;
                 }
@@ -238,7 +240,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
 
-            match handle_input(&mut window, cpu) {
+            match handle_input(&renderer_state.backend, &mut window, cpu) {
                 InputStatus::Close => break 'running,
                 InputStatus::RecreateSwapchain => recreate_swapchain = true,
                 _ => (),
