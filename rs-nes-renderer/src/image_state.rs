@@ -123,15 +123,26 @@ impl<B: Backend> ImageState<B> {
     }
 
     pub fn update_buffer_data(&mut self, data_source: &[u8]) {
-        let buffer = self.staging_buffer.as_ref().unwrap();
-        let device = &buffer.device.borrow().device;
+        let staging_buffer = self.staging_buffer.as_ref().unwrap();
+        let device = &staging_buffer.device.borrow().device;
         let upload_size = data_source.len() as u64;
-        assert!(upload_size <= buffer.size);
+        let (width, height) = self.dimensions;
+        let row_pitch = (width * self.stride as u32 + staging_buffer.row_alignment_mask)
+            & !staging_buffer.row_alignment_mask;
+        assert!(upload_size <= staging_buffer.size);
         unsafe {
             let mut data_target = device
-                .acquire_mapping_writer::<u8>(buffer.memory.as_ref().unwrap(), 0..buffer.size)
+                .acquire_mapping_writer::<u8>(
+                    staging_buffer.memory.as_ref().unwrap(),
+                    0..staging_buffer.size,
+                )
                 .unwrap();
-            data_target[0..data_source.len()].copy_from_slice(data_source);
+            for y in 0..height as usize {
+                let row = &(*data_source)[y * (width as usize) * (self.stride as usize)
+                    ..(y + 1) * (width as usize) * (self.stride as usize)];
+                let dest_base = y * row_pitch as usize;
+                data_target[dest_base..dest_base + row.len()].copy_from_slice(row);
+            }
             device.release_mapping_writer(data_target).unwrap();
         }
     }
