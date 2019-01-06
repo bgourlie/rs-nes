@@ -9,7 +9,6 @@ pub struct BufferState<B: Backend> {
     buffer: Option<B::Buffer>,
     pub device: Rc<RefCell<DeviceState<B>>>,
     pub size: u64,
-    pub row_alignment_mask: u32,
 }
 
 impl<B: Backend> BufferState<B> {
@@ -75,7 +74,6 @@ impl<B: Backend> BufferState<B> {
             buffer: Some(buffer),
             device: device_ptr,
             size,
-            row_alignment_mask: 0, // Not used unless it's an image staging buffer TODO: Refactor
         }
     }
 
@@ -88,7 +86,7 @@ impl<B: Backend> BufferState<B> {
         adapter: &AdapterState<B>,
     ) -> (Self, u32) {
         let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
-        println!("Row alignment mask: {}", row_alignment_mask);
+
         let row_pitch = (width * stride + row_alignment_mask) & !row_alignment_mask;
         let upload_size = u64::from(height * row_pitch);
 
@@ -118,7 +116,6 @@ impl<B: Backend> BufferState<B> {
                 buffer: Some(buffer),
                 device: device_ptr,
                 size: mem_reqs.size,
-                row_alignment_mask,
             },
             row_pitch,
         )
