@@ -153,7 +153,7 @@ fn main() {
 
 fn handle_input<C: Cart>(window: &mut WindowState, nes: &mut Nes<C>) -> InputStatus {
     #[cfg(feature = "gl")]
-    let backend = &window_state.backend;
+    let backend = &window.backend;
     let mut input_status = InputStatus::None;
 
     window.events_loop.poll_events(|event| {
