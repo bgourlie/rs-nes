@@ -30,7 +30,7 @@ mod buffer_state;
 mod descriptor_set;
 mod device_state;
 mod framebuffer_state;
-mod image_state;
+mod nes_screen_buffer;
 mod pipeline_state;
 mod render_pass_state;
 mod renderer_state;
@@ -61,7 +61,6 @@ use gfx_hal::{format, image as i, window::Extent2D, Backend, Device};
 type FrameBufferFormat = format::Rgba8Srgb;
 type ScreenBufferFormat = format::Rgba8Unorm;
 
-pub const BYTES_PER_PIXEL: usize = 4;
 pub const IMAGE_WIDTH: usize = 256;
 pub const IMAGE_HEIGHT: usize = 240;
 
@@ -249,7 +248,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
             loop {
                 if cpu.step() == Interrupt::Nmi {
                     renderer_state
-                        .image
+                        .nes_screen_buffer
                         .update_buffer_data(cpu.interconnect.ppu.screen());
                     break;
                 }
@@ -258,14 +257,16 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
             let staging_pool = unsafe {
                 let mut staging_pool = renderer_state.device.borrow().create_command_pool();
                 // FIXME: Following line causing huge memory leak with dx12 backend
-                renderer_state.image.copy_buffer_to_texture(
+                renderer_state.nes_screen_buffer.copy_buffer_to_texture(
                     &mut renderer_state.device.borrow_mut(),
                     &mut staging_pool,
                 );
                 staging_pool
             };
 
-            renderer_state.image.wait_for_transfer_completion();
+            renderer_state
+                .nes_screen_buffer
+                .wait_for_transfer_completion();
 
             unsafe {
                 renderer_state

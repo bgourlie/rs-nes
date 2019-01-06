@@ -9,10 +9,10 @@ use gfx_hal::{
 
 use crate::{
     backend_state::BackendState, buffer_state::BufferState, descriptor_set::DescSetLayout,
-    device_state::DeviceState, framebuffer_state::FramebufferState, image_state::ImageState,
-    pipeline_state::PipelineState, render_pass_state::RenderPassState,
-    swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, BYTES_PER_PIXEL,
-    COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
+    device_state::DeviceState, framebuffer_state::FramebufferState,
+    nes_screen_buffer::NesScreenBuffer, pipeline_state::PipelineState,
+    render_pass_state::RenderPassState, swapchain_state::SwapchainState, uniform::Uniform,
+    vertex::Vertex, COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
 };
 
 pub enum RenderStatus {
@@ -33,7 +33,7 @@ pub struct RendererState<B: Backend> {
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
-    pub image: ImageState<B>,
+    pub nes_screen_buffer: NesScreenBuffer<B>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -107,13 +107,12 @@ impl<B: Backend> RendererState<B> {
         let image_desc = image_desc.create_desc_set(img_desc_pool.as_mut().unwrap());
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
-        let image = ImageState::new::<Graphics>(
+        let nes_screen_buffer = NesScreenBuffer::new::<Graphics>(
+            device.clone(),
             IMAGE_WIDTH as u32,
             IMAGE_HEIGHT as u32,
-            BYTES_PER_PIXEL as u32,
             image_desc,
             &backend.adapter,
-            &mut device.borrow_mut(),
         );
 
         let vertex_buffer = BufferState::new::<Vertex>(
@@ -143,7 +142,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let pipeline = PipelineState::new(
-            vec![image.get_layout(), uniform.get_layout()],
+            vec![nes_screen_buffer.get_layout(), uniform.get_layout()],
             render_pass.render_pass.as_ref().unwrap(),
             Rc::clone(&device),
         );
@@ -153,7 +152,7 @@ impl<B: Backend> RendererState<B> {
         RendererState {
             backend,
             device,
-            image,
+            nes_screen_buffer,
             img_desc_pool,
             uniform_desc_pool,
             vertex_buffer,
@@ -189,7 +188,10 @@ impl<B: Backend> RendererState<B> {
 
         self.pipeline = unsafe {
             PipelineState::new(
-                vec![self.image.get_layout(), self.uniform.get_layout()],
+                vec![
+                    self.nes_screen_buffer.get_layout(),
+                    self.uniform.get_layout(),
+                ],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 Rc::clone(&self.device),
             )
@@ -272,7 +274,7 @@ impl<B: Backend> RendererState<B> {
                 self.pipeline.pipeline_layout.as_ref().unwrap(),
                 0,
                 vec![
-                    self.image.desc.set.as_ref().unwrap(),
+                    self.nes_screen_buffer.descriptor_set(),
                     self.uniform.desc.as_ref().unwrap().set.as_ref().unwrap(),
                 ],
                 &[],

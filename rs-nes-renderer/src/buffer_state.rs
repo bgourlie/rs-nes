@@ -2,7 +2,7 @@ use std::{cell::RefCell, mem::size_of, rc::Rc};
 
 use gfx_hal::{buffer, memory, Backend, Device, MemoryType};
 
-use crate::{adapter_state::AdapterState, device_state::DeviceState};
+use crate::device_state::DeviceState;
 
 pub struct BufferState<B: Backend> {
     pub memory: Option<B::Memory>,
@@ -77,51 +77,6 @@ impl<B: Backend> BufferState<B> {
             size,
             row_alignment_mask: 0, // Not used unless it's an image staging buffer TODO: Refactor
         }
-    }
-
-    pub unsafe fn new_texture(
-        width: u32,
-        height: u32,
-        stride: u32,
-        device_ptr: Rc<RefCell<DeviceState<B>>>,
-        device: &B::Device,
-        adapter: &AdapterState<B>,
-    ) -> (Self, u32) {
-        let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
-        println!("Row alignment mask: {}", row_alignment_mask);
-        let row_pitch = (width * stride + row_alignment_mask) & !row_alignment_mask;
-        let upload_size = u64::from(height * row_pitch);
-
-        let usage = buffer::Usage::TRANSFER_SRC;
-        let mut buffer = device.create_buffer(upload_size, usage).unwrap();
-        let mem_reqs = device.get_buffer_requirements(&buffer);
-
-        let upload_type = adapter
-            .memory_types
-            .iter()
-            .enumerate()
-            .position(|(id, mem_type)| {
-                mem_reqs.type_mask & (1 << id) != 0
-                    && mem_type
-                        .properties
-                        .contains(memory::Properties::CPU_VISIBLE)
-            })
-            .unwrap()
-            .into();
-
-        let memory = device.allocate_memory(upload_type, mem_reqs.size).unwrap();
-        device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
-
-        (
-            BufferState {
-                memory: Some(memory),
-                buffer: Some(buffer),
-                device: device_ptr,
-                size: mem_reqs.size,
-                row_alignment_mask,
-            },
-            row_pitch,
-        )
     }
 }
 
