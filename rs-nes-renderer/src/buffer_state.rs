@@ -87,10 +87,6 @@ impl<B: Backend> BufferState<B> {
     ) -> (Self, u32) {
         let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
 
-        if row_alignment_mask != 0 {
-            unimplemented!("Aligned writes are not implemented");
-        }
-
         let row_pitch = (width * stride + row_alignment_mask) & !row_alignment_mask;
         let upload_size = u64::from(height * row_pitch);
 
