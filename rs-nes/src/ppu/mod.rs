@@ -122,12 +122,13 @@ impl<V: IVram, S: ISpriteRenderer> Ppu<V, S> {
         let fine_x = self.vram.fine_x();
         let (bg_pixel, bg_color) = self.background_renderer.current_pixel(fine_x);
         let sprite_pixel = self.sprite_renderer.current_pixel();
-        let background_byte = (bg_color << 2) | bg_pixel;
-        let sprite_byte = (sprite_pixel.color_index << 2) | sprite_pixel.value;
+        //        let background_byte = (bg_color << 2) | bg_pixel;
+        let background_byte = bg_color;
+        //        let sprite_byte = (sprite_pixel.color_index << 2) | sprite_pixel.value;
+        let sprite_byte = sprite_pixel.color_index;
         let property_byte = sprite_pixel.has_priority as u8; // TODO: Add emphasis bits
-
-        // TODO: Is it appropriate to evaluate sprite zero hit here considering the cycles
-        // draw_pixel() is called on?
+                                                             // TODO: Is it appropriate to evaluate sprite zero hit here considering the cycles
+                                                             // draw_pixel() is called on?
         if self.sprite_zero_hit(x, bg_pixel, &sprite_pixel) {
             self.status.set_sprite_zero_hit()
         }

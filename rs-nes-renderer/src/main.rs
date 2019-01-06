@@ -63,33 +63,33 @@ pub const IMAGE_WIDTH: usize = 256;
 pub const IMAGE_HEIGHT: usize = 240;
 
 const DIMS: Extent2D = Extent2D {
-    width: 1024,
-    height: 768,
+    width: IMAGE_WIDTH as u32,
+    height: IMAGE_HEIGHT as u32,
 };
 
 pub const QUAD: [Vertex; 6] = [
     Vertex {
-        a_pos: [-0.5, 0.33],
+        a_pos: [-1.0, 1.0],
         a_uv: [0.0, 1.0],
     },
     Vertex {
-        a_pos: [0.5, 0.33],
+        a_pos: [1.0, 1.0],
         a_uv: [1.0, 1.0],
     },
     Vertex {
-        a_pos: [0.5, -0.33],
+        a_pos: [1.0, -1.0],
         a_uv: [1.0, 0.0],
     },
     Vertex {
-        a_pos: [-0.5, 0.33],
+        a_pos: [-1.0, 1.0],
         a_uv: [0.0, 1.0],
     },
     Vertex {
-        a_pos: [0.5, -0.33],
+        a_pos: [1.0, -1.0],
         a_uv: [1.0, 0.0],
     },
     Vertex {
-        a_pos: [-0.5, -0.33],
+        a_pos: [-1.0, -1.0],
         a_uv: [0.0, 0.0],
     },
 ];

@@ -2,7 +2,7 @@ use std::{iter, rc::Rc};
 
 use gfx_hal::{
     command, format as f,
-    format::{AsFormat, Rgba8Srgb as ColorFormat, Swizzle},
+    format::{AsFormat, Rgba8Uint as ImageFormat, Swizzle},
     image as i, memory as m,
     pso::{self, PipelineStage},
     Backend, CommandPool, Device, Graphics, Supports, Transfer,
@@ -55,7 +55,7 @@ impl<B: Backend> ImageState<B> {
             .create_image(
                 kind,
                 1,
-                ColorFormat::SELF,
+                ImageFormat::SELF,
                 i::Tiling::Optimal,
                 i::Usage::TRANSFER_DST | i::Usage::SAMPLED,
                 i::ViewCapabilities::empty(),
@@ -81,14 +81,14 @@ impl<B: Backend> ImageState<B> {
             .create_image_view(
                 &image,
                 i::ViewKind::D2,
-                ColorFormat::SELF,
+                ImageFormat::SELF,
                 Swizzle::NO,
                 COLOR_RANGE.clone(),
             )
             .unwrap();
 
         let sampler = device
-            .create_sampler(i::SamplerInfo::new(i::Filter::Linear, i::WrapMode::Clamp))
+            .create_sampler(i::SamplerInfo::new(i::Filter::Nearest, i::WrapMode::Clamp))
             .expect("Can't create sampler");
 
         desc.write_to_state(
