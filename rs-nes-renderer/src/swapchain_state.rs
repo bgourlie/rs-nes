@@ -2,13 +2,13 @@ use std::{cell::RefCell, rc::Rc};
 
 use gfx_hal::{
     format as f,
-    format::{AsFormat, ChannelType, Rgba8Srgb as ColorFormat},
+    format::{AsFormat, ChannelType},
     image as i,
     window::Extent2D,
     Backbuffer, Backend, Device, Surface, SwapchainConfig,
 };
 
-use crate::{backend_state::BackendState, device_state::DeviceState};
+use crate::{backend_state::BackendState, device_state::DeviceState, FrameBufferFormat};
 
 pub struct SwapchainState<B: Backend> {
     pub swapchain: Option<B::Swapchain>,
@@ -28,7 +28,7 @@ impl<B: Backend> SwapchainState<B> {
             .surface
             .compatibility(&device.borrow().physical_device);
         println!("formats: {:?}", formats);
-        let format = formats.map_or(ColorFormat::SELF, |formats| {
+        let format = formats.map_or(FrameBufferFormat::SELF, |formats| {
             formats
                 .iter()
                 .find(|format| format.base_format().1 == ChannelType::Srgb)

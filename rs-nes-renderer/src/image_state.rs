@@ -2,7 +2,7 @@ use std::{iter, rc::Rc};
 
 use gfx_hal::{
     command, format as f,
-    format::{AsFormat, Rgba8Uint as ImageFormat, Swizzle},
+    format::{AsFormat, Swizzle},
     image as i, memory as m,
     pso::{self, PipelineStage},
     Backend, CommandPool, Device, Graphics, Supports, Transfer,
@@ -13,7 +13,7 @@ use crate::{
     buffer_state::BufferState,
     descriptor_set::{DescSet, DescSetWrite},
     device_state::DeviceState,
-    COLOR_RANGE,
+    ScreenBufferFormat, COLOR_RANGE,
 };
 
 pub struct ImageState<B: Backend> {
@@ -54,7 +54,7 @@ impl<B: Backend> ImageState<B> {
             .create_image(
                 kind,
                 1,
-                ImageFormat::SELF,
+                ScreenBufferFormat::SELF,
                 i::Tiling::Optimal,
                 i::Usage::TRANSFER_DST | i::Usage::SAMPLED,
                 i::ViewCapabilities::empty(),
@@ -80,7 +80,7 @@ impl<B: Backend> ImageState<B> {
             .create_image_view(
                 &image,
                 i::ViewKind::D2,
-                ImageFormat::SELF,
+                ScreenBufferFormat::SELF,
                 Swizzle::NO,
                 COLOR_RANGE.clone(),
             )

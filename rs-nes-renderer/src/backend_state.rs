@@ -36,9 +36,12 @@ pub fn create_backend(
 #[cfg(feature = "gl")]
 pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Backend>, ()) {
     let window = {
-        let builder =
-            back::config_context(back::glutin::ContextBuilder::new(), ColorFormat::SELF, None)
-                .with_vsync(true);
+        let builder = back::config_context(
+            back::glutin::ContextBuilder::new(),
+            crate::FrameBufferFormat::SELF,
+            None,
+        )
+        .with_vsync(true);
         back::glutin::GlWindow::new(
             window_state.wb.take().unwrap(),
             builder,
