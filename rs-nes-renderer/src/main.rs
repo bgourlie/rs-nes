@@ -56,17 +56,16 @@ use crate::{
     window_state::WindowState,
 };
 
+use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
+
 use gfx_hal::{format, image as i, window::Extent2D, Backend, Device};
 
 type FrameBufferFormat = format::Rgba8Srgb;
 type ScreenBufferFormat = format::Rgba8Unorm;
 
-pub const IMAGE_WIDTH: usize = 256;
-pub const IMAGE_HEIGHT: usize = 240;
-
 const DIMS: Extent2D = Extent2D {
-    width: IMAGE_WIDTH as u32,
-    height: IMAGE_HEIGHT as u32,
+    width: SCREEN_WIDTH as u32,
+    height: SCREEN_HEIGHT as u32,
 };
 
 pub const QUAD: [Vertex; 6] = [

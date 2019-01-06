@@ -3,7 +3,7 @@ use crate::{
     ppu::{
         background_renderer::BackgroundRenderer, control_register::ControlRegister,
         mask_register::MaskRegister, status_register::StatusRegister, write_latch::WriteLatch,
-        IPpu, Ppu, CYCLES_PER_SCANLINE, SCREEN_HEIGHT, SCREEN_WIDTH,
+        IPpu, Ppu, CYCLES_PER_SCANLINE, PPU_BUFFER_SIZE,
     },
 };
 
@@ -440,7 +440,7 @@ pub fn ppu_fixture() -> Ppu<MockVram, MockSpriteRenderer> {
         sprite_renderer: MockSpriteRenderer::default(),
         write_latch: WriteLatch::default(),
         background_renderer: BackgroundRenderer::default(),
-        screen: Box::new([0; SCREEN_WIDTH * SCREEN_HEIGHT * 4]),
+        screen: Box::new([0; PPU_BUFFER_SIZE]),
         odd_frame: false,
     }
 }

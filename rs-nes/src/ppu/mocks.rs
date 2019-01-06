@@ -1,14 +1,14 @@
 pub use crate::ppu::{sprite_renderer::mocks::MockSpriteRenderer, vram::mocks::MockVram};
 use crate::{
     cart::Cart,
-    ppu::{IPpu, SCREEN_HEIGHT, SCREEN_WIDTH},
+    ppu::{IPpu, PPU_BUFFER_SIZE},
 };
 use cpu6502::cpu::Interrupt;
 
 pub struct PpuMock {
     addr: u16,
     value: u8,
-    screen: [u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+    screen: [u8; PPU_BUFFER_SIZE],
 }
 
 impl Default for PpuMock {
@@ -16,7 +16,7 @@ impl Default for PpuMock {
         PpuMock {
             addr: 0,
             value: 0,
-            screen: [0; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+            screen: [0; PPU_BUFFER_SIZE],
         }
     }
 }
@@ -49,7 +49,7 @@ impl IPpu for PpuMock {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4] {
+    fn screen(&self) -> &[u8; PPU_BUFFER_SIZE] {
         &self.screen
     }
 }

@@ -12,8 +12,10 @@ use crate::{
     device_state::DeviceState, framebuffer_state::FramebufferState,
     nes_screen_buffer::NesScreenBuffer, pipeline_state::PipelineState,
     render_pass_state::RenderPassState, swapchain_state::SwapchainState, uniform::Uniform,
-    vertex::Vertex, COLOR_RANGE, DIMS, IMAGE_HEIGHT, IMAGE_WIDTH, QUAD,
+    vertex::Vertex, COLOR_RANGE, DIMS, QUAD,
 };
+
+use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub enum RenderStatus {
     Normal,
@@ -109,8 +111,8 @@ impl<B: Backend> RendererState<B> {
 
         let nes_screen_buffer = NesScreenBuffer::new::<Graphics>(
             device.clone(),
-            IMAGE_WIDTH as u32,
-            IMAGE_HEIGHT as u32,
+            SCREEN_WIDTH as u32,
+            SCREEN_HEIGHT as u32,
             image_desc,
             &backend.adapter,
         );

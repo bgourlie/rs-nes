@@ -33,12 +33,14 @@ const CYCLES_PER_SCANLINE: usize = 341;
 const CYCLES_PER_FRAME: usize = SCANLINES * CYCLES_PER_SCANLINE;
 pub const SCREEN_WIDTH: usize = 256;
 pub const SCREEN_HEIGHT: usize = 240;
+pub const PPU_PIXEL_STRIDE: usize = 4;
+pub const PPU_BUFFER_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT * PPU_PIXEL_STRIDE;
 
 pub trait IPpu: Default {
     fn write<C: Cart>(&mut self, addr: u16, val: u8, cart: &mut C);
     fn read<C: Cart>(&self, addr: u16, cart: &C) -> u8;
     fn step<C: Cart>(&mut self, cart: &C) -> Interrupt;
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4];
+    fn screen(&self) -> &[u8; PPU_BUFFER_SIZE];
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,7 +62,7 @@ pub struct Ppu<V: IVram, S: ISpriteRenderer> {
     status: StatusRegister,
     vram: Box<V>,
     sprite_renderer: S,
-    screen: Box<[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4]>,
+    screen: Box<[u8; PPU_BUFFER_SIZE]>,
     write_latch: WriteLatch,
     background_renderer: BackgroundRenderer,
     odd_frame: bool,
@@ -75,7 +77,7 @@ impl<V: IVram, S: ISpriteRenderer> Default for Ppu<V, S> {
             status: StatusRegister::default(),
             vram: box V::default(),
             sprite_renderer: S::default(),
-            screen: box [0xff; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
+            screen: box [0xff; PPU_BUFFER_SIZE],
             write_latch: WriteLatch::default(),
             background_renderer: BackgroundRenderer::default(),
             odd_frame: false,
@@ -218,7 +220,7 @@ impl<V: IVram, S: ISpriteRenderer> IPpu for Ppu<V, S> {
         Interrupt::None
     }
 
-    fn screen(&self) -> &[u8; SCREEN_WIDTH * SCREEN_HEIGHT * 4] {
+    fn screen(&self) -> &[u8; PPU_BUFFER_SIZE] {
         &self.screen
     }
 }
