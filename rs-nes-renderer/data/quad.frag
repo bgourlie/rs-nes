@@ -78,5 +78,29 @@ void main() {
   PALETTE[62] = vec3(0.00000000, 0.00000000, 0.00000000);
   PALETTE[63] = vec3(0.00000000, 0.00000000, 0.00000000);
   vec4 pixel_data = texture(sampler2D(u_texture, u_sampler), v_uv);
-  target0 = vec4(PALETTE[int(pixel_data.r * 255.0)], 1.0);
+  ivec4 pixel_bytes = ivec4(
+      int(pixel_data.r * 255.0),
+      int(pixel_data.g * 255.0),
+      int(pixel_data.b * 255.0),
+      int(pixel_data.a * 255.0)
+  );
+
+  int background_pixel_value = pixel_bytes.r & 0x3;
+  int background_palette_index = pixel_bytes.r >> 2;
+  int sprite_pixel_value = pixel_bytes.g & 0x3;
+  int sprite_palette_index = pixel_bytes.g >> 2;
+  int sprite_priority = pixel_bytes.b & 0x1;
+
+  // TODO: Make branchless
+  if ((background_pixel_value == 0 && sprite_pixel_value == 0) || sprite_pixel_value == 0) {
+      target0 = vec4(PALETTE[background_palette_index], 1.0);
+  } else if (background_pixel_value == 0) {
+      target0 = vec4(PALETTE[sprite_palette_index], 1.0);
+  } else {
+      if (sprite_priority == 1) {
+          target0 = vec4(PALETTE[sprite_palette_index], 1.0);
+      } else {
+          target0 = vec4(PALETTE[background_palette_index], 1.0);
+      }
+  }
 }
