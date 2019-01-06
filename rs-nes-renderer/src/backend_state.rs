@@ -48,7 +48,7 @@ pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Bac
             builder,
             &window_state.events_loop,
         )
-        .unwrap()
+        .expect("Unable to create window")
     };
 
     let surface = back::Surface::from_window(window);

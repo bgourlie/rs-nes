@@ -59,7 +59,7 @@ use crate::{
 use gfx_hal::{format, image as i, window::Extent2D, Backend, Device};
 
 type FrameBufferFormat = format::Rgba8Srgb;
-type ScreenBufferFormat = format::Rgba8Uint;
+type ScreenBufferFormat = format::Rgba8Unorm;
 
 pub const BYTES_PER_PIXEL: usize = 4;
 pub const IMAGE_WIDTH: usize = 256;
