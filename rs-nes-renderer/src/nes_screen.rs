@@ -227,9 +227,9 @@ impl<B: Backend> NesScreen<B> {
 
     pub fn copy_buffer_to_texture(&mut self, device_state: &mut DeviceState<B>) {
         let (image_width, image_height) = self.dimensions;
-        let mut staging_pool = self
+        let staging_pool = self
             .staging_pool
-            .take()
+            .as_mut()
             .expect("Staging pool shouldn't be None");
 
         let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
@@ -304,8 +304,9 @@ impl<B: Backend> NesScreen<B> {
 
             device_state.queues.queues[0]
                 .submit_nosemaphores(iter::once(&cmd_buffer), self.image_transfer_fence.as_ref());
+
+            staging_pool.free(iter::once(cmd_buffer));
         }
-        self.staging_pool = Some(staging_pool);
     }
 
     pub fn wait_for_transfer_completion(&self, device: &B::Device) {
@@ -313,9 +314,7 @@ impl<B: Backend> NesScreen<B> {
             let fence = self.image_transfer_fence.as_ref().unwrap();
             device.wait_for_fence(fence, !0).unwrap();
 
-            device
-                .reset_fence(fence)
-                .expect("Fence to reset successfully");
+            device.reset_fence(fence).expect("Fence to reset");
         }
     }
 
