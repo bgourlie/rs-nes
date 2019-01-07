@@ -32,7 +32,7 @@ pub struct RendererState<B: Backend> {
     vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
     render_pass: RenderPassState<B>,
-    uniform: PaletteUniform<B>,
+    palette_uniform: PaletteUniform<B>,
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
@@ -160,7 +160,7 @@ impl<B: Backend> RendererState<B> {
             (memory, buffer)
         };
 
-        let uniform = PaletteUniform::new(
+        let palette_uniform = PaletteUniform::new(
             &mut device.borrow_mut().device,
             &backend.adapter.memory_types,
             &PALETTE,
@@ -180,7 +180,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let pipeline = PipelineState::new(
-            vec![nes_screen_buffer.get_layout(), uniform.layout()],
+            vec![nes_screen_buffer.get_layout(), palette_uniform.layout()],
             render_pass.render_pass.as_ref().unwrap(),
             Rc::clone(&device),
         );
@@ -195,7 +195,7 @@ impl<B: Backend> RendererState<B> {
             uniform_desc_pool,
             vertex_buffer: Some(vertex_buffer),
             vertex_memory: Some(vertex_memory),
-            uniform,
+            palette_uniform,
             render_pass,
             pipeline,
             swapchain,
@@ -228,7 +228,7 @@ impl<B: Backend> RendererState<B> {
 
         self.pipeline = unsafe {
             PipelineState::new(
-                vec![self.nes_screen.get_layout(), self.uniform.layout()],
+                vec![self.nes_screen.get_layout(), self.palette_uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 Rc::clone(&self.device),
             )
@@ -316,7 +316,7 @@ impl<B: Backend> RendererState<B> {
                 0,
                 vec![
                     self.nes_screen.descriptor_set(),
-                    self.uniform.descriptor_set(),
+                    self.palette_uniform.descriptor_set(),
                 ],
                 &[],
             );
@@ -398,7 +398,7 @@ impl<B: Backend> Drop for RendererState<B> {
             );
         }
 
-        PaletteUniform::destroy_resources(&mut self.uniform, &device.device);
+        PaletteUniform::destroy_resources(&mut self.palette_uniform, &device.device);
         NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
         FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
         self.swapchain.take();
