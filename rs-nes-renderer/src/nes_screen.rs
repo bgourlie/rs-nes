@@ -1,4 +1,4 @@
-use std::{cell::RefCell, iter, rc::Rc};
+use std::iter;
 
 use gfx_hal::{
     buffer, command, format, image, memory,
@@ -15,8 +15,7 @@ use crate::{
 
 use rs_nes::{PPU_BUFFER_SIZE, PPU_PIXEL_STRIDE};
 
-pub struct NesScreenBuffer<B: Backend> {
-    device: Rc<RefCell<DeviceState<B>>>,
+pub struct NesScreen<B: Backend> {
     desc: DescSet<B>,
     staging_buffer: Option<B::Buffer>,
     staging_buffer_memory: Option<B::Memory>,
@@ -31,9 +30,9 @@ pub struct NesScreenBuffer<B: Backend> {
     staging_buffer_size: u64,
 }
 
-impl<B: Backend> NesScreenBuffer<B> {
+impl<B: Backend> NesScreen<B> {
     pub fn new<T: Supports<Transfer>>(
-        device_ptr: Rc<RefCell<DeviceState<B>>>,
+        device: &mut B::Device,
         width: u32,
         height: u32,
         mut desc: DescSet<B>,
@@ -57,9 +56,6 @@ impl<B: Backend> NesScreenBuffer<B> {
             image_transfer_fence,
         ) = {
             let image_kind = image::Kind::D2(width as image::Size, height as image::Size, 1, 1);
-
-            let device = &mut device_ptr.borrow_mut().device;
-
             let (mut staging_buffer, staging_buffer_memory_requirements) = unsafe {
                 let staging_buffer = device
                     .create_buffer(upload_size, buffer::Usage::TRANSFER_SRC)
@@ -186,8 +182,7 @@ impl<B: Backend> NesScreenBuffer<B> {
             )
         };
 
-        NesScreenBuffer {
-            device: device_ptr,
+        NesScreen {
             desc,
             staging_buffer,
             staging_buffer_memory,
@@ -210,8 +205,7 @@ impl<B: Backend> NesScreenBuffer<B> {
             .expect("Unable to retrieve screen buffer descriptor set")
     }
 
-    pub fn update_buffer_data(&mut self, data_source: &[u8; PPU_BUFFER_SIZE]) {
-        let device = &self.device.borrow().device;
+    pub fn update_buffer_data(&mut self, data_source: &[u8; PPU_BUFFER_SIZE], device: &B::Device) {
         let upload_size = data_source.len() as u64;
         let (width, height) = self.dimensions;
         let row_pitch =
@@ -335,47 +329,65 @@ impl<B: Backend> NesScreenBuffer<B> {
     pub fn get_layout(&self) -> &B::DescriptorSetLayout {
         self.desc.get_layout()
     }
-}
 
-impl<B: Backend> Drop for NesScreenBuffer<B> {
-    fn drop(&mut self) {
-        let device = &self.device.borrow().device;
+    pub fn take_resources(
+        &mut self,
+        device: &B::Device,
+    ) -> (
+        B::Fence,
+        B::Sampler,
+        B::ImageView,
+        B::Image,
+        B::Memory,
+        B::Buffer,
+        B::Memory,
+        B::DescriptorSetLayout,
+    ) {
+        let wait_timeout_ns = 10_000;
         let fence = self
             .image_transfer_fence
             .take()
             .expect("Fence shouldn't be None");
-        let wait_timeout_ns = 10_000;
 
         unsafe {
             device
                 .wait_for_fence(&fence, wait_timeout_ns)
                 .expect("Image transfer fence shouldn't timeout");
-            device.destroy_fence(fence);
-            device.destroy_sampler(self.sampler.take().expect("Unable to destroy sampler"));
-            device.destroy_image_view(
-                self.image_view
-                    .take()
-                    .expect("Unable to destroy image view"),
-            );
-            device.destroy_image(self.image.take().expect("Unable to destroy image"));
-            device.free_memory(
-                self.texture_memory
-                    .take()
-                    .expect("Unable to free texture memory"),
-            );
-            device.destroy_buffer(
-                self.staging_buffer
-                    .take()
-                    .expect("Unable to destroy staging buffer"),
-            );
-            device.free_memory(
-                self.staging_buffer_memory
-                    .take()
-                    .expect("Unable to free staging buffer memory"),
-            );
-
-            let descriptor_set_layout = self.desc.take_resources();
-            device.destroy_descriptor_set_layout(descriptor_set_layout);
         }
+
+        let sampler = self.sampler.take().expect("Sampler shouldn't be None");
+        let image_view = self
+            .image_view
+            .take()
+            .expect("Image view shouldn't be None");
+
+        let image = self.image.take().expect("Image shouldn't be None");
+        let texture_memory = self
+            .texture_memory
+            .take()
+            .expect("Texture memory shouldn't be None");
+
+        let staging_buffer = self
+            .staging_buffer
+            .take()
+            .expect("Staging buffer shouldn't be None");
+
+        let staging_buffer_memory = self
+            .staging_buffer_memory
+            .take()
+            .expect("Buffer memory shouldn't be None");
+
+        let descriptor_set_layout = self.desc.take_resources();
+
+        (
+            fence,
+            sampler,
+            image_view,
+            image,
+            texture_memory,
+            staging_buffer,
+            staging_buffer_memory,
+            descriptor_set_layout,
+        )
     }
 }

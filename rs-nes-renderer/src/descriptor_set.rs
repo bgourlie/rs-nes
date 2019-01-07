@@ -6,9 +6,7 @@ pub struct DescSetLayout<B: Backend> {
 
 impl<B: Backend> DescSetLayout<B> {
     pub fn new(device: &B::Device, bindings: Vec<pso::DescriptorSetLayoutBinding>) -> Self {
-        let desc_set_layout = unsafe {
-            device.create_descriptor_set_layout(bindings, &[]).ok()
-        };
+        let desc_set_layout = unsafe { device.create_descriptor_set_layout(bindings, &[]).ok() };
 
         DescSetLayout {
             layout: desc_set_layout,

@@ -29,7 +29,7 @@ mod backend_state;
 mod descriptor_set;
 mod device_state;
 mod framebuffer_state;
-mod nes_screen_buffer;
+mod nes_screen;
 mod palette;
 mod palette_uniform;
 mod pipeline_state;
@@ -246,9 +246,10 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
 
             loop {
                 if cpu.step() == Interrupt::Nmi {
-                    renderer_state
-                        .nes_screen_buffer
-                        .update_buffer_data(cpu.interconnect.ppu.screen());
+                    renderer_state.nes_screen.update_buffer_data(
+                        cpu.interconnect.ppu.screen(),
+                        &renderer_state.device.borrow().device,
+                    );
                     break;
                 }
             }
@@ -257,7 +258,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                 let mut staging_pool = renderer_state.device.borrow().create_command_pool();
                 // The following line causing huge memory leak with dx12 backend
                 // See https://github.com/gfx-rs/gfx/issues/2556
-                renderer_state.nes_screen_buffer.copy_buffer_to_texture(
+                renderer_state.nes_screen.copy_buffer_to_texture(
                     &mut renderer_state.device.borrow_mut(),
                     &mut staging_pool,
                 );
@@ -265,7 +266,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
             };
 
             renderer_state
-                .nes_screen_buffer
+                .nes_screen
                 .wait_for_transfer_completion(&renderer_state.device.borrow().device);
 
             unsafe {

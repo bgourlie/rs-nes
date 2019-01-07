@@ -9,7 +9,7 @@ use gfx_hal::{
 
 use crate::{
     backend_state::BackendState, descriptor_set::DescSetLayout, device_state::DeviceState,
-    framebuffer_state::FramebufferState, nes_screen_buffer::NesScreenBuffer, palette::PALETTE,
+    framebuffer_state::FramebufferState, nes_screen::NesScreen, palette::PALETTE,
     palette_uniform::PaletteUniform, pipeline_state::PipelineState,
     render_pass_state::RenderPassState, swapchain_state::SwapchainState, vertex::Vertex,
     COLOR_RANGE, DIMS, QUAD,
@@ -36,7 +36,7 @@ pub struct RendererState<B: Backend> {
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
-    pub nes_screen_buffer: NesScreenBuffer<B>,
+    pub nes_screen: NesScreen<B>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -110,8 +110,8 @@ impl<B: Backend> RendererState<B> {
         let image_desc = image_desc.create_desc_set(img_desc_pool.as_mut().unwrap());
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
-        let nes_screen_buffer = NesScreenBuffer::new::<Graphics>(
-            device.clone(),
+        let nes_screen_buffer = NesScreen::new::<Graphics>(
+            &mut device.borrow_mut().device,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
@@ -190,7 +190,7 @@ impl<B: Backend> RendererState<B> {
         RendererState {
             backend,
             device,
-            nes_screen_buffer,
+            nes_screen: nes_screen_buffer,
             img_desc_pool,
             uniform_desc_pool,
             vertex_buffer: Some(vertex_buffer),
@@ -227,7 +227,7 @@ impl<B: Backend> RendererState<B> {
 
         self.pipeline = unsafe {
             PipelineState::new(
-                vec![self.nes_screen_buffer.get_layout(), self.uniform.layout()],
+                vec![self.nes_screen.get_layout(), self.uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 Rc::clone(&self.device),
             )
@@ -314,7 +314,7 @@ impl<B: Backend> RendererState<B> {
                 self.pipeline.pipeline_layout.as_ref().unwrap(),
                 0,
                 vec![
-                    self.nes_screen_buffer.descriptor_set(),
+                    self.nes_screen.descriptor_set(),
                     self.uniform.descriptor_set(),
                 ],
                 &[],
@@ -374,6 +374,17 @@ impl<B: Backend> Drop for RendererState<B> {
         let (palette_uniform_buffer, palette_uniform_memory, palette_descriptor_set_layout) =
             self.uniform.take_resources();
 
+        let (
+            nes_screen_image_transfer_fence,
+            nes_screen_texture_sampler,
+            nes_screen_image_view,
+            nes_screen_image,
+            nes_screen_texture_memory,
+            nes_screen_staging_buffer,
+            nes_screen_staging_buffer_memory,
+            nes_screen_descriptor_set_layout,
+        ) = self.nes_screen.take_resources(&device.device);
+
         unsafe {
             device.device.destroy_descriptor_pool(
                 self.img_desc_pool
@@ -387,12 +398,6 @@ impl<B: Backend> Drop for RendererState<B> {
                     .expect("Uniform descriptor pool shouldn't be None"),
             );
 
-            device
-                .device
-                .destroy_descriptor_set_layout(palette_descriptor_set_layout);
-            device.device.destroy_buffer(palette_uniform_buffer);
-            device.device.free_memory(palette_uniform_memory);
-
             device.device.destroy_buffer(
                 self.vertex_buffer
                     .take()
@@ -404,6 +409,23 @@ impl<B: Backend> Drop for RendererState<B> {
                     .take()
                     .expect("Vertex memory shouldn't be None"),
             );
+
+            device
+                .device
+                .destroy_descriptor_set_layout(palette_descriptor_set_layout);
+            device.device.destroy_buffer(palette_uniform_buffer);
+            device.device.free_memory(palette_uniform_memory);
+
+            device.device.destroy_fence(nes_screen_image_transfer_fence);
+            device.device.destroy_sampler(nes_screen_texture_sampler);
+            device.device.destroy_image_view(nes_screen_image_view);
+            device.device.destroy_image(nes_screen_image);
+            device.device.free_memory(nes_screen_texture_memory);
+            device.device.destroy_buffer(nes_screen_staging_buffer);
+            device.device.free_memory(nes_screen_staging_buffer_memory);
+            device
+                .device
+                .destroy_descriptor_set_layout(nes_screen_descriptor_set_layout);
 
             self.swapchain.take();
         }
