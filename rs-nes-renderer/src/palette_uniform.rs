@@ -1,4 +1,4 @@
-use std::{cell::RefCell, mem::size_of, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use gfx_hal::{buffer, device::Device, memory, pso, Backend, MemoryType};
 
@@ -7,33 +7,30 @@ use crate::{
     device_state::DeviceState,
 };
 
-pub struct Uniform<B: Backend> {
+pub struct PaletteUniform<B: Backend> {
     memory: Option<B::Memory>,
     buffer: Option<B::Buffer>,
     device: Rc<RefCell<DeviceState<B>>>,
     desc: Option<DescSet<B>>,
 }
 
-impl<B: Backend> Uniform<B> {
-    pub unsafe fn new<T>(
+impl<B: Backend> PaletteUniform<B> {
+    pub unsafe fn new(
         device: Rc<RefCell<DeviceState<B>>>,
         memory_types: &[MemoryType],
-        data: &[T],
+        data: &[f32; 256],
         mut desc: DescSet<B>,
         binding: u32,
-    ) -> Self
-    where
-        T: Copy,
-    {
-        let uniform_stride = size_of::<T>() as u64;
-        let uniform_upload_size = data.len() as u64 * uniform_stride;
-
+    ) -> Self {
+        let uniform_upload_size = data.len() as u64 * 4;
+        println!("Uniform upload size {}", uniform_upload_size);
         let (uniform_memory, uniform_buffer) = {
             let device = &device.borrow().device;
 
             let mut buffer = device
                 .create_buffer(uniform_upload_size, buffer::Usage::UNIFORM)
-                .unwrap();
+                .expect("Unable to create palette uniform buffer");
+
             let mem_req = device.get_buffer_requirements(&buffer);
 
             let memory_type = memory_types
@@ -45,17 +42,16 @@ impl<B: Backend> Uniform<B> {
                             .properties
                             .contains(memory::Properties::CPU_VISIBLE)
                 })
-                .expect("Uniform memory type not supported")
+                .expect("Palette uniform memory type not supported")
                 .into();
 
             let memory = device.allocate_memory(memory_type, mem_req.size).unwrap();
             device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
             let size = mem_req.size;
 
-            // TODO: check transitions: read/write mapping and vertex buffer read
             {
                 let mut data_target = device
-                    .acquire_mapping_writer::<T>(&memory, 0..size)
+                    .acquire_mapping_writer(&memory, 0..size)
                     .expect("Unable to acquire mapping writer");
                 data_target[0..data.len()].copy_from_slice(data);
                 device
@@ -75,7 +71,7 @@ impl<B: Backend> Uniform<B> {
             &mut device.borrow_mut().device,
         );
 
-        Uniform {
+        PaletteUniform {
             device,
             memory: Some(uniform_memory),
             buffer: Some(uniform_buffer),
@@ -92,7 +88,7 @@ impl<B: Backend> Uniform<B> {
     }
 }
 
-impl<B: Backend> Drop for Uniform<B> {
+impl<B: Backend> Drop for PaletteUniform<B> {
     fn drop(&mut self) {
         let device = &self.device.borrow().device;
         unsafe {

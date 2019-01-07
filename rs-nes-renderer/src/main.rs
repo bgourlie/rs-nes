@@ -30,11 +30,12 @@ mod descriptor_set;
 mod device_state;
 mod framebuffer_state;
 mod nes_screen_buffer;
+mod palette;
+mod palette_uniform;
 mod pipeline_state;
 mod render_pass_state;
 mod renderer_state;
 mod swapchain_state;
-mod uniform;
 mod vertex;
 mod window_state;
 

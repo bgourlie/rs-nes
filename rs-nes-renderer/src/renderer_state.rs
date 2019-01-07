@@ -9,9 +9,10 @@ use gfx_hal::{
 
 use crate::{
     backend_state::BackendState, descriptor_set::DescSetLayout, device_state::DeviceState,
-    framebuffer_state::FramebufferState, nes_screen_buffer::NesScreenBuffer,
-    pipeline_state::PipelineState, render_pass_state::RenderPassState,
-    swapchain_state::SwapchainState, uniform::Uniform, vertex::Vertex, COLOR_RANGE, DIMS, QUAD,
+    framebuffer_state::FramebufferState, nes_screen_buffer::NesScreenBuffer, palette::PALETTE,
+    palette_uniform::PaletteUniform, pipeline_state::PipelineState,
+    render_pass_state::RenderPassState, swapchain_state::SwapchainState, vertex::Vertex,
+    COLOR_RANGE, DIMS, QUAD,
 };
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -31,7 +32,7 @@ pub struct RendererState<B: Backend> {
     vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
     render_pass: RenderPassState<B>,
-    uniform: Uniform<B>,
+    uniform: PaletteUniform<B>,
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
@@ -159,10 +160,10 @@ impl<B: Backend> RendererState<B> {
             (memory, buffer)
         };
 
-        let uniform = Uniform::new(
+        let uniform = PaletteUniform::new(
             Rc::clone(&device),
             &backend.adapter.memory_types,
-            &[1f32, 1.0f32, 1.0f32, 1.0f32],
+            &PALETTE,
             uniform_desc,
             0,
         );
