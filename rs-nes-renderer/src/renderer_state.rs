@@ -375,17 +375,6 @@ impl<B: Backend> Drop for RendererState<B> {
         let (palette_uniform_buffer, palette_uniform_memory, palette_descriptor_set_layout) =
             self.uniform.take_resources();
 
-        let (
-            nes_screen_image_transfer_fence,
-            nes_screen_texture_sampler,
-            nes_screen_image_view,
-            nes_screen_image,
-            nes_screen_texture_memory,
-            nes_screen_staging_buffer,
-            nes_screen_staging_buffer_memory,
-            nes_screen_descriptor_set_layout,
-        ) = self.nes_screen.take_resources();
-
         unsafe {
             device.device.destroy_descriptor_pool(
                 self.img_desc_pool
@@ -417,21 +406,7 @@ impl<B: Backend> Drop for RendererState<B> {
             device.device.destroy_buffer(palette_uniform_buffer);
             device.device.free_memory(palette_uniform_memory);
 
-            device
-                .device
-                .wait_for_fence(&nes_screen_image_transfer_fence, 10_000)
-                .expect("Image transfer fence shouldn't timeout");
-            device.device.destroy_fence(nes_screen_image_transfer_fence);
-            device.device.destroy_sampler(nes_screen_texture_sampler);
-            device.device.destroy_image_view(nes_screen_image_view);
-            device.device.destroy_image(nes_screen_image);
-            device.device.free_memory(nes_screen_texture_memory);
-            device.device.destroy_buffer(nes_screen_staging_buffer);
-            device.device.free_memory(nes_screen_staging_buffer_memory);
-            device
-                .device
-                .destroy_descriptor_set_layout(nes_screen_descriptor_set_layout);
-
+            NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
             FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
             self.swapchain.take();
         }

@@ -330,7 +330,7 @@ impl<B: Backend> NesScreen<B> {
         self.desc.get_layout()
     }
 
-    pub fn take_resources(
+    fn take_resources(
         &mut self,
     ) -> (
         B::Fence,
@@ -381,5 +381,32 @@ impl<B: Backend> NesScreen<B> {
             staging_buffer_memory,
             descriptor_set_layout,
         )
+    }
+
+    pub fn destroy_resources(nes_screen: &mut Self, device: &B::Device) {
+        let (
+            image_transfer_fence,
+            texture_sampler,
+            image_view,
+            image,
+            texture_memory,
+            staging_buffer,
+            staging_buffer_memory,
+            descriptor_set_layout,
+        ) = nes_screen.take_resources();
+
+        unsafe {
+            device
+                .wait_for_fence(&image_transfer_fence, !0)
+                .expect("Image transfer fence shouldn't timeout");
+            device.destroy_fence(image_transfer_fence);
+            device.destroy_sampler(texture_sampler);
+            device.destroy_image_view(image_view);
+            device.destroy_image(image);
+            device.free_memory(texture_memory);
+            device.destroy_buffer(staging_buffer);
+            device.free_memory(staging_buffer_memory);
+            device.destroy_descriptor_set_layout(descriptor_set_layout);
+        }
     }
 }
