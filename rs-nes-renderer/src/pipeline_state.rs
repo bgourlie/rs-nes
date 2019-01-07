@@ -1,26 +1,20 @@
-use std::{cell::RefCell, fs, io::Read, mem::size_of, rc::Rc};
+use std::{fs, io::Read, mem::size_of};
 
 use gfx_hal::{format as f, pass::Subpass, pso, Backend, Device, Primitive};
 
-use crate::{device_state::DeviceState, vertex::Vertex};
+use crate::vertex::Vertex;
 
 pub struct PipelineState<B: Backend> {
     pub pipeline: Option<B::GraphicsPipeline>,
     pub pipeline_layout: Option<B::PipelineLayout>,
-    device: Rc<RefCell<DeviceState<B>>>,
 }
 
 impl<B: Backend> PipelineState<B> {
-    pub unsafe fn new<IS>(
-        desc_layouts: IS,
-        render_pass: &B::RenderPass,
-        device_ptr: Rc<RefCell<DeviceState<B>>>,
-    ) -> Self
+    pub unsafe fn new<IS>(desc_layouts: IS, render_pass: &B::RenderPass, device: &B::Device) -> Self
     where
         IS: IntoIterator,
         IS::Item: std::borrow::Borrow<B::DescriptorSetLayout>,
     {
-        let device = &device_ptr.borrow().device;
         let pipeline_layout = device
             .create_pipeline_layout(desc_layouts, &[(pso::ShaderStageFlags::VERTEX, 0..8)])
             .expect("Can't create pipeline layout");
@@ -125,17 +119,20 @@ impl<B: Backend> PipelineState<B> {
         PipelineState {
             pipeline: Some(pipeline),
             pipeline_layout: Some(pipeline_layout),
-            device: Rc::clone(&device_ptr),
         }
     }
-}
 
-impl<B: Backend> Drop for PipelineState<B> {
-    fn drop(&mut self) {
-        let device = &self.device.borrow().device;
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
         unsafe {
-            device.destroy_graphics_pipeline(self.pipeline.take().unwrap());
-            device.destroy_pipeline_layout(self.pipeline_layout.take().unwrap());
+            device.destroy_graphics_pipeline(
+                state.pipeline.take().expect("Pipeline shouldn't be None"),
+            );
+            device.destroy_pipeline_layout(
+                state
+                    .pipeline_layout
+                    .take()
+                    .expect("Pipeline layout shouldn't be None"),
+            );
         }
     }
 }

@@ -178,7 +178,7 @@ impl<B: Backend> RendererState<B> {
         let pipeline = PipelineState::new(
             vec![nes_screen_buffer.get_layout(), palette_uniform.layout()],
             render_pass.render_pass.as_ref().unwrap(),
-            Rc::clone(&device),
+            &device.borrow().device,
         );
 
         let viewport = RendererState::create_viewport(&swapchain);
@@ -220,11 +220,12 @@ impl<B: Backend> RendererState<B> {
             )
         };
 
+        PipelineState::destroy_resources(&mut self.pipeline, &self.device.borrow().device);
         self.pipeline = unsafe {
             PipelineState::new(
                 vec![self.nes_screen.get_layout(), self.palette_uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
-                Rc::clone(&self.device),
+                &self.device.borrow().device,
             )
         };
 
@@ -392,5 +393,6 @@ impl<B: Backend> Drop for RendererState<B> {
         NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
         FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
         SwapchainState::destroy_resources(&mut self.swapchain, &device.device);
+        PipelineState::destroy_resources(&mut self.pipeline, &device.device);
     }
 }
