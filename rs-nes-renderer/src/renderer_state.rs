@@ -170,7 +170,7 @@ impl<B: Backend> RendererState<B> {
 
         let mut swapchain = SwapchainState::new(&mut backend, &device.borrow(), DIMS);
 
-        let render_pass = RenderPassState::new(&swapchain, Rc::clone(&device));
+        let render_pass = RenderPassState::new(&swapchain, &device.borrow().device);
 
         let framebuffer =
             FramebufferState::new(&device.borrow(), &render_pass, &mut swapchain, &COLOR_RANGE);
@@ -207,8 +207,9 @@ impl<B: Backend> RendererState<B> {
         self.swapchain =
             unsafe { SwapchainState::new(&mut self.backend, &self.device.borrow(), DIMS) };
 
+        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.borrow().device);
         self.render_pass =
-            unsafe { RenderPassState::new(&self.swapchain, Rc::clone(&self.device)) };
+            unsafe { RenderPassState::new(&self.swapchain, &self.device.borrow().device) };
 
         FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.borrow().device);
         self.framebuffer = unsafe {
@@ -394,5 +395,6 @@ impl<B: Backend> Drop for RendererState<B> {
         FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
         SwapchainState::destroy_resources(&mut self.swapchain, &device.device);
         PipelineState::destroy_resources(&mut self.pipeline, &device.device);
+        RenderPassState::destroy_resources(&mut self.render_pass, &device.device);
     }
 }
