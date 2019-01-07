@@ -397,8 +397,8 @@ impl<B: Backend> NesScreen<B> {
 
         unsafe {
             device
-                .wait_for_fence(&image_transfer_fence, !0)
-                .expect("Image transfer fence shouldn't timeout");
+                .wait_for_fence(&image_transfer_fence, 10_000)
+                .unwrap();
             device.destroy_fence(image_transfer_fence);
             device.destroy_sampler(texture_sampler);
             device.destroy_image_view(image_view);

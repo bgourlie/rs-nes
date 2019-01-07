@@ -372,9 +372,6 @@ impl<B: Backend> Drop for RendererState<B> {
     fn drop(&mut self) {
         let device = self.device.borrow();
         device.device.wait_idle().unwrap();
-        let (palette_uniform_buffer, palette_uniform_memory, palette_descriptor_set_layout) =
-            self.uniform.take_resources();
-
         unsafe {
             device.device.destroy_descriptor_pool(
                 self.img_desc_pool
@@ -399,16 +396,11 @@ impl<B: Backend> Drop for RendererState<B> {
                     .take()
                     .expect("Vertex memory shouldn't be None"),
             );
-
-            device
-                .device
-                .destroy_descriptor_set_layout(palette_descriptor_set_layout);
-            device.device.destroy_buffer(palette_uniform_buffer);
-            device.device.free_memory(palette_uniform_memory);
-
-            NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
-            FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
-            self.swapchain.take();
         }
+
+        PaletteUniform::destroy_resources(&mut self.uniform, &device.device);
+        NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
+        FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
+        self.swapchain.take();
     }
 }
