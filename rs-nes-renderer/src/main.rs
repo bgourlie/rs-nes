@@ -248,31 +248,29 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                 if cpu.step() == Interrupt::Nmi {
                     renderer_state.nes_screen.update_buffer_data(
                         cpu.interconnect.ppu.screen(),
-                        &renderer_state.device.borrow().device,
+                        &renderer_state.device.device,
                     );
                     break;
                 }
             }
 
             let staging_pool = unsafe {
-                let mut staging_pool = renderer_state.device.borrow().create_command_pool();
+                let mut staging_pool = renderer_state.device.create_command_pool();
                 // The following line causing huge memory leak with dx12 backend
                 // See https://github.com/gfx-rs/gfx/issues/2556
-                renderer_state.nes_screen.copy_buffer_to_texture(
-                    &mut renderer_state.device.borrow_mut(),
-                    &mut staging_pool,
-                );
+                renderer_state
+                    .nes_screen
+                    .copy_buffer_to_texture(&mut renderer_state.device, &mut staging_pool);
                 staging_pool
             };
 
             renderer_state
                 .nes_screen
-                .wait_for_transfer_completion(&renderer_state.device.borrow().device);
+                .wait_for_transfer_completion(&renderer_state.device.device);
 
             unsafe {
                 renderer_state
                     .device
-                    .borrow()
                     .device
                     .destroy_command_pool(staging_pool.into_raw());
             }

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, iter, mem::size_of, rc::Rc};
+use std::{iter, mem::size_of};
 
 use gfx_hal::{
     buffer, command, memory,
@@ -27,7 +27,7 @@ pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
     swapchain: SwapchainState<B>,
-    pub device: Rc<RefCell<DeviceState<B>>>,
+    pub device: DeviceState<B>,
     pub backend: BackendState<B>,
     vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
@@ -41,13 +41,11 @@ pub struct RendererState<B: Backend> {
 
 impl<B: Backend> RendererState<B> {
     pub unsafe fn new(mut backend: BackendState<B>) -> Self {
-        let device = Rc::new(RefCell::new(DeviceState::new(
-            backend.adapter.adapter.take().unwrap(),
-            &backend.surface,
-        )));
+        let mut device =
+            DeviceState::new(backend.adapter.adapter.take().unwrap(), &backend.surface);
 
         let image_desc = DescSetLayout::new(
-            &device.borrow().device,
+            &device.device,
             vec![
                 pso::DescriptorSetLayoutBinding {
                     binding: 0,
@@ -67,7 +65,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let uniform_desc = DescSetLayout::new(
-            &device.borrow().device,
+            &device.device,
             vec![pso::DescriptorSetLayoutBinding {
                 binding: 0,
                 ty: pso::DescriptorType::UniformBuffer,
@@ -78,7 +76,6 @@ impl<B: Backend> RendererState<B> {
         );
 
         let mut img_desc_pool = device
-            .borrow()
             .device
             .create_descriptor_pool(
                 1, // # of sets
@@ -96,7 +93,6 @@ impl<B: Backend> RendererState<B> {
             .ok();
 
         let mut uniform_desc_pool = device
-            .borrow()
             .device
             .create_descriptor_pool(
                 1, // # of sets
@@ -111,7 +107,7 @@ impl<B: Backend> RendererState<B> {
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
         let nes_screen_buffer = NesScreen::new::<Graphics>(
-            &mut device.borrow_mut().device,
+            &mut device.device,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
@@ -122,7 +118,7 @@ impl<B: Backend> RendererState<B> {
             let vertex_stride = size_of::<Vertex>() as u64;
             let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
 
-            let device = &device.borrow().device;
+            let device = &device.device;
 
             let mut buffer = device
                 .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
@@ -161,24 +157,24 @@ impl<B: Backend> RendererState<B> {
         };
 
         let palette_uniform = PaletteUniform::new(
-            &mut device.borrow_mut().device,
+            &mut device.device,
             &backend.adapter.memory_types,
             &PALETTE,
             uniform_desc,
             0,
         );
 
-        let mut swapchain = SwapchainState::new(&mut backend, &device.borrow(), DIMS);
+        let mut swapchain = SwapchainState::new(&mut backend, &device, DIMS);
 
-        let render_pass = RenderPassState::new(&swapchain, &device.borrow().device);
+        let render_pass = RenderPassState::new(&swapchain, &device.device);
 
         let framebuffer =
-            FramebufferState::new(&device.borrow(), &render_pass, &mut swapchain, &COLOR_RANGE);
+            FramebufferState::new(&device, &render_pass, &mut swapchain, &COLOR_RANGE);
 
         let pipeline = PipelineState::new(
             vec![nes_screen_buffer.get_layout(), palette_uniform.layout()],
             render_pass.render_pass.as_ref().unwrap(),
-            &device.borrow().device,
+            &device.device,
         );
 
         let viewport = RendererState::create_viewport(&swapchain);
@@ -201,32 +197,30 @@ impl<B: Backend> RendererState<B> {
     }
 
     fn recreate_swapchain(&mut self) {
-        self.device.borrow().device.wait_idle().unwrap();
+        self.device.device.wait_idle().unwrap();
 
-        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.borrow().device);
-        self.swapchain =
-            unsafe { SwapchainState::new(&mut self.backend, &self.device.borrow(), DIMS) };
+        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
+        self.swapchain = unsafe { SwapchainState::new(&mut self.backend, &self.device, DIMS) };
 
-        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.borrow().device);
-        self.render_pass =
-            unsafe { RenderPassState::new(&self.swapchain, &self.device.borrow().device) };
+        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
+        self.render_pass = unsafe { RenderPassState::new(&self.swapchain, &self.device.device) };
 
-        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.borrow().device);
+        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
         self.framebuffer = unsafe {
             FramebufferState::new(
-                &self.device.borrow(),
+                &self.device,
                 &self.render_pass,
                 &mut self.swapchain,
                 &COLOR_RANGE,
             )
         };
 
-        PipelineState::destroy_resources(&mut self.pipeline, &self.device.borrow().device);
+        PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
         self.pipeline = unsafe {
             PipelineState::new(
                 vec![self.nes_screen.get_layout(), self.palette_uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
-                &self.device.borrow().device,
+                &self.device.device,
             )
         };
 
@@ -278,15 +272,10 @@ impl<B: Backend> RendererState<B> {
 
         unsafe {
             self.device
-                .borrow()
                 .device
                 .wait_for_fence(framebuffer_fence, !0)
                 .unwrap();
-            self.device
-                .borrow()
-                .device
-                .reset_fence(framebuffer_fence)
-                .unwrap();
+            self.device.device.reset_fence(framebuffer_fence).unwrap();
             command_pool.reset();
 
             // Rendering
@@ -337,7 +326,7 @@ impl<B: Backend> RendererState<B> {
                 signal_semaphores: iter::once(&*image_present_semaphores),
             };
 
-            self.device.borrow_mut().queues.queues[0].submit(submission, Some(framebuffer_fence));
+            self.device.queues.queues[0].submit(submission, Some(framebuffer_fence));
 
             // present frame
             if self
@@ -346,7 +335,7 @@ impl<B: Backend> RendererState<B> {
                 .as_ref()
                 .unwrap()
                 .present(
-                    &mut self.device.borrow_mut().queues.queues[0],
+                    &mut self.device.queues.queues[0],
                     frame,
                     Some(&*image_present_semaphores),
                 )
@@ -362,39 +351,38 @@ impl<B: Backend> RendererState<B> {
 
 impl<B: Backend> Drop for RendererState<B> {
     fn drop(&mut self) {
-        let device = self.device.borrow();
-        device.device.wait_idle().unwrap();
+        self.device.device.wait_idle().unwrap();
         unsafe {
-            device.device.destroy_descriptor_pool(
+            self.device.device.destroy_descriptor_pool(
                 self.img_desc_pool
                     .take()
                     .expect("Image descriptor pool shouldn't be None"),
             );
 
-            device.device.destroy_descriptor_pool(
+            self.device.device.destroy_descriptor_pool(
                 self.uniform_desc_pool
                     .take()
                     .expect("Uniform descriptor pool shouldn't be None"),
             );
 
-            device.device.destroy_buffer(
+            self.device.device.destroy_buffer(
                 self.vertex_buffer
                     .take()
                     .expect("Vertex buffer shouldn't be None"),
             );
 
-            device.device.free_memory(
+            self.device.device.free_memory(
                 self.vertex_memory
                     .take()
                     .expect("Vertex memory shouldn't be None"),
             );
         }
 
-        PaletteUniform::destroy_resources(&mut self.palette_uniform, &device.device);
-        NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
-        FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
-        SwapchainState::destroy_resources(&mut self.swapchain, &device.device);
-        PipelineState::destroy_resources(&mut self.pipeline, &device.device);
-        RenderPassState::destroy_resources(&mut self.render_pass, &device.device);
+        PaletteUniform::destroy_resources(&mut self.palette_uniform, &self.device.device);
+        NesScreen::destroy_resources(&mut self.nes_screen, &self.device.device);
+        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
+        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
+        PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
+        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
     }
 }
