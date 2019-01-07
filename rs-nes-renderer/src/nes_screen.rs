@@ -19,6 +19,7 @@ pub struct NesScreen<B: Backend> {
     desc: DescSet<B>,
     staging_buffer: Option<B::Buffer>,
     staging_buffer_memory: Option<B::Memory>,
+    staging_pool: Option<CommandPool<B, Graphics>>,
     sampler: Option<B::Sampler>,
     image_view: Option<B::ImageView>,
     image: Option<B::Image>,
@@ -32,7 +33,7 @@ pub struct NesScreen<B: Backend> {
 
 impl<B: Backend> NesScreen<B> {
     pub fn new<T: Supports<Transfer>>(
-        device: &mut B::Device,
+        device: &mut DeviceState<B>,
         width: u32,
         height: u32,
         mut desc: DescSet<B>,
@@ -44,153 +45,143 @@ impl<B: Backend> NesScreen<B> {
         let upload_size = u64::from(height * row_pitch);
         println!("Row alignment mask: {}", row_alignment_mask);
 
-        let (
-            desc,
-            staging_buffer,
-            staging_buffer_memory,
-            staging_buffer_memory_requirements,
-            sampler,
-            image_view,
-            image,
-            texture_memory,
-            image_transfer_fence,
-        ) = {
-            let image_kind = image::Kind::D2(width as image::Size, height as image::Size, 1, 1);
-            let (mut staging_buffer, staging_buffer_memory_requirements) = unsafe {
-                let staging_buffer = device
-                    .create_buffer(upload_size, buffer::Usage::TRANSFER_SRC)
-                    .expect("Unable to create staging buffer");
+        let image_kind = image::Kind::D2(width as image::Size, height as image::Size, 1, 1);
+        let (mut staging_buffer, staging_buffer_memory_requirements) = unsafe {
+            let staging_buffer = device
+                .device
+                .create_buffer(upload_size, buffer::Usage::TRANSFER_SRC)
+                .expect("Unable to create staging buffer");
 
-                let staging_buffer_memory_requirements =
-                    device.get_buffer_requirements(&staging_buffer);
+            let staging_buffer_memory_requirements =
+                device.device.get_buffer_requirements(&staging_buffer);
 
-                (staging_buffer, staging_buffer_memory_requirements)
-            };
-
-            let staging_buffer_memory_type = adapter
-                .memory_types
-                .iter()
-                .enumerate()
-                .position(|(id, mem_type)| {
-                    staging_buffer_memory_requirements.type_mask & (1 << id) != 0
-                        && mem_type
-                            .properties
-                            .contains(memory::Properties::CPU_VISIBLE)
-                })
-                .expect("Staging buffer memory type not supported")
-                .into();
-
-            let (staging_buffer_memory, mut image, req) = unsafe {
-                let staging_buffer_memory = device
-                    .allocate_memory(
-                        staging_buffer_memory_type,
-                        staging_buffer_memory_requirements.size,
-                    )
-                    .expect("Unable to allocate staging buffer memory");
-
-                device
-                    .bind_buffer_memory(&staging_buffer_memory, 0, &mut staging_buffer)
-                    .expect("Unable to bind staging buffer memory");
-
-                let image = device
-                    .create_image(
-                        image_kind,
-                        1,
-                        <ScreenBufferFormat as format::AsFormat>::SELF,
-                        image::Tiling::Optimal,
-                        image::Usage::TRANSFER_DST | image::Usage::SAMPLED,
-                        image::ViewCapabilities::empty(),
-                    )
-                    .expect("Unable to create image");
-
-                let req = device.get_image_requirements(&image);
-                (staging_buffer_memory, image, req)
-            };
-
-            let texture_memory_type = adapter
-                .memory_types
-                .iter()
-                .enumerate()
-                .position(|(id, memory_type)| {
-                    req.type_mask & (1 << id) != 0
-                        && memory_type
-                            .properties
-                            .contains(memory::Properties::DEVICE_LOCAL)
-                })
-                .expect("Texture memory type not supported")
-                .into();
-
-            let (texture_memory, image_view, sampler) = unsafe {
-                let texture_memory = device
-                    .allocate_memory(texture_memory_type, req.size)
-                    .expect("Unable to allocate texture memory");
-
-                device
-                    .bind_image_memory(&texture_memory, 0, &mut image)
-                    .expect("Unable to bind texture memory to image");
-
-                let image_view = device
-                    .create_image_view(
-                        &image,
-                        image::ViewKind::D2,
-                        <ScreenBufferFormat as format::AsFormat>::SELF,
-                        format::Swizzle::NO,
-                        COLOR_RANGE.clone(),
-                    )
-                    .expect("Unable to create image view");
-
-                let sampler = device
-                    .create_sampler(image::SamplerInfo::new(
-                        image::Filter::Nearest,
-                        image::WrapMode::Clamp,
-                    ))
-                    .expect("Can't create sampler");
-
-                desc.write_to_state(
-                    vec![
-                        DescSetWrite {
-                            binding: 0,
-                            array_offset: 0,
-                            descriptors: Some(pso::Descriptor::Image(
-                                &image_view,
-                                image::Layout::Undefined,
-                            )),
-                        },
-                        DescSetWrite {
-                            binding: 1,
-                            array_offset: 0,
-                            descriptors: Some(pso::Descriptor::Sampler(&sampler)),
-                        },
-                    ],
-                    device,
-                );
-
-                (texture_memory, image_view, sampler)
-            };
-
-            let image_transfer_fence = device.create_fence(false).expect("Can't create fence");
-            (
-                desc,
-                Some(staging_buffer),
-                Some(staging_buffer_memory),
-                staging_buffer_memory_requirements,
-                Some(sampler),
-                Some(image_view),
-                Some(image),
-                Some(texture_memory),
-                Some(image_transfer_fence),
-            )
+            (staging_buffer, staging_buffer_memory_requirements)
         };
 
+        let staging_buffer_memory_type = adapter
+            .memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, mem_type)| {
+                staging_buffer_memory_requirements.type_mask & (1 << id) != 0
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::CPU_VISIBLE)
+            })
+            .expect("Staging buffer memory type not supported")
+            .into();
+
+        let (staging_buffer_memory, mut image, req) = unsafe {
+            let staging_buffer_memory = device
+                .device
+                .allocate_memory(
+                    staging_buffer_memory_type,
+                    staging_buffer_memory_requirements.size,
+                )
+                .expect("Unable to allocate staging buffer memory");
+
+            device
+                .device
+                .bind_buffer_memory(&staging_buffer_memory, 0, &mut staging_buffer)
+                .expect("Unable to bind staging buffer memory");
+
+            let image = device
+                .device
+                .create_image(
+                    image_kind,
+                    1,
+                    <ScreenBufferFormat as format::AsFormat>::SELF,
+                    image::Tiling::Optimal,
+                    image::Usage::TRANSFER_DST | image::Usage::SAMPLED,
+                    image::ViewCapabilities::empty(),
+                )
+                .expect("Unable to create image");
+
+            let req = device.device.get_image_requirements(&image);
+            (staging_buffer_memory, image, req)
+        };
+
+        let texture_memory_type = adapter
+            .memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, memory_type)| {
+                req.type_mask & (1 << id) != 0
+                    && memory_type
+                        .properties
+                        .contains(memory::Properties::DEVICE_LOCAL)
+            })
+            .expect("Texture memory type not supported")
+            .into();
+
+        let (texture_memory, image_view, sampler) = unsafe {
+            let texture_memory = device
+                .device
+                .allocate_memory(texture_memory_type, req.size)
+                .expect("Unable to allocate texture memory");
+
+            device
+                .device
+                .bind_image_memory(&texture_memory, 0, &mut image)
+                .expect("Unable to bind texture memory to image");
+
+            let image_view = device
+                .device
+                .create_image_view(
+                    &image,
+                    image::ViewKind::D2,
+                    <ScreenBufferFormat as format::AsFormat>::SELF,
+                    format::Swizzle::NO,
+                    COLOR_RANGE.clone(),
+                )
+                .expect("Unable to create image view");
+
+            let sampler = device
+                .device
+                .create_sampler(image::SamplerInfo::new(
+                    image::Filter::Nearest,
+                    image::WrapMode::Clamp,
+                ))
+                .expect("Can't create sampler");
+
+            desc.write_to_state(
+                vec![
+                    DescSetWrite {
+                        binding: 0,
+                        array_offset: 0,
+                        descriptors: Some(pso::Descriptor::Image(
+                            &image_view,
+                            image::Layout::Undefined,
+                        )),
+                    },
+                    DescSetWrite {
+                        binding: 1,
+                        array_offset: 0,
+                        descriptors: Some(pso::Descriptor::Sampler(&sampler)),
+                    },
+                ],
+                &mut device.device,
+            );
+
+            (texture_memory, image_view, sampler)
+        };
+
+        let image_transfer_fence = device
+            .device
+            .create_fence(false)
+            .expect("Can't create fence");
+        let staging_pool = device.create_command_pool();
+
         NesScreen {
+            staging_pool: Some(staging_pool),
             desc,
-            staging_buffer,
-            staging_buffer_memory,
-            sampler,
-            image_view,
-            image,
-            texture_memory,
-            image_transfer_fence,
+            staging_buffer: Some(staging_buffer),
+            staging_buffer_memory: Some(staging_buffer_memory),
+            sampler: Some(sampler),
+            image_view: Some(image_view),
+            image: Some(image),
+            texture_memory: Some(texture_memory),
+            image_transfer_fence: Some(image_transfer_fence),
             dimensions: (width, height),
             row_pitch,
             row_alignment_mask,
@@ -234,12 +225,13 @@ impl<B: Backend> NesScreen<B> {
         }
     }
 
-    pub fn copy_buffer_to_texture(
-        &self,
-        device_state: &mut DeviceState<B>,
-        staging_pool: &mut CommandPool<B, Graphics>,
-    ) {
+    pub fn copy_buffer_to_texture(&mut self, device_state: &mut DeviceState<B>) {
         let (image_width, image_height) = self.dimensions;
+        let mut staging_pool = self
+            .staging_pool
+            .take()
+            .expect("Staging pool shouldn't be None");
+
         let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
 
         unsafe {
@@ -313,6 +305,7 @@ impl<B: Backend> NesScreen<B> {
             device_state.queues.queues[0]
                 .submit_nosemaphores(iter::once(&cmd_buffer), self.image_transfer_fence.as_ref());
         }
+        self.staging_pool = Some(staging_pool);
     }
 
     pub fn wait_for_transfer_completion(&self, device: &B::Device) {
@@ -342,6 +335,15 @@ impl<B: Backend> NesScreen<B> {
                 .unwrap();
 
             device.destroy_fence(image_transfer_fence);
+
+            device.destroy_command_pool(
+                state
+                    .staging_pool
+                    .take()
+                    .expect("Staging pool shouldn't be None")
+                    .into_raw(),
+            );
+
             device.destroy_sampler(state.sampler.take().expect("Sampler shouldn't be None"));
             device.destroy_image_view(
                 state

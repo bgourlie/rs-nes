@@ -58,7 +58,7 @@ use crate::{
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
-use gfx_hal::{format, image as i, window::Extent2D, Backend, Device};
+use gfx_hal::{format, image as i, window::Extent2D, Backend};
 
 type FrameBufferFormat = format::Rgba8Srgb;
 type ScreenBufferFormat = format::Rgba8Unorm;
@@ -254,26 +254,15 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                 }
             }
 
-            let staging_pool = unsafe {
-                let mut staging_pool = renderer_state.device.create_command_pool();
-                // The following line causing huge memory leak with dx12 backend
-                // See https://github.com/gfx-rs/gfx/issues/2556
-                renderer_state
-                    .nes_screen
-                    .copy_buffer_to_texture(&mut renderer_state.device, &mut staging_pool);
-                staging_pool
-            };
+            // The following line causing huge memory leak with dx12 backend
+            // See https://github.com/gfx-rs/gfx/issues/2556
+            renderer_state
+                .nes_screen
+                .copy_buffer_to_texture(&mut renderer_state.device);
 
             renderer_state
                 .nes_screen
                 .wait_for_transfer_completion(&renderer_state.device.device);
-
-            unsafe {
-                renderer_state
-                    .device
-                    .device
-                    .destroy_command_pool(staging_pool.into_raw());
-            }
 
             match renderer_state.render_frame(recreate_swapchain) {
                 RenderStatus::RecreateSwapchain => recreate_swapchain = true,

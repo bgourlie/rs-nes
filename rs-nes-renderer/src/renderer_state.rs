@@ -107,7 +107,7 @@ impl<B: Backend> RendererState<B> {
         let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
 
         let nes_screen_buffer = NesScreen::new::<Graphics>(
-            &mut device.device,
+            &mut device,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,

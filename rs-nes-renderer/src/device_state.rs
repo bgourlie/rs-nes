@@ -22,9 +22,11 @@ impl<B: Backend> DeviceState<B> {
         }
     }
 
-    pub unsafe fn create_command_pool(&self) -> CommandPool<B, Graphics> {
-        self.device
-            .create_command_pool_typed(&self.queues, CommandPoolCreateFlags::empty())
-            .expect("Can't create staging command pool")
+    pub fn create_command_pool(&self) -> CommandPool<B, Graphics> {
+        unsafe {
+            self.device
+                .create_command_pool_typed(&self.queues, CommandPoolCreateFlags::empty())
+                .expect("Can't create command pool")
+        }
     }
 }
