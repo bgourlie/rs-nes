@@ -123,33 +123,29 @@ impl<B: Backend> FramebufferState<B> {
     pub fn get_frame_data(
         &mut self,
         frame_id: Option<usize>,
-        sem_index: Option<usize>,
+        semaphore_index: usize,
     ) -> (
         Option<(
             &mut B::Fence,
             &mut B::Framebuffer,
             &mut CommandPool<B, Graphics>,
         )>,
-        Option<(&mut B::Semaphore, &mut B::Semaphore)>,
+        (&mut B::Semaphore, &mut B::Semaphore),
     ) {
         (
-            if let Some(fid) = frame_id {
+            if let Some(frame_id) = frame_id {
                 Some((
-                    &mut self.framebuffer_fences.as_mut().unwrap()[fid],
-                    &mut self.framebuffers.as_mut().unwrap()[fid],
-                    &mut self.command_pools.as_mut().unwrap()[fid],
+                    &mut self.framebuffer_fences.as_mut().unwrap()[frame_id],
+                    &mut self.framebuffers.as_mut().unwrap()[frame_id],
+                    &mut self.command_pools.as_mut().unwrap()[frame_id],
                 ))
             } else {
                 None
             },
-            if let Some(sid) = sem_index {
-                Some((
-                    &mut self.acquire_semaphores.as_mut().unwrap()[sid],
-                    &mut self.present_semaphores.as_mut().unwrap()[sid],
-                ))
-            } else {
-                None
-            },
+            (
+                &mut self.acquire_semaphores.as_mut().unwrap()[semaphore_index],
+                &mut self.present_semaphores.as_mut().unwrap()[semaphore_index],
+            ),
         )
     }
 }

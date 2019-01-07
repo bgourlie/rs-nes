@@ -28,7 +28,7 @@ pub struct RendererState<B: Backend> {
     swapchain: Option<SwapchainState<B>>,
     pub device: Rc<RefCell<DeviceState<B>>>,
     pub backend: BackendState<B>,
-    pub vertex_memory: Option<B::Memory>,
+    vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
     render_pass: RenderPassState<B>,
     uniform: Uniform<B>,
@@ -255,21 +255,17 @@ impl<B: Backend> RendererState<B> {
             RenderStatus::Normal
         };
 
-        let sem_index = self.framebuffer.next_acq_pre_pair_index();
+        let semaphore_index = self.framebuffer.next_acq_pre_pair_index();
 
         let frame: SwapImageIndex = unsafe {
-            let (acquire_semaphore, _) = self
-                .framebuffer
-                .get_frame_data(None, Some(sem_index))
-                .1
-                .unwrap();
+            let (acquire_semaphore, _) = self.framebuffer.get_frame_data(None, semaphore_index).1;
             match self
                 .swapchain
                 .as_mut()
-                .unwrap()
+                .expect("Swapchain shouldn't be None")
                 .swapchain
                 .as_mut()
-                .unwrap()
+                .expect("Swapchain shouldn't be None")
                 .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
             {
                 Ok(image_index) => image_index,
@@ -277,12 +273,12 @@ impl<B: Backend> RendererState<B> {
             }
         };
 
-        let (fid, sid) = self
+        let (frame_data, framebuffer_semaphores) = self
             .framebuffer
-            .get_frame_data(Some(frame as usize), Some(sem_index));
+            .get_frame_data(Some(frame as usize), semaphore_index);
 
-        let (framebuffer_fence, framebuffer, command_pool) = fid.unwrap();
-        let (image_acquired, image_present) = sid.unwrap();
+        let (framebuffer_fence, framebuffer, command_pool) = frame_data.unwrap();
+        let (image_acquired_semaphore, image_present_semaphores) = framebuffer_semaphores;
 
         unsafe {
             self.device
@@ -338,8 +334,11 @@ impl<B: Backend> RendererState<B> {
 
             let submission = Submission {
                 command_buffers: iter::once(&cmd_buffer),
-                wait_semaphores: iter::once((&*image_acquired, PipelineStage::BOTTOM_OF_PIPE)),
-                signal_semaphores: iter::once(&*image_present),
+                wait_semaphores: iter::once((
+                    &*image_acquired_semaphore,
+                    PipelineStage::BOTTOM_OF_PIPE,
+                )),
+                signal_semaphores: iter::once(&*image_present_semaphores),
             };
 
             self.device.borrow_mut().queues.queues[0].submit(submission, Some(framebuffer_fence));
@@ -355,7 +354,7 @@ impl<B: Backend> RendererState<B> {
                 .present(
                     &mut self.device.borrow_mut().queues.queues[0],
                     frame,
-                    Some(&*image_present),
+                    Some(&*image_present_semaphores),
                 )
                 .is_err()
             {
