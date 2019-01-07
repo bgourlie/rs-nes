@@ -266,7 +266,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
 
             renderer_state
                 .nes_screen_buffer
-                .wait_for_transfer_completion();
+                .wait_for_transfer_completion(&renderer_state.device.borrow().device);
 
             unsafe {
                 renderer_state

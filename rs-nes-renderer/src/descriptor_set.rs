@@ -1,60 +1,43 @@
-use std::{cell::RefCell, rc::Rc};
-
 use gfx_hal::{pso, Backend, DescriptorPool, Device};
-
-use crate::device_state::DeviceState;
 
 pub struct DescSetLayout<B: Backend> {
     pub layout: Option<B::DescriptorSetLayout>,
-    pub device: Rc<RefCell<DeviceState<B>>>,
 }
 
 impl<B: Backend> DescSetLayout<B> {
-    pub unsafe fn new(
-        device: Rc<RefCell<DeviceState<B>>>,
-        bindings: Vec<pso::DescriptorSetLayoutBinding>,
-    ) -> Self {
-        let desc_set_layout = device
-            .borrow()
-            .device
-            .create_descriptor_set_layout(bindings, &[])
-            .ok();
+    pub fn new(device: &B::Device, bindings: Vec<pso::DescriptorSetLayoutBinding>) -> Self {
+        let desc_set_layout = unsafe {
+            device.create_descriptor_set_layout(bindings, &[]).ok()
+        };
 
         DescSetLayout {
             layout: desc_set_layout,
-            device,
         }
     }
 
-    pub unsafe fn create_desc_set(self, desc_pool: &mut B::DescriptorPool) -> DescSet<B> {
-        let desc_set = desc_pool
-            .allocate_set(self.layout.as_ref().unwrap())
-            .unwrap();
+    pub unsafe fn create_desc_set(mut self, desc_pool: &mut B::DescriptorPool) -> DescSet<B> {
+        let layout = self.layout.take().expect("Layout shouldn't be None");
+        let desc_set = desc_pool.allocate_set(&layout).unwrap();
+
         DescSet {
-            layout: self,
+            layout: Some(layout),
             set: Some(desc_set),
         }
     }
 }
 
-impl<B: Backend> Drop for DescSetLayout<B> {
-    fn drop(&mut self) {
-        let device = &self.device.borrow().device;
-        unsafe {
-            device.destroy_descriptor_set_layout(self.layout.take().unwrap());
-        }
-    }
-}
-
 pub struct DescSet<B: Backend> {
+    // TODO: This appears to be a transient resource that we don't need to hold onto or destroy
     pub set: Option<B::DescriptorSet>,
-    pub layout: DescSetLayout<B>,
+    pub layout: Option<B::DescriptorSetLayout>,
 }
 
-pub struct DescSetWrite<W> {
-    pub binding: pso::DescriptorBinding,
-    pub array_offset: pso::DescriptorArrayIndex,
-    pub descriptors: W,
+impl<B: Backend> DescSet<B> {
+    pub fn take_resources(&mut self) -> B::DescriptorSetLayout {
+        self.layout
+            .take()
+            .expect("Descriptor set layout shouldn't be None")
+    }
 }
 
 impl<B: Backend> DescSet<B> {
@@ -80,6 +63,12 @@ impl<B: Backend> DescSet<B> {
     }
 
     pub fn get_layout(&self) -> &B::DescriptorSetLayout {
-        self.layout.layout.as_ref().unwrap()
+        self.layout.as_ref().unwrap()
     }
+}
+
+pub struct DescSetWrite<W> {
+    pub binding: pso::DescriptorBinding,
+    pub array_offset: pso::DescriptorArrayIndex,
+    pub descriptors: W,
 }

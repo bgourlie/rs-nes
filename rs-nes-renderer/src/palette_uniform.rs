@@ -1,22 +1,16 @@
-use std::{cell::RefCell, rc::Rc};
-
 use gfx_hal::{buffer, device::Device, memory, pso, Backend, MemoryType};
 
-use crate::{
-    descriptor_set::{DescSet, DescSetWrite},
-    device_state::DeviceState,
-};
+use crate::descriptor_set::{DescSet, DescSetWrite};
 
 pub struct PaletteUniform<B: Backend> {
-    memory: Option<B::Memory>,
     buffer: Option<B::Buffer>,
-    device: Rc<RefCell<DeviceState<B>>>,
-    desc: Option<DescSet<B>>,
+    memory: Option<B::Memory>,
+    desc: DescSet<B>,
 }
 
 impl<B: Backend> PaletteUniform<B> {
     pub unsafe fn new(
-        device: Rc<RefCell<DeviceState<B>>>,
+        device: &mut B::Device,
         memory_types: &[MemoryType],
         data: &[f32; 256],
         mut desc: DescSet<B>,
@@ -25,8 +19,6 @@ impl<B: Backend> PaletteUniform<B> {
         let uniform_upload_size = data.len() as u64 * 4;
         println!("Uniform upload size {}", uniform_upload_size);
         let (uniform_memory, uniform_buffer) = {
-            let device = &device.borrow().device;
-
             let mut buffer = device
                 .create_buffer(uniform_upload_size, buffer::Usage::UNIFORM)
                 .expect("Unable to create palette uniform buffer");
@@ -68,32 +60,29 @@ impl<B: Backend> PaletteUniform<B> {
                 array_offset: 0,
                 descriptors: Some(pso::Descriptor::Buffer(&uniform_buffer, None..None)),
             }],
-            &mut device.borrow_mut().device,
+            device,
         );
 
         PaletteUniform {
-            device,
             memory: Some(uniform_memory),
             buffer: Some(uniform_buffer),
-            desc: Some(desc),
+            desc,
         }
     }
 
     pub fn layout(&self) -> &B::DescriptorSetLayout {
-        self.desc.as_ref().unwrap().get_layout()
+        &self.desc.get_layout()
     }
 
     pub fn descriptor_set(&self) -> &B::DescriptorSet {
-        self.desc.as_ref().unwrap().set.as_ref().unwrap()
+        self.desc.set.as_ref().unwrap()
     }
-}
 
-impl<B: Backend> Drop for PaletteUniform<B> {
-    fn drop(&mut self) {
-        let device = &self.device.borrow().device;
-        unsafe {
-            device.destroy_buffer(self.buffer.take().unwrap());
-            device.free_memory(self.memory.take().unwrap());
-        }
+    pub fn take_resources(&mut self) -> (B::Buffer, B::Memory, B::DescriptorSetLayout) {
+        (
+            self.buffer.take().expect("Buffer shouldn't be None"),
+            self.memory.take().expect("Memory shouldn't be None"),
+            self.desc.take_resources(),
+        )
     }
 }

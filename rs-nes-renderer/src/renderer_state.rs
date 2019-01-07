@@ -47,7 +47,7 @@ impl<B: Backend> RendererState<B> {
         )));
 
         let image_desc = DescSetLayout::new(
-            Rc::clone(&device),
+            &device.borrow().device,
             vec![
                 pso::DescriptorSetLayoutBinding {
                     binding: 0,
@@ -67,7 +67,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let uniform_desc = DescSetLayout::new(
-            Rc::clone(&device),
+            &device.borrow().device,
             vec![pso::DescriptorSetLayoutBinding {
                 binding: 0,
                 ty: pso::DescriptorType::UniformBuffer,
@@ -161,7 +161,7 @@ impl<B: Backend> RendererState<B> {
         };
 
         let uniform = PaletteUniform::new(
-            Rc::clone(&device),
+            &mut device.borrow_mut().device,
             &backend.adapter.memory_types,
             &PALETTE,
             uniform_desc,
@@ -371,6 +371,9 @@ impl<B: Backend> Drop for RendererState<B> {
     fn drop(&mut self) {
         let device = self.device.borrow();
         device.device.wait_idle().unwrap();
+        let (palette_uniform_buffer, palette_uniform_memory, palette_descriptor_set_layout) =
+            self.uniform.take_resources();
+
         unsafe {
             device.device.destroy_descriptor_pool(
                 self.img_desc_pool
@@ -383,6 +386,12 @@ impl<B: Backend> Drop for RendererState<B> {
                     .take()
                     .expect("Uniform descriptor pool shouldn't be None"),
             );
+
+            device
+                .device
+                .destroy_descriptor_set_layout(palette_descriptor_set_layout);
+            device.device.destroy_buffer(palette_uniform_buffer);
+            device.device.free_memory(palette_uniform_memory);
 
             device.device.destroy_buffer(
                 self.vertex_buffer

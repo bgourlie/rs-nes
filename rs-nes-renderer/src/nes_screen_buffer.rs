@@ -321,8 +321,7 @@ impl<B: Backend> NesScreenBuffer<B> {
         }
     }
 
-    pub fn wait_for_transfer_completion(&self) {
-        let device = &self.desc.layout.device.borrow().device;
+    pub fn wait_for_transfer_completion(&self, device: &B::Device) {
         unsafe {
             let fence = self.image_transfer_fence.as_ref().unwrap();
             device.wait_for_fence(fence, !0).unwrap();
@@ -340,7 +339,7 @@ impl<B: Backend> NesScreenBuffer<B> {
 
 impl<B: Backend> Drop for NesScreenBuffer<B> {
     fn drop(&mut self) {
-        let device = &self.desc.layout.device.borrow().device;
+        let device = &self.device.borrow().device;
         let fence = self
             .image_transfer_fence
             .take()
@@ -374,6 +373,9 @@ impl<B: Backend> Drop for NesScreenBuffer<B> {
                     .take()
                     .expect("Unable to free staging buffer memory"),
             );
+
+            let descriptor_set_layout = self.desc.take_resources();
+            device.destroy_descriptor_set_layout(descriptor_set_layout);
         }
     }
 }
