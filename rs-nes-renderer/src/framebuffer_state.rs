@@ -143,83 +143,54 @@ impl<B: Backend> FramebufferState<B> {
         )
     }
 
-    fn take_resources(
-        &mut self,
-    ) -> (
-        Vec<B::Framebuffer>,
-        Vec<B::Fence>,
-        Vec<CommandPool<B, Graphics>>,
-        Vec<B::Semaphore>,
-        Vec<B::Semaphore>,
-        Vec<(B::Image, B::ImageView)>,
-    ) {
-        let frame_buffers = self
-            .framebuffers
-            .take()
-            .expect("Framebuffers shouldn't be None");
-        let fences = self
-            .framebuffer_fences
-            .take()
-            .expect("Fences shouldn't be None");
-        let command_pools = self
-            .command_pools
-            .take()
-            .expect("Command pools shouldn't be None");
-        let acquire_semaphores = self
-            .acquire_semaphores
-            .take()
-            .expect("Acquire semaphores shouldn't be None");
-        let present_semaphores = self
-            .present_semaphores
-            .take()
-            .expect("Present semaphores shouldn't be None");
-        let frame_images = self
-            .frame_images
-            .take()
-            .expect("Frame images shouldn't be None");
-        (
-            frame_buffers,
-            fences,
-            command_pools,
-            acquire_semaphores,
-            present_semaphores,
-            frame_images,
-        )
-    }
-
-    pub fn destroy_resources(framebuffer_state: &mut Self, device: &B::Device) {
-        let (
-            framebuffer_framebuffers,
-            framebuffer_fences,
-            framebuffer_command_pools,
-            framebuffer_acquire_semaphores,
-            framebuffer_present_semaphores,
-            framebuffer_images,
-        ) = framebuffer_state.take_resources();
-
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
         unsafe {
-            for fence in framebuffer_fences {
+            for fence in state
+                .framebuffer_fences
+                .take()
+                .expect("Fences shouldn't be None")
+            {
                 device.wait_for_fence(&fence, !0).unwrap();
                 device.destroy_fence(fence);
             }
 
-            for command_pool in framebuffer_command_pools {
+            for command_pool in state
+                .command_pools
+                .take()
+                .expect("Command pools shouldn't be None")
+            {
                 device.destroy_command_pool(command_pool.into_raw());
             }
 
-            for acquire_semaphore in framebuffer_acquire_semaphores {
+            for acquire_semaphore in state
+                .acquire_semaphores
+                .take()
+                .expect("Acquire semaphores shouldn't be None")
+            {
                 device.destroy_semaphore(acquire_semaphore);
             }
 
-            for present_semaphore in framebuffer_present_semaphores {
+            for present_semaphore in state
+                .present_semaphores
+                .take()
+                .expect("Present semaphores shouldn't be None")
+            {
                 device.destroy_semaphore(present_semaphore);
             }
 
-            for framebuffer in framebuffer_framebuffers {
+            for framebuffer in state
+                .framebuffers
+                .take()
+                .expect("Framebuffers shouldn't be None")
+            {
                 device.destroy_framebuffer(framebuffer);
             }
 
-            for (_, rtv) in framebuffer_images {
+            for (_, rtv) in state
+                .frame_images
+                .take()
+                .expect("Frame images shouldn't be None")
+            {
                 device.destroy_image_view(rtv);
             }
         }

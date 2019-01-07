@@ -330,83 +330,45 @@ impl<B: Backend> NesScreen<B> {
         self.desc.get_layout()
     }
 
-    fn take_resources(
-        &mut self,
-    ) -> (
-        B::Fence,
-        B::Sampler,
-        B::ImageView,
-        B::Image,
-        B::Memory,
-        B::Buffer,
-        B::Memory,
-        B::DescriptorSetLayout,
-    ) {
-        let fence = self
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
+        let image_transfer_fence = state
             .image_transfer_fence
             .take()
             .expect("Fence shouldn't be None");
-
-        let sampler = self.sampler.take().expect("Sampler shouldn't be None");
-        let image_view = self
-            .image_view
-            .take()
-            .expect("Image view shouldn't be None");
-
-        let image = self.image.take().expect("Image shouldn't be None");
-        let texture_memory = self
-            .texture_memory
-            .take()
-            .expect("Texture memory shouldn't be None");
-
-        let staging_buffer = self
-            .staging_buffer
-            .take()
-            .expect("Staging buffer shouldn't be None");
-
-        let staging_buffer_memory = self
-            .staging_buffer_memory
-            .take()
-            .expect("Buffer memory shouldn't be None");
-
-        let descriptor_set_layout = self.desc.take_resources();
-
-        (
-            fence,
-            sampler,
-            image_view,
-            image,
-            texture_memory,
-            staging_buffer,
-            staging_buffer_memory,
-            descriptor_set_layout,
-        )
-    }
-
-    pub fn destroy_resources(nes_screen: &mut Self, device: &B::Device) {
-        let (
-            image_transfer_fence,
-            texture_sampler,
-            image_view,
-            image,
-            texture_memory,
-            staging_buffer,
-            staging_buffer_memory,
-            descriptor_set_layout,
-        ) = nes_screen.take_resources();
 
         unsafe {
             device
                 .wait_for_fence(&image_transfer_fence, 10_000)
                 .unwrap();
+
             device.destroy_fence(image_transfer_fence);
-            device.destroy_sampler(texture_sampler);
-            device.destroy_image_view(image_view);
-            device.destroy_image(image);
-            device.free_memory(texture_memory);
-            device.destroy_buffer(staging_buffer);
-            device.free_memory(staging_buffer_memory);
-            device.destroy_descriptor_set_layout(descriptor_set_layout);
+            device.destroy_sampler(state.sampler.take().expect("Sampler shouldn't be None"));
+            device.destroy_image_view(
+                state
+                    .image_view
+                    .take()
+                    .expect("Image view shouldn't be None"),
+            );
+            device.destroy_image(state.image.take().expect("Image shouldn't be None"));
+            device.free_memory(
+                state
+                    .texture_memory
+                    .take()
+                    .expect("Texture memory shouldn't be None"),
+            );
+            device.destroy_buffer(
+                state
+                    .staging_buffer
+                    .take()
+                    .expect("Staging buffer shouldn't be None"),
+            );
+            device.free_memory(
+                state
+                    .staging_buffer_memory
+                    .take()
+                    .expect("Buffer memory shouldn't be None"),
+            );
+            DescSet::destroy_resources(&mut state.desc, device);
         }
     }
 }

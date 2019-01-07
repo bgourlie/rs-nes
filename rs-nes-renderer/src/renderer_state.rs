@@ -26,7 +26,7 @@ pub enum RenderStatus {
 pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
-    swapchain: Option<SwapchainState<B>>,
+    swapchain: SwapchainState<B>,
     pub device: Rc<RefCell<DeviceState<B>>>,
     pub backend: BackendState<B>,
     vertex_memory: Option<B::Memory>,
@@ -168,16 +168,12 @@ impl<B: Backend> RendererState<B> {
             0,
         );
 
-        let mut swapchain = Some(SwapchainState::new(&mut backend, Rc::clone(&device), DIMS));
+        let mut swapchain = SwapchainState::new(&mut backend, &device.borrow(), DIMS);
 
-        let render_pass = RenderPassState::new(swapchain.as_ref().unwrap(), Rc::clone(&device));
+        let render_pass = RenderPassState::new(&swapchain, Rc::clone(&device));
 
-        let framebuffer = FramebufferState::new(
-            &device.borrow(),
-            &render_pass,
-            swapchain.as_mut().unwrap(),
-            &COLOR_RANGE,
-        );
+        let framebuffer =
+            FramebufferState::new(&device.borrow(), &render_pass, &mut swapchain, &COLOR_RANGE);
 
         let pipeline = PipelineState::new(
             vec![nes_screen_buffer.get_layout(), palette_uniform.layout()],
@@ -185,7 +181,7 @@ impl<B: Backend> RendererState<B> {
             Rc::clone(&device),
         );
 
-        let viewport = RendererState::create_viewport(swapchain.as_ref().unwrap());
+        let viewport = RendererState::create_viewport(&swapchain);
 
         RendererState {
             backend,
@@ -207,21 +203,19 @@ impl<B: Backend> RendererState<B> {
     fn recreate_swapchain(&mut self) {
         self.device.borrow().device.wait_idle().unwrap();
 
-        self.swapchain.take().unwrap();
-
+        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.borrow().device);
         self.swapchain =
-            Some(unsafe { SwapchainState::new(&mut self.backend, Rc::clone(&self.device), DIMS) });
+            unsafe { SwapchainState::new(&mut self.backend, &self.device.borrow(), DIMS) };
 
-        self.render_pass = unsafe {
-            RenderPassState::new(self.swapchain.as_ref().unwrap(), Rc::clone(&self.device))
-        };
+        self.render_pass =
+            unsafe { RenderPassState::new(&self.swapchain, Rc::clone(&self.device)) };
 
         FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.borrow().device);
         self.framebuffer = unsafe {
             FramebufferState::new(
                 &self.device.borrow(),
                 &self.render_pass,
-                self.swapchain.as_mut().unwrap(),
+                &mut self.swapchain,
                 &COLOR_RANGE,
             )
         };
@@ -234,7 +228,7 @@ impl<B: Backend> RendererState<B> {
             )
         };
 
-        self.viewport = RendererState::create_viewport(self.swapchain.as_ref().unwrap());
+        self.viewport = RendererState::create_viewport(&self.swapchain);
     }
 
     fn create_viewport(swapchain: &SwapchainState<B>) -> pso::Viewport {
@@ -263,8 +257,6 @@ impl<B: Backend> RendererState<B> {
             let (acquire_semaphore, _) = self.framebuffer.get_frame_data(None, semaphore_index).1;
             match self
                 .swapchain
-                .as_mut()
-                .expect("Swapchain shouldn't be None")
                 .swapchain
                 .as_mut()
                 .expect("Swapchain shouldn't be None")
@@ -348,8 +340,6 @@ impl<B: Backend> RendererState<B> {
             // present frame
             if self
                 .swapchain
-                .as_ref()
-                .unwrap()
                 .swapchain
                 .as_ref()
                 .unwrap()
@@ -401,6 +391,6 @@ impl<B: Backend> Drop for RendererState<B> {
         PaletteUniform::destroy_resources(&mut self.palette_uniform, &device.device);
         NesScreen::destroy_resources(&mut self.nes_screen, &device.device);
         FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
-        self.swapchain.take();
+        SwapchainState::destroy_resources(&mut self.swapchain, &device.device);
     }
 }

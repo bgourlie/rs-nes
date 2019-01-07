@@ -31,10 +31,15 @@ pub struct DescSet<B: Backend> {
 }
 
 impl<B: Backend> DescSet<B> {
-    pub fn take_resources(&mut self) -> B::DescriptorSetLayout {
-        self.layout
-            .take()
-            .expect("Descriptor set layout shouldn't be None")
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
+        unsafe {
+            device.destroy_descriptor_set_layout(
+                state
+                    .layout
+                    .take()
+                    .expect("Descriptor set layout shouldn't be None"),
+            );
+        }
     }
 }
 

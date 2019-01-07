@@ -78,21 +78,11 @@ impl<B: Backend> PaletteUniform<B> {
         self.desc.set.as_ref().unwrap()
     }
 
-    fn take_resources(&mut self) -> (B::Buffer, B::Memory, B::DescriptorSetLayout) {
-        (
-            self.buffer.take().expect("Buffer shouldn't be None"),
-            self.memory.take().expect("Memory shouldn't be None"),
-            self.desc.take_resources(),
-        )
-    }
-
-    pub fn destroy_resources(palette_uniform: &mut Self, device: &B::Device) {
-        let (buffer, memory, descriptor_set_layout) = palette_uniform.take_resources();
-
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
         unsafe {
-            device.destroy_descriptor_set_layout(descriptor_set_layout);
-            device.destroy_buffer(buffer);
-            device.free_memory(memory);
+            device.destroy_buffer(state.buffer.take().expect("Buffer shouldn't be None"));
+            device.free_memory(state.memory.take().expect("Memory shouldn't be None"));
+            DescSet::destroy_resources(&mut state.desc, device);
         }
     }
 }

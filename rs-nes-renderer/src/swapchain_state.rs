@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use gfx_hal::{
     format as f,
     format::{AsFormat, ChannelType},
@@ -13,7 +11,6 @@ use crate::{backend_state::BackendState, device_state::DeviceState, FrameBufferF
 pub struct SwapchainState<B: Backend> {
     pub swapchain: Option<B::Swapchain>,
     pub backbuffer: Option<Backbuffer<B>>,
-    device: Rc<RefCell<DeviceState<B>>>,
     pub extent: i::Extent,
     pub format: f::Format,
 }
@@ -21,12 +18,11 @@ pub struct SwapchainState<B: Backend> {
 impl<B: Backend> SwapchainState<B> {
     pub unsafe fn new(
         backend: &mut BackendState<B>,
-        device: Rc<RefCell<DeviceState<B>>>,
+        device: &DeviceState<B>,
         dimensions: Extent2D,
     ) -> Self {
-        let (caps, formats, _present_modes, _composite_alphas) = backend
-            .surface
-            .compatibility(&device.borrow().physical_device);
+        let (caps, formats, _present_modes, _composite_alphas) =
+            backend.surface.compatibility(&device.physical_device);
         println!("formats: {:?}", formats);
         let format = formats.map_or(FrameBufferFormat::SELF, |formats| {
             formats
@@ -40,7 +36,6 @@ impl<B: Backend> SwapchainState<B> {
         let swap_config = SwapchainConfig::from_caps(&caps, format, dimensions);
         let extent = swap_config.extent.to_extent();
         let (swapchain, backbuffer) = device
-            .borrow()
             .device
             .create_swapchain(&mut backend.surface, swap_config, None)
             .expect("Can't create swapchain");
@@ -48,20 +43,19 @@ impl<B: Backend> SwapchainState<B> {
         SwapchainState {
             swapchain: Some(swapchain),
             backbuffer: Some(backbuffer),
-            device,
             extent,
             format,
         }
     }
-}
 
-impl<B: Backend> Drop for SwapchainState<B> {
-    fn drop(&mut self) {
+    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
         unsafe {
-            self.device
-                .borrow()
-                .device
-                .destroy_swapchain(self.swapchain.take().unwrap());
+            device.destroy_swapchain(
+                state
+                    .swapchain
+                    .take()
+                    .expect("Swapchain state shouldn't be None"),
+            );
         }
     }
 }
