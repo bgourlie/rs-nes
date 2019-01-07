@@ -332,7 +332,6 @@ impl<B: Backend> NesScreen<B> {
 
     pub fn take_resources(
         &mut self,
-        device: &B::Device,
     ) -> (
         B::Fence,
         B::Sampler,
@@ -343,17 +342,10 @@ impl<B: Backend> NesScreen<B> {
         B::Memory,
         B::DescriptorSetLayout,
     ) {
-        let wait_timeout_ns = 10_000;
         let fence = self
             .image_transfer_fence
             .take()
             .expect("Fence shouldn't be None");
-
-        unsafe {
-            device
-                .wait_for_fence(&fence, wait_timeout_ns)
-                .expect("Image transfer fence shouldn't timeout");
-        }
 
         let sampler = self.sampler.take().expect("Sampler shouldn't be None");
         let image_view = self

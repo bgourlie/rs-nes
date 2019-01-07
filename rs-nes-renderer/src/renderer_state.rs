@@ -173,7 +173,7 @@ impl<B: Backend> RendererState<B> {
         let render_pass = RenderPassState::new(swapchain.as_ref().unwrap(), Rc::clone(&device));
 
         let framebuffer = FramebufferState::new(
-            Rc::clone(&device),
+            &device.borrow(),
             &render_pass,
             swapchain.as_mut().unwrap(),
             &COLOR_RANGE,
@@ -216,9 +216,10 @@ impl<B: Backend> RendererState<B> {
             RenderPassState::new(self.swapchain.as_ref().unwrap(), Rc::clone(&self.device))
         };
 
+        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.borrow().device);
         self.framebuffer = unsafe {
             FramebufferState::new(
-                Rc::clone(&self.device),
+                &self.device.borrow(),
                 &self.render_pass,
                 self.swapchain.as_mut().unwrap(),
                 &COLOR_RANGE,
@@ -383,7 +384,7 @@ impl<B: Backend> Drop for RendererState<B> {
             nes_screen_staging_buffer,
             nes_screen_staging_buffer_memory,
             nes_screen_descriptor_set_layout,
-        ) = self.nes_screen.take_resources(&device.device);
+        ) = self.nes_screen.take_resources();
 
         unsafe {
             device.device.destroy_descriptor_pool(
@@ -416,6 +417,10 @@ impl<B: Backend> Drop for RendererState<B> {
             device.device.destroy_buffer(palette_uniform_buffer);
             device.device.free_memory(palette_uniform_memory);
 
+            device
+                .device
+                .wait_for_fence(&nes_screen_image_transfer_fence, 10_000)
+                .expect("Image transfer fence shouldn't timeout");
             device.device.destroy_fence(nes_screen_image_transfer_fence);
             device.device.destroy_sampler(nes_screen_texture_sampler);
             device.device.destroy_image_view(nes_screen_image_view);
@@ -427,6 +432,7 @@ impl<B: Backend> Drop for RendererState<B> {
                 .device
                 .destroy_descriptor_set_layout(nes_screen_descriptor_set_layout);
 
+            FramebufferState::destroy_resources(&mut self.framebuffer, &device.device);
             self.swapchain.take();
         }
     }

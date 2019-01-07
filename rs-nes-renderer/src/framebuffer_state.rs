@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use gfx_hal::{
     format::Swizzle, image as i, pool, Backbuffer, Backend, CommandPool, Device, Graphics,
 };
@@ -16,12 +14,11 @@ pub struct FramebufferState<B: Backend> {
     acquire_semaphores: Option<Vec<B::Semaphore>>,
     present_semaphores: Option<Vec<B::Semaphore>>,
     last_ref: usize,
-    device: Rc<RefCell<DeviceState<B>>>,
 }
 
 impl<B: Backend> FramebufferState<B> {
     pub unsafe fn new(
-        device: Rc<RefCell<DeviceState<B>>>,
+        device: &DeviceState<B>,
         render_pass: &RenderPassState<B>,
         swapchain: &mut SwapchainState<B>,
         color_range: &i::SubresourceRange,
@@ -37,7 +34,6 @@ impl<B: Backend> FramebufferState<B> {
                     .into_iter()
                     .map(|image| {
                         let rtv = device
-                            .borrow()
                             .device
                             .create_image_view(
                                 &image,
@@ -54,7 +50,6 @@ impl<B: Backend> FramebufferState<B> {
                     .iter()
                     .map(|&(_, ref rtv)| {
                         device
-                            .borrow()
                             .device
                             .create_framebuffer(
                                 render_pass.render_pass.as_ref().unwrap(),
@@ -75,26 +70,26 @@ impl<B: Backend> FramebufferState<B> {
             1 // GL can have zero
         };
 
+        // TODO: Use SmallVec for these
         let mut fences: Vec<B::Fence> = vec![];
         let mut command_pools: Vec<CommandPool<B, Graphics>> = vec![];
         let mut acquire_semaphores: Vec<B::Semaphore> = vec![];
         let mut present_semaphores: Vec<B::Semaphore> = vec![];
 
         for _ in 0..iter_count {
-            fences.push(device.borrow().device.create_fence(true).unwrap());
+            fences.push(device.device.create_fence(true).unwrap());
             command_pools.push(
                 device
-                    .borrow()
                     .device
                     .create_command_pool_typed(
-                        &device.borrow().queues,
+                        &device.queues,
                         pool::CommandPoolCreateFlags::empty(),
                     )
                     .expect("Can't create command pool"),
             );
 
-            acquire_semaphores.push(device.borrow().device.create_semaphore().unwrap());
-            present_semaphores.push(device.borrow().device.create_semaphore().unwrap());
+            acquire_semaphores.push(device.device.create_semaphore().unwrap());
+            present_semaphores.push(device.device.create_semaphore().unwrap());
         }
 
         FramebufferState {
@@ -104,7 +99,6 @@ impl<B: Backend> FramebufferState<B> {
             command_pools: Some(command_pools),
             present_semaphores: Some(present_semaphores),
             acquire_semaphores: Some(acquire_semaphores),
-            device,
             last_ref: 0,
         }
     }
@@ -148,35 +142,84 @@ impl<B: Backend> FramebufferState<B> {
             ),
         )
     }
-}
 
-impl<B: Backend> Drop for FramebufferState<B> {
-    fn drop(&mut self) {
-        let device = &self.device.borrow().device;
+    fn take_resources(
+        &mut self,
+    ) -> (
+        Vec<B::Framebuffer>,
+        Vec<B::Fence>,
+        Vec<CommandPool<B, Graphics>>,
+        Vec<B::Semaphore>,
+        Vec<B::Semaphore>,
+        Vec<(B::Image, B::ImageView)>,
+    ) {
+        let frame_buffers = self
+            .framebuffers
+            .take()
+            .expect("Framebuffers shouldn't be None");
+        let fences = self
+            .framebuffer_fences
+            .take()
+            .expect("Fences shouldn't be None");
+        let command_pools = self
+            .command_pools
+            .take()
+            .expect("Command pools shouldn't be None");
+        let acquire_semaphores = self
+            .acquire_semaphores
+            .take()
+            .expect("Acquire semaphores shouldn't be None");
+        let present_semaphores = self
+            .present_semaphores
+            .take()
+            .expect("Present semaphores shouldn't be None");
+        let frame_images = self
+            .frame_images
+            .take()
+            .expect("Frame images shouldn't be None");
+        (
+            frame_buffers,
+            fences,
+            command_pools,
+            acquire_semaphores,
+            present_semaphores,
+            frame_images,
+        )
+    }
+
+    pub fn destroy_resources(framebuffer_state: &mut Self, device: &B::Device) {
+        let (
+            framebuffer_framebuffers,
+            framebuffer_fences,
+            framebuffer_command_pools,
+            framebuffer_acquire_semaphores,
+            framebuffer_present_semaphores,
+            framebuffer_images,
+        ) = framebuffer_state.take_resources();
 
         unsafe {
-            for fence in self.framebuffer_fences.take().unwrap() {
+            for fence in framebuffer_fences {
                 device.wait_for_fence(&fence, !0).unwrap();
                 device.destroy_fence(fence);
             }
 
-            for command_pool in self.command_pools.take().unwrap() {
+            for command_pool in framebuffer_command_pools {
                 device.destroy_command_pool(command_pool.into_raw());
             }
 
-            for acquire_semaphore in self.acquire_semaphores.take().unwrap() {
+            for acquire_semaphore in framebuffer_acquire_semaphores {
                 device.destroy_semaphore(acquire_semaphore);
             }
 
-            for present_semaphore in self.present_semaphores.take().unwrap() {
+            for present_semaphore in framebuffer_present_semaphores {
                 device.destroy_semaphore(present_semaphore);
             }
 
-            for framebuffer in self.framebuffers.take().unwrap() {
+            for framebuffer in framebuffer_framebuffers {
                 device.destroy_framebuffer(framebuffer);
             }
 
-            for (_, rtv) in self.frame_images.take().unwrap() {
+            for (_, rtv) in framebuffer_images {
                 device.destroy_image_view(rtv);
             }
         }
