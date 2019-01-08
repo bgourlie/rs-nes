@@ -244,27 +244,9 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
                 _ => (),
             }
 
-            loop {
-                if cpu.step() == Interrupt::Nmi {
-                    renderer_state.nes_screen.update_buffer_data(
-                        cpu.interconnect.ppu.screen(),
-                        &renderer_state.device.device,
-                    );
-                    break;
-                }
-            }
+            while cpu.step() != Interrupt::Nmi {}
 
-            // The following line causing huge memory leak with dx12 backend
-            // See https://github.com/gfx-rs/gfx/issues/2556
-            renderer_state
-                .nes_screen
-                .copy_buffer_to_texture(&mut renderer_state.device);
-
-            renderer_state
-                .nes_screen
-                .wait_for_transfer_completion(&renderer_state.device.device);
-
-            match renderer_state.render_frame(recreate_swapchain) {
+            match renderer_state.render_frame(cpu.interconnect.ppu.screen(), recreate_swapchain) {
                 RenderStatus::RecreateSwapchain => recreate_swapchain = true,
                 RenderStatus::NormalAndSwapchainRecreated => recreate_swapchain = false,
                 _ => (),

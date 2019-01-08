@@ -15,7 +15,7 @@ use crate::{
     COLOR_RANGE, DIMS, QUAD,
 };
 
-use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
+use rs_nes::{PPU_BUFFER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub enum RenderStatus {
     Normal,
@@ -27,7 +27,7 @@ pub struct RendererState<B: Backend> {
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
     swapchain: SwapchainState<B>,
-    pub device: DeviceState<B>,
+    device: DeviceState<B>,
     pub backend: BackendState<B>,
     vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
@@ -36,7 +36,7 @@ pub struct RendererState<B: Backend> {
     pipeline: PipelineState<B>,
     framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
-    pub nes_screen: NesScreen<B>,
+    nes_screen: NesScreen<B>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -239,13 +239,28 @@ impl<B: Backend> RendererState<B> {
         }
     }
 
-    pub fn render_frame(&mut self, recreate_swapchain: bool) -> RenderStatus {
+    pub fn render_frame(
+        &mut self,
+        screen_buffer: &[u8; PPU_BUFFER_SIZE],
+        recreate_swapchain: bool,
+    ) -> RenderStatus {
         let mut render_status = if recreate_swapchain {
             self.recreate_swapchain();
             RenderStatus::NormalAndSwapchainRecreated
         } else {
             RenderStatus::Normal
         };
+
+        self.nes_screen
+            .update_buffer_data(screen_buffer, &self.device.device);
+
+        // The following line causing huge memory leak with dx12 backend
+        // See https://github.com/gfx-rs/gfx/issues/2556
+        // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
+        self.nes_screen.copy_buffer_to_texture(&mut self.device);
+
+        self.nes_screen
+            .wait_for_transfer_completion(&self.device.device);
 
         let semaphore_index = self.framebuffer.next_acq_pre_pair_index();
 
