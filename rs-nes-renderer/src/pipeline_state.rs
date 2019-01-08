@@ -48,10 +48,7 @@ impl<B: Backend> PipelineState<B> {
                     pso::EntryPoint::<B> {
                         entry: SHADER_ENTRY_NAME,
                         module: &vs_module,
-                        specialization: pso::Specialization {
-                            constants: &[pso::SpecializationConstant { id: 0, range: 0..4 }],
-                            data: &*(&0.8f32 as *const f32 as *const [u8; 4]),
-                        },
+                        specialization: pso::Specialization::default(),
                     },
                     pso::EntryPoint::<B> {
                         entry: SHADER_ENTRY_NAME,
