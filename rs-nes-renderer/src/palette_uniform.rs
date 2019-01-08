@@ -14,7 +14,6 @@ impl<B: Backend> PaletteUniform<B> {
         memory_types: &[MemoryType],
         data: &[f32; 256],
         mut desc: DescSet<B>,
-        binding: u32,
     ) -> Self {
         let uniform_upload_size = data.len() as u64 * 4;
         println!("Uniform upload size {}", uniform_upload_size);
@@ -56,7 +55,7 @@ impl<B: Backend> PaletteUniform<B> {
 
         desc.write_to_state(
             vec![DescSetWrite {
-                binding,
+                binding: 0,
                 array_offset: 0,
                 descriptors: Some(pso::Descriptor::Buffer(&uniform_buffer, None..None)),
             }],
@@ -71,7 +70,7 @@ impl<B: Backend> PaletteUniform<B> {
     }
 
     pub fn layout(&self) -> &B::DescriptorSetLayout {
-        &self.desc.get_layout()
+        &self.desc.layout()
     }
 
     pub fn descriptor_set(&self) -> &B::DescriptorSet {

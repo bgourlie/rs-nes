@@ -65,7 +65,7 @@ impl<B: Backend> DescSet<B> {
         device.write_descriptor_sets(write);
     }
 
-    pub fn get_layout(&self) -> &B::DescriptorSetLayout {
+    pub fn layout(&self) -> &B::DescriptorSetLayout {
         self.layout.as_ref().unwrap()
     }
 }

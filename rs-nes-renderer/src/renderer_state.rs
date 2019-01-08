@@ -161,7 +161,6 @@ impl<B: Backend> RendererState<B> {
             &backend.adapter.memory_types,
             &PALETTE,
             uniform_desc,
-            0,
         );
 
         let mut swapchain = SwapchainState::new(&mut backend, &device, DIMS);
@@ -172,7 +171,7 @@ impl<B: Backend> RendererState<B> {
             FramebufferState::new(&device, &render_pass, &mut swapchain, &COLOR_RANGE);
 
         let pipeline = PipelineState::new(
-            vec![nes_screen_buffer.get_layout(), palette_uniform.layout()],
+            vec![nes_screen_buffer.layout(), palette_uniform.layout()],
             render_pass.render_pass.as_ref().unwrap(),
             &device.device,
         );
@@ -218,7 +217,7 @@ impl<B: Backend> RendererState<B> {
         PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
         self.pipeline = unsafe {
             PipelineState::new(
-                vec![self.nes_screen.get_layout(), self.palette_uniform.layout()],
+                vec![self.nes_screen.layout(), self.palette_uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 &self.device.device,
             )

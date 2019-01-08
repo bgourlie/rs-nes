@@ -318,8 +318,8 @@ impl<B: Backend> NesScreen<B> {
         }
     }
 
-    pub fn get_layout(&self) -> &B::DescriptorSetLayout {
-        self.desc.get_layout()
+    pub fn layout(&self) -> &B::DescriptorSetLayout {
+        self.desc.layout()
     }
 
     pub fn destroy_resources(state: &mut Self, device: &B::Device) {
