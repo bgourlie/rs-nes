@@ -57,6 +57,9 @@ pub fn create_backend(
     feature = "metal",
     feature = "gl"
 )))]
-pub fn create_backend(_window_state: &mut WindowState) -> BackendState<back::Backend> {
+pub fn create_backend(
+    _window_state: &mut WindowState,
+    events_loop: &EventsLoop,
+) -> BackendState<back::Backend> {
     unimplemented!()
 }
