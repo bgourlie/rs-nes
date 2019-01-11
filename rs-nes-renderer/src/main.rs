@@ -37,7 +37,6 @@ mod render_pass_state;
 mod renderer_state;
 mod swapchain_state;
 mod vertex;
-mod window_state;
 
 use rs_nes::{
     load_cart, Button, Cart, IInput, IPpu, Interrupt, Nes, NesRom, Nrom128, Nrom256, Uxrom,
@@ -47,13 +46,12 @@ use std::{
     fs::File,
     time::{Duration, Instant},
 };
-use winit::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use winit::{ElementState, Event, EventsLoop, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use crate::{
     backend_state::{create_backend, BackendState},
     renderer_state::{RenderStatus, RendererState},
     vertex::Vertex,
-    window_state::WindowState,
 };
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -154,12 +152,12 @@ fn main() {
 
 fn handle_input<C: Cart>(
     _backend: &BackendState<back::Backend>,
-    window: &mut WindowState,
+    events_loop: &mut EventsLoop,
     nes: &mut Nes<C>,
 ) -> InputStatus {
     let mut input_status = InputStatus::None;
 
-    window.events_loop.poll_events(|event| {
+    events_loop.poll_events(|event| {
         if let Event::WindowEvent { event, .. } = event {
             #[allow(unused_variables)]
             match event {
@@ -222,8 +220,16 @@ fn handle_input<C: Cart>(
 }
 
 fn run<C: Cart>(cpu: &mut Nes<C>) {
-    let mut window = WindowState::new();
-    let (backend, _instance) = create_backend(&mut window);
+    let mut events_loop = winit::EventsLoop::new();
+
+    let window_builder = winit::WindowBuilder::new()
+        .with_dimensions(winit::dpi::LogicalSize::new(
+            f64::from(DIMS.width),
+            f64::from(DIMS.height),
+        ))
+        .with_title("rs-nes".to_string());
+
+    let (backend, _instance) = create_backend(window_builder, &events_loop);
 
     let mut renderer_state = unsafe { RendererState::new(backend) };
     let mut recreate_swapchain = false;
@@ -238,7 +244,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
 
-            match handle_input(&renderer_state.backend, &mut window, cpu) {
+            match handle_input(&renderer_state.backend, &mut events_loop, cpu) {
                 InputStatus::Close => break 'running,
                 InputStatus::RecreateSwapchain => recreate_swapchain = true,
                 _ => (),

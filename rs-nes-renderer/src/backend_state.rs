@@ -1,6 +1,6 @@
+use crate::adapter_state::AdapterState;
 use gfx_hal::{Backend, Instance};
-
-use crate::{adapter_state::AdapterState, window_state::WindowState};
+use winit::{EventsLoop, WindowBuilder};
 
 pub struct BackendState<B: Backend> {
     pub surface: B::Surface,
@@ -12,15 +12,11 @@ pub struct BackendState<B: Backend> {
 
 #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
 pub fn create_backend(
-    window_state: &mut WindowState,
+    window: WindowBuilder,
+    events_loop: &EventsLoop,
 ) -> (BackendState<back::Backend>, back::Instance) {
-    let window = window_state
-        .wb
-        .take()
-        .unwrap()
-        .build(&window_state.events_loop)
-        .unwrap();
     let instance = back::Instance::create("gfx-rs quad", 1);
+    let window = window.build(&events_loop).expect("Unable to build window");
     let surface = instance.create_surface(&window);
     let mut adapters = instance.enumerate_adapters();
     (
@@ -34,7 +30,10 @@ pub fn create_backend(
 }
 
 #[cfg(feature = "gl")]
-pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Backend>, ()) {
+pub fn create_backend(
+    window_builder: WindowBuilder,
+    events_loop: &EventsLoop,
+) -> (BackendState<back::Backend>, ()) {
     use gfx_hal::format::AsFormat;
     let window = {
         let builder = back::config_context(
@@ -43,12 +42,8 @@ pub fn create_backend(window_state: &mut WindowState) -> (BackendState<back::Bac
             None,
         )
         .with_vsync(true);
-        back::glutin::GlWindow::new(
-            window_state.wb.take().unwrap(),
-            builder,
-            &window_state.events_loop,
-        )
-        .expect("Unable to create window")
+        back::glutin::GlWindow::new(window_builder, builder, &events_loop)
+            .expect("Unable to create window")
     };
 
     let surface = back::Surface::from_window(window);
