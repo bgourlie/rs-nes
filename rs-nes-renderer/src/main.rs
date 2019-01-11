@@ -229,7 +229,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         ))
         .with_title("rs-nes".to_string());
 
-    let (backend, _instance) = create_backend(window_builder, &events_loop);
+    let backend = create_backend(window_builder, &events_loop);
 
     let mut renderer_state = unsafe { RendererState::new(backend) };
     let mut recreate_swapchain = false;

@@ -14,26 +14,23 @@ pub struct BackendState<B: Backend> {
 pub fn create_backend(
     window: WindowBuilder,
     events_loop: &EventsLoop,
-) -> (BackendState<back::Backend>, back::Instance) {
-    let instance = back::Instance::create("gfx-rs quad", 1);
+) -> BackendState<back::Backend> {
+    let instance = back::Instance::create("RS-NES", 1);
     let window = window.build(&events_loop).expect("Unable to build window");
     let surface = instance.create_surface(&window);
     let mut adapters = instance.enumerate_adapters();
-    (
-        BackendState {
-            adapter: AdapterState::new(&mut adapters),
-            surface,
-            window,
-        },
-        instance,
-    )
+    BackendState {
+        adapter: AdapterState::new(&mut adapters),
+        surface,
+        window,
+    }
 }
 
 #[cfg(feature = "gl")]
 pub fn create_backend(
     window_builder: WindowBuilder,
     events_loop: &EventsLoop,
-) -> (BackendState<back::Backend>, ()) {
+) -> BackendState<back::Backend> {
     use gfx_hal::format::AsFormat;
     let window = {
         let builder = back::config_context(
@@ -48,13 +45,10 @@ pub fn create_backend(
 
     let surface = back::Surface::from_window(window);
     let mut adapters = surface.enumerate_adapters();
-    (
-        BackendState {
-            adapter: AdapterState::new(&mut adapters),
-            surface,
-        },
-        (),
-    )
+    BackendState {
+        adapter: AdapterState::new(&mut adapters),
+        surface,
+    }
 }
 
 #[cfg(not(any(
@@ -63,6 +57,6 @@ pub fn create_backend(
     feature = "metal",
     feature = "gl"
 )))]
-pub fn create_backend(_window_state: &mut WindowState) -> (BackendState<back::Backend>, ()) {
+pub fn create_backend(_window_state: &mut WindowState) -> BackendState<back::Backend> {
     unimplemented!()
 }
