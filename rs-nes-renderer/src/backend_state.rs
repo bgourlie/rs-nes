@@ -1,13 +1,11 @@
 use crate::adapter_state::AdapterState;
 use gfx_hal::{Backend, Instance};
-use winit::{EventsLoop, WindowBuilder};
+use winit::{EventsLoop, Window, WindowBuilder};
 
 pub struct BackendState<B: Backend> {
-    pub surface: B::Surface,
-    pub adapter: AdapterState<B>,
-    #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
-    #[allow(dead_code)]
-    window: winit::Window,
+    pub surface: Option<B::Surface>,
+    pub adapter: Option<AdapterState<B>>,
+    pub window: Option<Window>,
 }
 
 #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
@@ -20,9 +18,9 @@ pub fn create_backend(
     let surface = instance.create_surface(&window);
     let mut adapters = instance.enumerate_adapters();
     BackendState {
-        adapter: AdapterState::new(&mut adapters),
-        surface,
-        window,
+        adapter: Some(AdapterState::new(&mut adapters)),
+        surface: Some(surface),
+        window: Some(window),
     }
 }
 
@@ -46,8 +44,9 @@ pub fn create_backend(
     let surface = back::Surface::from_window(window);
     let mut adapters = surface.enumerate_adapters();
     BackendState {
-        adapter: AdapterState::new(&mut adapters),
-        surface,
+        adapter: Some(AdapterState::new(&mut adapters)),
+        surface: Some(surface),
+        window: None,
     }
 }
 

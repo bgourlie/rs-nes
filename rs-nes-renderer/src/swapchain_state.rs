@@ -6,7 +6,7 @@ use gfx_hal::{
     Backbuffer, Backend, Device, Surface, SwapchainConfig,
 };
 
-use crate::{backend_state::BackendState, device_state::DeviceState, FrameBufferFormat};
+use crate::{device_state::DeviceState, FrameBufferFormat};
 
 pub struct SwapchainState<B: Backend> {
     pub swapchain: Option<B::Swapchain>,
@@ -17,12 +17,12 @@ pub struct SwapchainState<B: Backend> {
 
 impl<B: Backend> SwapchainState<B> {
     pub unsafe fn new(
-        backend: &mut BackendState<B>,
+        surface: &mut B::Surface,
         device: &DeviceState<B>,
         dimensions: Extent2D,
     ) -> Self {
         let (caps, formats, _present_modes, _composite_alphas) =
-            backend.surface.compatibility(&device.physical_device);
+            surface.compatibility(&device.physical_device);
         println!("formats: {:?}", formats);
         let format = formats.map_or(FrameBufferFormat::SELF, |formats| {
             formats
@@ -37,7 +37,7 @@ impl<B: Backend> SwapchainState<B> {
         let extent = swap_config.extent.to_extent();
         let (swapchain, backbuffer) = device
             .device
-            .create_swapchain(&mut backend.surface, swap_config, None)
+            .create_swapchain(surface, swap_config, None)
             .expect("Can't create swapchain");
 
         SwapchainState {

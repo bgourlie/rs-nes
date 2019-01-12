@@ -49,17 +49,29 @@ use std::{
 use winit::{ElementState, Event, EventsLoop, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use crate::{
-    backend_state::{create_backend, BackendState},
+    backend_state::create_backend,
     renderer_state::{RenderStatus, RendererState},
     vertex::Vertex,
 };
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
-use gfx_hal::{format, image as i, window::Extent2D};
+use gfx_hal::{format, image as i, window::Extent2D, Backend};
 
 type FrameBufferFormat = format::Rgba8Srgb;
 type ScreenBufferFormat = format::Rgba8Unorm;
+
+trait SurfaceTrait {
+    fn resize(&self, _size: winit::dpi::LogicalSize) {}
+}
+
+impl SurfaceTrait for <back::Backend as Backend>::Surface {
+    #[cfg(feature = "gl")]
+    fn resize(&self, size: winit::dpi::LogicalSize) {
+        self.get_window()
+            .resize(size.to_physical(self.get_window().get_hidpi_factor()));
+    }
+}
 
 const DIMS: Extent2D = Extent2D {
     width: SCREEN_WIDTH as u32,
@@ -138,8 +150,8 @@ fn main() {
     }
 }
 
-fn handle_input<C: Cart>(
-    _backend: &BackendState<back::Backend>,
+fn handle_input<C: Cart, B: SurfaceTrait>(
+    surface: &B,
     events_loop: &mut EventsLoop,
     nes: &mut Nes<C>,
 ) -> InputStatus {
@@ -147,7 +159,6 @@ fn handle_input<C: Cart>(
 
     events_loop.poll_events(|event| {
         if let Event::WindowEvent { event, .. } = event {
-            #[allow(unused_variables)]
             match event {
                 WindowEvent::KeyboardInput {
                     input:
@@ -159,11 +170,7 @@ fn handle_input<C: Cart>(
                 }
                 | WindowEvent::CloseRequested => input_status = InputStatus::Close,
                 WindowEvent::Resized(dims) => {
-                    #[cfg(feature = "gl")]
-                    _backend
-                        .surface
-                        .get_window()
-                        .resize(dims.to_physical(_backend.surface.get_window().get_hidpi_factor()));
+                    surface.resize(dims);
                     input_status = InputStatus::RecreateSwapchain;
                 }
                 WindowEvent::KeyboardInput {
@@ -233,7 +240,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         while accumulator >= fixed_time_stamp {
             accumulator -= fixed_time_stamp;
 
-            match handle_input(&renderer_state.backend, &mut events_loop, cpu) {
+            match handle_input(&renderer_state.surface, &mut events_loop, cpu) {
                 InputStatus::Close => break 'running,
                 InputStatus::RecreateSwapchain => recreate_swapchain = true,
                 _ => (),
