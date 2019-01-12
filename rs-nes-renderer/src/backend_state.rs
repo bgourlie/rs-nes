@@ -1,13 +1,11 @@
 use crate::adapter_state::AdapterState;
 use gfx_hal::{Backend, Instance};
-use winit::{EventsLoop, WindowBuilder};
+use winit::{EventsLoop, Window, WindowBuilder};
 
 pub struct BackendState<B: Backend> {
     pub surface: B::Surface,
     pub adapter: AdapterState<B>,
-    #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
-    #[allow(dead_code)]
-    window: winit::Window,
+    _window: Option<Window>, // Required for non-GL backends to prevent it from dropping
 }
 
 #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
@@ -22,7 +20,7 @@ pub fn create_backend(
     BackendState {
         adapter: AdapterState::new(&mut adapters),
         surface,
-        window,
+        _window: Some(window),
     }
 }
 
@@ -48,6 +46,7 @@ pub fn create_backend(
     BackendState {
         adapter: AdapterState::new(&mut adapters),
         surface,
+        _window: None,
     }
 }
 
