@@ -56,7 +56,7 @@ use crate::{
 
 use rs_nes::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
-use gfx_hal::{format, image as i, window::Extent2D, Backend};
+use gfx_hal::{format, image as i, window::Extent2D};
 
 type FrameBufferFormat = format::Rgba8Srgb;
 type ScreenBufferFormat = format::Rgba8Unorm;
@@ -103,18 +103,6 @@ pub enum InputStatus {
     None,
     Close,
     RecreateSwapchain,
-}
-
-trait SurfaceTrait {
-    #[cfg(feature = "gl")]
-    fn get_window_t(&self) -> &back::glutin::GlWindow;
-}
-
-impl SurfaceTrait for <back::Backend as Backend>::Surface {
-    #[cfg(feature = "gl")]
-    fn get_window_t(&self) -> &back::glutin::GlWindow {
-        self.get_window()
-    }
 }
 
 #[cfg(any(
@@ -172,9 +160,10 @@ fn handle_input<C: Cart>(
                 | WindowEvent::CloseRequested => input_status = InputStatus::Close,
                 WindowEvent::Resized(dims) => {
                     #[cfg(feature = "gl")]
-                    _backend.surface.get_window_t().resize(
-                        dims.to_physical(_backend.surface.get_window_t().get_hidpi_factor()),
-                    );
+                    _backend
+                        .surface
+                        .get_window()
+                        .resize(dims.to_physical(_backend.surface.get_window().get_hidpi_factor()));
                     input_status = InputStatus::RecreateSwapchain;
                 }
                 WindowEvent::KeyboardInput {
