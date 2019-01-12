@@ -58,7 +58,7 @@ pub fn create_backend(
     feature = "gl"
 )))]
 pub fn create_backend(
-    _window_builder: &mut WindowBuilder,
+    _window_builder: WindowBuilder,
     events_loop: &EventsLoop,
 ) -> BackendState<back::Backend> {
     unimplemented!()
