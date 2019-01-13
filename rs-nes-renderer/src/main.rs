@@ -24,7 +24,7 @@ extern crate gfx_backend_metal as back;
 #[cfg(feature = "vulkan")]
 extern crate gfx_backend_vulkan as back;
 
-mod backend_state;
+mod backend_resourcs;
 mod descriptor_set;
 mod device_state;
 mod framebuffer_state;
@@ -48,7 +48,7 @@ use std::{
 use winit::{ElementState, Event, EventsLoop, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 use crate::{
-    backend_state::create_backend,
+    backend_resourcs::create_backend,
     renderer_state::{RenderStatus, RendererState},
     vertex::Vertex,
 };

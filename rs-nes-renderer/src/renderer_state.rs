@@ -9,7 +9,7 @@ use gfx_hal::{
 };
 
 use crate::{
-    backend_state::BackendState, descriptor_set::DescSetLayout,
+    backend_resourcs::BackendResources, descriptor_set::DescSetLayout,
     device_state::DeviceState, framebuffer_state::FramebufferState, nes_screen::NesScreen,
     palette::PALETTE, palette_uniform::PaletteUniform, pipeline_state::PipelineState,
     render_pass_state::RenderPassState, swapchain_state::SwapchainState, vertex::Vertex,
@@ -46,9 +46,9 @@ pub struct RendererState<B: Backend> {
 }
 
 impl<B: Backend> RendererState<B> {
-    pub fn new(backend: BackendState<B>) -> Self {
+    pub fn new(backend_resources: BackendResources<B>) -> Self {
 
-        let (mut surface, adapter, limits, memory_types, window) = backend.take_resources();
+        let (mut surface, adapter, limits, memory_types, window) = backend_resources.take();
 
         if !is_gl_backend() && window.is_none() {
             panic!("Window shouldn't be None")
