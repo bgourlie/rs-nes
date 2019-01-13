@@ -227,7 +227,7 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
 
     let backend = create_backend(window_builder, &events_loop);
 
-    let mut renderer_state = unsafe { RendererState::new(backend) };
+    let mut renderer_state = RendererState::new(backend);
     let mut recreate_swapchain = false;
     let mut accumulator = Duration::new(0, 0);
     let mut previous_clock = Instant::now();

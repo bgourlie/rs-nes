@@ -44,7 +44,7 @@ pub struct RendererState<B: Backend> {
 }
 
 impl<B: Backend> RendererState<B> {
-    pub unsafe fn new(mut backend: BackendState<B>) -> Self {
+    pub fn new(mut backend: BackendState<B>) -> Self {
         let (mut surface, mut adapter, window) = {
             let surface = backend.surface.take().expect("Surface shouldn't be None");
             let adapter = backend.adapter.take().expect("Adapter shouldn't be None");
@@ -90,36 +90,44 @@ impl<B: Backend> RendererState<B> {
             }],
         );
 
-        let mut img_desc_pool = device
-            .device
-            .create_descriptor_pool(
-                1, // # of sets
-                &[
-                    pso::DescriptorRangeDesc {
-                        ty: pso::DescriptorType::SampledImage,
-                        count: 1,
-                    },
-                    pso::DescriptorRangeDesc {
-                        ty: pso::DescriptorType::Sampler,
-                        count: 1,
-                    },
-                ],
-            )
-            .ok();
+        let mut img_desc_pool = unsafe {
+            device
+                .device
+                .create_descriptor_pool(
+                    1, // # of sets
+                    &[
+                        pso::DescriptorRangeDesc {
+                            ty: pso::DescriptorType::SampledImage,
+                            count: 1,
+                        },
+                        pso::DescriptorRangeDesc {
+                            ty: pso::DescriptorType::Sampler,
+                            count: 1,
+                        },
+                    ],
+                )
+                .ok()
+        };
 
-        let mut uniform_desc_pool = device
-            .device
-            .create_descriptor_pool(
-                1, // # of sets
-                &[pso::DescriptorRangeDesc {
-                    ty: pso::DescriptorType::UniformBuffer,
-                    count: 1,
-                }],
-            )
-            .ok();
+        let mut uniform_desc_pool = unsafe {
+            device
+                .device
+                .create_descriptor_pool(
+                    1, // # of sets
+                    &[pso::DescriptorRangeDesc {
+                        ty: pso::DescriptorType::UniformBuffer,
+                        count: 1,
+                    }],
+                )
+                .ok()
+        };
 
-        let image_desc = image_desc.create_desc_set(img_desc_pool.as_mut().unwrap());
-        let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
+        let (image_desc, uniform_desc) = unsafe {
+            (
+                image_desc.create_desc_set(img_desc_pool.as_mut().unwrap()),
+                uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap()),
+            )
+        };
 
         let nes_screen_buffer = NesScreen::new::<Graphics>(
             &mut device,
@@ -135,10 +143,13 @@ impl<B: Backend> RendererState<B> {
 
             let device = &device.device;
 
-            let mut buffer = device
-                .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
-                .unwrap();
-            let mem_req = device.get_buffer_requirements(&buffer);
+            let mut buffer = unsafe {
+                device
+                    .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
+                    .unwrap()
+            };
+
+            let mem_req = unsafe { device.get_buffer_requirements(&buffer) };
 
             let memory_type = &adapter
                 .memory_types
@@ -153,42 +164,47 @@ impl<B: Backend> RendererState<B> {
                 .expect("Vertex memory type not supported")
                 .into();
 
-            let memory = device.allocate_memory(*memory_type, mem_req.size).unwrap();
-            device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
-            let size = mem_req.size;
+            unsafe {
+                let memory = device.allocate_memory(*memory_type, mem_req.size).unwrap();
+                device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
 
-            let mut data_target = device
-                .acquire_mapping_writer::<Vertex>(&memory, 0..size)
-                .expect("Unable to acquire mapping writer");
+                let mut data_target = device
+                    .acquire_mapping_writer::<Vertex>(&memory, 0..mem_req.size)
+                    .expect("Unable to acquire mapping writer");
 
-            data_target[0..QUAD.len()].copy_from_slice(&QUAD);
+                data_target[0..QUAD.len()].copy_from_slice(&QUAD);
 
-            device
-                .release_mapping_writer(data_target)
-                .expect("Unable to release mapping writer");
-
-            (memory, buffer)
+                device
+                    .release_mapping_writer(data_target)
+                    .expect("Unable to release mapping writer");
+                (memory, buffer)
+            }
         };
 
-        let palette_uniform = PaletteUniform::new(
-            &mut device.device,
-            &adapter.memory_types,
-            &PALETTE,
-            uniform_desc,
-        );
+        let palette_uniform = unsafe {
+            PaletteUniform::new(
+                &mut device.device,
+                &adapter.memory_types,
+                &PALETTE,
+                uniform_desc,
+            )
+        };
 
-        let mut swapchain = SwapchainState::new(&mut surface, &device, DIMS);
+        let (swapchain, render_pass, framebuffer, pipeline) = unsafe {
+            let mut swapchain = SwapchainState::new(&mut surface, &device, DIMS);
+            let render_pass = RenderPassState::new(&swapchain, &device.device);
 
-        let render_pass = RenderPassState::new(&swapchain, &device.device);
+            let framebuffer =
+                FramebufferState::new(&device, &render_pass, &mut swapchain, &COLOR_RANGE);
 
-        let framebuffer =
-            FramebufferState::new(&device, &render_pass, &mut swapchain, &COLOR_RANGE);
+            let pipeline = PipelineState::new(
+                vec![nes_screen_buffer.layout(), palette_uniform.layout()],
+                render_pass.render_pass.as_ref().unwrap(),
+                &device.device,
+            );
 
-        let pipeline = PipelineState::new(
-            vec![nes_screen_buffer.layout(), palette_uniform.layout()],
-            render_pass.render_pass.as_ref().unwrap(),
-            &device.device,
-        );
+            (swapchain, render_pass, framebuffer, pipeline)
+        };
 
         let viewport = RendererState::create_viewport(&swapchain);
 
@@ -214,30 +230,28 @@ impl<B: Backend> RendererState<B> {
     fn recreate_swapchain(&mut self) {
         self.device.device.wait_idle().unwrap();
 
-        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
-        self.swapchain = unsafe { SwapchainState::new(&mut self.surface, &self.device, DIMS) };
+        unsafe {
+            SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
+            self.swapchain = SwapchainState::new(&mut self.surface, &self.device, DIMS);
 
-        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
-        self.render_pass = unsafe { RenderPassState::new(&self.swapchain, &self.device.device) };
+            RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
+            self.render_pass = RenderPassState::new(&self.swapchain, &self.device.device);
 
-        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
-        self.framebuffer = unsafe {
-            FramebufferState::new(
+            FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
+            self.framebuffer = FramebufferState::new(
                 &self.device,
                 &self.render_pass,
                 &mut self.swapchain,
                 &COLOR_RANGE,
-            )
-        };
+            );
 
-        PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
-        self.pipeline = unsafe {
-            PipelineState::new(
+            PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
+            self.pipeline = PipelineState::new(
                 vec![self.nes_screen.layout(), self.palette_uniform.layout()],
                 self.render_pass.render_pass.as_ref().unwrap(),
                 &self.device.device,
-            )
-        };
+            );
+        }
 
         self.viewport = RendererState::create_viewport(&self.swapchain);
     }
