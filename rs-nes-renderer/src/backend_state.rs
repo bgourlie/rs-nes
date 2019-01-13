@@ -1,11 +1,24 @@
-use crate::adapter_state::AdapterState;
-use gfx_hal::{Backend, Instance};
+use gfx_hal::{Adapter, MemoryType, Limits, Backend, Instance, PhysicalDevice};
 use winit::{EventsLoop, Window, WindowBuilder};
 
 pub struct BackendState<B: Backend> {
-    pub surface: Option<B::Surface>,
-    pub adapter: Option<AdapterState<B>>,
-    pub window: Option<Window>,
+    surface: B::Surface,
+    window: Option<Window>,
+    adapter: Adapter<B>,
+    memory_types: Vec<MemoryType>,
+    limits: Limits,
+}
+
+impl<B: Backend> BackendState<B> {
+    pub fn take_resources(self) -> (B::Surface, Adapter<B>, Limits, Vec<MemoryType>, Option<Window>) {
+        (
+            self.surface,
+            self.adapter,
+            self.limits,
+            self.memory_types,
+            self.window
+        )
+    }
 }
 
 #[cfg(any(feature = "vulkan", feature = "dx12", feature = "metal"))]
@@ -16,10 +29,15 @@ pub fn create_backend(
     let instance = back::Instance::create("RS-NES", 1);
     let window = window.build(&events_loop).expect("Unable to build window");
     let surface = instance.create_surface(&window);
-    let mut adapters = instance.enumerate_adapters();
+    let adapter = instance.enumerate_adapters().remove(0);
+    let memory_types = adapter.physical_device.memory_properties().memory_types;
+    let limits = adapter.physical_device.limits();
+
     BackendState {
-        adapter: Some(AdapterState::new(&mut adapters)),
-        surface: Some(surface),
+        adapter,
+        surface,
+        memory_types,
+        limits,
         window: Some(window),
     }
 }
@@ -42,10 +60,14 @@ pub fn create_backend(
     };
 
     let surface = back::Surface::from_window(window);
-    let mut adapters = surface.enumerate_adapters();
+    let adapter = surface.enumerate_adapters().remove(0);
+    let memory_types = adapter.physical_device.memory_properties().memory_types;
+    let limits = adapter.physical_device.limits();
     BackendState {
-        adapter: Some(AdapterState::new(&mut adapters)),
-        surface: Some(surface),
+        adapter,
+        surface,
+        memory_types,
+        limits,
         window: None,
     }
 }

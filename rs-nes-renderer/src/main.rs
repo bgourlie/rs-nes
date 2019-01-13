@@ -24,7 +24,6 @@ extern crate gfx_backend_metal as back;
 #[cfg(feature = "vulkan")]
 extern crate gfx_backend_vulkan as back;
 
-mod adapter_state;
 mod backend_state;
 mod descriptor_set;
 mod device_state;

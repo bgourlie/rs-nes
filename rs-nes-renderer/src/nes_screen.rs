@@ -1,13 +1,13 @@
 use std::iter;
 
 use gfx_hal::{
+    Limits, MemoryType,
     buffer, command, format, image, memory,
     pso::{self, PipelineStage},
     Backend, CommandPool, Device, Graphics, Supports, Transfer,
 };
 
 use crate::{
-    adapter_state::AdapterState,
     descriptor_set::{DescSet, DescSetWrite},
     device_state::DeviceState,
     ScreenBufferFormat, COLOR_RANGE,
@@ -37,9 +37,10 @@ impl<B: Backend> NesScreen<B> {
         width: u32,
         height: u32,
         mut desc: DescSet<B>,
-        adapter: &AdapterState<B>,
+        limits: Limits,
+        memory_types: &[MemoryType]
     ) -> Self {
-        let row_alignment_mask = adapter.limits.min_buffer_copy_pitch_alignment as u32 - 1;
+        let row_alignment_mask = limits.min_buffer_copy_pitch_alignment as u32 - 1;
         let row_pitch =
             (width * PPU_PIXEL_STRIDE as u32 + row_alignment_mask) & !row_alignment_mask;
         let upload_size = u64::from(height * row_pitch);
@@ -58,8 +59,7 @@ impl<B: Backend> NesScreen<B> {
             (staging_buffer, staging_buffer_memory_requirements)
         };
 
-        let staging_buffer_memory_type = adapter
-            .memory_types
+        let staging_buffer_memory_type = memory_types
             .iter()
             .enumerate()
             .position(|(id, mem_type)| {
@@ -101,8 +101,7 @@ impl<B: Backend> NesScreen<B> {
             (staging_buffer_memory, image, req)
         };
 
-        let texture_memory_type = adapter
-            .memory_types
+        let texture_memory_type = memory_types
             .iter()
             .enumerate()
             .position(|(id, memory_type)| {

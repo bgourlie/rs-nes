@@ -4,11 +4,12 @@ use gfx_hal::{
     buffer, command, memory,
     pso::{self, PipelineStage, ShaderStageFlags},
     queue::Submission,
+    MemoryType, Limits,
     Backend, Device, FrameSync, Graphics, SwapImageIndex, Swapchain,
 };
 
 use crate::{
-    adapter_state::AdapterState, backend_state::BackendState, descriptor_set::DescSetLayout,
+    backend_state::BackendState, descriptor_set::DescSetLayout,
     device_state::DeviceState, framebuffer_state::FramebufferState, nes_screen::NesScreen,
     palette::PALETTE, palette_uniform::PaletteUniform, pipeline_state::PipelineState,
     render_pass_state::RenderPassState, swapchain_state::SwapchainState, vertex::Vertex,
@@ -27,7 +28,8 @@ pub enum RenderStatus {
 
 pub struct RendererState<B: Backend> {
     pub surface: B::Surface,
-    pub adapter: AdapterState<B>,
+    pub memory_types: Vec<MemoryType>,
+    pub limits: Limits,
     pub window: Option<Window>,
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
@@ -44,20 +46,15 @@ pub struct RendererState<B: Backend> {
 }
 
 impl<B: Backend> RendererState<B> {
-    pub fn new(mut backend: BackendState<B>) -> Self {
-        let (mut surface, mut adapter, window) = {
-            let surface = backend.surface.take().expect("Surface shouldn't be None");
-            let adapter = backend.adapter.take().expect("Adapter shouldn't be None");
-            let window = backend.window.take();
+    pub fn new(backend: BackendState<B>) -> Self {
 
-            if !is_gl_backend() && window.is_none() {
-                panic!("Window shouldn't be None")
-            }
+        let (mut surface, adapter, limits, memory_types, window) = backend.take_resources();
 
-            (surface, adapter, window)
-        };
+        if !is_gl_backend() && window.is_none() {
+            panic!("Window shouldn't be None")
+        }
 
-        let mut device = DeviceState::new(adapter.adapter.take().unwrap(), &surface);
+        let mut device = DeviceState::new(adapter, &surface);
 
         let image_desc = DescSetLayout::new(
             &device.device,
@@ -134,7 +131,8 @@ impl<B: Backend> RendererState<B> {
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
-            &adapter,
+            limits,
+            &memory_types
         );
 
         let (vertex_memory, vertex_buffer) = {
@@ -151,8 +149,7 @@ impl<B: Backend> RendererState<B> {
 
             let mem_req = unsafe { device.get_buffer_requirements(&buffer) };
 
-            let memory_type = &adapter
-                .memory_types
+            let memory_type = &memory_types
                 .iter()
                 .enumerate()
                 .position(|(id, mem_type)| {
@@ -184,7 +181,7 @@ impl<B: Backend> RendererState<B> {
         let palette_uniform = unsafe {
             PaletteUniform::new(
                 &mut device.device,
-                &adapter.memory_types,
+                &memory_types,
                 &PALETTE,
                 uniform_desc,
             )
@@ -209,7 +206,8 @@ impl<B: Backend> RendererState<B> {
         let viewport = RendererState::create_viewport(&swapchain);
 
         RendererState {
-            adapter,
+            limits,
+            memory_types,
             surface,
             window,
             device,
