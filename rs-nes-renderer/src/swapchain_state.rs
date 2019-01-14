@@ -135,6 +135,7 @@ impl<B: Backend> SwapchainState<B> {
             1 // GL can have zero
         };
 
+        // TODO (nit): Avoid intermediate vec allocation (is ultimately consumed by smallvec)
         let mut framebuffer_fences: Vec<B::Fence> = vec![];
         let mut command_pools: Vec<CommandPool<B, Graphics>> = vec![];
         let mut acquire_semaphores: Vec<B::Semaphore> = vec![];
