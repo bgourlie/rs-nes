@@ -34,9 +34,9 @@ pub struct RendererState<B: Backend> {
     palette_uniform: PaletteUniform<B>,
     viewport: pso::Viewport,
     nes_screen_buffer: NesScreen<B>,
-    pub device: B::Device,
-    pub physical_device: B::PhysicalDevice,
-    pub queues: QueueGroup<B, Graphics>,
+    device: B::Device,
+    physical_device: B::PhysicalDevice,
+    queues: QueueGroup<B, Graphics>,
 }
 
 impl<B: Backend> RendererState<B> {

@@ -1,7 +1,7 @@
 use gfx_hal::{pso, Backend, DescriptorPool, Device};
 
 pub struct DescSetLayout<B: Backend> {
-    pub layout: Option<B::DescriptorSetLayout>,
+    layout: Option<B::DescriptorSetLayout>,
 }
 
 impl<B: Backend> DescSetLayout<B> {
