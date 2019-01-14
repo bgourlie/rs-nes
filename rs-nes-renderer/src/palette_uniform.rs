@@ -3,8 +3,8 @@ use gfx_hal::{buffer, device::Device, memory, pso, Backend, MemoryType};
 use crate::descriptor_set::{DescSet, DescSetWrite};
 
 pub struct PaletteUniform<B: Backend> {
-    buffer: Option<B::Buffer>,
-    memory: Option<B::Memory>,
+    buffer: B::Buffer,
+    memory: B::Memory,
     desc: DescSet<B>,
 }
 
@@ -17,7 +17,7 @@ impl<B: Backend> PaletteUniform<B> {
     ) -> Self {
         let uniform_upload_size = data.len() as u64 * 4;
         println!("Uniform upload size {}", uniform_upload_size);
-        let (uniform_memory, uniform_buffer) = {
+        let (memory, buffer) = {
             let mut buffer = device
                 .create_buffer(uniform_upload_size, buffer::Usage::UNIFORM)
                 .expect("Unable to create palette uniform buffer");
@@ -57,14 +57,14 @@ impl<B: Backend> PaletteUniform<B> {
             vec![DescSetWrite {
                 binding: 0,
                 array_offset: 0,
-                descriptors: Some(pso::Descriptor::Buffer(&uniform_buffer, None..None)),
+                descriptors: Some(pso::Descriptor::Buffer(&buffer, None..None)),
             }],
             device,
         );
 
         PaletteUniform {
-            memory: Some(uniform_memory),
-            buffer: Some(uniform_buffer),
+            memory,
+            buffer,
             desc,
         }
     }
@@ -77,11 +77,11 @@ impl<B: Backend> PaletteUniform<B> {
         self.desc.set.as_ref().unwrap()
     }
 
-    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
+    pub fn destroy(mut self, device: &B::Device) {
         unsafe {
-            device.destroy_buffer(state.buffer.take().expect("Buffer shouldn't be None"));
-            device.free_memory(state.memory.take().expect("Memory shouldn't be None"));
-            DescSet::destroy_resources(&mut state.desc, device);
+            device.destroy_buffer(self.buffer);
+            device.free_memory(self.memory);
+            DescSet::destroy_resources(&mut self.desc, device);
         }
     }
 }

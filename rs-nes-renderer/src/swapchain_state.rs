@@ -1,16 +1,18 @@
-use std::iter;
+use std::{fs, io::Read, iter, mem};
 
 use gfx_hal::{
     command, format as f,
     format::{AsFormat, ChannelType},
-    image as i, pass, pool,
-    pso::{PipelineStage, Viewport},
+    image as i,
+    pass::{self, Subpass},
+    pool,
+    pso::{self, PipelineStage, Viewport},
     window::Extent2D,
-    Backbuffer, Backend, CommandPool, Device, FrameSync, Graphics, QueueGroup, Submission, Surface,
-    SwapImageIndex, Swapchain, SwapchainConfig,
+    Backbuffer, Backend, CommandPool, Device, FrameSync, Graphics, Primitive, QueueGroup,
+    Submission, Surface, SwapImageIndex, Swapchain, SwapchainConfig,
 };
 
-use crate::{device_state::DeviceState, FrameBufferFormat, COLOR_RANGE};
+use crate::{device_state::DeviceState, vertex::Vertex, FrameBufferFormat, COLOR_RANGE};
 
 pub struct SwapchainState<B: Backend> {
     pub swapchain: B::Swapchain,
@@ -24,14 +26,21 @@ pub struct SwapchainState<B: Backend> {
     acquire_semaphores: Vec<B::Semaphore>,
     present_semaphores: Vec<B::Semaphore>,
     last_ref: usize,
+    pub pipeline: B::GraphicsPipeline,
+    pub pipeline_layout: B::PipelineLayout,
 }
 
 impl<B: Backend> SwapchainState<B> {
-    pub unsafe fn new(
+    pub unsafe fn new<IS>(
         surface: &mut B::Surface,
         device: &DeviceState<B>,
+        desc_layouts: IS,
         dimensions: Extent2D,
-    ) -> Self {
+    ) -> Self
+    where
+        IS: IntoIterator,
+        IS::Item: std::borrow::Borrow<B::DescriptorSetLayout>,
+    {
         let (caps, formats, _present_modes, _composite_alphas) =
             surface.compatibility(&device.physical_device);
         println!("formats: {:?}", formats);
@@ -151,6 +160,105 @@ impl<B: Backend> SwapchainState<B> {
             present_semaphores.push(device.device.create_semaphore().unwrap());
         }
 
+        let pipeline_layout = device
+            .device
+            .create_pipeline_layout(desc_layouts, &[(pso::ShaderStageFlags::VERTEX, 0..8)])
+            .expect("Can't create pipeline layout");
+
+        let pipeline = {
+            let vs_module = {
+                let glsl = fs::read_to_string("data/quad.vert").unwrap();
+                let spirv: Vec<u8> =
+                    glsl_to_spirv::compile(&glsl, glsl_to_spirv::ShaderType::Vertex)
+                        .unwrap()
+                        .bytes()
+                        .map(|b| b.unwrap())
+                        .collect();
+                device.device.create_shader_module(&spirv).unwrap()
+            };
+            let fs_module = {
+                let glsl = fs::read_to_string("data/quad.frag").unwrap();
+                let spirv: Vec<u8> =
+                    glsl_to_spirv::compile(&glsl, glsl_to_spirv::ShaderType::Fragment)
+                        .unwrap()
+                        .bytes()
+                        .map(|b| b.unwrap())
+                        .collect();
+                device.device.create_shader_module(&spirv).unwrap()
+            };
+
+            const SHADER_ENTRY_NAME: &str = "main";
+
+            let pipeline = {
+                let (vs_entry, fs_entry) = (
+                    pso::EntryPoint::<B> {
+                        entry: SHADER_ENTRY_NAME,
+                        module: &vs_module,
+                        specialization: pso::Specialization::default(),
+                    },
+                    pso::EntryPoint::<B> {
+                        entry: SHADER_ENTRY_NAME,
+                        module: &fs_module,
+                        specialization: pso::Specialization::default(),
+                    },
+                );
+
+                let shader_entries = pso::GraphicsShaderSet {
+                    vertex: vs_entry,
+                    hull: None,
+                    domain: None,
+                    geometry: None,
+                    fragment: Some(fs_entry),
+                };
+
+                let subpass = Subpass {
+                    index: 0,
+                    main_pass: &render_pass,
+                };
+
+                let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
+                    shader_entries,
+                    Primitive::TriangleList,
+                    pso::Rasterizer::FILL,
+                    &pipeline_layout,
+                    subpass,
+                );
+                pipeline_desc.blender.targets.push(pso::ColorBlendDesc(
+                    pso::ColorMask::ALL,
+                    pso::BlendState::ALPHA,
+                ));
+                pipeline_desc.vertex_buffers.push(pso::VertexBufferDesc {
+                    binding: 0,
+                    stride: mem::size_of::<Vertex>() as u32,
+                    rate: 0,
+                });
+
+                pipeline_desc.attributes.push(pso::AttributeDesc {
+                    location: 0,
+                    binding: 0,
+                    element: pso::Element {
+                        format: f::Format::Rg32Float,
+                        offset: 0,
+                    },
+                });
+                pipeline_desc.attributes.push(pso::AttributeDesc {
+                    location: 1,
+                    binding: 0,
+                    element: pso::Element {
+                        format: f::Format::Rg32Float,
+                        offset: 8,
+                    },
+                });
+
+                device.device.create_graphics_pipeline(&pipeline_desc, None)
+            };
+
+            device.device.destroy_shader_module(vs_module);
+            device.device.destroy_shader_module(fs_module);
+
+            pipeline.unwrap()
+        };
+
         SwapchainState {
             swapchain,
             extent,
@@ -162,6 +270,8 @@ impl<B: Backend> SwapchainState<B> {
             framebuffers,
             present_semaphores,
             render_pass,
+            pipeline,
+            pipeline_layout,
             last_ref: 0,
         }
     }
@@ -198,9 +308,7 @@ impl<B: Backend> SwapchainState<B> {
         image_index: SwapImageIndex,
         viewport: &Viewport,
         queues: &mut QueueGroup<B, Graphics>,
-        pipeline: &B::GraphicsPipeline,
         vertex_buffer: &B::Buffer,
-        pipeline_layout: &B::PipelineLayout,
         nes_screen_descriptor_set: &B::DescriptorSet,
         palette_uniform_descriptor_set: &B::DescriptorSet,
     ) -> bool {
@@ -212,10 +320,10 @@ impl<B: Backend> SwapchainState<B> {
             cmd_buffer.begin();
             cmd_buffer.set_viewports(0, &[viewport.clone()]);
             cmd_buffer.set_scissors(0, &[viewport.rect]);
-            cmd_buffer.bind_graphics_pipeline(pipeline);
+            cmd_buffer.bind_graphics_pipeline(&self.pipeline);
             cmd_buffer.bind_vertex_buffers(0, Some((vertex_buffer, 0)));
             cmd_buffer.bind_graphics_descriptor_sets(
-                pipeline_layout,
+                &self.pipeline_layout,
                 0,
                 vec![nes_screen_descriptor_set, palette_uniform_descriptor_set],
                 &[],
@@ -287,6 +395,9 @@ impl<B: Backend> SwapchainState<B> {
             for (_, rtv) in self.frame_images {
                 device.destroy_image_view(rtv);
             }
+
+            device.destroy_graphics_pipeline(self.pipeline);
+            device.destroy_pipeline_layout(self.pipeline_layout);
         }
     }
 }

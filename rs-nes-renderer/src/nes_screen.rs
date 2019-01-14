@@ -16,14 +16,14 @@ use rs_nes::{PPU_BUFFER_SIZE, PPU_PIXEL_STRIDE};
 
 pub struct NesScreen<B: Backend> {
     desc: DescSet<B>,
-    staging_buffer: Option<B::Buffer>,
-    staging_buffer_memory: Option<B::Memory>,
-    staging_pool: Option<CommandPool<B, Graphics>>,
-    sampler: Option<B::Sampler>,
-    image_view: Option<B::ImageView>,
-    image: Option<B::Image>,
-    texture_memory: Option<B::Memory>,
-    image_transfer_fence: Option<B::Fence>,
+    staging_buffer: B::Buffer,
+    staging_buffer_memory: B::Memory,
+    staging_pool: CommandPool<B, Graphics>,
+    sampler: B::Sampler,
+    image_view: B::ImageView,
+    image: B::Image,
+    texture_memory: B::Memory,
+    image_transfer_fence: B::Fence,
     dimensions: (u32, u32),
     row_pitch: u32,
     row_alignment_mask: u32,
@@ -171,15 +171,15 @@ impl<B: Backend> NesScreen<B> {
         let staging_pool = device.create_command_pool();
 
         NesScreen {
-            staging_pool: Some(staging_pool),
+            staging_pool,
             desc,
-            staging_buffer: Some(staging_buffer),
-            staging_buffer_memory: Some(staging_buffer_memory),
-            sampler: Some(sampler),
-            image_view: Some(image_view),
-            image: Some(image),
-            texture_memory: Some(texture_memory),
-            image_transfer_fence: Some(image_transfer_fence),
+            staging_buffer,
+            staging_buffer_memory,
+            sampler,
+            image_view,
+            image,
+            texture_memory,
+            image_transfer_fence,
             dimensions: (width, height),
             row_pitch,
             row_alignment_mask,
@@ -202,13 +202,11 @@ impl<B: Backend> NesScreen<B> {
         debug_assert!(upload_size <= self.staging_buffer_size);
 
         unsafe {
-            let staging_buffer_memory = self
-                .staging_buffer_memory
-                .as_ref()
-                .expect("Staging buffer memory should't be None");
-
             let mut data_target = device
-                .acquire_mapping_writer::<u8>(staging_buffer_memory, 0..self.staging_buffer_size)
+                .acquire_mapping_writer::<u8>(
+                    &self.staging_buffer_memory,
+                    0..self.staging_buffer_size,
+                )
                 .expect("Unable to acquire staging buffer mapping writer");
 
             for y in 0..height as usize {
@@ -225,12 +223,9 @@ impl<B: Backend> NesScreen<B> {
 
     pub fn copy_buffer_to_texture(&mut self, device_state: &mut DeviceState<B>) {
         let (image_width, image_height) = self.dimensions;
-        let staging_pool = self
+        let mut cmd_buffer = self
             .staging_pool
-            .as_mut()
-            .expect("Staging pool shouldn't be None");
-
-        let mut cmd_buffer = staging_pool.acquire_command_buffer::<command::OneShot>();
+            .acquire_command_buffer::<command::OneShot>();
 
         unsafe {
             cmd_buffer.begin();
@@ -242,7 +237,7 @@ impl<B: Backend> NesScreen<B> {
                     image::Access::TRANSFER_WRITE,
                     image::Layout::TransferDstOptimal,
                 ),
-            target: self.image.as_ref().unwrap(),
+            target: &self.image,
             families: None,
             range: COLOR_RANGE.clone(),
         };
@@ -255,8 +250,8 @@ impl<B: Backend> NesScreen<B> {
             );
 
             cmd_buffer.copy_buffer_to_image(
-                self.staging_buffer.as_ref().unwrap(),
-                self.image.as_ref().unwrap(),
+                &self.staging_buffer,
+                &self.image,
                 image::Layout::TransferDstOptimal,
                 &[command::BufferImageCopy {
                     buffer_offset: 0,
@@ -286,7 +281,7 @@ impl<B: Backend> NesScreen<B> {
                     image::Access::SHADER_READ,
                     image::Layout::ShaderReadOnlyOptimal,
                 ),
-            target: self.image.as_ref().unwrap(),
+            target: &self.image,
             families: None,
             range: COLOR_RANGE.clone(),
         };
@@ -301,18 +296,21 @@ impl<B: Backend> NesScreen<B> {
             cmd_buffer.finish();
 
             device_state.queues.queues[0]
-                .submit_nosemaphores(iter::once(&cmd_buffer), self.image_transfer_fence.as_ref());
+                .submit_nosemaphores(iter::once(&cmd_buffer), Some(&self.image_transfer_fence));
 
-            staging_pool.free(iter::once(cmd_buffer));
+            // TODO: Reuse
+            // self.staging_pool.free(iter::once(cmd_buffer));
         }
     }
 
     pub fn wait_for_transfer_completion(&self, device: &B::Device) {
         unsafe {
-            let fence = self.image_transfer_fence.as_ref().unwrap();
-            device.wait_for_fence(fence, !0).unwrap();
-
-            device.reset_fence(fence).expect("Fence to reset");
+            device
+                .wait_for_fence(&self.image_transfer_fence, !0)
+                .unwrap();
+            device
+                .reset_fence(&self.image_transfer_fence)
+                .expect("Fence to reset");
         }
     }
 
@@ -320,54 +318,21 @@ impl<B: Backend> NesScreen<B> {
         self.desc.layout()
     }
 
-    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
-        let image_transfer_fence = state
-            .image_transfer_fence
-            .take()
-            .expect("Fence shouldn't be None");
-
+    pub fn destroy(mut self, device: &B::Device) {
         unsafe {
             device
-                .wait_for_fence(&image_transfer_fence, 10_000)
+                .wait_for_fence(&self.image_transfer_fence, 10_000)
                 .unwrap();
 
-            device.destroy_fence(image_transfer_fence);
-
-            device.destroy_command_pool(
-                state
-                    .staging_pool
-                    .take()
-                    .expect("Staging pool shouldn't be None")
-                    .into_raw(),
-            );
-
-            device.destroy_sampler(state.sampler.take().expect("Sampler shouldn't be None"));
-            device.destroy_image_view(
-                state
-                    .image_view
-                    .take()
-                    .expect("Image view shouldn't be None"),
-            );
-            device.destroy_image(state.image.take().expect("Image shouldn't be None"));
-            device.free_memory(
-                state
-                    .texture_memory
-                    .take()
-                    .expect("Texture memory shouldn't be None"),
-            );
-            device.destroy_buffer(
-                state
-                    .staging_buffer
-                    .take()
-                    .expect("Staging buffer shouldn't be None"),
-            );
-            device.free_memory(
-                state
-                    .staging_buffer_memory
-                    .take()
-                    .expect("Buffer memory shouldn't be None"),
-            );
-            DescSet::destroy_resources(&mut state.desc, device);
+            device.destroy_fence(self.image_transfer_fence);
+            device.destroy_command_pool(self.staging_pool.into_raw());
+            device.destroy_sampler(self.sampler);
+            device.destroy_image_view(self.image_view);
+            device.destroy_image(self.image);
+            device.free_memory(self.texture_memory);
+            device.destroy_buffer(self.staging_buffer);
+            device.free_memory(self.staging_buffer_memory);
+            DescSet::destroy_resources(&mut self.desc, device);
         }
     }
 }

@@ -9,7 +9,7 @@ use gfx_hal::{
 use crate::{
     backend_resources::BackendResources, descriptor_set::DescSetLayout, device_state::DeviceState,
     nes_screen::NesScreen, palette::PALETTE, palette_uniform::PaletteUniform,
-    pipeline_state::PipelineState, swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
+    swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
 };
 
 use winit::Window;
@@ -27,16 +27,15 @@ pub struct RendererState<B: Backend> {
     pub memory_types: Vec<MemoryType>,
     pub limits: Limits,
     pub window: Option<Window>,
-    uniform_desc_pool: Option<B::DescriptorPool>,
-    img_desc_pool: Option<B::DescriptorPool>,
+    uniform_desc_pool: B::DescriptorPool,
+    img_desc_pool: B::DescriptorPool,
     swapchain: Option<SwapchainState<B>>,
     device: DeviceState<B>,
-    vertex_memory: Option<B::Memory>,
-    vertex_buffer: Option<B::Buffer>,
+    vertex_memory: B::Memory,
+    vertex_buffer: B::Buffer,
     palette_uniform: PaletteUniform<B>,
-    pipeline: PipelineState<B>,
     viewport: pso::Viewport,
-    nes_screen: NesScreen<B>,
+    nes_screen_buffer: NesScreen<B>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -96,7 +95,7 @@ impl<B: Backend> RendererState<B> {
                         },
                     ],
                 )
-                .ok()
+                .expect("Unable to create image descriptor pool")
         };
 
         let mut uniform_desc_pool = unsafe {
@@ -109,13 +108,13 @@ impl<B: Backend> RendererState<B> {
                         count: 1,
                     }],
                 )
-                .ok()
+                .expect("Unable to create uniform descriptor pool")
         };
 
         let (image_desc, uniform_desc) = unsafe {
             (
-                image_desc.create_desc_set(img_desc_pool.as_mut().unwrap()),
-                uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap()),
+                image_desc.create_desc_set(&mut img_desc_pool),
+                uniform_desc.create_desc_set(&mut uniform_desc_pool),
             )
         };
 
@@ -171,20 +170,17 @@ impl<B: Backend> RendererState<B> {
             }
         };
 
-        let palette_uniform = unsafe {
-            PaletteUniform::new(&mut device.device, &memory_types, &PALETTE, uniform_desc)
-        };
+        let (palette_uniform, swapchain) = unsafe {
+            let palette_uniform =
+                PaletteUniform::new(&mut device.device, &memory_types, &PALETTE, uniform_desc);
 
-        let (swapchain, pipeline) = unsafe {
-            let swapchain = SwapchainState::new(&mut surface, &device, DIMS);
-
-            let pipeline = PipelineState::new(
+            let swapchain_state = SwapchainState::new(
+                &mut surface,
+                &device,
                 vec![nes_screen_buffer.layout(), palette_uniform.layout()],
-                &swapchain.render_pass,
-                &device.device,
+                DIMS,
             );
-
-            (swapchain, pipeline)
+            (palette_uniform, swapchain_state)
         };
 
         let viewport = RendererState::create_viewport(&swapchain);
@@ -195,15 +191,14 @@ impl<B: Backend> RendererState<B> {
             surface,
             window,
             device,
-            nes_screen: nes_screen_buffer,
+            nes_screen_buffer,
             img_desc_pool,
             uniform_desc_pool,
-            vertex_buffer: Some(vertex_buffer),
-            vertex_memory: Some(vertex_memory),
+            vertex_buffer,
+            vertex_memory,
             palette_uniform,
-            pipeline,
-            swapchain: Some(swapchain),
             viewport,
+            swapchain: Some(swapchain),
         }
     }
 
@@ -213,15 +208,15 @@ impl<B: Backend> RendererState<B> {
         unsafe {
             let old_swapchain = self.swapchain.take().unwrap();
             old_swapchain.destroy(&self.device.device);
-            self.swapchain = Some(SwapchainState::new(&mut self.surface, &self.device, DIMS));
-            //                .replace(&mut self.surface, &self.device, DIMS);
-
-            PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
-            self.pipeline = PipelineState::new(
-                vec![self.nes_screen.layout(), self.palette_uniform.layout()],
-                &self.swapchain.as_ref().unwrap().render_pass,
-                &self.device.device,
-            );
+            self.swapchain = Some(SwapchainState::new(
+                &mut self.surface,
+                &self.device,
+                vec![
+                    self.nes_screen_buffer.layout(),
+                    self.palette_uniform.layout(),
+                ],
+                DIMS,
+            ));
         }
 
         self.viewport = RendererState::create_viewport(self.swapchain.as_ref().unwrap());
@@ -251,15 +246,16 @@ impl<B: Backend> RendererState<B> {
             RenderStatus::Normal
         };
 
-        self.nes_screen
+        self.nes_screen_buffer
             .update_buffer_data(screen_buffer, &self.device.device);
 
         // The following line causing huge memory leak with dx12 backend
         // See https://github.com/gfx-rs/gfx/issues/2556
         // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
-        self.nes_screen.copy_buffer_to_texture(&mut self.device);
+        self.nes_screen_buffer
+            .copy_buffer_to_texture(&mut self.device);
 
-        self.nes_screen
+        self.nes_screen_buffer
             .wait_for_transfer_completion(&self.device.device);
 
         let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
@@ -284,10 +280,8 @@ impl<B: Backend> RendererState<B> {
             next_image_index,
             &self.viewport,
             &mut self.device.queues,
-            self.pipeline.pipeline.as_ref().unwrap(),
-            self.vertex_buffer.as_ref().unwrap(),
-            self.pipeline.pipeline_layout.as_ref().unwrap(),
-            self.nes_screen.descriptor_set(),
+            &self.vertex_buffer,
+            self.nes_screen_buffer.descriptor_set(),
             self.palette_uniform.descriptor_set(),
         ) {
             render_status = RenderStatus::RecreateSwapchain
@@ -295,41 +289,25 @@ impl<B: Backend> RendererState<B> {
 
         render_status
     }
-}
 
-impl<B: Backend> Drop for RendererState<B> {
-    fn drop(&mut self) {
+    pub fn destroy(mut self) {
         self.device.device.wait_idle().unwrap();
         unsafe {
-            self.device.device.destroy_descriptor_pool(
-                self.img_desc_pool
-                    .take()
-                    .expect("Image descriptor pool shouldn't be None"),
-            );
+            self.device
+                .device
+                .destroy_descriptor_pool(self.img_desc_pool);
 
-            self.device.device.destroy_descriptor_pool(
-                self.uniform_desc_pool
-                    .take()
-                    .expect("Uniform descriptor pool shouldn't be None"),
-            );
+            self.device
+                .device
+                .destroy_descriptor_pool(self.uniform_desc_pool);
 
-            self.device.device.destroy_buffer(
-                self.vertex_buffer
-                    .take()
-                    .expect("Vertex buffer shouldn't be None"),
-            );
-
-            self.device.device.free_memory(
-                self.vertex_memory
-                    .take()
-                    .expect("Vertex memory shouldn't be None"),
-            );
+            self.device.device.destroy_buffer(self.vertex_buffer);
+            self.device.device.free_memory(self.vertex_memory);
         }
 
-        PaletteUniform::destroy_resources(&mut self.palette_uniform, &self.device.device);
-        NesScreen::destroy_resources(&mut self.nes_screen, &self.device.device);
+        self.palette_uniform.destroy(&self.device.device);
+        self.nes_screen_buffer.destroy(&self.device.device);
         self.swapchain.take().unwrap().destroy(&self.device.device);
-        PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
     }
 }
 

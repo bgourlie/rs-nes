@@ -30,7 +30,6 @@ mod device_state;
 mod nes_screen;
 mod palette;
 mod palette_uniform;
-mod pipeline_state;
 mod renderer_state;
 mod swapchain_state;
 mod vertex;
@@ -253,6 +252,8 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         }
         std::thread::sleep(fixed_time_stamp - accumulator);
     }
+
+    renderer_state.destroy();
 }
 
 #[cfg(not(any(
