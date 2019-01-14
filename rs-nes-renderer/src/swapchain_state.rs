@@ -1,7 +1,8 @@
 use std::{fs, io::Read, iter, mem};
 
 use gfx_hal::{
-    command, format as f,
+    command::{self, CommandBuffer},
+    format as f,
     format::{AsFormat, ChannelType},
     image as i,
     pass::{self, Subpass},
@@ -22,6 +23,7 @@ pub struct SwapchainState<B: Backend> {
     framebuffers: SmallVec<[B::Framebuffer; 2]>,
     framebuffer_fences: SmallVec<[B::Fence; 2]>,
     command_pools: SmallVec<[CommandPool<B, Graphics>; 2]>,
+    command_buffers: SmallVec<[CommandBuffer<B, Graphics>; 2]>,
     frame_images: SmallVec<[(B::Image, B::ImageView); 2]>,
     acquire_semaphores: SmallVec<[B::Semaphore; 2]>,
     present_semaphores: SmallVec<[B::Semaphore; 2]>,
@@ -252,7 +254,13 @@ impl<B: Backend> SwapchainState<B> {
         };
 
         let acquire_semaphores = SmallVec::from(acquire_semaphores);
-        let command_pools = SmallVec::from(command_pools);
+        let mut command_pools = SmallVec::<[CommandPool<B, Graphics>; 2]>::from(command_pools);
+        let mut command_buffers = SmallVec::with_capacity(2);
+
+        for i in 0..command_pools.len() {
+            command_buffers.push(command_pools[i].acquire_command_buffer::<command::OneShot>());
+        }
+
         let frame_images = SmallVec::from(frame_images);
         let framebuffer_fences = SmallVec::from(framebuffer_fences);
         let framebuffers = SmallVec::from(framebuffers);
@@ -260,6 +268,7 @@ impl<B: Backend> SwapchainState<B> {
 
         if acquire_semaphores.spilled()
             || command_pools.spilled()
+            || command_buffers.spilled()
             || frame_images.spilled()
             || framebuffer_fences.spilled()
             || framebuffers.spilled()
@@ -270,9 +279,10 @@ impl<B: Backend> SwapchainState<B> {
 
         SwapchainState {
             swapchain,
+            command_pools,
+            command_buffers,
             extent,
             acquire_semaphores,
-            command_pools,
             frame_images,
             framebuffer_fences,
             framebuffers,
@@ -311,6 +321,13 @@ impl<B: Backend> SwapchainState<B> {
         }
     }
 
+    pub fn command_buffer(
+        &mut self,
+        image_index: SwapImageIndex,
+    ) -> &mut CommandBuffer<B, Graphics> {
+        &mut self.command_buffers[image_index as usize]
+    }
+
     pub fn present(
         &mut self,
         image_index: SwapImageIndex,
@@ -320,6 +337,7 @@ impl<B: Backend> SwapchainState<B> {
         nes_screen_descriptor_set: &B::DescriptorSet,
         palette_uniform_descriptor_set: &B::DescriptorSet,
     ) -> bool {
+        // TODO: Next step: Don't create new command buffer, re-use pre-allocated ones
         let command_pool = &mut self.command_pools[image_index as usize];
 
         unsafe {

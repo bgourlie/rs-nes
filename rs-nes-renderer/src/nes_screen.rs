@@ -5,7 +5,7 @@ use gfx_hal::{
     command::{self, CommandBuffer},
     format, image, memory,
     pso::{self, PipelineStage},
-    Backend, CommandPool, Device, Graphics, Limits, MemoryType, QueueGroup,
+    Backend, Device, Graphics, Limits, MemoryType, QueueGroup,
 };
 
 use crate::{
@@ -19,7 +19,6 @@ pub struct NesScreen<B: Backend> {
     desc: DescSet<B>,
     staging_buffer: B::Buffer,
     staging_buffer_memory: B::Memory,
-    command_buffer: CommandBuffer<B, Graphics, command::OneShot>,
     sampler: B::Sampler,
     image_view: B::ImageView,
     image: B::Image,
@@ -34,7 +33,6 @@ pub struct NesScreen<B: Backend> {
 impl<B: Backend> NesScreen<B> {
     pub fn new(
         device: &mut B::Device,
-        command_pool: &mut CommandPool<B, Graphics>,
         width: u32,
         height: u32,
         mut desc: DescSet<B>,
@@ -159,9 +157,7 @@ impl<B: Backend> NesScreen<B> {
         };
 
         let image_transfer_fence = device.create_fence(false).expect("Can't create fence");
-        let command_buffer = command_pool.acquire_command_buffer::<command::OneShot>();
         NesScreen {
-            command_buffer,
             desc,
             staging_buffer,
             staging_buffer_memory,
@@ -211,11 +207,15 @@ impl<B: Backend> NesScreen<B> {
         }
     }
 
-    pub fn copy_buffer_to_texture(&mut self, queues: &mut QueueGroup<B, Graphics>) {
+    pub fn copy_buffer_to_texture(
+        &mut self,
+        command_buffer: &mut CommandBuffer<B, Graphics>,
+        queues: &mut QueueGroup<B, Graphics>,
+    ) {
         let (image_width, image_height) = self.dimensions;
 
         unsafe {
-            self.command_buffer.begin();
+            command_buffer.begin();
         }
 
         let image_barrier = memory::Barrier::Image {
@@ -230,13 +230,13 @@ impl<B: Backend> NesScreen<B> {
         };
 
         unsafe {
-            self.command_buffer.pipeline_barrier(
+            command_buffer.pipeline_barrier(
                 PipelineStage::TOP_OF_PIPE..PipelineStage::TRANSFER,
                 memory::Dependencies::empty(),
                 &[image_barrier],
             );
 
-            self.command_buffer.copy_buffer_to_image(
+            command_buffer.copy_buffer_to_image(
                 &self.staging_buffer,
                 &self.image,
                 image::Layout::TransferDstOptimal,
@@ -274,16 +274,16 @@ impl<B: Backend> NesScreen<B> {
         };
 
         unsafe {
-            self.command_buffer.pipeline_barrier(
+            command_buffer.pipeline_barrier(
                 PipelineStage::TRANSFER..PipelineStage::FRAGMENT_SHADER,
                 memory::Dependencies::empty(),
                 &[image_barrier],
             );
 
-            self.command_buffer.finish();
+            command_buffer.finish();
 
             queues.queues[0].submit_nosemaphores(
-                iter::once(&self.command_buffer),
+                iter::once(&*command_buffer),
                 Some(&self.image_transfer_fence),
             );
         }

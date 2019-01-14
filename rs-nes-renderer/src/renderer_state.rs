@@ -2,9 +2,8 @@ use std::mem::size_of;
 
 use gfx_hal::{
     buffer, memory,
-    pool::CommandPoolCreateFlags,
     pso::{self, ShaderStageFlags},
-    Backend, CommandPool, Device, Graphics, QueueGroup, Surface,
+    Backend, Device, Graphics, QueueGroup, Surface,
 };
 
 use crate::{
@@ -37,7 +36,6 @@ pub struct RendererState<B: Backend> {
     device: B::Device,
     physical_device: B::PhysicalDevice,
     queues: QueueGroup<B, Graphics>,
-    command_pool: CommandPool<B, Graphics>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -120,16 +118,8 @@ impl<B: Backend> RendererState<B> {
             )
         };
 
-        // TODO: Store this command pool on the renderer and reuse
-        let mut command_pool = unsafe {
-            device
-                .create_command_pool_typed(&queues, CommandPoolCreateFlags::empty())
-                .expect("Can't create command pool")
-        };
-
         let nes_screen_buffer = NesScreen::new(
             &mut device,
-            &mut command_pool,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
@@ -209,7 +199,6 @@ impl<B: Backend> RendererState<B> {
             physical_device: adapter.physical_device,
             queues,
             swapchain: Some(swapchain),
-            command_pool,
         }
     }
 
@@ -262,15 +251,6 @@ impl<B: Backend> RendererState<B> {
         self.nes_screen_buffer
             .update_buffer_data(screen_buffer, &self.device);
 
-        // The following line causing huge memory leak with dx12 backend
-        // See https://github.com/gfx-rs/gfx/issues/2556
-        // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
-        self.nes_screen_buffer
-            .copy_buffer_to_texture(&mut self.queues);
-
-        self.nes_screen_buffer
-            .wait_for_transfer_completion(&self.device);
-
         let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
 
         let next_image_index = {
@@ -284,6 +264,20 @@ impl<B: Backend> RendererState<B> {
             }
             image_index.unwrap()
         };
+
+        // The following line causing huge memory leak with dx12 backend
+        // See https://github.com/gfx-rs/gfx/issues/2556
+        // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
+        self.nes_screen_buffer.copy_buffer_to_texture(
+            self.swapchain
+                .as_mut()
+                .unwrap()
+                .command_buffer(next_image_index),
+            &mut self.queues,
+        );
+
+        self.nes_screen_buffer
+            .wait_for_transfer_completion(&self.device);
 
         self.swapchain
             .as_mut()
@@ -306,8 +300,6 @@ impl<B: Backend> RendererState<B> {
     pub fn destroy(mut self) {
         self.device.wait_idle().expect("Wait idle failed");
         unsafe {
-            self.device
-                .destroy_command_pool(self.command_pool.into_raw());
             self.device.destroy_descriptor_pool(self.img_desc_pool);
             self.device.destroy_descriptor_pool(self.uniform_desc_pool);
             self.device.destroy_buffer(self.vertex_buffer);
