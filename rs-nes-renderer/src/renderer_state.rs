@@ -37,6 +37,7 @@ pub struct RendererState<B: Backend> {
     device: B::Device,
     physical_device: B::PhysicalDevice,
     queues: QueueGroup<B, Graphics>,
+    command_pool: CommandPool<B, Graphics>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -118,10 +119,17 @@ impl<B: Backend> RendererState<B> {
                 uniform_desc.create_desc_set(&mut uniform_desc_pool),
             )
         };
-        let nes_screen_buffer_command_pool = RendererState::create_command_pool(&device, &queues);
+
+        // TODO: Store this command pool on the renderer and reuse
+        let mut command_pool = unsafe {
+            device
+                .create_command_pool_typed(&queues, CommandPoolCreateFlags::empty())
+                .expect("Can't create command pool")
+        };
+
         let nes_screen_buffer = NesScreen::new::<Graphics>(
             &mut device,
-            nes_screen_buffer_command_pool,
+            &mut command_pool,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
@@ -201,6 +209,7 @@ impl<B: Backend> RendererState<B> {
             physical_device: adapter.physical_device,
             queues,
             swapchain: Some(swapchain),
+            command_pool,
         }
     }
 
@@ -294,28 +303,16 @@ impl<B: Backend> RendererState<B> {
         render_status
     }
 
-    pub fn create_command_pool(
-        device: &B::Device,
-        queues: &QueueGroup<B, Graphics>,
-    ) -> CommandPool<B, Graphics> {
-        unsafe {
-            device
-                .create_command_pool_typed(queues, CommandPoolCreateFlags::empty())
-                .expect("Can't create command pool")
-        }
-    }
-
     pub fn destroy(mut self) {
         self.device.wait_idle().unwrap();
         unsafe {
             self.device.destroy_descriptor_pool(self.img_desc_pool);
-
             self.device.destroy_descriptor_pool(self.uniform_desc_pool);
-
             self.device.destroy_buffer(self.vertex_buffer);
             self.device.free_memory(self.vertex_memory);
+            self.device
+                .destroy_command_pool(self.command_pool.into_raw());
         }
-
         self.palette_uniform.destroy(&self.device);
         self.nes_screen_buffer.destroy(&self.device);
         self.swapchain.take().unwrap().destroy(&self.device);
