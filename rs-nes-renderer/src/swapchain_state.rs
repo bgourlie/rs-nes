@@ -11,6 +11,7 @@ use gfx_hal::{
     Backbuffer, Backend, CommandPool, Device, FrameSync, Graphics, Primitive, QueueGroup,
     Submission, Surface, SwapImageIndex, Swapchain, SwapchainConfig,
 };
+use smallvec::SmallVec;
 
 use crate::{vertex::Vertex, FrameBufferFormat, COLOR_RANGE};
 
@@ -18,12 +19,12 @@ pub struct SwapchainState<B: Backend> {
     swapchain: B::Swapchain,
     pub extent: i::Extent,
     render_pass: B::RenderPass,
-    framebuffers: Vec<B::Framebuffer>,
-    framebuffer_fences: Vec<B::Fence>,
-    command_pools: Vec<CommandPool<B, Graphics>>,
-    frame_images: Vec<(B::Image, B::ImageView)>,
-    acquire_semaphores: Vec<B::Semaphore>,
-    present_semaphores: Vec<B::Semaphore>,
+    framebuffers: SmallVec<[B::Framebuffer; 2]>,
+    framebuffer_fences: SmallVec<[B::Fence; 2]>,
+    command_pools: SmallVec<[CommandPool<B, Graphics>; 2]>,
+    frame_images: SmallVec<[(B::Image, B::ImageView); 2]>,
+    acquire_semaphores: SmallVec<[B::Semaphore; 2]>,
+    present_semaphores: SmallVec<[B::Semaphore; 2]>,
     last_ref: usize,
     pipeline: B::GraphicsPipeline,
     pipeline_layout: B::PipelineLayout,
@@ -93,7 +94,6 @@ impl<B: Backend> SwapchainState<B> {
                 .expect("Couldn't create render pass")
         };
 
-        // Framebuffer stuff
         let (frame_images, framebuffers) = match backbuffer {
             Backbuffer::Images(images) => {
                 let extent = i::Extent {
@@ -135,7 +135,6 @@ impl<B: Backend> SwapchainState<B> {
             1 // GL can have zero
         };
 
-        // TODO: Use SmallVec for these
         let mut framebuffer_fences: Vec<B::Fence> = vec![];
         let mut command_pools: Vec<CommandPool<B, Graphics>> = vec![];
         let mut acquire_semaphores: Vec<B::Semaphore> = vec![];
@@ -250,6 +249,23 @@ impl<B: Backend> SwapchainState<B> {
 
             pipeline.unwrap()
         };
+
+        let acquire_semaphores = SmallVec::from(acquire_semaphores);
+        let command_pools = SmallVec::from(command_pools);
+        let frame_images = SmallVec::from(frame_images);
+        let framebuffer_fences = SmallVec::from(framebuffer_fences);
+        let framebuffers = SmallVec::from(framebuffers);
+        let present_semaphores = SmallVec::from(present_semaphores);
+
+        if acquire_semaphores.spilled()
+            || command_pools.spilled()
+            || frame_images.spilled()
+            || framebuffer_fences.spilled()
+            || framebuffers.spilled()
+            || present_semaphores.spilled()
+        {
+            panic!("Resource vector spilled");
+        }
 
         SwapchainState {
             swapchain,
