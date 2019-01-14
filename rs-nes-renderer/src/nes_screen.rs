@@ -1,10 +1,9 @@
 use std::iter;
 
 use gfx_hal::{
-    Limits, MemoryType,
     buffer, command, format, image, memory,
     pso::{self, PipelineStage},
-    Backend, CommandPool, Device, Graphics, Supports, Transfer,
+    Backend, CommandPool, Device, Graphics, Limits, MemoryType, Supports, Transfer,
 };
 
 use crate::{
@@ -38,7 +37,7 @@ impl<B: Backend> NesScreen<B> {
         height: u32,
         mut desc: DescSet<B>,
         limits: Limits,
-        memory_types: &[MemoryType]
+        memory_types: &[MemoryType],
     ) -> Self {
         let row_alignment_mask = limits.min_buffer_copy_pitch_alignment as u32 - 1;
         let row_pitch =

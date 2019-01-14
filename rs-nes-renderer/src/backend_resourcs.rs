@@ -1,4 +1,4 @@
-use gfx_hal::{Adapter, MemoryType, Limits, Backend, Instance, PhysicalDevice};
+use gfx_hal::{Adapter, Backend, Instance, Limits, MemoryType, PhysicalDevice};
 use winit::{EventsLoop, Window, WindowBuilder};
 
 pub struct BackendResources<B: Backend> {
@@ -10,13 +10,21 @@ pub struct BackendResources<B: Backend> {
 }
 
 impl<B: Backend> BackendResources<B> {
-    pub fn take(self) -> (B::Surface, Adapter<B>, Limits, Vec<MemoryType>, Option<Window>) {
+    pub fn take(
+        self,
+    ) -> (
+        B::Surface,
+        Adapter<B>,
+        Limits,
+        Vec<MemoryType>,
+        Option<Window>,
+    ) {
         (
             self.surface,
             self.adapter,
             self.limits,
             self.memory_types,
-            self.window
+            self.window,
         )
     }
 }

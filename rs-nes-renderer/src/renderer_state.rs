@@ -1,19 +1,15 @@
-use std::{iter, mem::size_of};
+use std::mem::size_of;
 
 use gfx_hal::{
-    buffer, command, memory,
-    pso::{self, PipelineStage, ShaderStageFlags},
-    queue::Submission,
-    MemoryType, Limits,
-    Backend, Device, FrameSync, Graphics, SwapImageIndex, Swapchain,
+    buffer, memory,
+    pso::{self, ShaderStageFlags},
+    Backend, Device, Graphics, Limits, MemoryType,
 };
 
 use crate::{
-    backend_resourcs::BackendResources, descriptor_set::DescSetLayout,
-    device_state::DeviceState, framebuffer_state::FramebufferState, nes_screen::NesScreen,
-    palette::PALETTE, palette_uniform::PaletteUniform, pipeline_state::PipelineState,
-    render_pass_state::RenderPassState, swapchain_state::SwapchainState, vertex::Vertex,
-    COLOR_RANGE, DIMS, QUAD,
+    backend_resourcs::BackendResources, descriptor_set::DescSetLayout, device_state::DeviceState,
+    nes_screen::NesScreen, palette::PALETTE, palette_uniform::PaletteUniform,
+    pipeline_state::PipelineState, swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
 };
 
 use winit::Window;
@@ -33,21 +29,18 @@ pub struct RendererState<B: Backend> {
     pub window: Option<Window>,
     uniform_desc_pool: Option<B::DescriptorPool>,
     img_desc_pool: Option<B::DescriptorPool>,
-    swapchain: SwapchainState<B>,
+    swapchain: Option<SwapchainState<B>>,
     device: DeviceState<B>,
     vertex_memory: Option<B::Memory>,
     vertex_buffer: Option<B::Buffer>,
-    render_pass: RenderPassState<B>,
     palette_uniform: PaletteUniform<B>,
     pipeline: PipelineState<B>,
-    framebuffer: FramebufferState<B>,
     viewport: pso::Viewport,
     nes_screen: NesScreen<B>,
 }
 
 impl<B: Backend> RendererState<B> {
     pub fn new(backend_resources: BackendResources<B>) -> Self {
-
         let (mut surface, adapter, limits, memory_types, window) = backend_resources.take();
 
         if !is_gl_backend() && window.is_none() {
@@ -132,7 +125,7 @@ impl<B: Backend> RendererState<B> {
             SCREEN_HEIGHT as u32,
             image_desc,
             limits,
-            &memory_types
+            &memory_types,
         );
 
         let (vertex_memory, vertex_buffer) = {
@@ -179,28 +172,19 @@ impl<B: Backend> RendererState<B> {
         };
 
         let palette_uniform = unsafe {
-            PaletteUniform::new(
-                &mut device.device,
-                &memory_types,
-                &PALETTE,
-                uniform_desc,
-            )
+            PaletteUniform::new(&mut device.device, &memory_types, &PALETTE, uniform_desc)
         };
 
-        let (swapchain, render_pass, framebuffer, pipeline) = unsafe {
-            let mut swapchain = SwapchainState::new(&mut surface, &device, DIMS);
-            let render_pass = RenderPassState::new(&swapchain, &device.device);
-
-            let framebuffer =
-                FramebufferState::new(&device, &render_pass, &mut swapchain, &COLOR_RANGE);
+        let (swapchain, pipeline) = unsafe {
+            let swapchain = SwapchainState::new(&mut surface, &device, DIMS);
 
             let pipeline = PipelineState::new(
                 vec![nes_screen_buffer.layout(), palette_uniform.layout()],
-                render_pass.render_pass.as_ref().unwrap(),
+                &swapchain.render_pass,
                 &device.device,
             );
 
-            (swapchain, render_pass, framebuffer, pipeline)
+            (swapchain, pipeline)
         };
 
         let viewport = RendererState::create_viewport(&swapchain);
@@ -217,10 +201,8 @@ impl<B: Backend> RendererState<B> {
             vertex_buffer: Some(vertex_buffer),
             vertex_memory: Some(vertex_memory),
             palette_uniform,
-            render_pass,
             pipeline,
-            swapchain,
-            framebuffer,
+            swapchain: Some(swapchain),
             viewport,
         }
     }
@@ -229,29 +211,20 @@ impl<B: Backend> RendererState<B> {
         self.device.device.wait_idle().unwrap();
 
         unsafe {
-            SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
-            self.swapchain = SwapchainState::new(&mut self.surface, &self.device, DIMS);
-
-            RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
-            self.render_pass = RenderPassState::new(&self.swapchain, &self.device.device);
-
-            FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
-            self.framebuffer = FramebufferState::new(
-                &self.device,
-                &self.render_pass,
-                &mut self.swapchain,
-                &COLOR_RANGE,
-            );
+            let old_swapchain = self.swapchain.take().unwrap();
+            old_swapchain.destroy(&self.device.device);
+            self.swapchain = Some(SwapchainState::new(&mut self.surface, &self.device, DIMS));
+            //                .replace(&mut self.surface, &self.device, DIMS);
 
             PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
             self.pipeline = PipelineState::new(
                 vec![self.nes_screen.layout(), self.palette_uniform.layout()],
-                self.render_pass.render_pass.as_ref().unwrap(),
+                &self.swapchain.as_ref().unwrap().render_pass,
                 &self.device.device,
             );
         }
 
-        self.viewport = RendererState::create_viewport(&self.swapchain);
+        self.viewport = RendererState::create_viewport(self.swapchain.as_ref().unwrap());
     }
 
     fn create_viewport(swapchain: &SwapchainState<B>) -> pso::Viewport {
@@ -289,102 +262,35 @@ impl<B: Backend> RendererState<B> {
         self.nes_screen
             .wait_for_transfer_completion(&self.device.device);
 
-        let semaphore_index = self.framebuffer.next_acq_pre_pair_index();
+        let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
 
-        let frame: SwapImageIndex = unsafe {
-            let (acquire_semaphore, _) = self.framebuffer.get_frame_data(None, semaphore_index).1;
-            match self
-                .swapchain
+        let next_image_index = {
+            let image_index = self
                 .swapchain
                 .as_mut()
-                .expect("Swapchain shouldn't be None")
-                .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
-            {
-                Ok(image_index) => image_index,
-                Err(_) => return RenderStatus::RecreateSwapchain,
+                .unwrap()
+                .next_swap_image_index(acquire_semaphore_index);
+            if image_index.is_none() {
+                return RenderStatus::RecreateSwapchain;
             }
+            image_index.unwrap()
         };
 
-        let (frame_data, framebuffer_semaphores) = self
-            .framebuffer
-            .get_frame_data(Some(frame as usize), semaphore_index);
-
-        let (framebuffer_fence, framebuffer, command_pool) = frame_data.unwrap();
-        let (image_acquired_semaphore, image_present_semaphores) = framebuffer_semaphores;
-
-        unsafe {
-            self.device
-                .device
-                .wait_for_fence(framebuffer_fence, !0)
-                .unwrap();
-            self.device.device.reset_fence(framebuffer_fence).unwrap();
-            command_pool.reset();
-
-            // Rendering
-            let mut cmd_buffer = command_pool.acquire_command_buffer::<command::OneShot>();
-            cmd_buffer.begin();
-
-            cmd_buffer.set_viewports(0, &[self.viewport.clone()]);
-            cmd_buffer.set_scissors(0, &[self.viewport.rect]);
-            cmd_buffer.bind_graphics_pipeline(self.pipeline.pipeline.as_ref().unwrap());
-            cmd_buffer.bind_vertex_buffers(
-                0,
-                Some((
-                    self.vertex_buffer
-                        .as_ref()
-                        .expect("Vertex buffer shouldn't be None"),
-                    0,
-                )),
-            );
-            cmd_buffer.bind_graphics_descriptor_sets(
-                self.pipeline.pipeline_layout.as_ref().unwrap(),
-                0,
-                vec![
-                    self.nes_screen.descriptor_set(),
-                    self.palette_uniform.descriptor_set(),
-                ],
-                &[],
-            );
-
-            {
-                let mut encoder = cmd_buffer.begin_render_pass_inline(
-                    self.render_pass.render_pass.as_ref().unwrap(),
-                    framebuffer,
-                    self.viewport.rect,
-                    &[command::ClearValue::Color(command::ClearColor::Float([
-                        0.8, 0.8, 0.8, 1.0,
-                    ]))],
-                );
-                encoder.draw(0..6, 0..1);
-            }
-            cmd_buffer.finish();
-
-            let submission = Submission {
-                command_buffers: iter::once(&cmd_buffer),
-                wait_semaphores: iter::once((
-                    &*image_acquired_semaphore,
-                    PipelineStage::BOTTOM_OF_PIPE,
-                )),
-                signal_semaphores: iter::once(&*image_present_semaphores),
-            };
-
-            self.device.queues.queues[0].submit(submission, Some(framebuffer_fence));
-
-            // present frame
-            if self
-                .swapchain
-                .swapchain
-                .as_ref()
-                .unwrap()
-                .present(
-                    &mut self.device.queues.queues[0],
-                    frame,
-                    Some(&*image_present_semaphores),
-                )
-                .is_err()
-            {
-                render_status = RenderStatus::RecreateSwapchain
-            }
+        self.swapchain
+            .as_mut()
+            .unwrap()
+            .wait_for_image_fence(next_image_index, &self.device.device);
+        if !self.swapchain.as_mut().unwrap().present(
+            next_image_index,
+            &self.viewport,
+            &mut self.device.queues,
+            self.pipeline.pipeline.as_ref().unwrap(),
+            self.vertex_buffer.as_ref().unwrap(),
+            self.pipeline.pipeline_layout.as_ref().unwrap(),
+            self.nes_screen.descriptor_set(),
+            self.palette_uniform.descriptor_set(),
+        ) {
+            render_status = RenderStatus::RecreateSwapchain
         }
 
         render_status
@@ -422,10 +328,8 @@ impl<B: Backend> Drop for RendererState<B> {
 
         PaletteUniform::destroy_resources(&mut self.palette_uniform, &self.device.device);
         NesScreen::destroy_resources(&mut self.nes_screen, &self.device.device);
-        FramebufferState::destroy_resources(&mut self.framebuffer, &self.device.device);
-        SwapchainState::destroy_resources(&mut self.swapchain, &self.device.device);
+        self.swapchain.take().unwrap().destroy(&self.device.device);
         PipelineState::destroy_resources(&mut self.pipeline, &self.device.device);
-        RenderPassState::destroy_resources(&mut self.render_pass, &self.device.device);
     }
 }
 
