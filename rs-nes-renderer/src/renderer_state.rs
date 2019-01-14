@@ -127,7 +127,7 @@ impl<B: Backend> RendererState<B> {
                 .expect("Can't create command pool")
         };
 
-        let nes_screen_buffer = NesScreen::new::<Graphics>(
+        let nes_screen_buffer = NesScreen::new(
             &mut device,
             &mut command_pool,
             SCREEN_WIDTH as u32,
@@ -304,14 +304,14 @@ impl<B: Backend> RendererState<B> {
     }
 
     pub fn destroy(mut self) {
-        self.device.wait_idle().unwrap();
+        self.device.wait_idle().expect("Wait idle failed");
         unsafe {
+            self.device
+                .destroy_command_pool(self.command_pool.into_raw());
             self.device.destroy_descriptor_pool(self.img_desc_pool);
             self.device.destroy_descriptor_pool(self.uniform_desc_pool);
             self.device.destroy_buffer(self.vertex_buffer);
             self.device.free_memory(self.vertex_memory);
-            self.device
-                .destroy_command_pool(self.command_pool.into_raw());
         }
         self.palette_uniform.destroy(&self.device);
         self.nes_screen_buffer.destroy(&self.device);

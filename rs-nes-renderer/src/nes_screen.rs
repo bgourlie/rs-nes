@@ -5,7 +5,7 @@ use gfx_hal::{
     command::{self, CommandBuffer},
     format, image, memory,
     pso::{self, PipelineStage},
-    Backend, CommandPool, Device, Graphics, Limits, MemoryType, QueueGroup, Supports, Transfer,
+    Backend, CommandPool, Device, Graphics, Limits, MemoryType, QueueGroup,
 };
 
 use crate::{
@@ -32,7 +32,7 @@ pub struct NesScreen<B: Backend> {
 }
 
 impl<B: Backend> NesScreen<B> {
-    pub fn new<T: Supports<Transfer>>(
+    pub fn new(
         device: &mut B::Device,
         command_pool: &mut CommandPool<B, Graphics>,
         width: u32,
