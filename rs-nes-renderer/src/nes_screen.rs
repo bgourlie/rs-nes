@@ -3,12 +3,11 @@ use std::iter;
 use gfx_hal::{
     buffer, command, format, image, memory,
     pso::{self, PipelineStage},
-    Backend, CommandPool, Device, Graphics, Limits, MemoryType, Supports, Transfer,
+    Backend, CommandPool, Device, Graphics, Limits, MemoryType, QueueGroup, Supports, Transfer,
 };
 
 use crate::{
     descriptor_set::{DescSet, DescSetWrite},
-    device_state::DeviceState,
     ScreenBufferFormat, COLOR_RANGE,
 };
 
@@ -18,7 +17,7 @@ pub struct NesScreen<B: Backend> {
     desc: DescSet<B>,
     staging_buffer: B::Buffer,
     staging_buffer_memory: B::Memory,
-    staging_pool: CommandPool<B, Graphics>,
+    command_pool: CommandPool<B, Graphics>,
     sampler: B::Sampler,
     image_view: B::ImageView,
     image: B::Image,
@@ -32,7 +31,8 @@ pub struct NesScreen<B: Backend> {
 
 impl<B: Backend> NesScreen<B> {
     pub fn new<T: Supports<Transfer>>(
-        device: &mut DeviceState<B>,
+        device: &mut B::Device,
+        command_pool: CommandPool<B, Graphics>,
         width: u32,
         height: u32,
         mut desc: DescSet<B>,
@@ -48,12 +48,11 @@ impl<B: Backend> NesScreen<B> {
         let image_kind = image::Kind::D2(width as image::Size, height as image::Size, 1, 1);
         let (mut staging_buffer, staging_buffer_memory_requirements) = unsafe {
             let staging_buffer = device
-                .device
                 .create_buffer(upload_size, buffer::Usage::TRANSFER_SRC)
                 .expect("Unable to create staging buffer");
 
             let staging_buffer_memory_requirements =
-                device.device.get_buffer_requirements(&staging_buffer);
+                device.get_buffer_requirements(&staging_buffer);
 
             (staging_buffer, staging_buffer_memory_requirements)
         };
@@ -72,7 +71,6 @@ impl<B: Backend> NesScreen<B> {
 
         let (staging_buffer_memory, mut image, req) = unsafe {
             let staging_buffer_memory = device
-                .device
                 .allocate_memory(
                     staging_buffer_memory_type,
                     staging_buffer_memory_requirements.size,
@@ -80,12 +78,10 @@ impl<B: Backend> NesScreen<B> {
                 .expect("Unable to allocate staging buffer memory");
 
             device
-                .device
                 .bind_buffer_memory(&staging_buffer_memory, 0, &mut staging_buffer)
                 .expect("Unable to bind staging buffer memory");
 
             let image = device
-                .device
                 .create_image(
                     image_kind,
                     1,
@@ -96,7 +92,7 @@ impl<B: Backend> NesScreen<B> {
                 )
                 .expect("Unable to create image");
 
-            let req = device.device.get_image_requirements(&image);
+            let req = device.get_image_requirements(&image);
             (staging_buffer_memory, image, req)
         };
 
@@ -114,17 +110,14 @@ impl<B: Backend> NesScreen<B> {
 
         let (texture_memory, image_view, sampler) = unsafe {
             let texture_memory = device
-                .device
                 .allocate_memory(texture_memory_type, req.size)
                 .expect("Unable to allocate texture memory");
 
             device
-                .device
                 .bind_image_memory(&texture_memory, 0, &mut image)
                 .expect("Unable to bind texture memory to image");
 
             let image_view = device
-                .device
                 .create_image_view(
                     &image,
                     image::ViewKind::D2,
@@ -135,7 +128,6 @@ impl<B: Backend> NesScreen<B> {
                 .expect("Unable to create image view");
 
             let sampler = device
-                .device
                 .create_sampler(image::SamplerInfo::new(
                     image::Filter::Nearest,
                     image::WrapMode::Clamp,
@@ -158,20 +150,16 @@ impl<B: Backend> NesScreen<B> {
                         descriptors: Some(pso::Descriptor::Sampler(&sampler)),
                     },
                 ],
-                &mut device.device,
+                device,
             );
 
             (texture_memory, image_view, sampler)
         };
 
-        let image_transfer_fence = device
-            .device
-            .create_fence(false)
-            .expect("Can't create fence");
-        let staging_pool = device.create_command_pool();
+        let image_transfer_fence = device.create_fence(false).expect("Can't create fence");
 
         NesScreen {
-            staging_pool,
+            command_pool,
             desc,
             staging_buffer,
             staging_buffer_memory,
@@ -221,10 +209,10 @@ impl<B: Backend> NesScreen<B> {
         }
     }
 
-    pub fn copy_buffer_to_texture(&mut self, device_state: &mut DeviceState<B>) {
+    pub fn copy_buffer_to_texture(&mut self, queues: &mut QueueGroup<B, Graphics>) {
         let (image_width, image_height) = self.dimensions;
         let mut cmd_buffer = self
-            .staging_pool
+            .command_pool
             .acquire_command_buffer::<command::OneShot>();
 
         unsafe {
@@ -295,7 +283,7 @@ impl<B: Backend> NesScreen<B> {
 
             cmd_buffer.finish();
 
-            device_state.queues.queues[0]
+            queues.queues[0]
                 .submit_nosemaphores(iter::once(&cmd_buffer), Some(&self.image_transfer_fence));
 
             // TODO: Reuse
@@ -325,7 +313,7 @@ impl<B: Backend> NesScreen<B> {
                 .unwrap();
 
             device.destroy_fence(self.image_transfer_fence);
-            device.destroy_command_pool(self.staging_pool.into_raw());
+            device.destroy_command_pool(self.command_pool.into_raw());
             device.destroy_sampler(self.sampler);
             device.destroy_image_view(self.image_view);
             device.destroy_image(self.image);

@@ -12,13 +12,12 @@ use gfx_hal::{
     Submission, Surface, SwapImageIndex, Swapchain, SwapchainConfig,
 };
 
-use crate::{device_state::DeviceState, vertex::Vertex, FrameBufferFormat, COLOR_RANGE};
+use crate::{vertex::Vertex, FrameBufferFormat, COLOR_RANGE};
 
 pub struct SwapchainState<B: Backend> {
-    pub swapchain: B::Swapchain,
+    swapchain: B::Swapchain,
     pub extent: i::Extent,
-    pub format: f::Format,
-    pub render_pass: B::RenderPass,
+    render_pass: B::RenderPass,
     framebuffers: Vec<B::Framebuffer>,
     framebuffer_fences: Vec<B::Fence>,
     command_pools: Vec<CommandPool<B, Graphics>>,
@@ -26,14 +25,16 @@ pub struct SwapchainState<B: Backend> {
     acquire_semaphores: Vec<B::Semaphore>,
     present_semaphores: Vec<B::Semaphore>,
     last_ref: usize,
-    pub pipeline: B::GraphicsPipeline,
-    pub pipeline_layout: B::PipelineLayout,
+    pipeline: B::GraphicsPipeline,
+    pipeline_layout: B::PipelineLayout,
 }
 
 impl<B: Backend> SwapchainState<B> {
     pub unsafe fn new<IS>(
         surface: &mut B::Surface,
-        device: &DeviceState<B>,
+        device: &B::Device,
+        physical_device: &B::PhysicalDevice,
+        queues: &QueueGroup<B, Graphics>,
         desc_layouts: IS,
         dimensions: Extent2D,
     ) -> Self
@@ -42,7 +43,7 @@ impl<B: Backend> SwapchainState<B> {
         IS::Item: std::borrow::Borrow<B::DescriptorSetLayout>,
     {
         let (caps, formats, _present_modes, _composite_alphas) =
-            surface.compatibility(&device.physical_device);
+            surface.compatibility(&physical_device);
         println!("formats: {:?}", formats);
         let format = formats.map_or(FrameBufferFormat::SELF, |formats| {
             formats
@@ -56,7 +57,6 @@ impl<B: Backend> SwapchainState<B> {
         let swap_config = SwapchainConfig::from_caps(&caps, format, dimensions);
         let extent = swap_config.extent.to_extent();
         let (swapchain, backbuffer) = device
-            .device
             .create_swapchain(surface, swap_config, None)
             .expect("Can't create swapchain");
 
@@ -89,7 +89,6 @@ impl<B: Backend> SwapchainState<B> {
             };
 
             device
-                .device
                 .create_render_pass(&[attachment], &[subpass], &[dependency])
                 .expect("Couldn't create render pass")
         };
@@ -106,7 +105,6 @@ impl<B: Backend> SwapchainState<B> {
                     .into_iter()
                     .map(|image| {
                         let rtv = device
-                            .device
                             .create_image_view(
                                 &image,
                                 i::ViewKind::D2,
@@ -122,7 +120,6 @@ impl<B: Backend> SwapchainState<B> {
                     .iter()
                     .map(|&(_, ref rtv)| {
                         device
-                            .device
                             .create_framebuffer(&render_pass, Some(rtv), extent)
                             .unwrap()
                     })
@@ -145,23 +142,18 @@ impl<B: Backend> SwapchainState<B> {
         let mut present_semaphores: Vec<B::Semaphore> = vec![];
 
         for _ in 0..iter_count {
-            framebuffer_fences.push(device.device.create_fence(true).unwrap());
+            framebuffer_fences.push(device.create_fence(true).unwrap());
             command_pools.push(
                 device
-                    .device
-                    .create_command_pool_typed(
-                        &device.queues,
-                        pool::CommandPoolCreateFlags::empty(),
-                    )
+                    .create_command_pool_typed(queues, pool::CommandPoolCreateFlags::empty())
                     .expect("Can't create command pool"),
             );
 
-            acquire_semaphores.push(device.device.create_semaphore().unwrap());
-            present_semaphores.push(device.device.create_semaphore().unwrap());
+            acquire_semaphores.push(device.create_semaphore().unwrap());
+            present_semaphores.push(device.create_semaphore().unwrap());
         }
 
         let pipeline_layout = device
-            .device
             .create_pipeline_layout(desc_layouts, &[(pso::ShaderStageFlags::VERTEX, 0..8)])
             .expect("Can't create pipeline layout");
 
@@ -174,7 +166,7 @@ impl<B: Backend> SwapchainState<B> {
                         .bytes()
                         .map(|b| b.unwrap())
                         .collect();
-                device.device.create_shader_module(&spirv).unwrap()
+                device.create_shader_module(&spirv).unwrap()
             };
             let fs_module = {
                 let glsl = fs::read_to_string("data/quad.frag").unwrap();
@@ -184,7 +176,7 @@ impl<B: Backend> SwapchainState<B> {
                         .bytes()
                         .map(|b| b.unwrap())
                         .collect();
-                device.device.create_shader_module(&spirv).unwrap()
+                device.create_shader_module(&spirv).unwrap()
             };
 
             const SHADER_ENTRY_NAME: &str = "main";
@@ -250,11 +242,11 @@ impl<B: Backend> SwapchainState<B> {
                     },
                 });
 
-                device.device.create_graphics_pipeline(&pipeline_desc, None)
+                device.create_graphics_pipeline(&pipeline_desc, None)
             };
 
-            device.device.destroy_shader_module(vs_module);
-            device.device.destroy_shader_module(fs_module);
+            device.destroy_shader_module(vs_module);
+            device.destroy_shader_module(fs_module);
 
             pipeline.unwrap()
         };
@@ -262,7 +254,6 @@ impl<B: Backend> SwapchainState<B> {
         SwapchainState {
             swapchain,
             extent,
-            format,
             acquire_semaphores,
             command_pools,
             frame_images,

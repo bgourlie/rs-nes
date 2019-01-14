@@ -2,14 +2,15 @@ use std::mem::size_of;
 
 use gfx_hal::{
     buffer, memory,
+    pool::CommandPoolCreateFlags,
     pso::{self, ShaderStageFlags},
-    Backend, Device, Graphics, Limits, MemoryType,
+    Backend, CommandPool, Device, Graphics, QueueGroup, Surface,
 };
 
 use crate::{
-    backend_resources::BackendResources, descriptor_set::DescSetLayout, device_state::DeviceState,
-    nes_screen::NesScreen, palette::PALETTE, palette_uniform::PaletteUniform,
-    swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
+    backend_resources::BackendResources, descriptor_set::DescSetLayout, nes_screen::NesScreen,
+    palette::PALETTE, palette_uniform::PaletteUniform, swapchain_state::SwapchainState,
+    vertex::Vertex, DIMS, QUAD,
 };
 
 use winit::Window;
@@ -24,18 +25,18 @@ pub enum RenderStatus {
 
 pub struct RendererState<B: Backend> {
     pub surface: B::Surface,
-    pub memory_types: Vec<MemoryType>,
-    pub limits: Limits,
-    pub window: Option<Window>,
+    window: Option<Window>,
     uniform_desc_pool: B::DescriptorPool,
     img_desc_pool: B::DescriptorPool,
     swapchain: Option<SwapchainState<B>>,
-    device: DeviceState<B>,
     vertex_memory: B::Memory,
     vertex_buffer: B::Buffer,
     palette_uniform: PaletteUniform<B>,
     viewport: pso::Viewport,
     nes_screen_buffer: NesScreen<B>,
+    pub device: B::Device,
+    pub physical_device: B::PhysicalDevice,
+    pub queues: QueueGroup<B, Graphics>,
 }
 
 impl<B: Backend> RendererState<B> {
@@ -46,10 +47,12 @@ impl<B: Backend> RendererState<B> {
             panic!("Window shouldn't be None")
         }
 
-        let mut device = DeviceState::new(adapter, &surface);
+        let (mut device, queues) = adapter
+            .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
+            .unwrap();
 
         let image_desc = DescSetLayout::new(
-            &device.device,
+            &device,
             vec![
                 pso::DescriptorSetLayoutBinding {
                     binding: 0,
@@ -69,7 +72,7 @@ impl<B: Backend> RendererState<B> {
         );
 
         let uniform_desc = DescSetLayout::new(
-            &device.device,
+            &device,
             vec![pso::DescriptorSetLayoutBinding {
                 binding: 0,
                 ty: pso::DescriptorType::UniformBuffer,
@@ -81,7 +84,6 @@ impl<B: Backend> RendererState<B> {
 
         let mut img_desc_pool = unsafe {
             device
-                .device
                 .create_descriptor_pool(
                     1, // # of sets
                     &[
@@ -100,7 +102,6 @@ impl<B: Backend> RendererState<B> {
 
         let mut uniform_desc_pool = unsafe {
             device
-                .device
                 .create_descriptor_pool(
                     1, // # of sets
                     &[pso::DescriptorRangeDesc {
@@ -117,9 +118,10 @@ impl<B: Backend> RendererState<B> {
                 uniform_desc.create_desc_set(&mut uniform_desc_pool),
             )
         };
-
+        let nes_screen_buffer_command_pool = RendererState::create_command_pool(&device, &queues);
         let nes_screen_buffer = NesScreen::new::<Graphics>(
             &mut device,
+            nes_screen_buffer_command_pool,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
             image_desc,
@@ -130,8 +132,6 @@ impl<B: Backend> RendererState<B> {
         let (vertex_memory, vertex_buffer) = {
             let vertex_stride = size_of::<Vertex>() as u64;
             let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
-
-            let device = &device.device;
 
             let mut buffer = unsafe {
                 device
@@ -172,11 +172,13 @@ impl<B: Backend> RendererState<B> {
 
         let (palette_uniform, swapchain) = unsafe {
             let palette_uniform =
-                PaletteUniform::new(&mut device.device, &memory_types, &PALETTE, uniform_desc);
+                PaletteUniform::new(&mut device, &memory_types, &PALETTE, uniform_desc);
 
             let swapchain_state = SwapchainState::new(
                 &mut surface,
                 &device,
+                &adapter.physical_device,
+                &queues,
                 vec![nes_screen_buffer.layout(), palette_uniform.layout()],
                 DIMS,
             );
@@ -186,8 +188,6 @@ impl<B: Backend> RendererState<B> {
         let viewport = RendererState::create_viewport(&swapchain);
 
         RendererState {
-            limits,
-            memory_types,
             surface,
             window,
             device,
@@ -198,19 +198,23 @@ impl<B: Backend> RendererState<B> {
             vertex_memory,
             palette_uniform,
             viewport,
+            physical_device: adapter.physical_device,
+            queues,
             swapchain: Some(swapchain),
         }
     }
 
     fn recreate_swapchain(&mut self) {
-        self.device.device.wait_idle().unwrap();
+        self.device.wait_idle().unwrap();
 
         unsafe {
             let old_swapchain = self.swapchain.take().unwrap();
-            old_swapchain.destroy(&self.device.device);
+            old_swapchain.destroy(&self.device);
             self.swapchain = Some(SwapchainState::new(
                 &mut self.surface,
                 &self.device,
+                &self.physical_device,
+                &self.queues,
                 vec![
                     self.nes_screen_buffer.layout(),
                     self.palette_uniform.layout(),
@@ -247,16 +251,16 @@ impl<B: Backend> RendererState<B> {
         };
 
         self.nes_screen_buffer
-            .update_buffer_data(screen_buffer, &self.device.device);
+            .update_buffer_data(screen_buffer, &self.device);
 
         // The following line causing huge memory leak with dx12 backend
         // See https://github.com/gfx-rs/gfx/issues/2556
         // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
         self.nes_screen_buffer
-            .copy_buffer_to_texture(&mut self.device);
+            .copy_buffer_to_texture(&mut self.queues);
 
         self.nes_screen_buffer
-            .wait_for_transfer_completion(&self.device.device);
+            .wait_for_transfer_completion(&self.device);
 
         let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
 
@@ -275,11 +279,11 @@ impl<B: Backend> RendererState<B> {
         self.swapchain
             .as_mut()
             .unwrap()
-            .wait_for_image_fence(next_image_index, &self.device.device);
+            .wait_for_image_fence(next_image_index, &self.device);
         if !self.swapchain.as_mut().unwrap().present(
             next_image_index,
             &self.viewport,
-            &mut self.device.queues,
+            &mut self.queues,
             &self.vertex_buffer,
             self.nes_screen_buffer.descriptor_set(),
             self.palette_uniform.descriptor_set(),
@@ -290,24 +294,31 @@ impl<B: Backend> RendererState<B> {
         render_status
     }
 
-    pub fn destroy(mut self) {
-        self.device.device.wait_idle().unwrap();
+    pub fn create_command_pool(
+        device: &B::Device,
+        queues: &QueueGroup<B, Graphics>,
+    ) -> CommandPool<B, Graphics> {
         unsafe {
-            self.device
-                .device
-                .destroy_descriptor_pool(self.img_desc_pool);
+            device
+                .create_command_pool_typed(queues, CommandPoolCreateFlags::empty())
+                .expect("Can't create command pool")
+        }
+    }
 
-            self.device
-                .device
-                .destroy_descriptor_pool(self.uniform_desc_pool);
+    pub fn destroy(mut self) {
+        self.device.wait_idle().unwrap();
+        unsafe {
+            self.device.destroy_descriptor_pool(self.img_desc_pool);
 
-            self.device.device.destroy_buffer(self.vertex_buffer);
-            self.device.device.free_memory(self.vertex_memory);
+            self.device.destroy_descriptor_pool(self.uniform_desc_pool);
+
+            self.device.destroy_buffer(self.vertex_buffer);
+            self.device.free_memory(self.vertex_memory);
         }
 
-        self.palette_uniform.destroy(&self.device.device);
-        self.nes_screen_buffer.destroy(&self.device.device);
-        self.swapchain.take().unwrap().destroy(&self.device.device);
+        self.palette_uniform.destroy(&self.device);
+        self.nes_screen_buffer.destroy(&self.device);
+        self.swapchain.take().unwrap().destroy(&self.device);
     }
 }
 
