@@ -7,7 +7,7 @@ use gfx_hal::{
 };
 
 use crate::{
-    backend_resourcs::BackendResources, descriptor_set::DescSetLayout, device_state::DeviceState,
+    backend_resources::BackendResources, descriptor_set::DescSetLayout, device_state::DeviceState,
     nes_screen::NesScreen, palette::PALETTE, palette_uniform::PaletteUniform,
     pipeline_state::PipelineState, swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
 };
