@@ -77,11 +77,11 @@ impl<B: Backend> PaletteUniform<B> {
         self.desc.set.as_ref().unwrap()
     }
 
-    pub fn destroy(mut self, device: &B::Device) {
+    pub fn destroy(self, device: &B::Device) {
         unsafe {
             device.destroy_buffer(self.buffer);
             device.free_memory(self.memory);
-            DescSet::destroy_resources(&mut self.desc, device);
+            self.desc.destroy(device);
         }
     }
 }

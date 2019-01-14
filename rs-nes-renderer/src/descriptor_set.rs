@@ -18,7 +18,7 @@ impl<B: Backend> DescSetLayout<B> {
         let desc_set = desc_pool.allocate_set(&layout).unwrap();
 
         DescSet {
-            layout: Some(layout),
+            layout,
             set: Some(desc_set),
         }
     }
@@ -27,18 +27,13 @@ impl<B: Backend> DescSetLayout<B> {
 pub struct DescSet<B: Backend> {
     // TODO: This appears to be a transient resource that we don't need to hold onto or destroy
     pub set: Option<B::DescriptorSet>,
-    pub layout: Option<B::DescriptorSetLayout>,
+    pub layout: B::DescriptorSetLayout,
 }
 
 impl<B: Backend> DescSet<B> {
-    pub fn destroy_resources(state: &mut Self, device: &B::Device) {
+    pub fn destroy(self, device: &B::Device) {
         unsafe {
-            device.destroy_descriptor_set_layout(
-                state
-                    .layout
-                    .take()
-                    .expect("Descriptor set layout shouldn't be None"),
-            );
+            device.destroy_descriptor_set_layout(self.layout);
         }
     }
 }
@@ -66,7 +61,7 @@ impl<B: Backend> DescSet<B> {
     }
 
     pub fn layout(&self) -> &B::DescriptorSetLayout {
-        self.layout.as_ref().unwrap()
+        &self.layout
     }
 }
 

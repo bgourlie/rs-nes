@@ -306,7 +306,7 @@ impl<B: Backend> NesScreen<B> {
         self.desc.layout()
     }
 
-    pub fn destroy(mut self, device: &B::Device) {
+    pub fn destroy(self, device: &B::Device) {
         unsafe {
             device
                 .wait_for_fence(&self.image_transfer_fence, 10_000)
@@ -320,7 +320,7 @@ impl<B: Backend> NesScreen<B> {
             device.free_memory(self.texture_memory);
             device.destroy_buffer(self.staging_buffer);
             device.free_memory(self.staging_buffer_memory);
-            DescSet::destroy_resources(&mut self.desc, device);
+            self.desc.destroy(device);
         }
     }
 }
