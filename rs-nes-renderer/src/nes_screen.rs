@@ -23,7 +23,6 @@ pub struct NesScreen<B: Backend> {
     image_view: B::ImageView,
     image: B::Image,
     texture_memory: B::Memory,
-    image_transfer_fence: B::Fence,
     dimensions: (u32, u32),
     row_pitch: u32,
     row_alignment_mask: u32,
@@ -156,7 +155,6 @@ impl<B: Backend> NesScreen<B> {
             (texture_memory, image_view, sampler)
         };
 
-        let image_transfer_fence = device.create_fence(false).expect("Can't create fence");
         NesScreen {
             desc,
             staging_buffer,
@@ -165,7 +163,6 @@ impl<B: Backend> NesScreen<B> {
             image_view,
             image,
             texture_memory,
-            image_transfer_fence,
             dimensions: (width, height),
             row_pitch,
             row_alignment_mask,
@@ -281,22 +278,7 @@ impl<B: Backend> NesScreen<B> {
             );
 
             command_buffer.finish();
-
-            queues.queues[0].submit_nosemaphores(
-                iter::once(&*command_buffer),
-                Some(&self.image_transfer_fence),
-            );
-        }
-    }
-
-    pub fn wait_for_transfer_completion(&self, device: &B::Device) {
-        unsafe {
-            device
-                .wait_for_fence(&self.image_transfer_fence, !0)
-                .unwrap();
-            device
-                .reset_fence(&self.image_transfer_fence)
-                .expect("Fence to reset");
+            queues.queues[0].submit_nosemaphores(iter::once(&*command_buffer), None);
         }
     }
 
@@ -306,11 +288,6 @@ impl<B: Backend> NesScreen<B> {
 
     pub fn destroy(self, device: &B::Device) {
         unsafe {
-            device
-                .wait_for_fence(&self.image_transfer_fence, 10_000)
-                .unwrap();
-
-            device.destroy_fence(self.image_transfer_fence);
             device.destroy_sampler(self.sampler);
             device.destroy_image_view(self.image_view);
             device.destroy_image(self.image);

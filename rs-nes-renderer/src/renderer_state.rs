@@ -276,13 +276,11 @@ impl<B: Backend> RendererState<B> {
             &mut self.queues,
         );
 
-        self.nes_screen_buffer
-            .wait_for_transfer_completion(&self.device);
-
         self.swapchain
             .as_mut()
             .unwrap()
             .wait_for_image_fence(next_image_index, &self.device);
+
         if !self.swapchain.as_mut().unwrap().present(
             next_image_index,
             &self.viewport,
