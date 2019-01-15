@@ -1,11 +1,9 @@
-use std::iter;
-
 use gfx_hal::{
     buffer,
     command::{self, CommandBuffer},
     format, image, memory,
     pso::{self, PipelineStage},
-    Backend, Device, Graphics, Limits, MemoryType, QueueGroup,
+    Backend, Device, Graphics, Limits, MemoryType,
 };
 
 use crate::{
@@ -204,16 +202,8 @@ impl<B: Backend> NesScreen<B> {
         }
     }
 
-    pub fn copy_buffer_to_texture(
-        &mut self,
-        command_buffer: &mut CommandBuffer<B, Graphics>,
-        queues: &mut QueueGroup<B, Graphics>,
-    ) {
+    pub fn record_transfer_commands(&self, command_buffer: &mut CommandBuffer<B, Graphics>) {
         let (image_width, image_height) = self.dimensions;
-
-        unsafe {
-            command_buffer.begin();
-        }
 
         let image_barrier = memory::Barrier::Image {
             states: (image::Access::empty(), image::Layout::Undefined)
@@ -276,9 +266,6 @@ impl<B: Backend> NesScreen<B> {
                 memory::Dependencies::empty(),
                 &[image_barrier],
             );
-
-            command_buffer.finish();
-            queues.queues[0].submit_nosemaphores(iter::once(&*command_buffer), None);
         }
     }
 

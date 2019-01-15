@@ -14,7 +14,10 @@ use gfx_hal::{
 };
 use smallvec::SmallVec;
 
-use crate::{vertex::Vertex, FrameBufferFormat, COLOR_RANGE};
+use crate::{
+    nes_screen::NesScreen, palette_uniform::PaletteUniform, vertex::Vertex, FrameBufferFormat,
+    COLOR_RANGE,
+};
 
 pub struct SwapchainState<B: Backend> {
     swapchain: B::Swapchain,
@@ -33,18 +36,16 @@ pub struct SwapchainState<B: Backend> {
 }
 
 impl<B: Backend> SwapchainState<B> {
-    pub unsafe fn new<IS>(
+    pub unsafe fn new(
         surface: &mut B::Surface,
         device: &B::Device,
         physical_device: &B::PhysicalDevice,
         queues: &QueueGroup<B, Graphics>,
-        desc_layouts: IS,
         dimensions: Extent2D,
-    ) -> Self
-    where
-        IS: IntoIterator,
-        IS::Item: std::borrow::Borrow<B::DescriptorSetLayout>,
-    {
+        nes_screen: &NesScreen<B>,
+        palette_uniform: &PaletteUniform<B>,
+        vertex_buffer: &B::Buffer,
+    ) -> Self {
         let (caps, formats, _present_modes, _composite_alphas) =
             surface.compatibility(&physical_device);
         println!("formats: {:?}", formats);
@@ -62,6 +63,16 @@ impl<B: Backend> SwapchainState<B> {
         let (swapchain, backbuffer) = device
             .create_swapchain(surface, swap_config, None)
             .expect("Can't create swapchain");
+
+        let viewport = Viewport {
+            rect: pso::Rect {
+                x: 0,
+                y: 0,
+                w: extent.width as i16,
+                h: extent.height as i16,
+            },
+            depth: 0.0..1.0,
+        };
 
         let render_pass = {
             let attachment = pass::Attachment {
@@ -156,7 +167,10 @@ impl<B: Backend> SwapchainState<B> {
         }
 
         let pipeline_layout = device
-            .create_pipeline_layout(desc_layouts, &[(pso::ShaderStageFlags::VERTEX, 0..8)])
+            .create_pipeline_layout(
+                vec![nes_screen.layout(), palette_uniform.layout()],
+                &[(pso::ShaderStageFlags::VERTEX, 0..8)],
+            )
             .expect("Can't create pipeline layout");
 
         let pipeline = {
@@ -258,7 +272,36 @@ impl<B: Backend> SwapchainState<B> {
         let mut command_buffers = SmallVec::with_capacity(2);
 
         for i in 0..command_pools.len() {
-            command_buffers.push(command_pools[i].acquire_command_buffer::<command::OneShot>());
+            let mut command_buffer = command_pools[i].acquire_command_buffer::<command::OneShot>();
+            // Pre-record the command buffers, which we will reuse
+            command_buffer.begin();
+            nes_screen.record_transfer_commands(&mut command_buffer);
+            command_buffer.set_viewports(0, &[viewport.clone()]);
+            command_buffer.set_scissors(0, &[viewport.rect]);
+            command_buffer.bind_graphics_pipeline(&pipeline);
+            command_buffer.bind_vertex_buffers(0, Some((vertex_buffer, 0)));
+            command_buffer.bind_graphics_descriptor_sets(
+                &pipeline_layout,
+                0,
+                vec![
+                    nes_screen.descriptor_set(),
+                    palette_uniform.descriptor_set(),
+                ],
+                &[],
+            );
+
+            command_buffer
+                .begin_render_pass_inline(
+                    &render_pass,
+                    &framebuffers[i],
+                    viewport.rect,
+                    &[command::ClearValue::Color(command::ClearColor::Float([
+                        0.8, 0.8, 0.8, 1.0,
+                    ]))],
+                )
+                .draw(0..6, 0..1);
+            command_buffer.finish();
+            command_buffers.push(command_buffer);
         }
 
         let frame_images = SmallVec::from(frame_images);
@@ -321,54 +364,15 @@ impl<B: Backend> SwapchainState<B> {
         }
     }
 
-    pub fn command_buffer(
-        &mut self,
-        image_index: SwapImageIndex,
-    ) -> &mut CommandBuffer<B, Graphics> {
-        &mut self.command_buffers[image_index as usize]
-    }
-
     pub fn present(
         &mut self,
         image_index: SwapImageIndex,
-        viewport: &Viewport,
         queues: &mut QueueGroup<B, Graphics>,
-        vertex_buffer: &B::Buffer,
-        nes_screen_descriptor_set: &B::DescriptorSet,
-        palette_uniform_descriptor_set: &B::DescriptorSet,
     ) -> bool {
-        // TODO: Next step: Don't create new command buffer, re-use pre-allocated ones
-        let command_pool = &mut self.command_pools[image_index as usize];
-
         unsafe {
-            command_pool.reset();
-            let mut cmd_buffer = command_pool.acquire_command_buffer::<command::OneShot>();
-            cmd_buffer.begin();
-            cmd_buffer.set_viewports(0, &[viewport.clone()]);
-            cmd_buffer.set_scissors(0, &[viewport.rect]);
-            cmd_buffer.bind_graphics_pipeline(&self.pipeline);
-            cmd_buffer.bind_vertex_buffers(0, Some((vertex_buffer, 0)));
-            cmd_buffer.bind_graphics_descriptor_sets(
-                &self.pipeline_layout,
-                0,
-                vec![nes_screen_descriptor_set, palette_uniform_descriptor_set],
-                &[],
-            );
-
-            {
-                let mut encoder = cmd_buffer.begin_render_pass_inline(
-                    &self.render_pass,
-                    &self.framebuffers[image_index as usize],
-                    viewport.rect,
-                    &[command::ClearValue::Color(command::ClearColor::Float([
-                        0.8, 0.8, 0.8, 1.0,
-                    ]))],
-                );
-                encoder.draw(0..6, 0..1);
-            }
-            cmd_buffer.finish();
+            let command_buffer = &self.command_buffers[image_index as usize];
             let submission = Submission {
-                command_buffers: iter::once(&cmd_buffer),
+                command_buffers: iter::once(*&command_buffer),
                 wait_semaphores: iter::once((
                     &self.acquire_semaphores[image_index as usize],
                     PipelineStage::BOTTOM_OF_PIPE,

@@ -31,7 +31,6 @@ pub struct RendererState<B: Backend> {
     vertex_memory: B::Memory,
     vertex_buffer: B::Buffer,
     palette_uniform: PaletteUniform<B>,
-    viewport: pso::Viewport,
     nes_screen_buffer: NesScreen<B>,
     device: B::Device,
     physical_device: B::PhysicalDevice,
@@ -177,13 +176,13 @@ impl<B: Backend> RendererState<B> {
                 &device,
                 &adapter.physical_device,
                 &queues,
-                vec![nes_screen_buffer.layout(), palette_uniform.layout()],
                 DIMS,
+                &nes_screen_buffer,
+                &palette_uniform,
+                &vertex_buffer,
             );
             (palette_uniform, swapchain_state)
         };
-
-        let viewport = RendererState::create_viewport(&swapchain);
 
         RendererState {
             surface,
@@ -195,7 +194,6 @@ impl<B: Backend> RendererState<B> {
             vertex_buffer,
             vertex_memory,
             palette_uniform,
-            viewport,
             physical_device: adapter.physical_device,
             queues,
             swapchain: Some(swapchain),
@@ -213,26 +211,11 @@ impl<B: Backend> RendererState<B> {
                 &self.device,
                 &self.physical_device,
                 &self.queues,
-                vec![
-                    self.nes_screen_buffer.layout(),
-                    self.palette_uniform.layout(),
-                ],
                 DIMS,
+                &self.nes_screen_buffer,
+                &self.palette_uniform,
+                &self.vertex_buffer,
             ));
-        }
-
-        self.viewport = RendererState::create_viewport(self.swapchain.as_ref().unwrap());
-    }
-
-    fn create_viewport(swapchain: &SwapchainState<B>) -> pso::Viewport {
-        pso::Viewport {
-            rect: pso::Rect {
-                x: 0,
-                y: 0,
-                w: swapchain.extent.width as i16,
-                h: swapchain.extent.height as i16,
-            },
-            depth: 0.0..1.0,
         }
     }
 
@@ -265,30 +248,17 @@ impl<B: Backend> RendererState<B> {
             image_index.unwrap()
         };
 
-        // The following line causing huge memory leak with dx12 backend
-        // See https://github.com/gfx-rs/gfx/issues/2556
-        // TODO: Refactor so that the buffer copy reuses command buffer instead of creating its own
-        self.nes_screen_buffer.copy_buffer_to_texture(
-            self.swapchain
-                .as_mut()
-                .unwrap()
-                .command_buffer(next_image_index),
-            &mut self.queues,
-        );
-
         self.swapchain
             .as_mut()
             .unwrap()
             .wait_for_image_fence(next_image_index, &self.device);
 
-        if !self.swapchain.as_mut().unwrap().present(
-            next_image_index,
-            &self.viewport,
-            &mut self.queues,
-            &self.vertex_buffer,
-            self.nes_screen_buffer.descriptor_set(),
-            self.palette_uniform.descriptor_set(),
-        ) {
+        if !self
+            .swapchain
+            .as_mut()
+            .unwrap()
+            .present(next_image_index, &mut self.queues)
+        {
             render_status = RenderStatus::RecreateSwapchain
         }
 
