@@ -31,7 +31,7 @@ pub struct RendererState<B: Backend> {
     vertex_memory: B::Memory,
     vertex_buffer: B::Buffer,
     palette_uniform: PaletteUniform<B>,
-    nes_screen_buffer: NesScreen<B>,
+    nes_screen: NesScreen<B>,
     device: B::Device,
     physical_device: B::PhysicalDevice,
     queues: QueueGroup<B, Graphics>,
@@ -117,7 +117,7 @@ impl<B: Backend> RendererState<B> {
             )
         };
 
-        let nes_screen_buffer = NesScreen::new(
+        let nes_screen = NesScreen::new(
             &mut device,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
@@ -177,7 +177,7 @@ impl<B: Backend> RendererState<B> {
                 &adapter.physical_device,
                 &queues,
                 DIMS,
-                &nes_screen_buffer,
+                &nes_screen,
                 &palette_uniform,
                 &vertex_buffer,
             );
@@ -188,7 +188,7 @@ impl<B: Backend> RendererState<B> {
             surface,
             window,
             device,
-            nes_screen_buffer,
+            nes_screen,
             img_desc_pool,
             uniform_desc_pool,
             vertex_buffer,
@@ -212,7 +212,7 @@ impl<B: Backend> RendererState<B> {
                 &self.physical_device,
                 &self.queues,
                 DIMS,
-                &self.nes_screen_buffer,
+                &self.nes_screen,
                 &self.palette_uniform,
                 &self.vertex_buffer,
             ));
@@ -231,7 +231,7 @@ impl<B: Backend> RendererState<B> {
             RenderStatus::Normal
         };
 
-        self.nes_screen_buffer
+        self.nes_screen
             .update_buffer_data(screen_buffer, &self.device);
 
         let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
@@ -274,7 +274,7 @@ impl<B: Backend> RendererState<B> {
             self.device.free_memory(self.vertex_memory);
         }
         self.palette_uniform.destroy(&self.device);
-        self.nes_screen_buffer.destroy(&self.device);
+        self.nes_screen.destroy(&self.device);
         self.swapchain.take().unwrap().destroy(&self.device);
     }
 }
