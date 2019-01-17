@@ -187,12 +187,9 @@ impl<B: Backend> NesScreen<B> {
                     set: &desc_set,
                 },
                 pso::DescriptorSetWrite {
-                    binding: 0,
+                    binding: 1,
                     array_offset: 0,
-                    descriptors: Some(pso::Descriptor::Image(
-                        &image_view,
-                        image::Layout::Undefined,
-                    )),
+                    descriptors: Some(pso::Descriptor::Sampler(&sampler)),
                     set: &desc_set,
                 },
             ]);
