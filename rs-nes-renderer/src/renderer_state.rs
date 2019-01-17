@@ -1,15 +1,10 @@
 use std::mem::size_of;
 
-use gfx_hal::{
-    buffer, memory,
-    pso::{self, ShaderStageFlags},
-    Backend, Device, Graphics, QueueGroup, Surface,
-};
+use gfx_hal::{buffer, memory, Backend, Device, Graphics, QueueGroup, Surface};
 
 use crate::{
-    backend_resources::BackendResources, descriptor_set::DescSetLayout, nes_screen::NesScreen,
-    palette::PALETTE, palette_uniform::PaletteUniform, swapchain_state::SwapchainState,
-    vertex::Vertex, DIMS, QUAD,
+    backend_resources::BackendResources, nes_screen::NesScreen, palette::PALETTE,
+    palette_uniform::PaletteUniform, swapchain_state::SwapchainState, vertex::Vertex, DIMS, QUAD,
 };
 
 use winit::Window;
@@ -24,9 +19,7 @@ pub enum RenderStatus {
 
 pub struct RendererState<B: Backend> {
     pub surface: B::Surface,
-    window: Option<Window>,
-    uniform_desc_pool: B::DescriptorPool,
-    img_desc_pool: B::DescriptorPool,
+    _window: Option<Window>,
     swapchain: Option<SwapchainState<B>>,
     vertex_memory: B::Memory,
     vertex_buffer: B::Buffer,
@@ -49,79 +42,10 @@ impl<B: Backend> RendererState<B> {
             .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
             .unwrap();
 
-        let image_desc = DescSetLayout::new(
-            &device,
-            vec![
-                pso::DescriptorSetLayoutBinding {
-                    binding: 0,
-                    ty: pso::DescriptorType::SampledImage,
-                    count: 1,
-                    stage_flags: ShaderStageFlags::FRAGMENT,
-                    immutable_samplers: false,
-                },
-                pso::DescriptorSetLayoutBinding {
-                    binding: 1,
-                    ty: pso::DescriptorType::Sampler,
-                    count: 1,
-                    stage_flags: ShaderStageFlags::FRAGMENT,
-                    immutable_samplers: false,
-                },
-            ],
-        );
-
-        let uniform_desc = DescSetLayout::new(
-            &device,
-            vec![pso::DescriptorSetLayoutBinding {
-                binding: 0,
-                ty: pso::DescriptorType::UniformBuffer,
-                count: 1,
-                stage_flags: ShaderStageFlags::FRAGMENT,
-                immutable_samplers: false,
-            }],
-        );
-
-        let mut img_desc_pool = unsafe {
-            device
-                .create_descriptor_pool(
-                    1, // # of sets
-                    &[
-                        pso::DescriptorRangeDesc {
-                            ty: pso::DescriptorType::SampledImage,
-                            count: 1,
-                        },
-                        pso::DescriptorRangeDesc {
-                            ty: pso::DescriptorType::Sampler,
-                            count: 1,
-                        },
-                    ],
-                )
-                .expect("Unable to create image descriptor pool")
-        };
-
-        let mut uniform_desc_pool = unsafe {
-            device
-                .create_descriptor_pool(
-                    1, // # of sets
-                    &[pso::DescriptorRangeDesc {
-                        ty: pso::DescriptorType::UniformBuffer,
-                        count: 1,
-                    }],
-                )
-                .expect("Unable to create uniform descriptor pool")
-        };
-
-        let (image_desc, uniform_desc) = unsafe {
-            (
-                image_desc.create_desc_set(&mut img_desc_pool),
-                uniform_desc.create_desc_set(&mut uniform_desc_pool),
-            )
-        };
-
         let nes_screen = NesScreen::new(
             &mut device,
             SCREEN_WIDTH as u32,
             SCREEN_HEIGHT as u32,
-            image_desc,
             limits,
             &memory_types,
         );
@@ -168,8 +92,7 @@ impl<B: Backend> RendererState<B> {
         };
 
         let (palette_uniform, swapchain) = unsafe {
-            let palette_uniform =
-                PaletteUniform::new(&mut device, &memory_types, &PALETTE, uniform_desc);
+            let palette_uniform = PaletteUniform::new(&mut device, &memory_types, &PALETTE);
 
             let swapchain_state = SwapchainState::new(
                 &mut surface,
@@ -186,11 +109,9 @@ impl<B: Backend> RendererState<B> {
 
         RendererState {
             surface,
-            window,
+            _window: window,
             device,
             nes_screen,
-            img_desc_pool,
-            uniform_desc_pool,
             vertex_buffer,
             vertex_memory,
             palette_uniform,
@@ -268,8 +189,6 @@ impl<B: Backend> RendererState<B> {
     pub fn destroy(mut self) {
         self.device.wait_idle().expect("Wait idle failed");
         unsafe {
-            self.device.destroy_descriptor_pool(self.img_desc_pool);
-            self.device.destroy_descriptor_pool(self.uniform_desc_pool);
             self.device.destroy_buffer(self.vertex_buffer);
             self.device.free_memory(self.vertex_memory);
         }

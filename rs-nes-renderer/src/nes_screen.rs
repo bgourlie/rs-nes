@@ -2,19 +2,18 @@ use gfx_hal::{
     buffer,
     command::{self, CommandBuffer},
     format, image, memory,
-    pso::{self, PipelineStage},
-    Backend, Device, Graphics, Limits, MemoryType,
+    pso::{self, PipelineStage, ShaderStageFlags},
+    Backend, DescriptorPool, Device, Graphics, Limits, MemoryType,
 };
 
-use crate::{
-    descriptor_set::{DescSet, DescSetWrite},
-    ScreenBufferFormat, COLOR_RANGE,
-};
+use crate::{ScreenBufferFormat, COLOR_RANGE};
 
 use rs_nes::{PPU_BUFFER_SIZE, PPU_PIXEL_STRIDE};
 
 pub struct NesScreen<B: Backend> {
-    desc: DescSet<B>,
+    desc_pool: B::DescriptorPool,
+    desc_set_layout: B::DescriptorSetLayout,
+    desc_set: B::DescriptorSet,
     staging_buffer: B::Buffer,
     staging_buffer_memory: B::Memory,
     sampler: B::Sampler,
@@ -32,10 +31,56 @@ impl<B: Backend> NesScreen<B> {
         device: &mut B::Device,
         width: u32,
         height: u32,
-        mut desc: DescSet<B>,
         limits: Limits,
         memory_types: &[MemoryType],
     ) -> Self {
+        let mut desc_pool = unsafe {
+            device
+                .create_descriptor_pool(
+                    1, // # of sets
+                    &[
+                        pso::DescriptorRangeDesc {
+                            ty: pso::DescriptorType::SampledImage,
+                            count: 1,
+                        },
+                        pso::DescriptorRangeDesc {
+                            ty: pso::DescriptorType::Sampler,
+                            count: 1,
+                        },
+                    ],
+                )
+                .expect("Unable to create image descriptor pool")
+        };
+
+        let bindings = [
+            pso::DescriptorSetLayoutBinding {
+                binding: 0,
+                ty: pso::DescriptorType::SampledImage,
+                count: 1,
+                stage_flags: ShaderStageFlags::FRAGMENT,
+                immutable_samplers: false,
+            },
+            pso::DescriptorSetLayoutBinding {
+                binding: 1,
+                ty: pso::DescriptorType::Sampler,
+                count: 1,
+                stage_flags: ShaderStageFlags::FRAGMENT,
+                immutable_samplers: false,
+            },
+        ];
+
+        let (desc_set_layout, desc_set) = unsafe {
+            let desc_set_layout = device
+                .create_descriptor_set_layout(&bindings, &[])
+                .expect("Unable to create descriptor set layout");
+
+            let desc_set = desc_pool
+                .allocate_set(&desc_set_layout)
+                .expect("Unable to allocate descriptor set");
+
+            (desc_set_layout, desc_set)
+        };
+
         let row_alignment_mask = limits.min_buffer_copy_pitch_alignment as u32 - 1;
         let row_pitch =
             (width * PPU_PIXEL_STRIDE as u32 + row_alignment_mask) & !row_alignment_mask;
@@ -131,30 +176,34 @@ impl<B: Backend> NesScreen<B> {
                 ))
                 .expect("Can't create sampler");
 
-            desc.write_to_state(
-                vec![
-                    DescSetWrite {
-                        binding: 0,
-                        array_offset: 0,
-                        descriptors: Some(pso::Descriptor::Image(
-                            &image_view,
-                            image::Layout::Undefined,
-                        )),
-                    },
-                    DescSetWrite {
-                        binding: 1,
-                        array_offset: 0,
-                        descriptors: Some(pso::Descriptor::Sampler(&sampler)),
-                    },
-                ],
-                device,
-            );
+            device.write_descriptor_sets(vec![
+                pso::DescriptorSetWrite {
+                    binding: 0,
+                    array_offset: 0,
+                    descriptors: Some(pso::Descriptor::Image(
+                        &image_view,
+                        image::Layout::Undefined,
+                    )),
+                    set: &desc_set,
+                },
+                pso::DescriptorSetWrite {
+                    binding: 0,
+                    array_offset: 0,
+                    descriptors: Some(pso::Descriptor::Image(
+                        &image_view,
+                        image::Layout::Undefined,
+                    )),
+                    set: &desc_set,
+                },
+            ]);
 
             (texture_memory, image_view, sampler)
         };
 
         NesScreen {
-            desc,
+            desc_pool,
+            desc_set_layout,
+            desc_set,
             staging_buffer,
             staging_buffer_memory,
             sampler,
@@ -169,10 +218,7 @@ impl<B: Backend> NesScreen<B> {
     }
 
     pub fn descriptor_set(&self) -> &B::DescriptorSet {
-        self.desc
-            .set
-            .as_ref()
-            .expect("Unable to retrieve screen buffer descriptor set")
+        &self.desc_set
     }
 
     pub fn update_buffer_data(&mut self, data_source: &[u8; PPU_BUFFER_SIZE], device: &B::Device) {
@@ -270,7 +316,7 @@ impl<B: Backend> NesScreen<B> {
     }
 
     pub fn layout(&self) -> &B::DescriptorSetLayout {
-        self.desc.layout()
+        &self.desc_set_layout
     }
 
     pub fn destroy(self, device: &B::Device) {
@@ -281,7 +327,8 @@ impl<B: Backend> NesScreen<B> {
             device.free_memory(self.texture_memory);
             device.destroy_buffer(self.staging_buffer);
             device.free_memory(self.staging_buffer_memory);
-            self.desc.destroy(device);
+            device.destroy_descriptor_set_layout(self.desc_set_layout);
+            device.destroy_descriptor_pool(self.desc_pool);
         }
     }
 }

@@ -25,7 +25,6 @@ extern crate gfx_backend_metal as back;
 extern crate gfx_backend_vulkan as back;
 
 mod backend_resources;
-mod descriptor_set;
 mod nes_screen;
 mod palette;
 mod palette_uniform;
