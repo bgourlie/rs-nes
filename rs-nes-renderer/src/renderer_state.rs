@@ -1,8 +1,8 @@
 use std::{iter, mem::size_of};
 
 use gfx_hal::{
-    buffer, command, memory, pool::CommandPoolCreateFlags, Backend, Device, Graphics, QueueGroup,
-    Surface,
+    buffer, command, memory, pool::CommandPoolCreateFlags, Backend, Device, Graphics, MemoryType,
+    QueueGroup, Surface,
 };
 
 use crate::{
@@ -53,75 +53,22 @@ impl<B: Backend> RendererState<B> {
             &memory_types,
         );
 
-        let (vertex_memory, vertex_buffer) = unsafe {
-            let vertex_stride = size_of::<Vertex>() as u64;
-            let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
+        let (vertex_memory, vertex_buffer, palette_memory, palette_buffer) = unsafe {
+            let (
+                vertex_staging_memory,
+                vertex_staging_buffer,
+                vertex_device_memory,
+                vertex_device_buffer,
+                vertex_memory_requirements,
+            ) = Self::create_vertex_buffers_and_memory(&device, &memory_types);
 
-            let mut staging_buffer = device
-                .create_buffer(vertex_upload_size, buffer::Usage::TRANSFER_SRC)
-                .unwrap();
-
-            let memory_requirements = device.get_buffer_requirements(&staging_buffer);
-
-            let staging_buffer_memory_type = &memory_types
-                .iter()
-                .enumerate()
-                .position(|(id, mem_type)| {
-                    memory_requirements.type_mask & (1 << id) != 0
-                        && mem_type
-                            .properties
-                            .contains(memory::Properties::CPU_VISIBLE)
-                })
-                .expect("Vertex staging buffer memory type not supported")
-                .into();
-
-            let staging_buffer_memory = device
-                .allocate_memory(*staging_buffer_memory_type, memory_requirements.size)
-                .unwrap();
-
-            device
-                .bind_buffer_memory(&staging_buffer_memory, 0, &mut staging_buffer)
-                .unwrap();
-
-            let mut data_target = device
-                .acquire_mapping_writer::<Vertex>(
-                    &staging_buffer_memory,
-                    0..memory_requirements.size,
-                )
-                .expect("Unable to acquire mapping writer");
-
-            data_target[0..QUAD.len()].copy_from_slice(&QUAD);
-
-            device
-                .release_mapping_writer(data_target)
-                .expect("Unable to release mapping writer");
-
-            let mut device_local_buffer = device
-                .create_buffer(
-                    vertex_upload_size,
-                    buffer::Usage::VERTEX | buffer::Usage::TRANSFER_DST,
-                )
-                .unwrap();
-
-            let device_local_buffer_memory_type = &memory_types
-                .iter()
-                .enumerate()
-                .position(|(id, mem_type)| {
-                    memory_requirements.type_mask & (1 << id) != 0
-                        && mem_type
-                            .properties
-                            .contains(memory::Properties::DEVICE_LOCAL)
-                })
-                .expect("Vertex device local memory type not supported")
-                .into();
-
-            let device_local_buffer_memory = device
-                .allocate_memory(*device_local_buffer_memory_type, memory_requirements.size)
-                .unwrap();
-
-            device
-                .bind_buffer_memory(&device_local_buffer_memory, 0, &mut device_local_buffer)
-                .unwrap();
+            let (
+                palette_staging_memory,
+                palette_staging_buffer,
+                palette_device_memory,
+                palette_device_buffer,
+                palette_memory_requirements,
+            ) = Self::create_palette_buffers_and_memory(&device, &memory_types, &PALETTE);
 
             let mut command_pool = device
                 .create_command_pool_typed::<Graphics>(&queues, CommandPoolCreateFlags::TRANSIENT)
@@ -132,12 +79,22 @@ impl<B: Backend> RendererState<B> {
             commands.begin();
 
             commands.copy_buffer(
-                &staging_buffer,
-                &device_local_buffer,
+                &vertex_staging_buffer,
+                &vertex_device_buffer,
                 &[command::BufferCopy {
                     src: 0,
                     dst: 0,
-                    size: memory_requirements.size,
+                    size: vertex_memory_requirements.size,
+                }],
+            );
+
+            commands.copy_buffer(
+                &palette_staging_buffer,
+                &palette_device_buffer,
+                &[command::BufferCopy {
+                    src: 0,
+                    dst: 0,
+                    size: palette_memory_requirements.size,
                 }],
             );
 
@@ -148,13 +105,20 @@ impl<B: Backend> RendererState<B> {
             queues.queues[0].wait_idle().unwrap();
             command_pool.free(iter::once(commands));
             device.destroy_command_pool(command_pool.into_raw());
-            device.destroy_buffer(staging_buffer);
-            device.free_memory(staging_buffer_memory);
-            (device_local_buffer_memory, device_local_buffer)
+            device.destroy_buffer(vertex_staging_buffer);
+            device.free_memory(vertex_staging_memory);
+            device.destroy_buffer(palette_staging_buffer);
+            device.free_memory(palette_staging_memory);
+            (
+                vertex_device_memory,
+                vertex_device_buffer,
+                palette_device_memory,
+                palette_device_buffer,
+            )
         };
 
         let (palette_uniform, swapchain) = unsafe {
-            let palette_uniform = PaletteUniform::new(&mut device, &memory_types, &PALETTE);
+            let palette_uniform = PaletteUniform::new(&mut device, palette_memory, palette_buffer);
 
             let swapchain_state = SwapchainState::new(
                 &mut surface,
@@ -257,6 +221,179 @@ impl<B: Backend> RendererState<B> {
         self.palette_uniform.destroy(&self.device);
         self.nes_screen.destroy(&self.device);
         self.swapchain.take().unwrap().destroy(&self.device);
+    }
+
+    unsafe fn create_palette_buffers_and_memory(
+        device: &B::Device,
+        memory_types: &[MemoryType],
+        data: &[f32; 256],
+    ) -> (
+        B::Memory,
+        B::Buffer,
+        B::Memory,
+        B::Buffer,
+        memory::Requirements,
+    ) {
+        let uniform_upload_size = data.len() as u64 * 4;
+        println!("Uniform upload size {}", uniform_upload_size);
+        let mut staging_buffer = device
+            .create_buffer(uniform_upload_size, buffer::Usage::TRANSFER_SRC)
+            .expect("Unable to create palette uniform buffer");
+
+        let staging_memory_requirements = device.get_buffer_requirements(&staging_buffer);
+
+        let staging_memory_type = memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, mem_type)| {
+                staging_memory_requirements.type_mask & (1 << id) != 0
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::CPU_VISIBLE)
+            })
+            .expect("Palette uniform memory type not supported")
+            .into();
+
+        let staging_memory = device
+            .allocate_memory(staging_memory_type, staging_memory_requirements.size)
+            .unwrap();
+        device
+            .bind_buffer_memory(&staging_memory, 0, &mut staging_buffer)
+            .unwrap();
+
+        let mut data_target = device
+            .acquire_mapping_writer(&staging_memory, 0..staging_memory_requirements.size)
+            .expect("Unable to acquire mapping writer");
+
+        data_target[0..data.len()].copy_from_slice(data);
+
+        device
+            .release_mapping_writer(data_target)
+            .expect("Unable to release mapping writer");
+
+        let mut device_buffer = device
+            .create_buffer(
+                uniform_upload_size,
+                buffer::Usage::UNIFORM | buffer::Usage::TRANSFER_DST,
+            )
+            .unwrap();
+
+        let device_memory_requirements = device.get_buffer_requirements(&device_buffer);
+
+        let device_memory_type = &memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, mem_type)| {
+                device_memory_requirements.type_mask & (1 << id) != 0
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::DEVICE_LOCAL)
+            })
+            .expect("Vertex device local memory type not supported")
+            .into();
+
+        let device_memory = device
+            .allocate_memory(*device_memory_type, device_memory_requirements.size)
+            .unwrap();
+
+        device
+            .bind_buffer_memory(&device_memory, 0, &mut device_buffer)
+            .unwrap();
+
+        (
+            staging_memory,
+            staging_buffer,
+            device_memory,
+            device_buffer,
+            staging_memory_requirements,
+        )
+    }
+
+    unsafe fn create_vertex_buffers_and_memory(
+        device: &B::Device,
+        memory_types: &[MemoryType],
+    ) -> (
+        B::Memory,
+        B::Buffer,
+        B::Memory,
+        B::Buffer,
+        memory::Requirements,
+    ) {
+        let vertex_stride = size_of::<Vertex>() as u64;
+        let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
+
+        let mut staging_buffer = device
+            .create_buffer(vertex_upload_size, buffer::Usage::TRANSFER_SRC)
+            .unwrap();
+
+        let staging_memory_requirements = device.get_buffer_requirements(&staging_buffer);
+
+        let staging_memory_type = &memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, mem_type)| {
+                staging_memory_requirements.type_mask & (1 << id) != 0
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::CPU_VISIBLE)
+            })
+            .expect("Vertex staging buffer memory type not supported")
+            .into();
+
+        let staging_memory = device
+            .allocate_memory(*staging_memory_type, staging_memory_requirements.size)
+            .unwrap();
+
+        device
+            .bind_buffer_memory(&staging_memory, 0, &mut staging_buffer)
+            .unwrap();
+
+        let mut data_target = device
+            .acquire_mapping_writer::<Vertex>(&staging_memory, 0..staging_memory_requirements.size)
+            .expect("Unable to acquire mapping writer");
+
+        data_target[0..QUAD.len()].copy_from_slice(&QUAD);
+
+        device
+            .release_mapping_writer(data_target)
+            .expect("Unable to release mapping writer");
+
+        let mut device_buffer = device
+            .create_buffer(
+                vertex_upload_size,
+                buffer::Usage::VERTEX | buffer::Usage::TRANSFER_DST,
+            )
+            .unwrap();
+
+        let device_memory_requirements = device.get_buffer_requirements(&device_buffer);
+
+        let device_memory_type = &memory_types
+            .iter()
+            .enumerate()
+            .position(|(id, mem_type)| {
+                device_memory_requirements.type_mask & (1 << id) != 0
+                    && mem_type
+                        .properties
+                        .contains(memory::Properties::DEVICE_LOCAL)
+            })
+            .expect("Vertex device local memory type not supported")
+            .into();
+
+        let device_memory = device
+            .allocate_memory(*device_memory_type, device_memory_requirements.size)
+            .unwrap();
+
+        device
+            .bind_buffer_memory(&device_memory, 0, &mut device_buffer)
+            .unwrap();
+
+        (
+            staging_memory,
+            staging_buffer,
+            device_memory,
+            device_buffer,
+            staging_memory_requirements,
+        )
     }
 }
 

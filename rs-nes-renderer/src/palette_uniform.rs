@@ -1,4 +1,4 @@
-use gfx_hal::{buffer, device::Device, memory, pso, Backend, DescriptorPool, MemoryType};
+use gfx_hal::{device::Device, pso, Backend, DescriptorPool};
 
 pub struct PaletteUniform<B: Backend> {
     desc_pool: B::DescriptorPool,
@@ -9,11 +9,7 @@ pub struct PaletteUniform<B: Backend> {
 }
 
 impl<B: Backend> PaletteUniform<B> {
-    pub unsafe fn new(
-        device: &mut B::Device,
-        memory_types: &[MemoryType],
-        data: &[f32; 256],
-    ) -> Self {
+    pub unsafe fn new(device: &mut B::Device, memory: B::Memory, buffer: B::Buffer) -> Self {
         let mut desc_pool = device
             .create_descriptor_pool(
                 1, // # of sets
@@ -39,44 +35,6 @@ impl<B: Backend> PaletteUniform<B> {
         let desc_set = desc_pool
             .allocate_set(&desc_set_layout)
             .expect("Unable to allocate descriptor set");
-
-        let uniform_upload_size = data.len() as u64 * 4;
-        println!("Uniform upload size {}", uniform_upload_size);
-        let (memory, buffer) = {
-            let mut buffer = device
-                .create_buffer(uniform_upload_size, buffer::Usage::UNIFORM)
-                .expect("Unable to create palette uniform buffer");
-
-            let mem_req = device.get_buffer_requirements(&buffer);
-
-            let memory_type = memory_types
-                .iter()
-                .enumerate()
-                .position(|(id, mem_type)| {
-                    mem_req.type_mask & (1 << id) != 0
-                        && mem_type
-                            .properties
-                            .contains(memory::Properties::CPU_VISIBLE)
-                })
-                .expect("Palette uniform memory type not supported")
-                .into();
-
-            let memory = device.allocate_memory(memory_type, mem_req.size).unwrap();
-            device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
-            let size = mem_req.size;
-
-            {
-                let mut data_target = device
-                    .acquire_mapping_writer(&memory, 0..size)
-                    .expect("Unable to acquire mapping writer");
-                data_target[0..data.len()].copy_from_slice(data);
-                device
-                    .release_mapping_writer(data_target)
-                    .expect("Unable to release mapping writer");
-            }
-
-            (memory, buffer)
-        };
 
         device.write_descriptor_sets(vec![pso::DescriptorSetWrite {
             binding: 0,
