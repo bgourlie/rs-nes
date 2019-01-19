@@ -250,8 +250,6 @@ fn run<C: Cart>(cpu: &mut Nes<C>) {
         }
         std::thread::sleep(fixed_time_stamp - accumulator);
     }
-
-    renderer_state.destroy();
 }
 
 #[cfg(not(any(

@@ -24,10 +24,10 @@ pub struct RendererState<B: Backend> {
     pub surface: B::Surface,
     _window: Option<Window>,
     swapchain: Option<SwapchainState<B>>,
-    vertex_memory: B::Memory,
-    vertex_buffer: B::Buffer,
-    palette_uniform: PaletteUniform<B>,
-    nes_screen: NesScreen<B>,
+    vertex_memory: Option<B::Memory>,
+    vertex_buffer: Option<B::Buffer>,
+    palette_uniform: Option<PaletteUniform<B>>,
+    nes_screen: Option<NesScreen<B>>,
     device: B::Device,
     physical_device: B::PhysicalDevice,
     queues: QueueGroup<B, Graphics>,
@@ -137,10 +137,10 @@ impl<B: Backend> RendererState<B> {
             surface,
             _window: window,
             device,
-            nes_screen,
-            vertex_buffer,
-            vertex_memory,
-            palette_uniform,
+            nes_screen: Some(nes_screen),
+            vertex_buffer: Some(vertex_buffer),
+            vertex_memory: Some(vertex_memory),
+            palette_uniform: Some(palette_uniform),
             physical_device: adapter.physical_device,
             queues,
             swapchain: Some(swapchain),
@@ -159,9 +159,15 @@ impl<B: Backend> RendererState<B> {
                 &self.physical_device,
                 &self.queues,
                 DIMS,
-                &self.nes_screen,
-                &self.palette_uniform,
-                &self.vertex_buffer,
+                self.nes_screen
+                    .as_ref()
+                    .expect("Nes screen should be present"),
+                self.palette_uniform
+                    .as_ref()
+                    .expect("Palette uniform should be present"),
+                self.vertex_buffer
+                    .as_ref()
+                    .expect("Vertex buffer should be present"),
             ));
         }
     }
@@ -179,6 +185,8 @@ impl<B: Backend> RendererState<B> {
         };
 
         self.nes_screen
+            .as_mut()
+            .expect("Nes screen should be present")
             .update_buffer_data(screen_buffer, &self.device);
 
         let acquire_semaphore_index = self.swapchain.as_mut().unwrap().next_acq_pre_pair_index();
@@ -210,17 +218,6 @@ impl<B: Backend> RendererState<B> {
         }
 
         render_status
-    }
-
-    pub fn destroy(mut self) {
-        self.device.wait_idle().expect("Wait idle failed");
-        unsafe {
-            self.device.destroy_buffer(self.vertex_buffer);
-            self.device.free_memory(self.vertex_memory);
-        }
-        self.palette_uniform.destroy(&self.device);
-        self.nes_screen.destroy(&self.device);
-        self.swapchain.take().unwrap().destroy(&self.device);
     }
 
     unsafe fn create_palette_buffers_and_memory(
@@ -394,6 +391,36 @@ impl<B: Backend> RendererState<B> {
             device_buffer,
             staging_memory_requirements,
         )
+    }
+}
+
+impl<B: Backend> Drop for RendererState<B> {
+    fn drop(&mut self) {
+        self.device.wait_idle().expect("Wait idle failed");
+        unsafe {
+            self.device.destroy_buffer(
+                self.vertex_buffer
+                    .take()
+                    .expect("Vertex buffer should be present"),
+            );
+            self.device.free_memory(
+                self.vertex_memory
+                    .take()
+                    .expect("Vertex memory should be present"),
+            );
+            self.palette_uniform
+                .take()
+                .expect("Palette uniform should be present")
+                .destroy(&self.device);
+        }
+        self.nes_screen
+            .take()
+            .expect("Nes screen should be present")
+            .destroy(&self.device);
+        self.swapchain
+            .take()
+            .expect("Swapchain should be present")
+            .destroy(&self.device);
     }
 }
 
