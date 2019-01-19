@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use gfx_hal::{buffer, memory, Backend, Device, Graphics, QueueGroup, Surface};
+use gfx_hal::{buffer, memory, Backend, Device, Graphics, QueueGroup, Surface, pool::CommandPoolCreateFlags};
 
 use crate::{
     backend_resources::BackendResources, nes_screen::NesScreen, palette::PALETTE,
@@ -50,45 +50,84 @@ impl<B: Backend> RendererState<B> {
             &memory_types,
         );
 
-        let (vertex_memory, vertex_buffer) = {
+        let (vertex_memory, vertex_buffer) = unsafe {
             let vertex_stride = size_of::<Vertex>() as u64;
             let vertex_upload_size = QUAD.len() as u64 * vertex_stride;
 
-            let mut buffer = unsafe {
-                device
-                    .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
-                    .unwrap()
-            };
+            let mut staging_buffer = device
+                .create_buffer(vertex_upload_size, buffer::Usage::TRANSFER_SRC)
+                .unwrap();
 
-            let mem_req = unsafe { device.get_buffer_requirements(&buffer) };
+            let memory_requirements = device.get_buffer_requirements(&staging_buffer);
 
-            let memory_type = &memory_types
+            let staging_buffer_memory_type = &memory_types
                 .iter()
                 .enumerate()
                 .position(|(id, mem_type)| {
-                    mem_req.type_mask & (1 << id) != 0
+                    memory_requirements.type_mask & (1 << id) != 0
                         && mem_type
                             .properties
                             .contains(memory::Properties::CPU_VISIBLE)
                 })
-                .expect("Vertex memory type not supported")
+                .expect("Vertex staging buffer memory type not supported")
                 .into();
 
-            unsafe {
-                let memory = device.allocate_memory(*memory_type, mem_req.size).unwrap();
-                device.bind_buffer_memory(&memory, 0, &mut buffer).unwrap();
+            let staging_buffer_memory = device
+                .allocate_memory(
+                    *staging_buffer_memory_type,
+                    memory_requirements.size,
+                )
+                .unwrap();
 
-                let mut data_target = device
-                    .acquire_mapping_writer::<Vertex>(&memory, 0..mem_req.size)
-                    .expect("Unable to acquire mapping writer");
+            device
+                .bind_buffer_memory(&staging_buffer_memory, 0, &mut staging_buffer)
+                .unwrap();
 
-                data_target[0..QUAD.len()].copy_from_slice(&QUAD);
+            let mut data_target = device
+                .acquire_mapping_writer::<Vertex>(
+                    &staging_buffer_memory,
+                    0..memory_requirements.size,
+                )
+                .expect("Unable to acquire mapping writer");
 
-                device
-                    .release_mapping_writer(data_target)
-                    .expect("Unable to release mapping writer");
-                (memory, buffer)
-            }
+            data_target[0..QUAD.len()].copy_from_slice(&QUAD);
+
+            device
+                .release_mapping_writer(data_target)
+                .expect("Unable to release mapping writer");
+
+
+            let mut device_local_buffer = device
+                .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
+                .unwrap();
+
+            let device_local_buffer_memory_type = &memory_types
+                .iter()
+                .enumerate()
+                .position(|(id, mem_type)| {
+                    memory_requirements.type_mask & (1 << id) != 0
+                        && mem_type
+                        .properties
+                        .contains(memory::Properties::DEVICE_LOCAL)
+                })
+                .expect("Vertex device local memory type not supported")
+                .into();
+
+            let device_local_buffer_memory = device
+                .allocate_memory(
+                    *device_local_buffer_memory_type,
+                    memory_requirements.size,
+                )
+                .unwrap();
+
+            device
+                .bind_buffer_memory(&device_local_buffer_memory, 0, &mut device_local_buffer)
+                .unwrap();
+
+            let command_pool = device.create_command_pool_typed::<Graphics>(&queues, CommandPoolCreateFlags::TRANSIENT);
+            let command_buffer = command_pool.acquire_command_buffer();
+
+            (staging_buffer_memory, device_local_buffer)
         };
 
         let (palette_uniform, swapchain) = unsafe {
