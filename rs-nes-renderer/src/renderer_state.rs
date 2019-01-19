@@ -1,6 +1,9 @@
-use std::mem::size_of;
+use std::{iter, mem::size_of};
 
-use gfx_hal::{buffer, memory, Backend, Device, Graphics, QueueGroup, Surface, pool::CommandPoolCreateFlags};
+use gfx_hal::{
+    buffer, command, memory, pool::CommandPoolCreateFlags, Backend, Device, Graphics, QueueGroup,
+    Surface,
+};
 
 use crate::{
     backend_resources::BackendResources, nes_screen::NesScreen, palette::PALETTE,
@@ -38,7 +41,7 @@ impl<B: Backend> RendererState<B> {
             panic!("Window shouldn't be None")
         }
 
-        let (mut device, queues) = adapter
+        let (mut device, mut queues) = adapter
             .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
             .unwrap();
 
@@ -73,10 +76,7 @@ impl<B: Backend> RendererState<B> {
                 .into();
 
             let staging_buffer_memory = device
-                .allocate_memory(
-                    *staging_buffer_memory_type,
-                    memory_requirements.size,
-                )
+                .allocate_memory(*staging_buffer_memory_type, memory_requirements.size)
                 .unwrap();
 
             device
@@ -96,9 +96,11 @@ impl<B: Backend> RendererState<B> {
                 .release_mapping_writer(data_target)
                 .expect("Unable to release mapping writer");
 
-
             let mut device_local_buffer = device
-                .create_buffer(vertex_upload_size, buffer::Usage::VERTEX)
+                .create_buffer(
+                    vertex_upload_size,
+                    buffer::Usage::VERTEX | buffer::Usage::TRANSFER_DST,
+                )
                 .unwrap();
 
             let device_local_buffer_memory_type = &memory_types
@@ -107,27 +109,48 @@ impl<B: Backend> RendererState<B> {
                 .position(|(id, mem_type)| {
                     memory_requirements.type_mask & (1 << id) != 0
                         && mem_type
-                        .properties
-                        .contains(memory::Properties::DEVICE_LOCAL)
+                            .properties
+                            .contains(memory::Properties::DEVICE_LOCAL)
                 })
                 .expect("Vertex device local memory type not supported")
                 .into();
 
             let device_local_buffer_memory = device
-                .allocate_memory(
-                    *device_local_buffer_memory_type,
-                    memory_requirements.size,
-                )
+                .allocate_memory(*device_local_buffer_memory_type, memory_requirements.size)
                 .unwrap();
 
             device
                 .bind_buffer_memory(&device_local_buffer_memory, 0, &mut device_local_buffer)
                 .unwrap();
 
-            let command_pool = device.create_command_pool_typed::<Graphics>(&queues, CommandPoolCreateFlags::TRANSIENT);
-            let command_buffer = command_pool.acquire_command_buffer();
+            let mut command_pool = device
+                .create_command_pool_typed::<Graphics>(&queues, CommandPoolCreateFlags::TRANSIENT)
+                .unwrap();
 
-            (staging_buffer_memory, device_local_buffer)
+            let mut commands = command_pool.acquire_command_buffer::<command::OneShot>();
+
+            commands.begin();
+
+            commands.copy_buffer(
+                &staging_buffer,
+                &device_local_buffer,
+                &[command::BufferCopy {
+                    src: 0,
+                    dst: 0,
+                    size: memory_requirements.size,
+                }],
+            );
+
+            commands.finish();
+
+            queues.queues[0].submit_nosemaphores(iter::once(&commands), None);
+
+            queues.queues[0].wait_idle().unwrap();
+            command_pool.free(iter::once(commands));
+            device.destroy_command_pool(command_pool.into_raw());
+            device.destroy_buffer(staging_buffer);
+            device.free_memory(staging_buffer_memory);
+            (device_local_buffer_memory, device_local_buffer)
         };
 
         let (palette_uniform, swapchain) = unsafe {
