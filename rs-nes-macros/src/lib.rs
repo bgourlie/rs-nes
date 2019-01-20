@@ -180,7 +180,7 @@ fn build_cycle_legend() {
             .build();
 
         let scanline_reset_descriptor = BlockDescriptorBuilder::new()
-            .on_scanlines(|scanline| scanline == &261)
+            .on_scanlines(|scanline| *scanline == 261)
             .on_pixels(|pixel| pixel == &340)
             .with_block(
                 BlockType::PpuState,
@@ -191,7 +191,7 @@ fn build_cycle_legend() {
             .build();
 
         let scanline_inc_descriptor = BlockDescriptorBuilder::new()
-            .on_pixels(|pixel| pixel == &340)
+            .on_pixels(|pixel| *pixel == 340)
             .excluding(&scanline_reset_descriptor)
             .with_block(
                 BlockType::PpuState,
