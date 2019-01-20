@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 #[cfg(test)]
 pub mod mocks;
 

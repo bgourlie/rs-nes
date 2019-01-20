@@ -1,5 +1,4 @@
 #![feature(box_patterns)]
-#![feature(proc_macro)]
 #![recursion_limit = "256"]
 
 #[macro_use]
@@ -14,15 +13,16 @@ extern crate proc_macro2;
 extern crate serde;
 extern crate syn;
 
-use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
-use std::cmp::{Eq, PartialEq};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::hash::{Hash, Hasher};
-use std::io::prelude::*;
-use std::iter::FromIterator;
-use std::path::Path;
+use serde::{ser::SerializeStruct, Serialize, Serializer};
+use std::{
+    cmp::{Eq, PartialEq},
+    collections::{HashMap, HashSet},
+    fs::File,
+    hash::{Hash, Hasher},
+    io::prelude::*,
+    iter::FromIterator,
+    path::Path,
+};
 
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
@@ -327,8 +327,8 @@ fn build_cycle_legend() {
 
     let tera = compile_templates!("rs-nes-macros/templates/**/*");
     let mut context = tera::Context::new();
-    context.add("scanlines", &scanlines);
-    context.add("cycle_code_map", &cycle_code_map);
+    context.insert("scanlines", &scanlines);
+    context.insert("cycle_code_map", &cycle_code_map);
 
     println!("rendering legend");
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
