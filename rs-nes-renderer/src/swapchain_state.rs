@@ -372,7 +372,7 @@ impl<B: Backend> SwapchainState<B> {
         unsafe {
             let command_buffer = &self.command_buffers[image_index as usize];
             let submission = Submission {
-                command_buffers: iter::once(*&command_buffer),
+                command_buffers: iter::once(command_buffer),
                 wait_semaphores: iter::once((
                     &self.acquire_semaphores[image_index as usize],
                     PipelineStage::BOTTOM_OF_PIPE,
