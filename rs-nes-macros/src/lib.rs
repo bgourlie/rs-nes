@@ -85,7 +85,6 @@ impl Serialize for Block {
 struct BlockDescriptorBuilder {
     scanlines: HashSet<usize>,
     pixels: HashSet<usize>,
-    tags: Vec<&'static str>,
     block: Option<Block>,
 }
 
@@ -94,7 +93,6 @@ impl BlockDescriptorBuilder {
         BlockDescriptorBuilder {
             scanlines: HashSet::from_iter(0..SCANLINES),
             pixels: HashSet::from_iter(0..CYCLES_PER_SCANLINE),
-            tags: Vec::new(),
             block: None,
         }
     }
@@ -136,7 +134,6 @@ impl BlockDescriptorBuilder {
         BlockDescriptor {
             scanlines: self.scanlines,
             pixels: self.pixels,
-            tags: self.tags,
             block: self
                 .block
                 .expect("You must specify a block before building"),
@@ -147,7 +144,6 @@ impl BlockDescriptorBuilder {
 struct BlockDescriptor {
     scanlines: HashSet<usize>,
     pixels: HashSet<usize>,
-    tags: Vec<&'static str>,
     block: Block,
 }
 
