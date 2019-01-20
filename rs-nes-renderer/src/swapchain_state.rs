@@ -1,0 +1,433 @@
+use std::{fs, io::Read, iter, mem};
+
+use gfx_hal::{
+    command::{self, CommandBuffer},
+    format as f,
+    format::{AsFormat, ChannelType},
+    image as i,
+    pass::{self, Subpass},
+    pool,
+    pso::{self, PipelineStage, Viewport},
+    window::Extent2D,
+    Backbuffer, Backend, CommandPool, Device, FrameSync, Graphics, Primitive, QueueGroup,
+    Submission, Surface, SwapImageIndex, Swapchain, SwapchainConfig,
+};
+use smallvec::SmallVec;
+
+use crate::{
+    nes_screen::NesScreen, palette_uniform::PaletteUniform, vertex::Vertex, FrameBufferFormat,
+    COLOR_RANGE,
+};
+
+pub struct SwapchainState<B: Backend> {
+    swapchain: B::Swapchain,
+    pub extent: i::Extent,
+    render_pass: B::RenderPass,
+    framebuffers: SmallVec<[B::Framebuffer; 2]>,
+    framebuffer_fences: SmallVec<[B::Fence; 2]>,
+    command_pools: SmallVec<[CommandPool<B, Graphics>; 2]>,
+    command_buffers: SmallVec<[CommandBuffer<B, Graphics>; 2]>,
+    frame_images: SmallVec<[(B::Image, B::ImageView); 2]>,
+    acquire_semaphores: SmallVec<[B::Semaphore; 2]>,
+    present_semaphores: SmallVec<[B::Semaphore; 2]>,
+    last_ref: usize,
+    pipeline: B::GraphicsPipeline,
+    pipeline_layout: B::PipelineLayout,
+}
+
+impl<B: Backend> SwapchainState<B> {
+    pub unsafe fn new(
+        surface: &mut B::Surface,
+        device: &B::Device,
+        physical_device: &B::PhysicalDevice,
+        queues: &QueueGroup<B, Graphics>,
+        dimensions: Extent2D,
+        nes_screen: &NesScreen<B>,
+        palette_uniform: &PaletteUniform<B>,
+        vertex_buffer: &B::Buffer,
+    ) -> Self {
+        let (caps, formats, _present_modes, _composite_alphas) =
+            surface.compatibility(&physical_device);
+        println!("formats: {:?}", formats);
+        let format = formats.map_or(FrameBufferFormat::SELF, |formats| {
+            formats
+                .iter()
+                .find(|format| format.base_format().1 == ChannelType::Srgb)
+                .cloned()
+                .unwrap_or(formats[0])
+        });
+
+        println!("Surface format: {:?}", format);
+        let swap_config = SwapchainConfig::from_caps(&caps, format, dimensions);
+        let extent = swap_config.extent.to_extent();
+        let (swapchain, backbuffer) = device
+            .create_swapchain(surface, swap_config, None)
+            .expect("Can't create swapchain");
+
+        let viewport = Viewport {
+            rect: pso::Rect {
+                x: 0,
+                y: 0,
+                w: extent.width as i16,
+                h: extent.height as i16,
+            },
+            depth: 0.0..1.0,
+        };
+
+        let render_pass = {
+            let attachment = pass::Attachment {
+                format: Some(format),
+                samples: 1,
+                ops: pass::AttachmentOps::new(
+                    pass::AttachmentLoadOp::Clear,
+                    pass::AttachmentStoreOp::Store,
+                ),
+                stencil_ops: pass::AttachmentOps::DONT_CARE,
+                layouts: i::Layout::Undefined..i::Layout::Present,
+            };
+
+            let subpass = pass::SubpassDesc {
+                colors: &[(0, i::Layout::ColorAttachmentOptimal)],
+                depth_stencil: None,
+                inputs: &[],
+                resolves: &[],
+                preserves: &[],
+            };
+
+            let dependency = pass::SubpassDependency {
+                passes: pass::SubpassRef::External..pass::SubpassRef::Pass(0),
+                stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT
+                    ..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
+                accesses: i::Access::empty()
+                    ..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
+            };
+
+            device
+                .create_render_pass(&[attachment], &[subpass], &[dependency])
+                .expect("Couldn't create render pass")
+        };
+
+        let (frame_images, framebuffers) = match backbuffer {
+            Backbuffer::Images(images) => {
+                let extent = i::Extent {
+                    width: extent.width as _,
+                    height: extent.height as _,
+                    depth: 1,
+                };
+                let pairs = images
+                    .into_iter()
+                    .map(|image| {
+                        let rtv = device
+                            .create_image_view(
+                                &image,
+                                i::ViewKind::D2,
+                                format,
+                                f::Swizzle::NO,
+                                COLOR_RANGE.clone(),
+                            )
+                            .unwrap();
+                        (image, rtv)
+                    })
+                    .collect::<Vec<_>>();
+                let fbos = pairs
+                    .iter()
+                    .map(|&(_, ref rtv)| {
+                        device
+                            .create_framebuffer(&render_pass, Some(rtv), extent)
+                            .unwrap()
+                    })
+                    .collect();
+                (pairs, fbos)
+            }
+            Backbuffer::Framebuffer(fbo) => (Vec::new(), vec![fbo]),
+        };
+
+        let iter_count = if !frame_images.is_empty() {
+            frame_images.len()
+        } else {
+            1 // GL can have zero
+        };
+
+        // TODO (nit): Avoid intermediate vec allocation (is ultimately consumed by smallvec)
+        let mut framebuffer_fences: Vec<B::Fence> = vec![];
+        let mut command_pools: Vec<CommandPool<B, Graphics>> = vec![];
+        let mut acquire_semaphores: Vec<B::Semaphore> = vec![];
+        let mut present_semaphores: Vec<B::Semaphore> = vec![];
+
+        for _ in 0..iter_count {
+            framebuffer_fences.push(device.create_fence(true).unwrap());
+            command_pools.push(
+                device
+                    .create_command_pool_typed(queues, pool::CommandPoolCreateFlags::empty())
+                    .expect("Can't create command pool"),
+            );
+
+            acquire_semaphores.push(device.create_semaphore().unwrap());
+            present_semaphores.push(device.create_semaphore().unwrap());
+        }
+
+        let pipeline_layout = device
+            .create_pipeline_layout(
+                vec![nes_screen.layout(), palette_uniform.layout()],
+                &[(pso::ShaderStageFlags::VERTEX, 0..8)],
+            )
+            .expect("Can't create pipeline layout");
+
+        let pipeline = {
+            let vs_module = {
+                let glsl = fs::read_to_string("data/quad.vert").unwrap();
+                let spirv: Vec<u8> =
+                    glsl_to_spirv::compile(&glsl, glsl_to_spirv::ShaderType::Vertex)
+                        .unwrap()
+                        .bytes()
+                        .map(|b| b.unwrap())
+                        .collect();
+                device.create_shader_module(&spirv).unwrap()
+            };
+            let fs_module = {
+                let glsl = fs::read_to_string("data/quad.frag").unwrap();
+                let spirv: Vec<u8> =
+                    glsl_to_spirv::compile(&glsl, glsl_to_spirv::ShaderType::Fragment)
+                        .unwrap()
+                        .bytes()
+                        .map(|b| b.unwrap())
+                        .collect();
+                device.create_shader_module(&spirv).unwrap()
+            };
+
+            const SHADER_ENTRY_NAME: &str = "main";
+
+            let pipeline = {
+                let (vs_entry, fs_entry) = (
+                    pso::EntryPoint::<B> {
+                        entry: SHADER_ENTRY_NAME,
+                        module: &vs_module,
+                        specialization: pso::Specialization::default(),
+                    },
+                    pso::EntryPoint::<B> {
+                        entry: SHADER_ENTRY_NAME,
+                        module: &fs_module,
+                        specialization: pso::Specialization::default(),
+                    },
+                );
+
+                let shader_entries = pso::GraphicsShaderSet {
+                    vertex: vs_entry,
+                    hull: None,
+                    domain: None,
+                    geometry: None,
+                    fragment: Some(fs_entry),
+                };
+
+                let subpass = Subpass {
+                    index: 0,
+                    main_pass: &render_pass,
+                };
+
+                let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
+                    shader_entries,
+                    Primitive::TriangleList,
+                    pso::Rasterizer::FILL,
+                    &pipeline_layout,
+                    subpass,
+                );
+                pipeline_desc.blender.targets.push(pso::ColorBlendDesc(
+                    pso::ColorMask::ALL,
+                    pso::BlendState::ALPHA,
+                ));
+                pipeline_desc.vertex_buffers.push(pso::VertexBufferDesc {
+                    binding: 0,
+                    stride: mem::size_of::<Vertex>() as u32,
+                    rate: 0,
+                });
+
+                pipeline_desc.attributes.push(pso::AttributeDesc {
+                    location: 0,
+                    binding: 0,
+                    element: pso::Element {
+                        format: f::Format::Rg32Float,
+                        offset: 0,
+                    },
+                });
+                pipeline_desc.attributes.push(pso::AttributeDesc {
+                    location: 1,
+                    binding: 0,
+                    element: pso::Element {
+                        format: f::Format::Rg32Float,
+                        offset: 8,
+                    },
+                });
+
+                device.create_graphics_pipeline(&pipeline_desc, None)
+            };
+
+            device.destroy_shader_module(vs_module);
+            device.destroy_shader_module(fs_module);
+
+            pipeline.unwrap()
+        };
+
+        let acquire_semaphores = SmallVec::from(acquire_semaphores);
+        let mut command_pools = SmallVec::<[CommandPool<B, Graphics>; 2]>::from(command_pools);
+        let mut command_buffers = SmallVec::with_capacity(2);
+
+        for i in 0..command_pools.len() {
+            let mut command_buffer = command_pools[i].acquire_command_buffer::<command::OneShot>();
+            // Pre-record the command buffers, which we will reuse
+            command_buffer.begin();
+            nes_screen.record_transfer_commands(&mut command_buffer);
+            command_buffer.set_viewports(0, &[viewport.clone()]);
+            command_buffer.set_scissors(0, &[viewport.rect]);
+            command_buffer.bind_graphics_pipeline(&pipeline);
+            command_buffer.bind_vertex_buffers(0, Some((vertex_buffer, 0)));
+            command_buffer.bind_graphics_descriptor_sets(
+                &pipeline_layout,
+                0,
+                vec![
+                    nes_screen.descriptor_set(),
+                    palette_uniform.descriptor_set(),
+                ],
+                &[],
+            );
+
+            command_buffer
+                .begin_render_pass_inline(
+                    &render_pass,
+                    &framebuffers[i],
+                    viewport.rect,
+                    &[command::ClearValue::Color(command::ClearColor::Float([
+                        0.8, 0.8, 0.8, 1.0,
+                    ]))],
+                )
+                .draw(0..6, 0..1);
+            command_buffer.finish();
+            command_buffers.push(command_buffer);
+        }
+
+        let frame_images = SmallVec::from(frame_images);
+        let framebuffer_fences = SmallVec::from(framebuffer_fences);
+        let framebuffers = SmallVec::from(framebuffers);
+        let present_semaphores = SmallVec::from(present_semaphores);
+
+        if acquire_semaphores.spilled()
+            || command_pools.spilled()
+            || command_buffers.spilled()
+            || frame_images.spilled()
+            || framebuffer_fences.spilled()
+            || framebuffers.spilled()
+            || present_semaphores.spilled()
+        {
+            panic!("Resource vector spilled");
+        }
+
+        SwapchainState {
+            swapchain,
+            command_pools,
+            command_buffers,
+            extent,
+            acquire_semaphores,
+            frame_images,
+            framebuffer_fences,
+            framebuffers,
+            present_semaphores,
+            render_pass,
+            pipeline,
+            pipeline_layout,
+            last_ref: 0,
+        }
+    }
+
+    pub fn next_acq_pre_pair_index(&mut self) -> usize {
+        if self.last_ref >= self.acquire_semaphores.len() {
+            self.last_ref = 0
+        }
+
+        let ret = self.last_ref;
+        self.last_ref += 1;
+        ret
+    }
+
+    pub fn next_swap_image_index(&mut self, semaphore_index: usize) -> Option<SwapImageIndex> {
+        let acquire_semaphore = &mut self.acquire_semaphores[semaphore_index];
+        unsafe {
+            self.swapchain
+                .acquire_image(!0, FrameSync::Semaphore(acquire_semaphore))
+                .ok()
+        }
+    }
+
+    pub fn wait_for_image_fence(&mut self, image_index: SwapImageIndex, device: &B::Device) {
+        let framebuffer_fence = &mut self.framebuffer_fences[image_index as usize];
+        unsafe {
+            device.wait_for_fence(framebuffer_fence, !0).unwrap();
+            device.reset_fence(framebuffer_fence).unwrap();
+        }
+    }
+
+    pub fn present(
+        &mut self,
+        image_index: SwapImageIndex,
+        queues: &mut QueueGroup<B, Graphics>,
+    ) -> bool {
+        unsafe {
+            let command_buffer = &self.command_buffers[image_index as usize];
+            let submission = Submission {
+                command_buffers: iter::once(*&command_buffer),
+                wait_semaphores: iter::once((
+                    &self.acquire_semaphores[image_index as usize],
+                    PipelineStage::BOTTOM_OF_PIPE,
+                )),
+                signal_semaphores: iter::once(&self.present_semaphores[image_index as usize]),
+            };
+
+            queues.queues[0].submit(
+                submission,
+                Some(&self.framebuffer_fences[image_index as usize]),
+            );
+
+            // present frame
+            self.swapchain
+                .present(
+                    &mut queues.queues[0],
+                    image_index,
+                    Some(&self.present_semaphores[image_index as usize]),
+                )
+                .is_ok()
+        }
+    }
+
+    pub fn destroy(self, device: &B::Device) {
+        unsafe {
+            device.destroy_swapchain(self.swapchain);
+            device.destroy_render_pass(self.render_pass);
+
+            for fence in self.framebuffer_fences {
+                device.wait_for_fence(&fence, !0).unwrap();
+                device.destroy_fence(fence);
+            }
+
+            for command_pool in self.command_pools {
+                device.destroy_command_pool(command_pool.into_raw());
+            }
+
+            for acquire_semaphore in self.acquire_semaphores {
+                device.destroy_semaphore(acquire_semaphore);
+            }
+
+            for present_semaphore in self.present_semaphores {
+                device.destroy_semaphore(present_semaphore);
+            }
+
+            for framebuffer in self.framebuffers {
+                device.destroy_framebuffer(framebuffer);
+            }
+
+            for (_, rtv) in self.frame_images {
+                device.destroy_image_view(rtv);
+            }
+
+            device.destroy_graphics_pipeline(self.pipeline);
+            device.destroy_pipeline_layout(self.pipeline_layout);
+        }
+    }
+}

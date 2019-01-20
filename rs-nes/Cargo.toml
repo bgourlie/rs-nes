@@ -1,0 +1,23 @@
+[package]
+name = "rs_nes"
+version = "0.0.1"
+authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
+edition = "2018"
+
+[features]
+default = []
+
+[dependencies]
+rs-nes-macros = { path = "../rs-nes-macros" }
+cpu6502 = { path = "../cpu6502" }
+byteorder = "^1.2.3"
+
+[dev-dependencies]
+asm6502 = {version = "^0.1.2"}
+rand = "*"
+time = "*"
+criterion = "^0.2"
+
+[[bench]]
+name = "render_benchmark"
+harness = false

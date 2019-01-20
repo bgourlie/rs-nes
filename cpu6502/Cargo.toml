@@ -1,0 +1,12 @@
+[package]
+name = "cpu6502"
+version = "0.1.0"
+authors = ["W. Brian Gourlie <bgourlie@gmail.com>"]
+repository = "https://github.com/bgourlie/cpu6502"
+license = "MIT"
+edition = "2018"
+
+[dev-dependencies]
+asm6502 = {version = "^0.1.2"}
+rand = "*"
+time = "*"
