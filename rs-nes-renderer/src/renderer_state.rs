@@ -43,7 +43,7 @@ impl<B: Backend> RendererState<B> {
 
         let (mut device, mut queues) = adapter
             .open_with::<_, Graphics>(1, |family| surface.supports_queue_family(family))
-            .unwrap();
+            .expect("Adapter doesn't support required capabilities");
 
         let nes_screen = NesScreen::new(
             &mut device,

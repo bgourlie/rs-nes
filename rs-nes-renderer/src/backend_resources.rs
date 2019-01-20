@@ -88,7 +88,7 @@ pub fn create_backend(
 )))]
 pub fn create_backend(
     _window_builder: WindowBuilder,
-    events_loop: &EventsLoop,
+    _events_loop: &EventsLoop,
 ) -> BackendResources<back::Backend> {
     unimplemented!()
 }
