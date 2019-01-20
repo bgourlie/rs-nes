@@ -22,10 +22,14 @@ pub use crate::{
     cart::{Cart, Nrom128, Nrom256, Uxrom},
     input::{Button, IInput, Input},
     interconnect::NesInterconnect,
-    ppu::{IPpu, Ppu, SpriteRenderer, Vram},
+    ppu::{
+        IPpu, Ppu, SpriteRenderer, Vram, PPU_BUFFER_SIZE, PPU_PIXEL_STRIDE, SCREEN_HEIGHT,
+        SCREEN_WIDTH,
+    },
     rom::NesRom,
 };
 use cpu6502::cpu::Cpu;
+pub use cpu6502::cpu::Interrupt;
 
 pub type Nes<C> = Cpu<NesInterconnect<Ppu<Vram, SpriteRenderer>, Apu, Input, C>>;
 

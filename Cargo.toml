@@ -5,6 +5,7 @@ members = [
   "rs-nes",
   "rs-nes-web",
   "rs-nes-macros",
+  "rs-nes-renderer"
 ]
 
 [profile.release]
