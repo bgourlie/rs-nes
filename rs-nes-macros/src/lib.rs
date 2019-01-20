@@ -1,4 +1,3 @@
-#![feature(box_patterns)]
 #![recursion_limit = "256"]
 
 #[macro_use]
@@ -174,8 +173,8 @@ struct Pixel<'a> {
 fn build_cycle_legend() {
     let cycle_descriptors = {
         let output_pixel_descriptor = BlockDescriptorBuilder::new()
-            .on_scanlines(|scanline| scanline < &240)
-            .on_pixels(|pixel| pixel < &256)
+            .on_scanlines(|scanline| *scanline < 240)
+            .on_pixels(|pixel| *pixel < 256)
             .with_block(
                 BlockType::PpuState,
                 quote! {
@@ -207,7 +206,7 @@ fn build_cycle_legend() {
             .build();
 
         let pixel_increment_descriptor = BlockDescriptorBuilder::new()
-            .on_pixels(|pixel| pixel < &340)
+            .on_pixels(|pixel| *pixel < 340)
             .with_block(
                 BlockType::PpuState,
                 quote! {
@@ -228,8 +227,8 @@ fn build_cycle_legend() {
     let mut cycle_id_map: HashMap<Vec<&Block>, usize> = HashMap::new();
     let mut current_block_id = 0;
     let mut scanlines: Vec<Vec<Pixel>> = Vec::with_capacity(SCANLINES);
+    println!("processing cycles...");
     for scanline in 0..SCANLINES {
-        println!("processing scanline {}", scanline);
         let mut pixels: Vec<Pixel> = Vec::with_capacity(CYCLES_PER_SCANLINE);
         for pixel in 0..CYCLES_PER_SCANLINE {
             let blocks = cycle_descriptors
@@ -243,7 +242,7 @@ fn build_cycle_legend() {
                 current_block_id += 1;
             }
 
-            let cycle_id = *cycle_id_map.get(&blocks).unwrap();
+            let cycle_id = cycle_id_map[&blocks];
 
             let cycle_implementation = CycleImplementation { cycle_id, blocks };
 
@@ -304,17 +303,17 @@ fn build_cycle_legend() {
 
             let mut code = String::new();
 
-            if bg_code.len() > 0 {
+            if !bg_code.is_empty() {
                 code.push_str("// BACKGROUND RENDERING\n\n");
                 code.push_str(&bg_code);
             }
 
-            if sprite_code.len() > 0 {
+            if !sprite_code.is_empty() {
                 code.push_str("// SPRITE RENDERING\n\n");
                 code.push_str(&sprite_code);
             }
 
-            if state_code.len() > 0 {
+            if !state_code.is_empty() {
                 code.push_str("// PPU STATE\n\n");
                 code.push_str(&state_code);
             }
@@ -336,7 +335,7 @@ fn build_cycle_legend() {
 
     println!("writing legend");
     let mut f = File::create(&legend_dest).expect("Unable to create legend file");
-    f.write(legend_html.as_bytes())
+    f.write_all(legend_html.as_bytes())
         .expect("Unable to write legend file");
 
     println!("done!");
