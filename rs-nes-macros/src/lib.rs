@@ -10,9 +10,12 @@ extern crate proc_macro2;
 extern crate serde;
 extern crate syn;
 
+use serde::ser::{Serialize, SerializeSeq, Serializer};
+
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
+    hash::{Hash, Hasher},
     io::prelude::*,
     iter::FromIterator,
     path::Path,
@@ -21,7 +24,7 @@ use std::{
 const SCANLINES: usize = 262;
 const CYCLES_PER_SCANLINE: usize = 341;
 
-#[derive(Eq, PartialEq, Hash, Debug, Copy, Clone, Serialize)]
+#[derive(Eq, PartialEq, Hash, Debug, Copy, Clone, Serialize, Ord, PartialOrd)]
 enum Operation {
     OutputPixel,
     PixelIncrement,
@@ -30,18 +33,54 @@ enum Operation {
     ScanlineReset,
 }
 
-struct BlockDescriptor {
-    scanlines: HashSet<usize>,
-    pixels: HashSet<usize>,
-    operations: HashSet<Operation>,
+#[derive(Eq, Clone, Debug)]
+struct OperationSet(HashSet<Operation>);
+
+impl Hash for OperationSet {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let OperationSet(operations) = self;
+        let mut sorted = operations.iter().collect::<Vec<&Operation>>();
+        sorted.sort();
+        for operation in sorted {
+            operation.hash(state);
+        }
+    }
 }
 
-impl BlockDescriptor {
-    fn new() -> Self {
-        BlockDescriptor {
+impl PartialEq for OperationSet {
+    fn eq(&self, other: &Self) -> bool {
+        let OperationSet(operations) = self;
+        let OperationSet(other_operations) = other;
+        return operations.len() == other_operations.len() && operations.is_subset(other_operations);
+    }
+}
+
+impl Serialize for OperationSet {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let OperationSet(operations) = self;
+        let mut state = serializer.serialize_seq(Some(operations.len()))?;
+        for operation in operations {
+            state.serialize_element(operation)?;
+        }
+        state.end()
+    }
+}
+
+struct OperationDescriptor {
+    scanlines: HashSet<usize>,
+    pixels: HashSet<usize>,
+    operation: Operation,
+}
+
+impl OperationDescriptor {
+    fn new(operation: Operation) -> Self {
+        OperationDescriptor {
             scanlines: HashSet::from_iter(0..SCANLINES),
             pixels: HashSet::from_iter(0..CYCLES_PER_SCANLINE),
-            operations: HashSet::new(),
+            operation,
         }
     }
 
@@ -61,15 +100,10 @@ impl BlockDescriptor {
         self
     }
 
-    fn excluding(mut self, other_matcher: &BlockDescriptor) -> Self {
+    fn excluding(mut self, other_matcher: &OperationDescriptor) -> Self {
         self.scanlines
             .retain(|s| !other_matcher.scanlines.contains(s));
         self.pixels.retain(|p| !other_matcher.pixels.contains(p));
-        self
-    }
-
-    fn with_operations(mut self, operations: Vec<Operation>) -> Self {
-        self.operations = HashSet::from_iter(operations);
         self
     }
 
@@ -78,40 +112,29 @@ impl BlockDescriptor {
     }
 }
 
-#[derive(Serialize, Hash, PartialEq, Eq)]
-struct CycleImplementation {
-    cycle_id: usize,
-    operations: HashSet<Operation>,
-}
-
 #[derive(Serialize)]
 struct Pixel {
     scanline: usize,
     pixel: usize,
-    cycle_implementation: CycleImplementation,
+    operations: OperationSet,
 }
 
 fn build_cycle_legend() {
     let cycle_descriptors = {
-        let output_pixel_descriptor = BlockDescriptor::new()
+        let output_pixel_descriptor = OperationDescriptor::new(Operation::OutputPixel)
             .on_scanlines(|scanline| *scanline < 240)
-            .on_pixels(|pixel| *pixel < 256)
-            .with_operations(vec![Operation::OutputPixel])
-            .build();
+            .on_pixels(|pixel| *pixel < 256);
 
-        let scanline_reset_descriptor = BlockDescriptor::new()
+        let scanline_reset_descriptor = OperationDescriptor::new(Operation::ScanlineReset)
             .on_scanlines(|scanline| *scanline == 261)
-            .on_pixels(|pixel| pixel == &340)
-            .with_operations(vec![Operation::ScanlineReset, Operation::PixelReset]);
+            .on_pixels(|pixel| pixel == &340);
 
-        let scanline_inc_descriptor = BlockDescriptor::new()
+        let scanline_inc_descriptor = OperationDescriptor::new(Operation::ScanlineIncrement)
             .on_pixels(|pixel| *pixel == 340)
-            .excluding(&scanline_reset_descriptor)
-            .with_operations(vec![Operation::ScanlineIncrement, Operation::PixelReset]);
+            .excluding(&scanline_reset_descriptor);
 
-        let pixel_increment_descriptor = BlockDescriptor::new()
-            .on_pixels(|pixel| *pixel < 340)
-            .with_operations(vec![Operation::PixelIncrement]);
+        let pixel_increment_descriptor =
+            OperationDescriptor::new(Operation::PixelIncrement).on_pixels(|pixel| *pixel < 340);
 
         let mut descriptors = Vec::new();
         descriptors.push(output_pixel_descriptor);
@@ -122,32 +145,30 @@ fn build_cycle_legend() {
         descriptors
     };
 
-    let mut cycle_id_map: HashMap<Vec<&Block>, usize> = HashMap::new();
-    let mut current_block_id = 0;
+    let mut distinct_operation_sets: HashSet<OperationSet> = HashSet::new();
     let mut scanlines: Vec<Vec<Pixel>> = Vec::with_capacity(SCANLINES);
     println!("processing cycles...");
     for scanline in 0..SCANLINES {
         let mut pixels: Vec<Pixel> = Vec::with_capacity(CYCLES_PER_SCANLINE);
         for pixel in 0..CYCLES_PER_SCANLINE {
-            let blocks = cycle_descriptors
-                .iter()
-                .filter(|descriptor| descriptor.applies_to(scanline, pixel))
-                .map(|descriptor| &descriptor.block)
-                .collect::<Vec<&Block>>();
+            let operations = {
+                let cycle_operations = cycle_descriptors
+                    .iter()
+                    .filter(|descriptor| descriptor.applies_to(scanline, pixel))
+                    .map(|descriptor| descriptor.operation)
+                    .collect::<HashSet<Operation>>();
 
-            if !cycle_id_map.contains_key(&blocks) {
-                cycle_id_map.insert(blocks.clone(), current_block_id);
-                current_block_id += 1;
+                OperationSet(cycle_operations)
+            };
+
+            if !distinct_operation_sets.contains(&operations) {
+                distinct_operation_sets.insert(operations.clone());
             }
-
-            let cycle_id = cycle_id_map[&blocks];
-
-            let cycle_implementation = CycleImplementation { cycle_id, blocks };
 
             pixels.push(Pixel {
                 scanline,
                 pixel,
-                cycle_implementation,
+                operations,
             });
         }
         scanlines.push(pixels);
@@ -155,45 +176,27 @@ fn build_cycle_legend() {
 
     println!(
         "Done processing cycles, {} distinct blocks",
-        cycle_id_map.len()
+        distinct_operation_sets.len()
     );
 
-    let cycle_code_map = {
-        let mut map: HashMap<usize, String> = HashMap::new();
-
-        for (blocks, cycle_id) in cycle_id_map.iter() {
-            let bg_code = {
-                let mut code = String::new();
-                blocks.iter().for_each(|b| {
-                    code.push_str(&b.to_string());
-                    code.push_str("\n");
-                });
-                code
-            };
-
-            let mut code = String::new();
-
-            if !bg_code.is_empty() {
-                code.push_str("// BACKGROUND RENDERING\n\n");
-                code.push_str(&bg_code);
-            }
-
-            map.insert(*cycle_id, code);
+    let cycle_operations_map = {
+        let mut map: HashMap<usize, OperationSet> = HashMap::new();
+        let mut cycle_id = 0;
+        for operation_set in distinct_operation_sets.into_iter() {
+            map.insert(cycle_id, operation_set);
+            cycle_id += 1;
         }
 
         map
     };
 
     let tera = compile_templates!("rs-nes-macros/templates/**/*");
+
     let mut context = tera::Context::new();
     context.insert("scanlines", &scanlines);
-    context.insert("cycle_code_map", &cycle_code_map);
-
-    println!("rendering legend");
+    context.insert("cycle_code_map", &cycle_operations_map);
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
     let legend_dest = Path::new("ppu_cycle_map.html");
-
-    println!("writing legend");
     let mut f = File::create(&legend_dest).expect("Unable to create legend file");
     f.write_all(legend_html.as_bytes())
         .expect("Unable to write legend file");

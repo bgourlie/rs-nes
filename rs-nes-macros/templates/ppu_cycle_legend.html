@@ -3,40 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>PPU Cycle Legend</title>
-    <style type="text/css">
-        #scanlines {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .r {
-          display: flex;
-        }
-
-        .p { /* pixel */
-            height: 2px;
-            width: 2px;
-            background-color: black;
-            opacity: 0.5;
-        }
-
-        .output_pixel { /* visible */
-            opacity: 1
-        }
-    </style>
 </head>
 <body>
 
-<div id="scanlines">
-    {%- for scanline in scanlines -%}
-    <div class="r">
-        {%- for pixel in scanline -%}
-        <div id="{{pixel.scanline}}-{{pixel.pixel}}"
-             class="p {% for block in pixel.cycle_implementation.blocks %}{% endfor %}"></div>
-        {%- endfor -%}
-    </div>
-    {%- endfor -%}
-</div>
+<canvas id="screen" width="1023" height="786">
+</canvas>
 
 {% for cycle_id, code in cycle_code_map %}
 <div>
@@ -46,15 +17,25 @@
 {% endfor %}
 
 <script>
-    const scanlineContainer = document.getElementById("scanlines");
-    scanlineContainer.addEventListener("mouseover", (e) => {
-        if (!e.target.classList.contains("p")) {
-            return
-        }
+    const SCANLINES = 262;
+    const CYCLES_PER_SCANLINE = 341;
+    const PIXELS_PER_CYCLE = 2;
+    const MARGIN_WIDTH = 1;
+    const PIXEL_STRIDE = PIXELS_PER_CYCLE + MARGIN_WIDTH;
+    const SCREEN_HEIGHT = SCANLINES * PIXEL_STRIDE;
+    const SCREEN_WIDTH = CYCLES_PER_SCANLINE * PIXEL_STRIDE;
+    console.log(`${SCREEN_WIDTH},${SCREEN_HEIGHT}`);
+    const canvas = document.getElementById("screen");
+    const ctx = canvas.getContext("2d");
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        const [scanline, pixel] = e.target.id.split("-");
-        console.log(`Scanline ${scanline} Pixel ${pixel}`);
-    });
+    ctx.fillStyle = "gray";
+    for(let y = 0; y < SCANLINES; y += 1) {
+        for(let x = 0; x < CYCLES_PER_SCANLINE; x += 1) {
+            ctx.fillRect(x * PIXEL_STRIDE, y * PIXEL_STRIDE, PIXELS_PER_CYCLE, PIXELS_PER_CYCLE);
+        }
+    }
+
 </script>
 </body>
 </html>
