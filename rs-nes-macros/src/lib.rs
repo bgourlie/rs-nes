@@ -112,13 +112,6 @@ impl OperationDescriptor {
     }
 }
 
-#[derive(Serialize)]
-struct Pixel {
-    scanline: usize,
-    pixel: usize,
-    operations: OperationSet,
-}
-
 fn build_cycle_legend() {
     let cycle_descriptors = {
         let output_pixel_descriptor = OperationDescriptor::new(Operation::OutputPixel)
@@ -146,10 +139,10 @@ fn build_cycle_legend() {
     };
 
     let mut distinct_operation_sets: HashSet<OperationSet> = HashSet::new();
-    let mut scanlines: Vec<Vec<Pixel>> = Vec::with_capacity(SCANLINES);
+    let mut scanlines: Vec<Vec<OperationSet>> = Vec::with_capacity(SCANLINES);
     println!("processing cycles...");
     for scanline in 0..SCANLINES {
-        let mut pixels: Vec<Pixel> = Vec::with_capacity(CYCLES_PER_SCANLINE);
+        let mut pixels: Vec<OperationSet> = Vec::with_capacity(CYCLES_PER_SCANLINE);
         for pixel in 0..CYCLES_PER_SCANLINE {
             let operations = {
                 let cycle_operations = cycle_descriptors
@@ -165,11 +158,7 @@ fn build_cycle_legend() {
                 distinct_operation_sets.insert(operations.clone());
             }
 
-            pixels.push(Pixel {
-                scanline,
-                pixel,
-                operations,
-            });
+            pixels.push(operations);
         }
         scanlines.push(pixels);
     }
@@ -195,6 +184,16 @@ fn build_cycle_legend() {
     let mut context = tera::Context::new();
     context.insert("scanlines", &scanlines);
     context.insert("cycle_code_map", &cycle_operations_map);
+    context.insert(
+        "operations",
+        &[
+            Operation::OutputPixel,
+            Operation::PixelIncrement,
+            Operation::PixelReset,
+            Operation::ScanlineIncrement,
+            Operation::ScanlineReset,
+        ],
+    );
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
     let legend_dest = Path::new("ppu_cycle_map.html");
     let mut f = File::create(&legend_dest).expect("Unable to create legend file");

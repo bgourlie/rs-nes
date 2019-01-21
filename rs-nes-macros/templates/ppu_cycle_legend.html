@@ -9,12 +9,7 @@
 <canvas id="screen" width="1023" height="786">
 </canvas>
 
-{% for cycle_id, code in cycle_code_map %}
-<div>
-    <h4>Cycle {{cycle_id}}</h4>
-    <pre>{{code}}</pre>
-</div>
-{% endfor %}
+<div id="operation_buttons"></div>
 
 <script>
     const SCANLINES = 262;
@@ -24,18 +19,40 @@
     const PIXEL_STRIDE = PIXELS_PER_CYCLE + MARGIN_WIDTH;
     const SCREEN_HEIGHT = SCANLINES * PIXEL_STRIDE;
     const SCREEN_WIDTH = CYCLES_PER_SCANLINE * PIXEL_STRIDE;
-    console.log(`${SCREEN_WIDTH},${SCREEN_HEIGHT}`);
     const canvas = document.getElementById("screen");
+    const operationButtons = document.getElementById("operation_buttons");
     const ctx = canvas.getContext("2d");
-    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    ctx.fillStyle = "gray";
-    for(let y = 0; y < SCANLINES; y += 1) {
-        for(let x = 0; x < CYCLES_PER_SCANLINE; x += 1) {
-            ctx.fillRect(x * PIXEL_STRIDE, y * PIXEL_STRIDE, PIXELS_PER_CYCLE, PIXELS_PER_CYCLE);
-        }
+    const operations = {{operations | safe | json_encode()}}
+    const pixelMap = {{ cycle_code_map | safe | json_encode() }};
+    const scanlines = {{ scanlines | safe | json_encode() }};
+
+    function updateScreen(operation) {
+        window.requestAnimationFrame(() => {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            for(let y = 0; y < scanlines.length; y += 1) {
+                for(let x = 0; x < scanlines[y].length; x += 1) {
+                    if (scanlines[y][x].includes(operation)) {
+                        ctx.fillStyle = "red";
+                    } else {
+                        ctx.fillStyle = "gray";
+                    }
+                    ctx.fillRect(x * PIXEL_STRIDE, y * PIXEL_STRIDE, PIXELS_PER_CYCLE, PIXELS_PER_CYCLE);
+                }
+            }
+        });
     }
 
+    for (let operation of operations) {
+        const button = document.createElement("button");
+        button.appendChild(document.createTextNode(operation));
+        button.addEventListener("click", () => updateScreen(operation));
+        operationButtons.appendChild(button);
+    }
+
+    updateScreen("");
 </script>
 </body>
 </html>
