@@ -69,27 +69,27 @@ impl Serialize for OperationSet {
 }
 
 struct OperationDescriptor {
-    pixels: HashSet<usize>,
+    cycles: HashSet<usize>,
     operation: Operation,
 }
 
 impl OperationDescriptor {
     fn new(operation: Operation) -> Self {
         OperationDescriptor {
-            pixels: HashSet::new(),
+            cycles: HashSet::new(),
             operation,
         }
     }
 
-    fn on_pixels<F>(mut self, pixel_matcher: F) -> Self
+    fn on_cycles<F>(mut self, cycle_matcher: F) -> Self
     where
         F: Fn(usize, usize) -> bool,
     {
         for scanline in 0..SCANLINES {
             for pixel in 0..CYCLES_PER_SCANLINE {
-                if pixel_matcher(scanline, pixel) {
-                    let pixel = scanline * CYCLES_PER_SCANLINE + pixel;
-                    self.pixels.insert(pixel);
+                if cycle_matcher(scanline, pixel) {
+                    let cycle = scanline * CYCLES_PER_SCANLINE + pixel;
+                    self.cycles.insert(cycle);
                 }
             }
         }
@@ -97,36 +97,41 @@ impl OperationDescriptor {
     }
 
     fn excluding(mut self, other_matcher: &OperationDescriptor) -> Self {
-        self.pixels.retain(|p| !other_matcher.pixels.contains(p));
+        self.cycles
+            .retain(|cycle| !other_matcher.cycles.contains(cycle));
         self
     }
 
     fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
-        let pixel = scanline * CYCLES_PER_SCANLINE + pixel;
-        self.pixels.contains(&pixel)
+        let cycle = scanline * CYCLES_PER_SCANLINE + pixel;
+        self.cycles.contains(&cycle)
     }
 }
 
 fn build_cycle_legend() {
     let cycle_descriptors = {
         let output_pixel_descriptor = OperationDescriptor::new(Operation::OutputPixel)
-            .on_pixels(|scanline, pixel| scanline < 240 && pixel < 256);
+            .on_cycles(|scanline, pixel| scanline < 240 && pixel < 256);
 
         let scanline_reset_descriptor = OperationDescriptor::new(Operation::ScanlineReset)
-            .on_pixels(|scanline, pixel| scanline == 261 && pixel == 340);
+            .on_cycles(|scanline, pixel| scanline == 261 && pixel == 340);
 
         let scanline_inc_descriptor = OperationDescriptor::new(Operation::ScanlineIncrement)
-            .on_pixels(|_, pixel| pixel == 340)
+            .on_cycles(|_, pixel| pixel == 340)
             .excluding(&scanline_reset_descriptor);
 
         let pixel_increment_descriptor =
-            OperationDescriptor::new(Operation::PixelIncrement).on_pixels(|_, pixel| pixel < 340);
+            OperationDescriptor::new(Operation::PixelIncrement).on_cycles(|_, pixel| pixel < 340);
+
+        let pixel_reset_descriptor =
+            OperationDescriptor::new(Operation::PixelReset).on_cycles(|_, pixel| pixel == 340);
 
         let mut descriptors = Vec::new();
         descriptors.push(output_pixel_descriptor);
         descriptors.push(scanline_inc_descriptor);
         descriptors.push(scanline_reset_descriptor);
         descriptors.push(pixel_increment_descriptor);
+        descriptors.push(pixel_reset_descriptor);
 
         descriptors
     };
