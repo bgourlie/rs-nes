@@ -21,7 +21,11 @@ use std::{
 };
 
 const SCANLINES: usize = 262;
-const CYCLES_PER_SCANLINE: usize = 341;
+const PIXELS_PER_SCANLINE: usize = 341;
+const VBLANK_SCANLINE: usize = 241;
+const VBLANK_PIXEL: usize = 1;
+const LAST_SCANLINE: usize = 261;
+const LAST_PIXEL: usize = 340;
 
 #[derive(Eq, PartialEq, Hash, Debug, Copy, Clone, Serialize, Ord, PartialOrd)]
 enum Operation {
@@ -29,7 +33,12 @@ enum Operation {
     PixelIncrement,
     ScanlineIncrement,
     PixelReset,
+    SetVblank,
     ScanlineReset,
+    ClearVblankAndSpriteZeroHit,
+    OddFrameCycleSkip,
+    NametableFetch,
+    AttributeFetch,
 }
 
 #[derive(Eq, Clone, Debug)]
@@ -86,9 +95,9 @@ impl OperationDescriptor {
         F: Fn(usize, usize) -> bool,
     {
         for scanline in 0..SCANLINES {
-            for pixel in 0..CYCLES_PER_SCANLINE {
+            for pixel in 0..PIXELS_PER_SCANLINE {
                 if cycle_matcher(scanline, pixel) {
-                    let cycle = scanline * CYCLES_PER_SCANLINE + pixel;
+                    let cycle = scanline * PIXELS_PER_SCANLINE + pixel;
                     self.cycles.insert(cycle);
                 }
             }
@@ -103,45 +112,72 @@ impl OperationDescriptor {
     }
 
     fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
-        let cycle = scanline * CYCLES_PER_SCANLINE + pixel;
+        let cycle = scanline * PIXELS_PER_SCANLINE + pixel;
         self.cycles.contains(&cycle)
     }
 }
 
 fn build_cycle_legend() {
     let cycle_descriptors = {
-        let output_pixel_descriptor = OperationDescriptor::new(Operation::OutputPixel)
+        let output_pixel = OperationDescriptor::new(Operation::OutputPixel)
             .on_cycles(|scanline, pixel| scanline < 240 && pixel < 256);
 
-        let scanline_reset_descriptor = OperationDescriptor::new(Operation::ScanlineReset)
-            .on_cycles(|scanline, pixel| scanline == 261 && pixel == 340);
+        let scanline_reset = OperationDescriptor::new(Operation::ScanlineReset)
+            .on_cycles(|scanline, pixel| scanline == LAST_SCANLINE && pixel == LAST_PIXEL);
 
-        let scanline_inc_descriptor = OperationDescriptor::new(Operation::ScanlineIncrement)
-            .on_cycles(|_, pixel| pixel == 340)
-            .excluding(&scanline_reset_descriptor);
+        let scanline_inc = OperationDescriptor::new(Operation::ScanlineIncrement)
+            .on_cycles(|_, pixel| pixel == LAST_PIXEL)
+            .excluding(&scanline_reset);
 
-        let pixel_increment_descriptor =
-            OperationDescriptor::new(Operation::PixelIncrement).on_cycles(|_, pixel| pixel < 340);
+        let pixel_increment = OperationDescriptor::new(Operation::PixelIncrement)
+            .on_cycles(|_, pixel| pixel < LAST_PIXEL);
 
-        let pixel_reset_descriptor =
-            OperationDescriptor::new(Operation::PixelReset).on_cycles(|_, pixel| pixel == 340);
+        let pixel_reset = OperationDescriptor::new(Operation::PixelReset)
+            .on_cycles(|_, pixel| pixel == LAST_PIXEL);
 
-        let mut descriptors = Vec::new();
-        descriptors.push(output_pixel_descriptor);
-        descriptors.push(scanline_inc_descriptor);
-        descriptors.push(scanline_reset_descriptor);
-        descriptors.push(pixel_increment_descriptor);
-        descriptors.push(pixel_reset_descriptor);
+        let set_vblank = OperationDescriptor::new(Operation::SetVblank)
+            .on_cycles(|scanline, pixel| scanline == VBLANK_SCANLINE && pixel == VBLANK_PIXEL);
 
-        descriptors
+        let clear_vblank_and_sprite_zero_hit =
+            OperationDescriptor::new(Operation::ClearVblankAndSpriteZeroHit)
+                .on_cycles(|scanline, pixel| scanline == LAST_SCANLINE && pixel == VBLANK_PIXEL);
+
+        let odd_frame_cycle_skip = OperationDescriptor::new(Operation::OddFrameCycleSkip)
+            .on_cycles(|scanline, pixel| scanline == LAST_SCANLINE && pixel == 339);
+
+        let nametable_fetch =
+            OperationDescriptor::new(Operation::NametableFetch).on_cycles(|scanline, pixel| {
+                bg_rendering_cycle(scanline, pixel) && (pixel % 8 == 1 || pixel == 339)
+            });
+
+        let attribute_fetch =
+            OperationDescriptor::new(Operation::AttributeFetch).on_cycles(|scanline, pixel| {
+                bg_rendering_cycle(scanline, pixel)
+                    && !(scanline == LAST_SCANLINE && pixel > 336)
+                    && pixel % 8 == 3
+                    && pixel != 339
+            });
+
+        vec![
+            output_pixel,
+            scanline_inc,
+            scanline_reset,
+            pixel_increment,
+            pixel_reset,
+            set_vblank,
+            clear_vblank_and_sprite_zero_hit,
+            odd_frame_cycle_skip,
+            nametable_fetch,
+            attribute_fetch,
+        ]
     };
 
     let mut distinct_operation_sets: HashSet<OperationSet> = HashSet::new();
     let mut scanlines: Vec<Vec<OperationSet>> = Vec::with_capacity(SCANLINES);
     println!("processing cycles...");
     for scanline in 0..SCANLINES {
-        let mut pixels: Vec<OperationSet> = Vec::with_capacity(CYCLES_PER_SCANLINE);
-        for pixel in 0..CYCLES_PER_SCANLINE {
+        let mut pixels: Vec<OperationSet> = Vec::with_capacity(PIXELS_PER_SCANLINE);
+        for pixel in 0..PIXELS_PER_SCANLINE {
             let operations = {
                 let cycle_operations = cycle_descriptors
                     .iter()
@@ -190,6 +226,11 @@ fn build_cycle_legend() {
             Operation::PixelReset,
             Operation::ScanlineIncrement,
             Operation::ScanlineReset,
+            Operation::SetVblank,
+            Operation::ClearVblankAndSpriteZeroHit,
+            Operation::OddFrameCycleSkip,
+            Operation::NametableFetch,
+            Operation::AttributeFetch,
         ],
     );
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
@@ -199,6 +240,14 @@ fn build_cycle_legend() {
         .expect("Unable to write legend file");
 
     println!("done!");
+}
+
+fn bg_rendering_cycle(scanline: usize, x: usize) -> bool {
+    bg_rendering_scanline(scanline) && ((x > 0 && x < 258) || x > 320)
+}
+
+fn bg_rendering_scanline(scanline: usize) -> bool {
+    scanline < 240 || scanline == 261
 }
 
 #[proc_macro_attribute]
