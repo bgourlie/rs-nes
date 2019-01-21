@@ -17,7 +17,6 @@ use std::{
     fs::File,
     hash::{Hash, Hasher},
     io::prelude::*,
-    iter::FromIterator,
     path::Path,
 };
 
@@ -70,7 +69,6 @@ impl Serialize for OperationSet {
 }
 
 struct OperationDescriptor {
-    scanlines: HashSet<usize>,
     pixels: HashSet<usize>,
     operation: Operation,
 }
@@ -78,56 +76,51 @@ struct OperationDescriptor {
 impl OperationDescriptor {
     fn new(operation: Operation) -> Self {
         OperationDescriptor {
-            scanlines: HashSet::from_iter(0..SCANLINES),
-            pixels: HashSet::from_iter(0..CYCLES_PER_SCANLINE),
+            pixels: HashSet::new(),
             operation,
         }
     }
 
-    fn on_scanlines<F>(mut self, scanline_matcher: F) -> Self
-    where
-        for<'r> F: FnMut(&'r usize) -> bool,
-    {
-        self.scanlines.retain(scanline_matcher);
-        self
-    }
-
     fn on_pixels<F>(mut self, pixel_matcher: F) -> Self
     where
-        for<'r> F: FnMut(&'r usize) -> bool,
+        F: Fn(usize, usize) -> bool,
     {
-        self.pixels.retain(pixel_matcher);
+        for scanline in 0..SCANLINES {
+            for pixel in 0..CYCLES_PER_SCANLINE {
+                if pixel_matcher(scanline, pixel) {
+                    let pixel = scanline * CYCLES_PER_SCANLINE + pixel;
+                    self.pixels.insert(pixel);
+                }
+            }
+        }
         self
     }
 
     fn excluding(mut self, other_matcher: &OperationDescriptor) -> Self {
-        self.scanlines
-            .retain(|s| !other_matcher.scanlines.contains(s));
         self.pixels.retain(|p| !other_matcher.pixels.contains(p));
         self
     }
 
     fn applies_to(&self, scanline: usize, pixel: usize) -> bool {
-        self.scanlines.contains(&scanline) && self.pixels.contains(&pixel)
+        let pixel = scanline * CYCLES_PER_SCANLINE + pixel;
+        self.pixels.contains(&pixel)
     }
 }
 
 fn build_cycle_legend() {
     let cycle_descriptors = {
         let output_pixel_descriptor = OperationDescriptor::new(Operation::OutputPixel)
-            .on_scanlines(|scanline| *scanline < 240)
-            .on_pixels(|pixel| *pixel < 256);
+            .on_pixels(|scanline, pixel| scanline < 240 && pixel < 256);
 
         let scanline_reset_descriptor = OperationDescriptor::new(Operation::ScanlineReset)
-            .on_scanlines(|scanline| *scanline == 261)
-            .on_pixels(|pixel| pixel == &340);
+            .on_pixels(|scanline, pixel| scanline == 261 && pixel == 340);
 
         let scanline_inc_descriptor = OperationDescriptor::new(Operation::ScanlineIncrement)
-            .on_pixels(|pixel| *pixel == 340)
+            .on_pixels(|_, pixel| pixel == 340)
             .excluding(&scanline_reset_descriptor);
 
         let pixel_increment_descriptor =
-            OperationDescriptor::new(Operation::PixelIncrement).on_pixels(|pixel| *pixel < 340);
+            OperationDescriptor::new(Operation::PixelIncrement).on_pixels(|_, pixel| pixel < 340);
 
         let mut descriptors = Vec::new();
         descriptors.push(output_pixel_descriptor);
