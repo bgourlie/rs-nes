@@ -3,13 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <title>PPU Cycle Legend</title>
+  <style>
+    #container {
+      display: flex;
+    }
+
+    #operation_buttons {
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
 </head>
 <body>
 
-<canvas id="screen" width="1023" height="786">
-</canvas>
+<div id="container">
+  <div id="operation_buttons"></div>
+  <canvas id="screen" width="1023" height="786">
+  </canvas>
+</div>
 
-<div id="operation_buttons"></div>
 
 <script>
     const SCANLINES = 262;
@@ -27,14 +39,18 @@
     const pixelMap = {{ cycle_code_map | safe | json_encode() }};
     const scanlines = {{ scanlines | safe | json_encode() }};
 
-    function updateScreen(operation) {
+    function updateScreen() {
+        let inputs = document.querySelectorAll("#operation_buttons input[type='checkbox']:checked");
+        console.log(inputs);
+        let operations = Array.from(inputs).map(e => e.dataset.operation);
+        console.log(operations);
         window.requestAnimationFrame(() => {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
             for(let y = 0; y < scanlines.length; y += 1) {
                 for(let x = 0; x < scanlines[y].length; x += 1) {
-                    if (scanlines[y][x].includes(operation)) {
+                    if (scanlines[y][x].some(o => operations.includes(o))) {
                         ctx.fillStyle = "red";
                     } else {
                         ctx.fillStyle = "gray";
@@ -46,13 +62,17 @@
     }
 
     for (let operation of operations) {
-        const button = document.createElement("button");
-        button.appendChild(document.createTextNode(operation));
-        button.addEventListener("click", () => updateScreen(operation));
-        operationButtons.appendChild(button);
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.dataset.operation = operation;
+        checkbox.addEventListener("click", () => updateScreen());
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(operation));
+        operationButtons.appendChild(label);
     }
 
-    updateScreen("");
+    updateScreen(["BackgroundLowByteFetch", "BackgroundHighByteFetch"]);
 </script>
 </body>
 </html>

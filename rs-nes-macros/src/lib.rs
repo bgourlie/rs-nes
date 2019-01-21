@@ -39,6 +39,8 @@ enum Operation {
     OddFrameCycleSkip,
     NametableFetch,
     AttributeFetch,
+    BackgroundLowByteFetch,
+    BackgroundHighByteFetch,
 }
 
 #[derive(Eq, Clone, Debug)]
@@ -158,6 +160,22 @@ fn build_cycle_legend() {
                     && pixel != 339
             });
 
+        let bg_low_fetch = OperationDescriptor::new(Operation::BackgroundLowByteFetch).on_cycles(
+            |scanline, pixel| {
+                bg_rendering_cycle(scanline, pixel)
+                    && !(scanline == LAST_SCANLINE && pixel > 336)
+                    && pixel % 8 == 5
+            },
+        );
+
+        let bg_high_fetch = OperationDescriptor::new(Operation::BackgroundHighByteFetch).on_cycles(
+            |scanline, pixel| {
+                bg_rendering_cycle(scanline, pixel)
+                    && !(scanline == LAST_SCANLINE && pixel > 336)
+                    && pixel % 8 == 7
+            },
+        );
+
         vec![
             output_pixel,
             scanline_inc,
@@ -169,6 +187,8 @@ fn build_cycle_legend() {
             odd_frame_cycle_skip,
             nametable_fetch,
             attribute_fetch,
+            bg_low_fetch,
+            bg_high_fetch,
         ]
     };
 
@@ -231,6 +251,8 @@ fn build_cycle_legend() {
             Operation::OddFrameCycleSkip,
             Operation::NametableFetch,
             Operation::AttributeFetch,
+            Operation::BackgroundLowByteFetch,
+            Operation::BackgroundHighByteFetch,
         ],
     );
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
