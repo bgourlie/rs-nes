@@ -41,6 +41,10 @@ enum Operation {
     AttributeFetch,
     BackgroundLowByteFetch,
     BackgroundHighByteFetch,
+    IncHoriV,
+    IncVertV,
+    SetHoriVEqHoriT,
+    SetVertVEqVertT,
 }
 
 #[derive(Eq, Clone, Debug)]
@@ -176,6 +180,23 @@ fn build_cycle_legend() {
             },
         );
 
+        // The PPU frame timing diagram doesn't show pixel 256 as including this operation, but
+        // notes that it technically does occur, but is subsequently cleared the following frame.
+        // I'm including this operation on pixel 256 for now.
+        let inc_horizontal_v =
+            OperationDescriptor::new(Operation::IncHoriV).on_cycles(|scanline, pixel| {
+                bg_rendering_cycle(scanline, pixel) && pixel % 8 == 0 // && pixel != 256
+            });
+
+        let inc_vertical_v = OperationDescriptor::new(Operation::IncVertV)
+            .on_cycles(|scanline, pixel| bg_rendering_cycle(scanline, pixel) && pixel == 256);
+
+        let hori_v_eq_hori_t = OperationDescriptor::new(Operation::SetHoriVEqHoriT)
+            .on_cycles(|scanline, pixel| bg_rendering_cycle(scanline, pixel) && pixel == 257);
+
+        let vert_v_eq_vert_t = OperationDescriptor::new(Operation::SetVertVEqVertT)
+            .on_cycles(|scanline, pixel| scanline == LAST_SCANLINE && pixel >= 280 && pixel <= 304);
+
         vec![
             output_pixel,
             scanline_inc,
@@ -189,6 +210,10 @@ fn build_cycle_legend() {
             attribute_fetch,
             bg_low_fetch,
             bg_high_fetch,
+            inc_horizontal_v,
+            inc_vertical_v,
+            hori_v_eq_hori_t,
+            vert_v_eq_vert_t,
         ]
     };
 
@@ -253,6 +278,10 @@ fn build_cycle_legend() {
             Operation::AttributeFetch,
             Operation::BackgroundLowByteFetch,
             Operation::BackgroundHighByteFetch,
+            Operation::IncHoriV,
+            Operation::IncVertV,
+            Operation::SetHoriVEqHoriT,
+            Operation::SetVertVEqVertT,
         ],
     );
     let legend_html = tera.render("ppu_cycle_legend.html", &context).unwrap();
