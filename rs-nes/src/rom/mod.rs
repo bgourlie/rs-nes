@@ -1,3 +1,4 @@
+// TODO: nes-rom-loader which was lifted from this repo
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
     fmt::{self, Debug, Formatter},

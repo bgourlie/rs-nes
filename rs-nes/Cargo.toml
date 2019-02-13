@@ -9,6 +9,7 @@ default = []
 native_client = ["sdl2"]
 
 [dependencies]
+# TODO: nes-rom-loader which was lifted from this repo
 rs-nes-macros = { path = "../rs-nes-macros" }
 cpu6502 = { path = "../cpu6502" }
 byteorder = "^1.2.3"
